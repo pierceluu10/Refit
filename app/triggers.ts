@@ -6,6 +6,7 @@ import { shutdownsArrived, type DeadApiList } from '../dead-apis/list.ts';
 import { readJsonOr, writeJson } from '../dead-apis/proposals.ts';
 import { InvalidRepoError } from './git.ts';
 import { GitHubApiError } from './github.ts';
+import { messageOf } from './redact.ts';
 import { REPO_PATTERN } from './types.ts';
 import type { ForgetJob, InstallationTokens, JobQueue, UnderstandJob } from './types.ts';
 
@@ -22,6 +23,7 @@ export type ScanCause =
   | 'shutdown-date'
   | 'scanner-change'
   | 'check-retry'
+  | 'fix-retry'
   | 'manual';
 export type SkipCause = 'unchanged-clean' | 'unchanged-dirty';
 
@@ -35,7 +37,8 @@ export type RepoState = {
   checkSettled: boolean; // false when the AI check failed or was capped, so the scan is worth repeating
   findings: number; // live and unclear: the ones that keep a repo from being clean
   unlistedProviders: string[];
-  attempted: string[]; // live findings a fix has already been started for
+  attempted: string[]; // live findings a fix has had its try on: a PR or a real verdict
+  fixPending?: boolean; // a live finding's fix failed or never got to run, so a tick tries it again
 };
 
 export type TriggerRecord = {
@@ -51,7 +54,7 @@ export type TriggerRecord = {
   clean?: boolean;
   findings?: number;
   unlistedProviders?: string[];
-  fix?: 'ran' | 'failed' | 'already-attempted';
+  fix?: 'ran' | 'unfinished' | 'failed' | 'already-attempted';
   error?: string;
   seconds: number;
   costUsd: number;
@@ -79,6 +82,7 @@ export function decide(
   }
   if (state.scannerVersion !== scannerVersion) return { scan: true, why: 'scanner-change' };
   if (!state.checkSettled) return { scan: true, why: 'check-retry' };
+  if (state.fixPending) return { scan: true, why: 'fix-retry' };
   return { scan: false, why: state.clean ? 'unchanged-clean' : 'unchanged-dirty', state };
 }
 
@@ -91,16 +95,21 @@ export function createTriggerStore(dir: string) {
     if (!REPO_PATTERN.test(repo)) throw new InvalidRepoError(repo);
     return path.join(dir, 'repos', `${repo}.json`);
   };
+  const removed = new Map<string, number>();
   const append = async (record: TriggerRecord) => {
     await mkdir(dir, { recursive: true });
-    await appendFile(logFile, `${JSON.stringify(record)}\n`);
+    // Newline first too: a line torn by a crash ends there, instead of swallowing this record.
+    await appendFile(logFile, `\n${JSON.stringify(record)}\n`);
   };
   return {
     append,
+    /** How many times this process removed the repo, so a job can tell it was removed while it ran. */
+    removals: (repo: string) => removed.get(repo) ?? 0,
     state: (repo: string) => readJsonOr<RepoState | undefined>(stateFile(repo), undefined),
     saveState: (repo: string, state: RepoState) => writeJson(stateFile(repo), state),
     /** A removed repo stops being watched, so it must not read as a repo that went quiet. */
-    async forget(job: ForgetJob, at: Date) {
+    async forget(job: Pick<ForgetJob, 'repo' | 'installationId'>, at: Date) {
+      removed.set(job.repo, (removed.get(job.repo) ?? 0) + 1);
       await rm(stateFile(job.repo), { force: true });
       await append({
         at: at.toISOString(),
@@ -139,7 +148,7 @@ export function createTriggerStore(dir: string) {
         } catch (error) {
           if (!(error instanceof SyntaxError)) throw error;
           // A crash mid-append tears one line. Losing that line beats losing the record.
-          console.error(`trigger log: skipped an unreadable line: ${error.message}`);
+          console.error(`trigger log: skipped an unreadable line: ${messageOf(error)}`);
           return [];
         }
       });
@@ -157,6 +166,7 @@ export type TickDeps = {
 /** Queues a check of every installed repo. Each job then decides for itself whether to scan. */
 export function createTick(deps: TickDeps) {
   return async (): Promise<void> => {
+    const bugs: unknown[] = [];
     for (const installationId of await deps.listInstallations()) {
       try {
         const repos = await deps.listRepos(await deps.tokens.token(installationId));
@@ -164,18 +174,20 @@ export function createTick(deps: TickDeps) {
           await deps.queue.enqueue({ kind: 'understand', installationId, repo, reason: 'clock' });
         }
       } catch (error) {
-        if (!(error instanceof GitHubApiError)) throw error;
         // One broken installation must not stop the rest. Its repos show up stale in the summary.
-        console.error(`clock: installation ${installationId}: ${error.message}`);
+        console.error(`clock: installation ${installationId}: ${messageOf(error)}`);
+        // fetch's network failure is a TypeError too, so a bug can only be told from it by still failing.
+        if (!(error instanceof GitHubApiError)) bugs.push(error);
       }
     }
+    if (bugs.length > 0) throw bugs[0];
   };
 }
 
 /** Ticks now and then on the interval, so a restart catches up on what it missed. Returns the stop. */
 export function startClock(tick: () => Promise<void>, intervalMs = CLOCK_INTERVAL_MS): () => void {
   const fire = () =>
-    tick().catch((error: Error) => console.error(`clock tick failed: ${error.message}`));
+    tick().catch((error: unknown) => console.error(`clock tick failed: ${messageOf(error)}`));
   void fire();
   const timer = setInterval(fire, intervalMs);
   return () => clearInterval(timer);
@@ -255,7 +267,14 @@ export function summarizeTriggers(
       row.unlistedProviders = record.unlistedProviders ?? [];
     }
     // A removed repo that comes back starts over: nothing it said before describes it now.
-    if (record.decision === 'removed') cleanOf.delete(record.repo);
+    if (record.decision === 'removed') {
+      cleanOf.delete(record.repo);
+      row.findings = 0;
+      row.unlistedProviders = [];
+      delete row.fix;
+      delete row.lastCheckAt;
+      delete row.lastScanAt;
+    }
   }
   for (const row of rows.values()) {
     row.status = statusOf(row, cleanOf.get(row.repo));

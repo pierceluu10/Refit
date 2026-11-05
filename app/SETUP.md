@@ -110,7 +110,7 @@ Put these in `app/.env` (gitignored; `npm run dev` loads it). Never commit or pr
 | `APTITUDE_APP_DIR`            | Consent settings and fix facts; default `.aptitude/app` (a persistent path in production)         |
 | `APTITUDE_SPEND_LOG`          | Keeps the AI check's spend across restarts; without it each restart starts from $0                |
 | `APTITUDE_MEMORY_DIR`         | memory/'s store; absolute path on a persistent volume in production                               |
-| `APTITUDE_AI_BUDGET_USD`      | Run cap for the loop; required once `ANTHROPIC_API_KEY` is set                                    |
+| `APTITUDE_AI_BUDGET_USD`      | Run cap, one per process: the AI check, the loop and verdicts all spend it; required to spend     |
 | `ANTHROPIC_API_KEY`           | Real model runs; without it the loop and memory use offline stubs                                 |
 
 Jobs run the harness in Docker, so the host needs Docker running.

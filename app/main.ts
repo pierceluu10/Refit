@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { Budget, defaultAi, defaultMemory, listRunViews, recordVerdict } from '../memory/index.ts';
+import { listRunViews } from '../memory/index.ts';
 import { readConfig } from './config.ts';
 import { createConsentStore } from './consent.ts';
 import {
@@ -10,14 +10,11 @@ import {
   listViewerRepos,
 } from './github.ts';
 import { createFileQueue } from './queue.ts';
-import { createAppEvidence, createAppRunner } from './runner.ts';
+import { createAppEvidence, createAppRunner, createAppVerdict } from './runner.ts';
 import { createWebhookServer } from './server.ts';
 import { createTick, createTriggerStore, startClock } from './triggers.ts';
-import type { RecordVerdict } from './types.ts';
 
 const DEFAULT_HOST = '127.0.0.1';
-// memory/README.md: a verdict can trigger a model call, so each gets its own cap instead of sharing one.
-const VERDICT_BUDGET_USD = 1;
 
 const config = readConfig();
 const host = process.env.HOST ?? DEFAULT_HOST;
@@ -33,22 +30,17 @@ const queue = await createFileQueue(
   (job) => triggers.merged(job, new Date()),
 );
 
-const verdict: RecordVerdict = async (pr, human) => {
-  const learned = await recordVerdict(pr, human, {
-    ...defaultMemory(),
-    ...defaultAi(process.env, new Budget(VERDICT_BUDGET_USD)),
-  });
-  console.log(`verdict ${human} ${pr}${learned ? '' : ' (no stored run has this PR)'}`);
-};
-
 const server = createWebhookServer({
   webhookSecret: config.webhookSecret,
   tokens,
   listRepos: (token) => listInstallationRepos(token),
   compareCommits: (token, repo, base, head) => compareCommits(token, repo, base, head),
   queue,
-  forgetRepo: (job) => triggers.forget(job, new Date()),
-  recordVerdict: verdict,
+  forgetRepo: async (job) => {
+    await triggers.forget(job, new Date());
+    await evidence.forget(job.repo);
+  },
+  recordVerdict: createAppVerdict(),
   evidence,
   consent,
   listRunViews,

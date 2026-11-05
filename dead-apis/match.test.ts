@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadDeadApis } from './list.ts';
-import { textMatches, tokensOf, urlMatches } from './match.ts';
+import { requiredLiterals, textMatches, tokensOf, urlMatches } from './match.ts';
 
 const list = loadDeadApis();
 const matchers = list.entries.flatMap((entry) =>
@@ -123,5 +123,34 @@ describe('a UA property id', () => {
     expect(flags("ga('create', 'UA-12345-1', 'auto')").length).toBeGreaterThan(0);
     expect(flags('headers["Sec-CH-UA-Platform"]')).toEqual([]);
     expect(flags('X-UA-Compatible')).toEqual([]);
+  });
+});
+
+describe('requiredLiterals', () => {
+  // Each regex must still match this text with the literals held: a wrong literal hides a real hit.
+  it.each([
+    ['foo{bar', 'foo{bar', ['foo{bar']],
+    ['foo{bar|baz', 'baz', ['foo{bar', 'baz']],
+    ['a{b|cd}', 'cd}', ['a{b', 'cd}']],
+    ['foo{2}bar', 'fooobar', ['bar']],
+    ['foo{1,}bar', 'foobar', ['bar']],
+  ])('reads %s', (value, text, literals) => {
+    expect(requiredLiterals(value)).toEqual(literals);
+    expect(new RegExp(value).test(text)).toBe(true);
+    expect(literals.some((literal) => text.includes(literal))).toBe(true);
+  });
+});
+
+describe('a path matcher', () => {
+  const matcher = { kind: 'url', value: '/v1/invoices/upcoming' } as const;
+
+  it('reads a host with its port', () => {
+    expect(urlMatches(matcher, 'https://api.stripe.com:443/v1/invoices/upcoming')).toBe(true);
+    expect(urlMatches(matcher, 'https://api.stripe.com/v1/invoices/upcoming')).toBe(true);
+  });
+
+  it('still needs the path at a boundary', () => {
+    expect(urlMatches(matcher, 'https://api.stripe.com:443/x/v1/invoices/upcoming')).toBe(false);
+    expect(urlMatches(matcher, 'https://api.stripe.com:443/v1/invoices/upcoming-x')).toBe(false);
   });
 });

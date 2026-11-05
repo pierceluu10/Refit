@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -5,8 +6,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FetchedPage, Fetcher } from '../providers/core/fetch.ts';
 import { watchCostReport } from '../providers/core/watch-cache.ts';
 import type { ProviderChange, ScanResult } from '../shared/types.ts';
+import { scanDeadApis } from '../inventory/dead-scan.ts';
+import { makeRepo, removeRepo } from '../inventory/test-fixtures.ts';
 import { entriesInForce, loadDeadApis, type ProviderFile } from './list.ts';
-import { readProposals, refuseEntry, settleChanges, UnknownEntryError } from './proposals.ts';
+import {
+  PROPOSED_DIR,
+  readProposals,
+  refuseEntry,
+  settleChanges,
+  UnknownEntryError,
+} from './proposals.ts';
 import { enqueueUnlisted, markRead, nextInQueue, readQueue } from './queue.ts';
 import { READ_USD, refresh, refreshFinished, type ReadSource } from './refresh.ts';
 
@@ -638,7 +647,9 @@ describe('what a read proposes', () => {
       fakeFetcher(page),
       true,
     );
-    expect(shutdown.entry?.matchers).toEqual([{ kind: 'package', value: 'acme-sdk' }]);
+    expect(shutdown.entry?.matchers).toEqual([
+      { kind: 'package', value: 'acme-sdk', ambiguous: true },
+    ]);
   });
 });
 
@@ -1130,4 +1141,196 @@ describe('a refresh run', () => {
       reason: `the quote isn't on ${PAGE_URL}`,
     });
   });
+});
+
+describe('what a read says, against what its quote says', () => {
+  const inForce = () => entriesInForce(loadDeadApis(dataDir), TODAY).map((one) => one.id);
+
+  it('dates a retirement from its end, not the deprecation the quote also dates', async () => {
+    const quote =
+      'acme-model-2 was deprecated on March 1, 2026 and will be retired on June 1, 2027.';
+    const { change: read, fake } = dated('2026-03-01', quote, {
+      affects: { operations: ['acme-model-2'] },
+    });
+    const [proposal] = await settle([read], fake);
+    expect(proposal.status, proposal.reason).toBe('live');
+    expect(proposal.entry).toBeUndefined();
+    expect(proposal.future?.diesOn).toBe('2027-06-01');
+    expect(inForce()).toEqual(['AC-1.old-model']);
+  });
+
+  it('keeps the date of a retirement the quote gives alone', async () => {
+    const quote = 'acme-model-2 was retired on March 1, 2026.';
+    const { change: read, fake } = dated('2026-03-01', quote, {
+      affects: { operations: ['acme-model-2'] },
+    });
+    const [proposal] = await settle([read], fake);
+    expect(proposal.entry?.diedOn).toBe('2026-03-01');
+  });
+
+  it("doesn't take a page's post date for a shutdown the quote says is still to come", async () => {
+    const quote = 'acme-model-3 will be shut down next year.';
+    const read = quoted(quote, {
+      effectiveDate: '2026-01-15',
+      affects: { operations: ['acme-model-3'] },
+    });
+    const [proposal] = await settle(
+      [read],
+      fakeFetcher({ [PAGE_URL]: `Posted January 15, 2026. ${quote}` }),
+    );
+    expect(proposal.status).toBe('rejected');
+    expect(proposal.reason).toMatch(/still to come/);
+    expect(inForce()).toEqual(['AC-1.old-model']);
+  });
+
+  it('still takes a heading date for a removal the quote says has happened', async () => {
+    const quote = 'acme-model-3 has been removed from the API.';
+    const read = quoted(quote, {
+      effectiveDate: '2026-01-15',
+      affects: { operations: ['acme-model-3'] },
+    });
+    const [proposal] = await settle(
+      [read],
+      fakeFetcher({ [PAGE_URL]: `Posted January 15, 2026. ${quote}` }),
+    );
+    expect(proposal.entry?.diedOn).toBe('2026-01-15');
+    expect(proposal.status, proposal.reason).toBe('live');
+  });
+
+  it('reads a slash date, so the wrong date is refused and the right one holds', async () => {
+    const quote = 'acme-model-4 will no longer be supported after 08/25/2027.';
+    const page = fakeFetcher({ [PAGE_URL]: `Updated January 15, 2026. ${quote}` });
+    const operations = { affects: { operations: ['acme-model-4'] } };
+    const [wrong] = await settle(
+      [quoted(quote, { effectiveDate: '2026-01-15', ...operations })],
+      page,
+    );
+    expect(wrong.status).toBe('rejected');
+    expect(wrong.reason).toMatch(/2027-08-25, not 2026-01-15/);
+    const [right] = await settle(
+      [quoted(quote, { id: 'acme:model-4b', effectiveDate: '2027-08-25', ...operations })],
+      page,
+    );
+    expect(right.status, right.reason).toBe('live');
+    expect(right.future?.diesOn).toBe('2027-08-25');
+  });
+
+  it('drops a name the quote says stays, and keeps the one it says ended', async () => {
+    const quote = 'acme-old was retired on January 15, 2026. acme-stays remains available.';
+    const { change: read, fake } = dated('2026-01-15', quote, {
+      affects: { operations: ['acme-old', 'acme-stays'] },
+    });
+    const [proposal] = await settle([read], fake);
+    expect(proposal.status, proposal.reason).toBe('live');
+    expect(proposal.entry?.matchers.map((one) => one.value)).toEqual(['acme-old']);
+  });
+
+  it('keeps a name that only remains until a date', async () => {
+    const quote = 'acme-old remains available until January 15, 2026.';
+    const { change: read, fake } = dated('2026-01-15', quote, {
+      affects: { operations: ['acme-old'] },
+    });
+    const [proposal] = await settle([read], fake);
+    expect(proposal.entry?.matchers.map((one) => one.value)).toEqual(['acme-old']);
+  });
+});
+
+describe('a package a read names', () => {
+  const shutdown = (quote: string) =>
+    dated('2026-01-15', quote, {
+      kind: 'product-shutdown',
+      title: 'Acme Feature shut down',
+      affects: { sdk: 'stripe' },
+    });
+
+  it('has to be in the quote, not only somewhere on the page', async () => {
+    const { change: read } = shutdown('Acme Feature was shut down on January 15, 2026.');
+    const quote = read.source.quote;
+    const [proposal] = await settle(
+      [read],
+      fakeFetcher({ [PAGE_URL]: `${quote} Install with npm i stripe.` }),
+    );
+    expect(proposal.status).toBe('rejected');
+    expect(proposal.reason).toMatch(/stripe isn't in the quote/);
+  });
+
+  it('goes to the AI check and never straight to a fix, when the quote does name it', async () => {
+    const { change: read, fake } = shutdown(
+      'The stripe package was shut down on January 15, 2026.',
+    );
+    const [proposal] = await settle([read], fake);
+    expect(proposal.status, proposal.reason).toBe('live');
+    const repoDir = await makeRepo({
+      'package.json': JSON.stringify({ dependencies: { stripe: '^18.0.0' } }),
+      'pay.js': "import Stripe from 'stripe';\n",
+    });
+    try {
+      const report = await scanDeadApis(repoDir, 'o/a', { today: TODAY, dataDir });
+      const found = report.details.filter((one) => one.entryId === proposal.id);
+      expect(found.map((one) => one.matchClass)).toEqual(['unclear', 'unclear']);
+      expect(found.some((one) => one.withFix)).toBe(false);
+    } finally {
+      await removeRepo(repoDir);
+    }
+  });
+});
+
+describe('a host a repo names', () => {
+  const NEWS = 'https://docs.acmepay.dev/news';
+  const notice = 'The stripe package was shut down on January 15, 2026.';
+  const shutdown = change({
+    provider: 'acmepay.dev',
+    id: 'acmepay.dev:x',
+    kind: 'product-shutdown',
+    effectiveDate: '2026-01-15',
+    source: { url: NEWS, quote: notice },
+    affects: { sdk: 'stripe' },
+  });
+  const scanned = async () => {
+    const repoDir = await makeRepo({
+      'charge.js': "fetch('https://api.acmepay.dev/v1/charge');\n",
+    });
+    try {
+      await scanDeadApis(repoDir, 'someorg/somerepo', { today: TODAY, dataDir, storeDir });
+    } finally {
+      await removeRepo(repoDir);
+    }
+  };
+  const refreshQueue = () =>
+    refresh({
+      queue: 1,
+      storeDir,
+      cacheDir,
+      dataDir,
+      read: fakeRead([shutdown]),
+      fetcher: fakeFetcher({ [NEWS]: notice }).fetcher,
+      now: NOW,
+    });
+
+  it("doesn't vouch for that host, so what its site says stays pending", async () => {
+    await scanned();
+    const [item] = await readQueue(storeDir);
+    expect(item.hints.hosts).toEqual(['api.acmepay.dev']);
+    const report = await refreshQueue();
+    expect(report.providers[0].live).toEqual([]);
+    expect(report.providers[0].pending[0].reason).toMatch(/nothing vouches for docs\.acmepay\.dev/);
+    expect(readdirSync(dataDir)).toEqual(['acme.json']);
+  });
+
+  it('goes live once a person names its docs in the queue', async () => {
+    await scanned();
+    await enqueueUnlisted(storeDir, 'someorg/somerepo', ['acmepay.dev'], {
+      'acmepay.dev': { docsUrls: ['https://docs.acmepay.dev/'] },
+    });
+    const report = await refreshQueue();
+    expect(report.providers[0].live).toHaveLength(1);
+  });
+});
+
+it('keeps the store of queued repo names out of git', () => {
+  const file = path.join(PROPOSED_DIR, 'queue', 'unlisted.json');
+  // check-ignore exits non-zero, which throws, for a path git would add.
+  expect(() =>
+    execFileSync('git', ['check-ignore', '-q', file], { cwd: import.meta.dirname }),
+  ).not.toThrow();
 });

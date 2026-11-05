@@ -4,6 +4,7 @@
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { readTriggerDir } from './config.ts';
+import { messageOf } from './redact.ts';
 import {
   createTriggerStore,
   STALE_AFTER_HOURS,
@@ -13,6 +14,7 @@ import {
 
 const USAGE = 'Usage: triggers-cli.ts summary [--json] | rescan <owner/name>';
 const BAD_USAGE = 2;
+const FAILED = 1;
 
 const age = (row: RepoSummary) =>
   row.hoursSinceCheck === undefined ? 'never checked' : `${row.hoursSinceCheck.toFixed(1)} h ago`;
@@ -84,8 +86,13 @@ const { values, positionals } = parseArgs({
 });
 const [command, repo] = positionals;
 if (command === 'summary') await summary(values.json);
-else if (command === 'rescan' && repo) await rescan(repo);
-else {
+else if (command === 'rescan' && repo) {
+  // Uncaught, node would print the raw error, and the job's failure can carry a token.
+  await rescan(repo).catch((error: unknown) => {
+    console.error(`rescan ${repo} failed: ${messageOf(error)}`);
+    process.exitCode = FAILED;
+  });
+} else {
   console.error(USAGE);
   process.exit(BAD_USAGE);
 }

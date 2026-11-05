@@ -71,6 +71,12 @@ const FUNCTION_START =
   /\bfunction\b|\bdef\s|=>\s*\{|^[ \t]*(?:(?:async|public|private|protected|static)\s+)*(?!(?:if|for|while|switch|catch)\b)[\w$]+\s*\([^)\n]*\)[^{;\n]*\{/m;
 const INDEX_GAP = String.raw`(?:[?!\s]*(?:\??\.)?\[[^\]"']*\])*[?!\s]*`;
 const HOLDER_NAME = '([A-Za-z_$][\\w$]*)';
+// `const copy = sub as Stripe.Subscription;`, or with no cast.
+const COPY_FROM = String.raw`\s*(?::[^=\n]*)?=\s*`;
+const COPY_END = String.raw`\s*(?:\bas\b|[;\n])`;
+// A plain assignment of the read and nothing else. It stops at the chain, since the read's offset is past it.
+const HELD_BEFORE = /(?:^|[\s;{(])([A-Za-z_$][\w$]*)\s*(?::[^=\n]*)?=\s*[\w$.?\[\]]*$/;
+const STATEMENT_END = /^\s*(?:;|$)/;
 
 const normal = (word: string) => word.toLowerCase().replace(/[_$]/g, '').replace(/s$/, '');
 const wordsOf = (name: string) =>
@@ -389,24 +395,56 @@ function holderBindings(path: string[]): { binder: RegExp; rest: string }[] {
   });
 }
 
-// Where the code reads the replacement. Strings and comments only talk about it.
+// The read's own object, under the name it's read by or one it's plainly copied to or from.
+function sameObject(source: Source, chain: string): string {
+  const name = escapeRegex(chain);
+  const copies = [
+    ...source.code.matchAll(
+      new RegExp(`(?<![\\w$.])${name}${COPY_FROM}([\\w$.]+)${COPY_END}`, 'g'),
+    ),
+    ...source.code.matchAll(new RegExp(`(?<![\\w$.])([\\w$]+)${COPY_FROM}${name}${COPY_END}`, 'g')),
+  ].map((match) => escapeRegex(match[1]));
+  return String.raw`(?<![\w$.])(?:${[name, ...copies].join('|')})(?![\w$])`;
+}
+
+// Where the code reads the replacement off the same object. Strings and comments only talk about it.
 function replacementReads(source: Source, read: FieldRead, path: string[]): number[] {
   if (path.some((word) => !source.text.includes(word))) return [];
   const offsets = (pattern: string) =>
     [...source.text.matchAll(new RegExp(pattern, 'g'))].map((match) => match.index);
-  // A lone word such as `data` is common, so it has to come off the same object.
-  const direct =
-    path.length === 1
-      ? `${escapeRegex(read.chain)}${INDEX_GAP}${keyRead(path[0])}`
-      : pathRead(path);
+  const receiver = sameObject(source, read.chain);
+  const direct = `${receiver}${INDEX_GAP}${keysRead(path)}`;
+  // The holder has to come off the same object too, unless this read is itself off the holder.
+  const offObject = new RegExp(receiver);
   const viaHolder = holderBindings(path).flatMap(({ binder, rest }) =>
-    [...source.text.matchAll(binder)].flatMap((bound) =>
-      offsets(`(?<![\\w$.])${escapeRegex(bound[1])}${INDEX_GAP}${rest}`),
-    ),
+    [...source.text.matchAll(binder)]
+      .filter(
+        (bound) =>
+          bound[1] === read.chain ||
+          offObject.test(
+            source.text.slice(
+              source.lineStarts[lineIndexAt(source, bound.index)],
+              bound.index + bound[0].length,
+            ),
+          ),
+      )
+      .flatMap((bound) => offsets(`(?<![\\w$.])${escapeRegex(bound[1])}${INDEX_GAP}${rest}`)),
   );
   return [...offsets(direct), ...viaHolder].filter(
     (offset) => spanAt(source.spans, offset) === undefined,
   );
+}
+
+// `const end = sub.field;`, with the new shape read beside it and nothing ever falling back to `end`.
+function keptAlone(source: Source, read: FieldRead, end: number): boolean {
+  const line = source.lines[lineIndexAt(source, read.offset)];
+  const lineStart = source.lineStarts[lineIndexAt(source, read.offset)];
+  const holder = HELD_BEFORE.exec(source.code.slice(lineStart, read.offset))?.[1];
+  if (!holder || !STATEMENT_END.test(source.code.slice(end, lineStart + line.length))) return false;
+  const name = escapeRegex(holder);
+  return !new RegExp(
+    `(?<![\\w$.])${name}\\s*(?:\\?\\?|\\|\\||\\bor\\b)|(?:\\?\\?|\\|\\||\\bor\\b|\\bif\\b\\s*\\(?\\s*!?)\\s*${name}(?![\\w$])`,
+  ).test(source.code);
 }
 
 /**
@@ -424,14 +462,18 @@ export function besideReplacement(
   const end = source.text.indexOf(matcher.value, read.offset) + matcher.value.length;
   if (source.code.slice(end).trimStart().startsWith('(')) return false;
   const line = lineIndexAt(source, read.offset);
-  return replacementPaths(entry, matcher).some((path) =>
-    replacementReads(source, read, path).some(
-      (offset) =>
-        Math.abs(lineIndexAt(source, offset) - line) <= FALLBACK_LINES &&
-        !FUNCTION_START.test(
-          source.code.slice(Math.min(offset, read.offset), Math.max(offset, read.offset)),
-        ),
-    ),
+  const found = replacementPaths(entry, matcher).flatMap((path) =>
+    replacementReads(source, read, path),
+  );
+  // This read is the new shape itself, off a name bound to its holder.
+  if (found.includes(read.offset - read.chain.length)) return true;
+  if (keptAlone(source, read, end)) return false;
+  return found.some(
+    (offset) =>
+      Math.abs(lineIndexAt(source, offset) - line) <= FALLBACK_LINES &&
+      !FUNCTION_START.test(
+        source.code.slice(Math.min(offset, read.offset), Math.max(offset, read.offset)),
+      ),
   );
 }
 

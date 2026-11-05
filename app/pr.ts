@@ -1,6 +1,7 @@
 import type { MigrationTask, OpenPullRequest, RunRecord, ScanResult } from '../shared/types.ts';
 import { filesFromDiff } from './git.ts';
 import { githubRequest } from './github.ts';
+import { messageOf } from './redact.ts';
 import { BRANCH_PREFIX } from './types.ts';
 import type {
   FileChange,
@@ -156,8 +157,7 @@ export function createOpenPullRequest(
     } catch (error) {
       // The PR exists. Failing here would lose its URL from the run record, which costs more than
       // this PR's humanDiff.
-      const message = error instanceof Error ? error.message : String(error);
-      console.error(`could not remember ${pull.url}: ${message}`);
+      console.error(`could not remember ${pull.url}: ${messageOf(error)}`);
     }
     return pull.url;
   };

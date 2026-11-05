@@ -34,6 +34,7 @@ const SKIPPED_DIRECTORIES = new Set([
   '.gradle',
   '.idea',
 ]);
+const GIT_DIRECTORY = '.git';
 const MAX_TEXT_FILE_BYTES = 1_000_000;
 const BINARY_SNIFF_BYTES = 8000;
 const NO_ACCESS = new Set(['EACCES', 'EPERM']);
@@ -62,7 +63,12 @@ export function toRepoPath(repoDir: string, absolute: string): string {
 }
 
 // Yields repo-relative paths of regular files, skipping symlinks and installed or generated code.
-export async function* walkFiles(repoDir: string, start = '.'): AsyncGenerator<string> {
+// `skippedFolders` collects the folders it left out, for a caller that reports what it didn't read.
+export async function* walkFiles(
+  repoDir: string,
+  start = '.',
+  skippedFolders?: string[],
+): AsyncGenerator<string> {
   const root = await realpath(repoDir);
   const pending = [await resolveInside(root, start)];
   while (pending.length > 0) {
@@ -73,6 +79,7 @@ export async function* walkFiles(repoDir: string, start = '.'): AsyncGenerator<s
       const absolute = path.join(directory, entry.name);
       if (entry.isDirectory()) {
         if (!SKIPPED_DIRECTORIES.has(entry.name)) pending.push(absolute);
+        else if (entry.name !== GIT_DIRECTORY) skippedFolders?.push(toRepoPath(root, absolute));
       } else if (entry.isFile()) {
         yield toRepoPath(root, absolute);
       }
@@ -94,7 +101,8 @@ export async function readText(repoDir: string, relative: string): Promise<strin
   const buffer = await readFile(absolute).catch(noAccessIsEmpty(undefined));
   if (!buffer) return undefined;
   if (buffer.subarray(0, BINARY_SNIFF_BYTES).includes(0)) return undefined;
-  return buffer.toString('utf8');
+  // A leading BOM isn't text: JSON.parse refuses it, and a line-start pattern can't see past it.
+  return buffer.toString('utf8').replace(/^\uFEFF/, '');
 }
 
 export async function fileSize(repoDir: string, relative: string): Promise<number> {

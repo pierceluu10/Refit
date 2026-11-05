@@ -1,3 +1,4 @@
+import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { InvalidRepoError } from './git.ts';
 import { readJsonFile, writeJsonFile } from './json-file.ts';
@@ -11,7 +12,13 @@ export type FixFacts = {
   url: string;
   opened?: { sha: string; entryIds: string[] }; // our last commit, and the entries it fixed
   edited?: true;
-  merged?: { at: string; sha: string; humanDiff?: string; changedFiles: string[] };
+  merged?: {
+    at: string;
+    sha: string;
+    humanDiff?: string;
+    changedFiles: string[];
+    offDefault?: true; // merged into another branch, so a scan of the default branch still sees the old code
+  };
   closed?: { at: string; comment?: string };
   returnedAt?: string; // the first rescan after the merge that found a fixed entry back
 };
@@ -22,6 +29,7 @@ export type SeenRevert = { at: string; pr?: number; sha?: string };
 
 export type RepoFacts = {
   repo: string;
+  installationId?: number; // whose these are: set by the first event that names an installation
   fixes: Record<string, FixFacts>;
   reverts: SeenRevert[];
 };
@@ -49,6 +57,12 @@ export function mergeFix(old: FixFacts | undefined, fresh: FixFacts): FixFacts {
     returnedAt: earliest(old?.returnedAt, fresh.returnedAt),
   };
 }
+
+// A repo name can change hands, as with an org rename: what one customer said never reaches the next.
+export const ownedBy = (facts: RepoFacts, installationId: number): RepoFacts =>
+  facts.installationId === undefined || facts.installationId === installationId
+    ? { ...facts, installationId }
+    : { repo: facts.repo, installationId, fixes: {}, reverts: [] };
 
 export function addReverts(facts: RepoFacts, seen: SeenRevert[]): RepoFacts {
   const key = ({ at, pr, sha }: SeenRevert) => `${at} ${pr ?? ''} ${sha ?? ''}`;
@@ -115,6 +129,7 @@ export function habitsOf(facts: RepoFacts): RepoHabitEvidence {
 export type FactStore = {
   read: (repo: string) => Promise<RepoFacts>;
   update: (repo: string, change: (facts: RepoFacts) => RepoFacts) => Promise<RepoFacts>;
+  forget: (repo: string) => Promise<void>;
 };
 
 // One JSON file per repo. Deliveries are handled at once, so updates take turns.
@@ -127,16 +142,19 @@ export function createFactStore(dir: string): FactStore {
   };
   const read = async (repo: string): Promise<RepoFacts> =>
     (await readJsonFile<RepoFacts>(fileFor(repo))) ?? { repo, fixes: {}, reverts: [] };
+  const inTurn = <T>(work: () => Promise<T>) => {
+    const next = turn.then(work);
+    turn = next.catch(() => undefined);
+    return next;
+  };
   return {
     read,
-    update(repo, change) {
-      const next = turn.then(async () => {
+    update: (repo, change) =>
+      inTurn(async () => {
         const facts = change(await read(repo));
         await writeJsonFile(fileFor(repo), facts);
         return facts;
-      });
-      turn = next.catch(() => undefined);
-      return next;
-    },
+      }),
+    forget: (repo) => inTurn(() => rm(fileFor(repo), { force: true })),
   };
 }

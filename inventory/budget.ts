@@ -72,7 +72,8 @@ export class BudgetLedger {
     }
   }
 
-  // With a log, the total is re-read first so runs in parallel processes see each other's spend.
+  // With a log, the total is re-read first so runs in parallel processes see each other's spend, and
+  // again after the write, so of two writing at once the later sees both.
   async record(spend: { repo: string; model: string; costUsd: number }): Promise<SpendEntry> {
     const before = this.logPath ? await readCumulative(this.logPath) : this.spentUsd;
     this.spentUsd = before + spend.costUsd;
@@ -84,6 +85,7 @@ export class BudgetLedger {
     if (this.logPath) {
       await mkdir(path.dirname(this.logPath), { recursive: true });
       await appendFile(this.logPath, `${JSON.stringify(entry)}\n`);
+      this.spentUsd = await readCumulative(this.logPath);
     }
     return entry;
   }

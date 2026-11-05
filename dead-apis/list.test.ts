@@ -277,6 +277,27 @@ describe('the entries from the first read of unlisted providers', () => {
 });
 
 describe('listProblems', () => {
+  it.each([
+    ['an unclosed group', { kind: 'regex', value: '(' }, /Invalid regular expression/],
+    ['an unclosed class', { kind: 'regex', value: '[a' }, /Invalid regular expression/],
+    ['a bare star', { kind: 'regex', value: '*a' }, /Invalid regular expression/],
+    ['a reversed range', { kind: 'regex', value: 'a{1,0}' }, /Invalid regular expression/],
+    ['an unknown kind', { kind: 'bogus', value: 'x' }, /unknown matcher kind bogus/],
+    ['no value', { kind: 'bogus' }, /unknown matcher kind bogus/],
+  ])('refuses %s in a matcher', (_name, matcher, problem) => {
+    const matchers = [matcher] as DeadApiEntry['matchers'];
+    expect(listProblems([file([entry({ matchers })])]).join('\n')).toMatch(problem);
+    expect(listProblems([file([], [future({ matchers })])]).join('\n')).toMatch(problem);
+  });
+
+  it('takes a regex that compiles, with or without its brace closed', () => {
+    const matchers: DeadApiEntry['matchers'] = [
+      { kind: 'regex', value: 'foo{bar' },
+      { kind: 'regex', value: 'foo{2}bar' },
+    ];
+    expect(listProblems([file([entry({ matchers })])])).toEqual([]);
+  });
+
   it('passes a good file', () => {
     expect(listProblems([file([entry()], [future()])])).toEqual([]);
   });

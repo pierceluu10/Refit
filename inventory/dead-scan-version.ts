@@ -3,8 +3,8 @@
 import path from 'node:path';
 import { escapeRegex } from '../dead-apis/match.ts';
 import type { DeadApiEntry } from '../shared/types.ts';
-import { lineIndexAt, spanAt, type Source } from './dead-scan-lex.ts';
-import { enclosing } from './dead-scan-place.ts';
+import { lineIndexAt, spanAt, type FileMode, type Source } from './dead-scan-lex.ts';
+import { closeOf, enclosing } from './dead-scan-place.ts';
 import { lockedVersions, type Manifest } from './scanners.ts';
 
 type Pin = {
@@ -19,15 +19,17 @@ type Locked = { lockfile: string; version: string };
 
 export type VersionFacts = {
   pins: Pin[];
+  unpinned: { provider: string; file: string }[]; // a client made with no API version, on the SDK's own
   manifests: Manifest[];
   locked: Map<string, Locked[]>;
   codeOf: Map<string, string>;
 };
 
-export type Gate =
-  | { state: 'none' }
+type Read =
   | { state: 'at-or-after' | 'below'; version: string; reason: string }
   | { state: 'unknown'; reason: string };
+
+export type Gate = { state: 'none' } | Read;
 
 const DATED_VERSION = /^\d{4}-\d{2}(?:-\d{2})?/;
 const GENERIC_PINS = [
@@ -53,7 +55,9 @@ const NAME_BEFORE_BRACKET = /([\w$.]+)\s*(:|\()?\s*$/;
 const MAX_OWNER_LEVELS = 3;
 // A prefix that says where a setting lives, and not whose it is.
 const NEUTRAL_PREFIX = /^(?:self|this|config|settings|options|opts|cfg|params|args|client)[._]$/i;
-const COMPARATOR = /(\^|~>|~=|~|>=|<=|>|<|===?|!=)?\s*v?(\d+(?:\.(?:\d+|[xX*]))*)/g;
+// The tail takes a prerelease or build tag whole: the 1 in 17.0.0-beta.1 or 17.0.0rc1 isn't a version.
+const COMPARATOR =
+  /(\^|~>|~=|~|>=|<=|>|<|===?|!=)?\s*v?(\d+(?:\.(?:\d+|[xX*]))*)(?:[-+.]?[A-Za-z0-9][\w.+-]*)?/g;
 const RANGE_START = /^\s*(?:[\^~<>=!]|v?\d)/;
 const HYPHEN_RANGE = /^\s*v?(\d[\w.]*)\s+-\s+v?(\d[\w.]*)\s*$/;
 const WILDCARD = /[xX*]/;
@@ -66,6 +70,13 @@ const NPM_LOCKS = new Set([
 ]);
 const PYTHON_LOCKS = new Set(['poetry.lock', 'uv.lock', 'Pipfile.lock']);
 const NO_LOWER_BOUND = '0.0.0';
+const NAMES_A_VERSION = /version/i;
+// Options held elsewhere may set the version: new Stripe(key, options), new Stripe(key, { ...options }).
+const OPTIONS_ELSEWHERE = /,\s*[A-Za-z_$][\w$.]*(?:\(.*\))?\s*,?\s*$|\.\.\.|\*\*/s;
+// Each of these languages has its own SDK and its own version, which no npm or PyPI spec speaks for.
+const OWN_SDK_MODES: ReadonlySet<FileMode> = new Set(['clike', 'php', 'ruby']);
+const NPM_MODES: ReadonlySet<FileMode> = new Set(['js', 'html']);
+const PYTHON_MODES: ReadonlySet<FileMode> = new Set(['python', 'notebook']);
 
 const lockEcosystem = (lockfile: string) => {
   const name = path.posix.basename(lockfile);
@@ -234,6 +245,24 @@ function pinsIn(source: Source): Pin[] {
   return pins;
 }
 
+// new Stripe('k') or StripeClient('k'): a client that runs at its SDK's default, whatever other clients pin.
+function hasUnpinnedClient(source: Source, provider: string): boolean {
+  const name = escapeRegex(provider);
+  const client = new RegExp(
+    `(?:\\bnew\\s+(?:[\\w$]+\\.)*${name}(?:client)?|\\b${name}client)\\s*\\(`,
+    'gi',
+  );
+  return [...source.code.matchAll(client)].some((match) => {
+    const open = match.index + match[0].length - 1;
+    const close = closeOf(source.code, open);
+    // The code has its strings blanked, so a key like 'sk_test_...' doesn't read as a spread.
+    return (
+      !NAMES_A_VERSION.test(source.text.slice(open + 1, close)) &&
+      !OPTIONS_ELSEWHERE.test(source.code.slice(open + 1, close))
+    );
+  });
+}
+
 export async function loadVersionFacts(
   repoDir: string,
   sources: Source[],
@@ -241,7 +270,16 @@ export async function loadVersionFacts(
   entries: DeadApiEntry[],
   ignored: (file: string) => boolean,
 ): Promise<VersionFacts> {
-  const pins = sources.filter((source) => !ignored(source.file)).flatMap(pinsIn);
+  const own = sources.filter((source) => !ignored(source.file));
+  const pins = own.flatMap(pinsIn);
+  const versioned = new Set(
+    entries.filter((entry) => entry.appliesTo?.apiVersionSince).map((entry) => entry.provider),
+  );
+  const unpinned = [...versioned].flatMap((provider) =>
+    own
+      .filter((source) => hasUnpinnedClient(source, provider))
+      .map((source) => ({ provider, file: source.file })),
+  );
   const wanted = new Set(
     entries.flatMap((entry) =>
       [...(entry.appliesTo?.sdkSince ?? []), ...(entry.appliesTo?.sdkUntil ?? [])].map(
@@ -261,7 +299,7 @@ export async function loadVersionFacts(
     }
   }
   const codeOf = new Map(sources.map((source) => [source.file, source.code]));
-  return { pins, manifests, locked, codeOf };
+  return { pins, unpinned, manifests, locked, codeOf };
 }
 
 const isAncestor = (directory: string, file: string) =>
@@ -358,32 +396,46 @@ function choosePin(pins: Pin[]): PinChoice {
 }
 
 // shortcut: same file, then the package, then the repo, stands in for "the client this read comes from";
-// two clients in one package with different pins read as unclear. Upgrade by following imports if P5 sees it.
+// two clients in one package with different pins, or a pinned one beside an unpinned one, read as unclear
+// unless the SDK agrees. Upgrade by following imports if P5 sees it.
 function pinFor(
   facts: VersionFacts,
   provider: string,
   source: Source,
-): PinChoice & { fromRepo?: boolean } {
+): PinChoice & { fromRepo?: boolean; mixed?: boolean } {
+  const loose = facts.unpinned.filter((one) => one.provider === provider);
+  const ownClient = loose.some((one) => one.file === source.file);
   const mine = facts.pins.filter((pin) => belongsTo(facts, pin, provider));
   const same = mine.filter((pin) => pin.file === source.file);
-  if (same.length > 0) return choosePin(same);
+  if (same.length > 0) return { ...choosePin(same), mixed: ownClient };
+  // A file with its own unpinned client runs at the SDK's default, so another file's pin isn't its.
+  if (ownClient) return {};
   const shared = mine.filter((pin) => !pin.fileOnly);
   const folder = nearest(facts.manifests, manifestFolder, source.file).map(manifestFolder)[0];
   const local = folder ? shared.filter((pin) => isAncestor(folder, pin.file)) : [];
-  if (local.length > 0) return choosePin(local);
+  if (local.length > 0) {
+    const mixed = loose.some((one) => isAncestor(folder, one.file));
+    return { ...choosePin(local), mixed };
+  }
   return { ...choosePin(shared), fromRepo: true };
 }
 
 const dateOf = (version: string) => DATED_VERSION.exec(version)?.[0] ?? version;
 
-function sdkGate(entry: DeadApiEntry, source: Source, facts: VersionFacts): Gate | undefined {
+// The SDK specs that speak for this file. A config or text file could belong to either SDK.
+function specsFor(entry: DeadApiEntry, source: Source) {
   const specs = [
     ...(entry.appliesTo?.sdkSince ?? []),
     ...(entry.appliesTo?.sdkUntil ?? []).map((one) => ({ ...one, until: true })),
   ];
-  const language = source.file.endsWith('.py') ? 'python' : 'npm';
-  const chosen = specs.filter((spec) => (spec.ecosystem ?? 'npm') === language);
-  const gates = (chosen.length > 0 ? chosen : specs).flatMap((spec): Gate[] => {
+  if (OWN_SDK_MODES.has(source.mode)) return [];
+  if (NPM_MODES.has(source.mode)) return specs.filter((one) => (one.ecosystem ?? 'npm') === 'npm');
+  if (PYTHON_MODES.has(source.mode)) return specs.filter((one) => one.ecosystem === 'python');
+  return specs;
+}
+
+function sdkGate(entry: DeadApiEntry, source: Source, facts: VersionFacts): Read | undefined {
+  const gates = specsFor(entry, source).flatMap((spec): Read[] => {
     const imported = importedVersion(source, spec.package);
     const installed = imported
       ? { version: imported, via: 'its import' }
@@ -399,12 +451,12 @@ function sdkGate(entry: DeadApiEntry, source: Source, facts: VersionFacts): Gate
     }
     const until = 'until' in spec;
     const compared = `${spec.package} ${installed.version} (${installed.via}), ${until ? 'moved off it' : 'removal'} at ${spec.version}`;
-    const dead: Gate = {
+    const dead: Read = {
       state: 'at-or-after',
       version: installed.version,
       reason: `SDK default: ${compared}`,
     };
-    const safe: Gate = {
+    const safe: Read = {
       state: 'below',
       version: installed.version,
       reason: `below the gate, SDK default: ${compared}`,
@@ -434,6 +486,43 @@ function sdkGate(entry: DeadApiEntry, source: Source, facts: VersionFacts): Gate
   );
 }
 
+function pinGate(pin: PinChoice, since: string): Read | undefined {
+  // Pins that differ but all predate the removal agree on the only thing that matters here.
+  const newest = pin.conflict?.reduce((a, b) => (dateOf(a) > dateOf(b) ? a : b));
+  if (newest && dateOf(newest) < dateOf(since)) {
+    return {
+      state: 'below',
+      version: newest,
+      reason: `every pin predates the removal: ${(pin.conflict ?? []).join(', ')}, removal at ${since}`,
+    };
+  }
+  if (pin.conflict) {
+    return {
+      state: 'unknown',
+      reason: `the code pins conflicting versions: ${pin.conflict.join(', ')}`,
+    };
+  }
+  if (pin.unread) {
+    return {
+      state: 'unknown',
+      reason: `the API version is set in code to a value only known when it runs (${pin.unread})`,
+    };
+  }
+  if (!pin.version) return undefined;
+  const compared = `${pin.version} (${pin.where}), removal at ${since}`;
+  return dateOf(pin.version) >= dateOf(since)
+    ? {
+        state: 'at-or-after',
+        version: pin.version,
+        reason: `pinned at or after the removal: ${compared}`,
+      }
+    : {
+        state: 'below',
+        version: pin.version,
+        reason: `pinned before the removal: ${compared}`,
+      };
+}
+
 export function gateFor(entry: DeadApiEntry, source: Source, facts: VersionFacts): Gate {
   const since = entry.appliesTo?.apiVersionSince;
   const hasSdk = Boolean(entry.appliesTo?.sdkSince?.length || entry.appliesTo?.sdkUntil?.length);
@@ -443,43 +532,17 @@ export function gateFor(entry: DeadApiEntry, source: Source, facts: VersionFacts
     const pin = pinFor(facts, entry.provider, source);
     // Another package's pin only answers for a package with no SDK of its own.
     if (pin.fromRepo && sdk) return sdk;
-    // Pins that differ but all predate the removal agree on the only thing that matters here.
-    const newest = pin.conflict?.reduce((a, b) => (dateOf(a) > dateOf(b) ? a : b));
-    if (newest && dateOf(newest) < dateOf(since)) {
-      return {
-        state: 'below',
-        version: newest,
-        reason: `every pin predates the removal: ${(pin.conflict ?? []).join(', ')}, removal at ${since}`,
-      };
-    }
-    if (pin.conflict) {
+    const pinned = pinGate(pin, since);
+    if (pinned && (!pin.mixed || sdk?.state === pinned.state)) return pinned;
+    if (pinned) {
       return {
         state: 'unknown',
-        reason: `the code pins conflicting versions: ${pin.conflict.join(', ')}`,
+        reason: `a pinned client and an unpinned one sit together, and this read could be either's: ${pinned.reason}; ${sdk?.reason ?? 'no installed SDK version found'}`,
       };
-    }
-    if (pin.unread) {
-      return {
-        state: 'unknown',
-        reason: `the API version is set in code to a value only known when it runs (${pin.unread})`,
-      };
-    }
-    if (pin.version) {
-      const compared = `${pin.version} (${pin.where}), removal at ${since}`;
-      return dateOf(pin.version) >= dateOf(since)
-        ? {
-            state: 'at-or-after',
-            version: pin.version,
-            reason: `pinned at or after the removal: ${compared}`,
-          }
-        : {
-            state: 'below',
-            version: pin.version,
-            reason: `pinned before the removal: ${compared}`,
-          };
     }
   }
-  const unversioned = entry.appliesTo?.sdkSince?.find((spec) => {
+  const unversioned = specsFor(entry, source).find((spec) => {
+    if ('until' in spec) return false;
     const declared = declaredRange(facts, spec.package, spec.ecosystem ?? 'npm', source.file);
     return declared !== undefined && 'range' in declared;
   });

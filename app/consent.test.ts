@@ -93,10 +93,23 @@ describe('consent-cli', () => {
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
   it('sets and revokes in the store the server reads', async () => {
+    await store().recordInstall(ID);
     expect(run(String(ID), 'yes')).toContain('shareLearning: true');
     expect(await store().consented(ID)).toBe(true);
     expect(run(String(ID), 'no')).toContain('shareLearning: false');
     expect(await store().consented(ID)).toBe(false);
+  });
+
+  it('refuses an id with no install, so a later install still starts at no', async () => {
+    expect(() => run('1000', 'yes')).toThrow('no install on record');
+    await store().recordInstall(1000);
+    expect(await store().consented(1000)).toBe(false);
+  });
+
+  it.each(['1e3', '0x3e8', ' 1000', '1000.0'])('refuses the loose id %j', async (id) => {
+    await store().recordInstall(1000);
+    expect(() => run(id, 'yes')).toThrow();
+    expect(await store().consented(1000)).toBe(false);
   });
 
   it.each([[[]], [[String(ID)]], [[String(ID), 'maybe']], [['not-a-number', 'yes']]])(

@@ -33,6 +33,9 @@ const FUNCTION_LOOK_BACK_CHARS = 2_000;
 const TOKENIZER_CALL = /\b(?:encoding_for_model|encodingForModel)\s*\(\s*$/;
 const TOKENIZER_LINE = /\btiktoken\b/i;
 const PRICE_CALL = /\b\w*(?:cost|price|pricing)\w*\s*\(\s*$/i;
+// A name that says it looks a price up. withCostLimit() or runLowCost() may well send what they're given.
+const PRICE_LOOKUP =
+  /\b(?:(?:get|calc|comput|estimat|look_?up|find|fetch|model|tokens?|usage|total|input|output)\w*?)?(?:cost|price|pricing)s?(?:_?(?:for|of|per\w*|lookup|table|info|data|usd))?\s*\(\s*$/i;
 const DISPLAY_KEY =
   /(?:^|[\s{,])["']?(?:placeholder|title|alt|label|aria-label|tooltip|helperText)["']?\s*[:=]\s*\{?\s*$/i;
 const CHECK_CALL =
@@ -67,13 +70,14 @@ const DEFINITION_AFTER = /^\s*(?::[^=\n]*)?=(?!=)/;
 const DEFINITION_BEFORE = /\b(?:enum|type|interface)\s+$/;
 const EXPORTED_BEFORE = /\bexport\b/;
 const IN_NAME_BEFORE = /\b(?:not\s+)?in\s+$/;
+const FOR_STATEMENT = /^\s*(?:async\s+)?for\s/;
 const KEY_READ_BEFORE = /(?:\bObject\.(?:keys|entries)\(\s*|\bfor\s+[\w\s,()]*\b(?:in|of)\s+)$/;
 const KEY_READ_AFTER = /^\s*\.(?:keys|items)\s*\(/;
 const MEMBERSHIP =
   /(?:\bnew\s+(?:Set|Map|WeakSet|WeakMap)(?:<[^>]*>)?\s*\(|\b(?:frozenset|set)\s*\()\s*$/;
 const LITERAL_TYPE = /\bLiteral\s*$/;
 const ENUM_OPEN = /\benum\s+(\w+)\s*$/;
-const TYPE_OPEN = /\b(?:interface\s+\w+[^{]*|type\s+\w+[^=]*=\s*)$/;
+const TYPE_OPEN = /\b(?:interface\s+\w+[^{]*|type\s+\w+[^=\n]*=\s*)$/;
 const TYPE_LINE = /^\s*(?:export\s+)?type\s+\w+/;
 const VERSIONS_KEY = /\bversions["']?\s*[:=]\s*$/;
 const OPTION_TAG = /<(?:option|SelectItem|MenuItem|Select\.Option|Option)\b/;
@@ -115,7 +119,8 @@ const WHOLE_JSON = /^\s*[{[][\s\S]*[}\]]\s*$/;
 const QUOTED_KEY_VALUE = /["'][\w.-]+["']\s*:\s*["']?$/;
 const BEFORE_STATEMENT_STRING = /[(,=[{+%]$/;
 // A tag, then words, with no code in between: JSX text, not a quoted value. <td>use 'x'</td>.
-const JSX_TEXT = /<\/?[A-Za-z][^<>]*>\s*[^(\s<>{}=;&|][^<>{}=;&|]*$/;
+// An opening tag right after a name is a generic: send(r as Req<Body>, 'x').
+const JSX_TEXT = /(?:<\/|(?<![\w$.)\]])<)[A-Za-z][^<>]*>\s*[^(\s<>{}=;&|][^<>{}=;&|]*$/;
 // What can sit right before an object literal's brace, as opposed to a block's.
 const BEFORE_OBJECT = /(?:[=:,([]|\breturn|\bin)\s*$/;
 
@@ -221,7 +226,10 @@ function checkPlace(source: Source, span: Span): Place | undefined {
   if (TOKENIZER_CALL.test(ahead) || TOKENIZER_LINE.test(line)) {
     return { kind: 'catalog', reason: 'a local tokenizer call, not a request' };
   }
-  if (PRICE_CALL.test(ahead)) return { kind: 'catalog', reason: 'a local price lookup' };
+  if (PRICE_LOOKUP.test(ahead)) return { kind: 'catalog', reason: 'a local price lookup' };
+  if (PRICE_CALL.test(ahead)) {
+    return { kind: 'unclear', reason: 'handed to a function named for cost, which may send it' };
+  }
   if (DISPLAY_KEY.test(ahead)) return { kind: 'catalog', reason: 'text shown to a user, not sent' };
   if (CHECK_CALL.test(ahead)) return { kind: 'catalog', reason: 'a prefix or membership check' };
   if (COMPARE_BEFORE.test(ahead) || COMPARE_AFTER.test(behind)) {
@@ -290,7 +298,10 @@ function tableUse(source: Source, name: string): TableUse {
       if (EXPORTED_BEFORE.test(ahead) || (source.mode === 'python' && ahead === '')) {
         use.exported = true;
       }
-    } else if (MEMBER_CHECK_AFTER.test(behind) || IN_NAME_BEFORE.test(ahead)) {
+    } else if (
+      MEMBER_CHECK_AFTER.test(behind) ||
+      (IN_NAME_BEFORE.test(ahead) && !FOR_STATEMENT.test(ahead))
+    ) {
       use.checked = true;
     } else {
       use.read = true;
@@ -339,11 +350,16 @@ function pickerPlace(source: Source, list: Enclosure): Place | undefined {
   if (METADATA_NAME.test(name)) return { kind: 'catalog', reason: `package metadata: ${name}` };
   if (!PICKER_NAME.test(name)) return undefined;
   const use = tableUse(source, name);
-  if (DENY_NAME.test(name) || (use.checked && !use.read)) {
+  const denied = DENY_NAME.test(name);
+  // The name says what it's for, not what the code does with it.
+  if (denied && use.read) {
+    return { kind: 'unclear', reason: `a list named ${name}, and the code reads it` };
+  }
+  if (denied || (use.checked && !use.read)) {
     return {
       kind: 'catalog',
       reason: `a list a value is checked against, named ${name}`,
-      ...(GUARDED_BY(name).test(source.code) && !DENY_NAME.test(name) ? { guardedBy: name } : {}),
+      ...(GUARDED_BY(name).test(source.code) && !denied ? { guardedBy: name } : {}),
     };
   }
   return { kind: 'picker', reason: `a list a dead model can be picked from, named ${name}` };

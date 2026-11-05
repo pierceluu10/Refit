@@ -6,6 +6,7 @@ import type { DeadApiMatcher } from '../shared/types.ts';
 const TOKEN = /[A-Za-z0-9_.:/@-]+/g;
 const SHELL_DEFAULT_PREFIX = /^(?:[A-Z][A-Z0-9_]*)?-(?=[a-z])/;
 const MIN_LITERAL_CHARS = 2;
+const BRACE_QUANTIFIER = /\{\d+(?:,\d*)?\}/y;
 // A template (/x/${id}, /x/{id}, /x/:id) is a longer path too, and often a live one.
 const LONGER_PATH = '/[\\w${:<-]';
 export const escapeRegex = (text: string) => text.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
@@ -70,12 +71,18 @@ export function urlMatches(
   const isPath = matcher.value.startsWith('/');
   const bareHost = !isPath && !matcher.value.replace(/^\w+:\/\//, '').includes('/');
   const start = isPath ? '(?<![\\w.-])' : '(?<![\\w-])(?<![\\w.-]/)';
-  const before = isPath ? '(?:[a-z0-9.-]+\\.[a-z]{2,})?' : '';
+  const before = isPath ? '(?:[a-z0-9.-]+\\.[a-z]{2,}(?::\\d+)?)?' : '';
   const resource = matcher.value.endsWith('*');
   const address = escapeRegex(matcher.value.replace(/\*$/, ''));
   const longerHost = bareHost ? '|\\.[\\w-]' : '';
   const end = resource ? `(?![\\w-]${longerHost})` : `(?![\\w-]|${LONGER_PATH}${longerHost})`;
   return new RegExp(`${start}${before}${address}${end}`, 'i').test(text);
+}
+
+// Any other `{` is a plain character in a JS regex without the u flag.
+function quantifierAt(value: string, at: number): string | undefined {
+  BRACE_QUANTIFIER.lastIndex = at;
+  return BRACE_QUANTIFIER.exec(value)?.[0];
 }
 
 /**
@@ -115,11 +122,11 @@ export function requiredLiterals(value: string): string[] | undefined {
       flush();
       branches.push(best);
       best = '';
-    } else if (char === '*' || char === '?' || char === '{') {
+    } else if (char === '*' || char === '?' || quantifierAt(value, at)) {
       // The character before can be absent, so it isn't required.
       run = run.slice(0, -1);
       flush();
-      if (char === '{') at = value.indexOf('}', at);
+      at += (quantifierAt(value, at) ?? char).length - 1;
     } else if ('^$.+'.includes(char)) {
       flush();
     } else {

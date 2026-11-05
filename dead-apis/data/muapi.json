@@ -59,12 +59,12 @@
     {
       "id": "MU-3.model-not-accepted",
       "provider": "muapi",
-      "what": "These ids aren't in the model enum of MuAPI's any-llm or OpenRouter vision requests, so a request naming one should be rejected. This is read from the schema, and no request was sent. No notice says when they went, so diedOn is the day the schema was read.",
+      "what": "These ids aren't in the model enum of MuAPI's any-llm or OpenRouter vision requests, so a request naming one should be rejected. This is read from the schema, and no request was sent: the quote is AnyLlmModelRequest's whole enum, and that the ids are missing is read from it. No notice says when they went, so diedOn is the day the schema was read.",
       "diedOn": "2026-11-05",
       "source": {
         "url": "https://api.muapi.ai/openapi.json",
         "checkedOn": "2026-11-05",
-        "quote": "AnyLlmModelRequest model enum: anthropic/claude-3.7-sonnet, anthropic/claude-3.5-sonnet, anthropic/claude-3-haiku, google/gemini-2.5-flash, openai/gpt-4o, meta-llama/llama-4-maverick"
+        "quote": "\"enum\":[\"anthropic/claude-3.7-sonnet\",\"anthropic/claude-3.5-sonnet\",\"anthropic/claude-3-haiku\",\"google/gemini-2.5-flash\",\"google/gemini-2.0-flash-001\",\"google/gemini-2.0-flash-lite-001\",\"google/gemini-2.5-flash-preview-09-2025\",\"google/gemini-2.0-flash-exp:free\",\"google/gemini-2.5-pro\",\"openai/gpt-4o\",\"openai/gpt-4.1\",\"openai/gpt-5-chat\",\"meta-llama/llama-3.2-90b-vision-instruct\",\"meta-llama/llama-4-maverick\",\"meta-llama/llama-4-scout\"]"
       },
       "lookFor": [
         "The model ids anthropic/claude-3-5-sonnet, meta-llama/llama-3.1-70b-instruct and deepseek/deepseek-r1, in a repo that calls MuAPI"

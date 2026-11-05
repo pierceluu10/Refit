@@ -68,6 +68,27 @@ function sourceProblems(file: ProviderFile, id: string, url: unknown, checkedOn:
 export const matcherKey = (provider: string, matcher: DeadApiMatcher) =>
   `${provider}|${matcher.kind}|${matcher.value}|${matcher.kind === 'field' ? [...(matcher.on ?? [])].sort().join() : ''}`;
 
+const MATCHER_KINDS: ReadonlySet<string> = new Set<DeadApiMatcher['kind']>([
+  'string',
+  'field',
+  'regex',
+  'url',
+  'package',
+]);
+
+function matcherProblems(id: string, matcher: DeadApiMatcher): string[] {
+  if (!MATCHER_KINDS.has(matcher.kind)) return [`${id}: unknown matcher kind ${matcher.kind}`];
+  if (typeof matcher.value !== 'string') return [`${id}: a ${matcher.kind} matcher has no value`];
+  if (matcher.kind !== 'regex') return [];
+  try {
+    new RegExp(matcher.value);
+    return [];
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
+    return [`${id}: ${error.message}`];
+  }
+}
+
 const isWildcard = (matcher: DeadApiMatcher): boolean =>
   (matcher.kind === 'string' || matcher.kind === 'url') && matcher.value.includes('*');
 
@@ -106,6 +127,7 @@ export function listProblems(files: ProviderFile[]): string[] {
         problems.push(`${entry.id}: died ${entry.diedOn}, after it was checked: move it to future`);
       }
       for (const matcher of entry.matchers ?? []) {
+        problems.push(...matcherProblems(entry.id, matcher));
         const key = matcherKey(file.provider, matcher);
         const other = deadMatchers.get(key);
         if (other) problems.push(`${entry.id}: repeats ${matcher.value} from ${other}`);
@@ -134,6 +156,7 @@ export function listProblems(files: ProviderFile[]): string[] {
         problems.push(`${shutdown.id}: died ${shutdown.diesOn}, before it was checked: it's dead`);
       }
       for (const matcher of shutdown.matchers ?? []) {
+        problems.push(...matcherProblems(shutdown.id, matcher));
         const key = matcherKey(file.provider, matcher);
         const other = deadMatchers.get(key);
         if (other) problems.push(`${shutdown.id}: ${matcher.value} is also dead under ${other}`);

@@ -32,6 +32,33 @@ const record = (hours: number, overrides: Partial<TriggerRecord> = {}): TriggerR
 });
 
 describe('summarizeTriggers', () => {
+  it("doesn't let a removed repo that came back keep its old check", () => {
+    const [row] = summarizeTriggers(
+      [
+        record(3, {
+          decision: 'scanned',
+          why: 'first-scan',
+          clean: false,
+          findings: 3,
+          unlistedProviders: ['acme'],
+          fix: 'ran',
+        }),
+        record(2, { trigger: 'removed', decision: 'removed', why: 'uninstalled' }),
+        record(1, { decision: 'failed', why: 'error', clean: undefined, findings: undefined }),
+      ],
+      NOW,
+    );
+    expect(row).toMatchObject({
+      status: 'not-scanned',
+      stale: true,
+      findings: 0,
+      unlistedProviders: [],
+    });
+    expect(row.fix).toBeUndefined();
+    expect(row.hoursSinceCheck).toBeUndefined();
+    expect(row.scans).toBe(1);
+  });
+
   it('counts what ran and adds up cost, with the time since the last check', () => {
     const [row] = summarizeTriggers(
       [
@@ -172,6 +199,20 @@ describe('createTriggerStore', () => {
     expect(await store.records()).toHaveLength(2);
   });
 
+  it("doesn't lose the record after a line torn with no newline", async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const store = createTriggerStore(dir);
+    await store.append(record(3));
+    await appendFile(join(dir, 'log.jsonl'), '{"at":"2026-11');
+    await store.append(record(2));
+    await store.append(record(1));
+    expect((await store.records()).map((one) => one.at)).toEqual([
+      hoursAgo(3),
+      hoursAgo(2),
+      hoursAgo(1),
+    ]);
+  });
+
   it('refuses a repo name that would leave its folder', async () => {
     const store = createTriggerStore(dir);
     expect(() => store.state('../../etc')).toThrow('Not a GitHub owner/name');
@@ -222,6 +263,21 @@ describe('createTick', () => {
     expect(jobs.map((job) => job.repo)).toEqual(['other/c']);
   });
 
+  it('reaches the other installations after a network failure on one, then still reports it', async () => {
+    const { jobs, queue } = queueRecorder();
+    const tick = createTick({
+      listInstallations: async () => [1, 2],
+      tokens: { token: async (id) => `token-${id}` },
+      listRepos: async (token) => {
+        if (token === 'token-1') throw new TypeError('fetch failed');
+        return ['other/c'];
+      },
+      queue,
+    });
+    await expect(tick()).rejects.toThrow('fetch failed');
+    expect(jobs.map((job) => job.repo)).toEqual(['other/c']);
+  });
+
   it("doesn't hide a bug as an installation problem", async () => {
     const { queue } = queueRecorder();
     const tick = createTick({
@@ -241,6 +297,17 @@ describe('startClock', () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+  });
+
+  it('never prints a secret from a failed tick', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const token = `ghs_${'x'.repeat(36)}`;
+    const stop = startClock(async () => {
+      throw new Error(`tick ${token}`);
+    }, 1000);
+    await vi.advanceTimersByTimeAsync(0);
+    stop();
+    expect(error).toHaveBeenCalledWith('clock tick failed: tick [redacted]');
   });
 
   it('ticks at once and on every interval, keeps going after a failed tick, and stops', async () => {

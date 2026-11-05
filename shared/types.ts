@@ -139,7 +139,7 @@ export type DeadApiMatcher =
   | { kind: 'regex'; value: string; ambiguous?: boolean }
   | { kind: 'url'; value: string; ambiguous?: boolean }
   | { kind: 'field'; value: string; on?: string[]; ambiguous?: boolean }
-  | { kind: 'package'; value: string; ecosystem?: 'npm' | 'python' };
+  | { kind: 'package'; value: string; ecosystem?: 'npm' | 'python'; ambiguous?: boolean };
 
 // A version gate. An entry with none applies to every version. A pin never clears an entry alone:
 // the scanner compares the version the code runs at against `since`.

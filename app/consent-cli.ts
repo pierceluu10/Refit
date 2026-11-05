@@ -6,6 +6,7 @@ import { appDataDir } from './config.ts';
 import { createConsentStore } from './consent.ts';
 
 const USAGE = 'usage: consent-cli.ts <installationId> <yes|no>';
+const INSTALLATION_ID = /^[1-9]\d*$/;
 const ANSWERS = new Map([
   ['yes', true],
   ['no', false],
@@ -13,12 +14,15 @@ const ANSWERS = new Map([
 
 const [installation, answer] = process.argv.slice(2);
 const shareLearning = ANSWERS.get(answer ?? '');
-if (shareLearning === undefined) {
+if (shareLearning === undefined || !INSTALLATION_ID.test(installation ?? '')) {
   console.error(USAGE);
   process.exit(1);
 }
-await createConsentStore(join(appDataDir(), 'installations')).set(
-  Number(installation),
-  shareLearning,
-);
+const store = createConsentStore(join(appDataDir(), 'installations'));
+// A yes for an id not installed yet would still stand when it's installed, past the default of no.
+if (!(await store.known(Number(installation)))) {
+  console.error(`installation ${installation} has no install on record`);
+  process.exit(1);
+}
+await store.set(Number(installation), shareLearning);
 console.log(`installation ${installation} shareLearning: ${shareLearning}`);

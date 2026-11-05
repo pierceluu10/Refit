@@ -220,6 +220,61 @@ describe('handleWebhook', () => {
     ]);
   });
 
+  describe('an aptitude/ branch from a fork', () => {
+    const forked = (repo: { full_name: string } | null) => {
+      const base = fixture('pull_request.closed.unmerged') as { pull_request: { head: object } };
+      return {
+        ...base,
+        pull_request: {
+          ...base.pull_request,
+          head: { ...base.pull_request.head, ref: 'aptitude/anything', repo },
+        },
+      };
+    };
+
+    it.each([[{ full_name: 'stranger/fork' }], [null]])(
+      'head repo %j records nothing',
+      async (repo) => {
+        const fake = fakeDeps();
+        const closed: string[] = [];
+        fake.deps.evidence.closed = async () => void closed.push('closed');
+        await handleWebhook('pull_request', forked(repo), fake.deps);
+        expect(fake.verdicts).toEqual([]);
+        expect(closed).toEqual([]);
+      },
+    );
+
+    it('head repo the same as the base is ours', async () => {
+      const fake = fakeDeps();
+      await handleWebhook(
+        'pull_request',
+        forked({ full_name: 'aptitude-example-org/billing-api' }),
+        fake.deps,
+      );
+      expect(fake.verdicts).toHaveLength(1);
+    });
+  });
+
+  it.each([
+    ['closed', 'pull_request.closed.merged', {}],
+    ['edited', 'pull_request.closed.merged', { action: 'synchronize', before: 'a', after: 'b' }],
+  ] as const)(
+    "a verdict that fails doesn't cost the %s evidence, and still fails the delivery",
+    async (step, name, extra) => {
+      const fake = fakeDeps([commit(PERSON)]);
+      const sent: string[] = [];
+      fake.deps.recordVerdict = async () => {
+        throw new Error('memory store write failed');
+      };
+      fake.deps.evidence[step] = async () => void sent.push(step);
+      const event = { ...(fixture(name) as object), sender: PERSON, ...extra };
+      await expect(handleWebhook('pull_request', event, fake.deps)).rejects.toThrow(
+        'memory store write failed',
+      );
+      expect(sent).toEqual([step]);
+    },
+  );
+
   it("a human branch's PR records nothing", async () => {
     const fake = fakeDeps();
     await handleWebhook('pull_request', fixture('pull_request.closed.human-branch'), fake.deps);

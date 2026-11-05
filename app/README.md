@@ -7,16 +7,16 @@ in [SETUP.md](SETUP.md).
 
 ## What it does
 
-| Webhook                                              | Result                                                                                    |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `installation.created`                               | Records shared learning as no, lists every repo via the API, queues `understand` for each |
-| `installation.deleted`                               | Drops the shared learning answer, queues `forget` for each repo, drops its scan state     |
-| `installation_repositories.removed`                  | Queues `forget` for each repo, drops its scan state                                       |
-| `installation_repositories.added`                    | Queues `understand` for each repo                                                         |
-| `push` to the default branch                         | Queues `understand` with the new sha, and records any `Revert "..."` commit               |
-| `pull_request.closed` on an `aptitude/` branch       | Records the human verdict, `merged` or `closed`, in memory, then the evidence             |
-| `pull_request.synchronize` on an `aptitude/` branch  | Records `edited` when a person pushed their own commit, in both                           |
-| `pull_request.closed` and merged on any other branch | Records a revert if it's GitHub's revert PR form, onto the default branch                 |
+| Webhook                                              | Result                                                                                          |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `installation.created`                               | Records shared learning as no, lists every repo via the API, queues `understand` for each       |
+| `installation.deleted`                               | Drops the shared learning answer, queues `forget` for each repo, drops its scan state and facts |
+| `installation_repositories.removed`                  | Queues `forget` for each repo, drops its scan state and facts                                   |
+| `installation_repositories.added`                    | Queues `understand` for each repo                                                               |
+| `push` to the default branch                         | Queues `understand` with the new sha, and records any `Revert "..."` commit                     |
+| `pull_request.closed` on an `aptitude/` branch       | Records the human verdict, `merged` or `closed`, in memory, then the evidence                   |
+| `pull_request.synchronize` on an `aptitude/` branch  | Records `edited` when a person pushed their own commit, in both                                 |
+| `pull_request.closed` and merged on any other branch | Records a revert if it's GitHub's revert PR form, onto the default branch                       |
 
 Every request's signature is checked against `GITHUB_WEBHOOK_SECRET` before it is handled. The app
 answers `202` as soon as the signature and JSON check out, then does the work, since GitHub gives a
@@ -25,7 +25,7 @@ delivery 10 seconds. A failure after that is logged with the delivery id; redeli
 
 A `synchronize` counts as a person's edit when the sender isn't a bot and `before...after` holds a
 non-merge commit not authored by a bot (memory/README.md, Verdicts). Aptitude's own pushes, other bots
-and the **Update branch** button send nothing. Each verdict gets its own $1 AI budget.
+and the **Update branch** button send nothing. Each verdict holds up to $1 of the run's AI budget, and spends nothing without one.
 
 ## Evidence for memory
 
@@ -54,7 +54,9 @@ state, and a revert that arrives before its merge waits there. Each send carries
 far, so `recordEvidence` must be safe to call twice.
 
 **Which entries a fix fixed.** `createOpenPullRequest` keeps the commit and `task.entries`, minus any the
-harness's last rescan still found live, since finding those later isn't a return. A job that scans
+harness's last rescan still found live, since finding those later isn't a return. `task.entries` comes
+from `harness/findings.ts` on `rebuild/otabek`, so until that lands no fix names entries and a rescan
+can't report a return. A fix merged into another branch isn't watched, since the default branch never had it. A job that scans
 hands its findings to evidence when the repo has a merged fix that named entries, with no second scan.
 It dates them from before the clone, so a merge during the clone never counts against itself. A job
 that skips has downloaded nothing, so there is nothing to look at; the tree hasn't changed since the
@@ -79,6 +81,8 @@ Whether a customer agrees to shared learning is the app's own setting, per insta
 node --experimental-strip-types app/consent-cli.ts <installationId> yes
 ```
 
+It refuses an id with no install on record, so a typo can't wait as a yes for that id's install.
+
 ## Jobs
 
 `understand` jobs go to a file-backed queue (`APTITUDE_QUEUE_FILE`, default `.aptitude/queue.json`)
@@ -95,12 +99,14 @@ and compares it, today's in-force list version and the scanner's version with th
 | Nothing new, last scan clean                            | Skips with no download                                                                  |
 | Nothing new, last scan not clean                        | Skips with no download and no fix, and stays reported as not clean                      |
 | Nothing new, but the last AI check failed or was capped | Scans again, so the unclear finding gets its check                                      |
+| Nothing new, but the last fix didn't get its try        | Scans again, and tries the fix again                                                    |
 | A `manual` rescan                                       | Always scans, and tries a fix again                                                     |
 
-A live finding goes to `runRepoJob` only if no fix has been started for it. A finding is its entry and
-its file, so a push that only moves a line doesn't pay for a second fix, a closed PR isn't reopened by
-a tick, and a dead thing that comes back after a clean scan gets a new one. A fix that throws hasn't had
-its try: the next new tree, list version or scanner retries it, and the next tick doesn't. A finding that's
+A live finding goes to `runRepoJob` only if no fix has had its try on it: a PR, or a verdict on every
+change. A finding is its entry and its file, so a push that only moves a line doesn't pay for a second
+fix, a closed PR isn't reopened by a tick, and a dead thing that comes back after a clean scan gets a new
+one. A fix that throws, returns nothing or never got to run hasn't had its try, so the next tick scans
+again and retries it (`why: fix-retry`), as often as ticks come, under the run's cap. A finding that's
 only unclear never reaches a fix. Unlisted providers go to the queue that the list's refresh reads and
 stay on the repo's record, so its summary reads `clean-unlisted-waiting`, not `clean`.
 
@@ -175,9 +181,10 @@ back. It never touches the default branch and never merges.
 | `jobs.ts`         | One job: the tree check, then skip, or checkout, scan, any fix, and cleanup                                        |
 | `triggers.ts`     | The skip rule, per-repo state, the trigger record and its summary, the clock                                       |
 | `triggers-cli.ts` | `summary` and `rescan`                                                                                             |
-| `runner.ts`       | The real job runner and evidence, shared by the server and `rescan`                                                |
+| `runner.ts`       | The real job runner, evidence and verdicts, on the process's one run budget                                        |
+| `redact.ts`       | `messageOf`: an error's text with secrets taken out, for every log line and record                                 |
 | `git.ts`          | `cloneRepo`, `treeOfCheckout`, and `filesFromDiff` (a diff to file changes, via a scratch index)                   |
-| `main.ts`         | Entry point; wires memory's `recordVerdict` with a $1 budget per verdict                                           |
+| `main.ts`         | Entry point; wires the webhook server, the queue and the daily clock                                               |
 | `config.ts`       | Reads the env vars listed in SETUP.md                                                                              |
 | `fixtures/`       | Illustrative webhook payloads for the tests                                                                        |
 | `manifest.json`   | The App's permissions and events; source of truth for its GitHub settings                                          |

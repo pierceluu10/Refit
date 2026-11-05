@@ -18,6 +18,11 @@
           "kind": "string",
           "value": "codellama-70b-instruct",
           "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "perplexity/codellama-70b-instruct",
+          "bare": true
         }
       ],
       "replacement": "The page recommends the Llama-3 family, itself removed later. Use Sonar or Sonar Pro.",
@@ -41,6 +46,11 @@
         {
           "kind": "string",
           "value": "mixtral-8x22b-instruct",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "perplexity/mixtral-8x22b-instruct",
           "bare": true
         }
       ],
@@ -66,6 +76,11 @@
           "kind": "string",
           "value": "pplx-7b-chat",
           "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "perplexity/pplx-7b-chat",
+          "bare": true
         }
       ],
       "replacement": "The page recommends the Llama-3 family, itself removed later. Use Sonar or Sonar Pro.",
@@ -89,6 +104,11 @@
         {
           "kind": "string",
           "value": "pplx-7b-online",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "perplexity/pplx-7b-online",
           "bare": true
         }
       ],
@@ -114,6 +134,11 @@
           "kind": "string",
           "value": "llama-3-sonar-small-32k-online",
           "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "perplexity/llama-3-sonar-small-32k-online",
+          "bare": true
         }
       ],
       "replacement": "The page recommends the Llama-3.1 family, whose online names were removed in turn on 2025-02-22. Use Sonar or Sonar Pro.",
@@ -137,6 +162,11 @@
         {
           "kind": "string",
           "value": "llama-3-sonar-large-32k-online",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "perplexity/llama-3-sonar-large-32k-online",
           "bare": true
         }
       ],
@@ -162,6 +192,11 @@
           "kind": "string",
           "value": "llama-3-sonar-small-32k-chat",
           "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "perplexity/llama-3-sonar-small-32k-chat",
+          "bare": true
         }
       ],
       "replacement": "The page recommends the Llama-3.1 family, whose online names were removed in turn on 2025-02-22. Use Sonar or Sonar Pro.",
@@ -185,6 +220,11 @@
         {
           "kind": "string",
           "value": "llama-3-sonar-large-32k-chat",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "perplexity/llama-3-sonar-large-32k-chat",
           "bare": true
         }
       ],
@@ -210,6 +250,11 @@
           "kind": "string",
           "value": "llama-3-8b-instruct",
           "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "perplexity/llama-3-8b-instruct",
+          "bare": true
         }
       ],
       "replacement": "The page recommends the Llama-3.1 family, whose online names were removed in turn on 2025-02-22. Use Sonar or Sonar Pro.",
@@ -233,6 +278,11 @@
         {
           "kind": "string",
           "value": "llama-3-70b-instruct",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "perplexity/llama-3-70b-instruct",
           "bare": true
         }
       ],
@@ -258,6 +308,11 @@
           "kind": "string",
           "value": "mistral-7b-instruct",
           "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "perplexity/mistral-7b-instruct",
+          "bare": true
         }
       ],
       "replacement": "The page recommends the Llama-3.1 family, whose online names were removed in turn on 2025-02-22. Use Sonar or Sonar Pro.",
@@ -281,6 +336,11 @@
         {
           "kind": "string",
           "value": "mixtral-8x7b-instruct",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "perplexity/mixtral-8x7b-instruct",
           "bare": true
         }
       ],
@@ -306,6 +366,11 @@
           "kind": "string",
           "value": "llama-3.1-sonar-small-128k-online",
           "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "perplexity/llama-3.1-sonar-small-128k-online",
+          "bare": true
         }
       ],
       "replacement": "Sonar or Sonar Pro",
@@ -329,6 +394,11 @@
         {
           "kind": "string",
           "value": "llama-3.1-sonar-large-128k-online",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "perplexity/llama-3.1-sonar-large-128k-online",
           "bare": true
         }
       ],
@@ -354,6 +424,11 @@
           "kind": "string",
           "value": "llama-3.1-sonar-huge-128k-online",
           "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "perplexity/llama-3.1-sonar-huge-128k-online",
+          "bare": true
         }
       ],
       "replacement": "Sonar or Sonar Pro",
@@ -377,6 +452,11 @@
         {
           "kind": "string",
           "value": "sonar-reasoning",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "perplexity/sonar-reasoning",
           "bare": true
         }
       ],

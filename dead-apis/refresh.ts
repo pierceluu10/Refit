@@ -144,6 +144,9 @@ export async function refresh({
       note = error instanceof Error ? error.message : String(error);
     }
 
+    // The queue's hosts come from a repo's own text, so they lead a read but can't vouch for a source.
+    // A catalog provider's hosts still do, through the catalog.
+    const { hosts: _seenInRepos, ...vouching } = hints;
     let settled: Proposal[] = [];
     try {
       settled = await settleChanges({
@@ -154,7 +157,7 @@ export async function refresh({
         storeDir,
         dataDir,
         dryRun,
-        hints,
+        hints: vouching,
       });
     } catch (error) {
       // The read is paid for and cached, so one provider's bad write mustn't lose the others or the report.

@@ -89,6 +89,19 @@ const MODE_BY_EXTENSION: Record<string, FileMode> = {
 const DOCKERFILE = /^(?:.+\.)?dockerfile(?:\..+)?$/i;
 const ENV_TEMPLATE = /^\.env(?:\.|$)/;
 const TASK_FILE = /^(?:makefile|gnumakefile|procfile)$/i;
+const SHEBANG_LINE = /^#!.*/;
+const SHEBANG_MODES: [RegExp, FileMode][] = [
+  [/python/, 'python'],
+  [/\b(?:node|deno|bun)\b/, 'js'],
+  [/\bruby\b/, 'ruby'],
+  [/\b(?:ba|z|da|k)?sh\b/, 'hash'],
+];
+// Where a markup file's expressions open. Vue's single brace is text, and a plain page has none.
+const EXPRESSION_OPENERS: Record<string, string> = {
+  '.vue': '{{',
+  '.svelte': '{',
+  '.astro': '{',
+};
 // config.yaml.example reads as the config it's a template of.
 const TEMPLATE_SUFFIX = /\.(?:example|sample|template|tmpl|tpl|dist)$/i;
 
@@ -98,6 +111,13 @@ export function modeOf(file: string): FileMode | undefined {
   if (DOCKERFILE.test(name) || ENV_TEMPLATE.test(name) || TASK_FILE.test(name)) return 'hash';
   const inner = name.replace(TEMPLATE_SUFFIX, '');
   return MODE_BY_EXTENSION[path.posix.extname(inner).toLowerCase()];
+}
+
+/** A script with no extension: its mode, `unread` for a language the scan doesn't read, or nothing. */
+export function scriptMode(text: string): FileMode | 'unread' | undefined {
+  const line = SHEBANG_LINE.exec(text)?.[0];
+  if (!line) return undefined;
+  return SHEBANG_MODES.find(([pattern]) => pattern.test(line))?.[1] ?? 'unread';
 }
 
 type Rules = {
@@ -127,28 +147,36 @@ const RULES: Record<Exclude<FileMode, 'html' | 'notebook' | 'prose'>, Rules> = {
     rawTick: true,
   },
   php: { lineComments: ['//', '#'], blockComment: ['/*', '*/'], quotes: ['"', "'"] },
-  ruby: { lineComments: ['#'], quotes: ['"', "'"] },
+  ruby: { lineComments: ['#'], quotes: ['"', "'"], regex: true },
   hash: { lineComments: ['#'], quotes: ['"', "'"], hashNeedsSpace: true },
   json: { lineComments: ['//'], blockComment: ['/*', '*/'], quotes: ['"'] },
 };
 
 // What can sit right before a `/` that opens a regex rather than dividing.
-const BEFORE_REGEX = new Set(['(', ',', '=', ':', '[', '!', '&', '|', '?', '{', ';', '\n']);
+const BEFORE_REGEX = new Set(['(', ',', '=', '~', ':', '[', '!', '&', '|', '?', '{', ';', '\n']);
 const WORD_BEFORE_REGEX = /\b(?:return|typeof|case|of|in|do|else)\s*$/;
+const CONDITION_BEFORE = /\b(?:if|while|for)\s*$/;
 const HTML_COMMENT: [string, string] = ['<!--', '-->'];
 const SCRIPT_OPEN = /<script\b[^>]*>/gi;
 const SCRIPT_CLOSE = /<\/script\s*>/gi;
+const STYLE_CLOSE = /<\/style\s*>/gi;
+const ATTRIBUTE_EQUALS = /=\s*$/;
 const TAG_START = /[A-Za-z/]/;
 const URL_SCHEME_BEFORE = /https?:$/;
 const ASTRO_FENCE = '---';
 const REGEX_LOOK_BEHIND_CHARS = 16;
+const TAG_LOOK_BEHIND_CHARS = 16;
 
 class Lexer {
   readonly spans: Span[] = [];
   readonly text: string;
+  readonly expressionOpener?: string;
+  // Kept between searches: a file of openers with no closer would otherwise search to its end for each.
+  private nextClose = 0;
 
-  constructor(text: string) {
+  constructor(text: string, expressionOpener?: string) {
     this.text = text;
+    this.expressionOpener = expressionOpener;
   }
 
   private push(
@@ -165,6 +193,19 @@ class Lexer {
   private lineEnd(from: number, limit: number): number {
     const end = this.text.indexOf('\n', from);
     return end === -1 || end > limit ? limit : end;
+  }
+
+  // JSX text and a regex the lexer misreads can both hold what looks like an opener, as src/* or /\/*/ do.
+  // A real comment closes, and if it spans lines nothing else starts its first line. Anything else stays code.
+  private opensComment(start: number, limit: number, [open, close]: [string, string]): boolean {
+    const from = start + open.length;
+    if (this.nextClose !== -1 && this.nextClose < from) {
+      this.nextClose = this.text.indexOf(close, from);
+    }
+    if (this.nextClose === -1 || this.nextClose >= limit) return false;
+    const lineBreak = this.text.indexOf('\n', start);
+    if (lineBreak === -1 || this.nextClose < lineBreak) return true;
+    return this.text.slice(this.text.lastIndexOf('\n', start) + 1, start).trim() === '';
   }
 
   private comment(start: number, limit: number, open: string, close: string): number {
@@ -220,11 +261,25 @@ class Lexer {
     return end;
   }
 
+  // `if (x) /re/.test(y)`: after any other `)`, a slash divides.
+  private closesCondition(closeParen: number): boolean {
+    const lineStart = this.text.lastIndexOf('\n', closeParen) + 1;
+    let depth = 0;
+    for (let at = closeParen; at >= lineStart; at -= 1) {
+      if (this.text[at] === ')') depth += 1;
+      else if (this.text[at] === '(') depth -= 1;
+      if (depth === 0) return CONDITION_BEFORE.test(this.text.slice(lineStart, at));
+    }
+    return false;
+  }
+
   private regexEnd(start: number, limit: number): number | undefined {
     const before = this.text.slice(Math.max(0, start - REGEX_LOOK_BEHIND_CHARS), start);
     const previous = before.trimEnd().at(-1) ?? '\n';
     const opensRegex =
       BEFORE_REGEX.has(previous) ||
+      (previous === ')' &&
+        this.closesCondition(start - 1 - (before.length - before.trimEnd().length))) ||
       WORD_BEFORE_REGEX.test(before) ||
       before.trimEnd().endsWith('=>');
     if (!opensRegex) return undefined;
@@ -238,6 +293,12 @@ class Lexer {
       else if (char === '/' && !inClass) return at + 1;
     }
     return undefined;
+  }
+
+  // A backtick with none after it is text, as in JSX: a template would swallow the rest of the file.
+  private closesLater(start: number, limit: number): boolean {
+    const found = this.text.indexOf('`', start + 1);
+    return found !== -1 && found < limit;
   }
 
   /** Lexes code up to `limit`, or to the `}` closing a template's ${ when `untilBrace`. */
@@ -260,7 +321,11 @@ class Lexer {
         const end = this.lineEnd(at, limit);
         this.push('comment', at, end, line.length, 0);
         at = end;
-      } else if (rules.blockComment && this.text.startsWith(rules.blockComment[0], at)) {
+      } else if (
+        rules.blockComment &&
+        this.text.startsWith(rules.blockComment[0], at) &&
+        this.opensComment(at, limit, rules.blockComment)
+      ) {
         at = this.comment(at, limit, ...rules.blockComment);
       } else if (
         rules.triple &&
@@ -269,7 +334,7 @@ class Lexer {
         at = this.spanning(at, limit, this.text.slice(at, at + 3));
       } else if (rules.quotes.includes(char)) {
         at = this.quoted(at, limit, char);
-      } else if (char === '`' && rules.template) {
+      } else if (char === '`' && rules.template && this.closesLater(at, limit)) {
         at = this.template(at, limit, rules);
       } else if (char === '`' && rules.rawTick) {
         at = this.spanning(at, limit, '`');
@@ -287,11 +352,21 @@ class Lexer {
   private tag(start: number, limit: number): number {
     let at = start + 1;
     while (at < limit && this.text[at] !== '>') {
-      if (this.text[at] === '"' || this.text[at] === "'")
-        at = this.quoted(at, limit, this.text[at]);
+      const opensValue =
+        (this.text[at] === '"' || this.text[at] === "'") &&
+        ATTRIBUTE_EQUALS.test(this.text.slice(Math.max(start, at - TAG_LOOK_BEHIND_CHARS), at));
+      if (opensValue) at = this.quoted(at, limit, this.text[at]);
+      else if (this.opensExpression(at)) at = this.code(at + 1, limit, RULES.js, true);
       else at += 1;
     }
     return Math.min(at + 1, limit);
+  }
+
+  // Svelte's {/if} closes a block and holds no regex, while {/* x */} is a comment.
+  private opensExpression(at: number): boolean {
+    if (!this.expressionOpener || !this.text.startsWith(this.expressionOpener, at)) return false;
+    const next = this.text[at + 1];
+    return next !== '/' || this.text[at + 2] === '*' || this.text[at + 2] === '/';
   }
 
   html(): void {
@@ -318,6 +393,13 @@ class Lexer {
         const bodyEnd = close ? close.index : limit;
         this.code(bodyStart, bodyEnd, RULES.js);
         at = close ? close.index + close[0].length : limit;
+      } else if (this.expressionOpener && this.text.slice(at, at + 6).toLowerCase() === '<style') {
+        // A style block's braces are rules, not expressions.
+        STYLE_CLOSE.lastIndex = at;
+        const close = STYLE_CLOSE.exec(this.text);
+        at = close ? close.index + close[0].length : limit;
+      } else if (this.opensExpression(at)) {
+        at = this.code(at + 1, limit, RULES.js, true);
       } else if (this.text[at] === '<' && TAG_START.test(this.text[at + 1] ?? '')) {
         at = this.tag(at, limit);
       } else {
@@ -347,7 +429,7 @@ function blanked(text: string, spans: Span[]): string {
   return parts.join('');
 }
 
-export function lex(text: string, mode: FileMode): Lexed {
+export function lex(text: string, mode: FileMode, expressionOpener?: string): Lexed {
   if (mode === 'prose') {
     const spans: Span[] = [
       {
@@ -360,7 +442,7 @@ export function lex(text: string, mode: FileMode): Lexed {
     ];
     return { text, mode, spans, code: blanked(text, spans) };
   }
-  const lexer = new Lexer(text);
+  const lexer = new Lexer(text, expressionOpener);
   if (mode === 'html') lexer.html();
   else lexer.code(0, text.length, RULES[mode === 'notebook' ? 'python' : mode]);
   const spans = lexer.spans.sort((a, b) => a.start - b.start);
@@ -401,7 +483,15 @@ export function toSource(file: string, text: string, mode: FileMode, lineMap?: n
     lineStarts.push(offset);
     offset += line.length + 1;
   }
-  return { ...lex(text, mode), file, lower: text.toLowerCase(), lines, lineStarts, lineMap };
+  const opener = EXPRESSION_OPENERS[path.posix.extname(file).toLowerCase()];
+  return {
+    ...lex(text, mode, opener),
+    file,
+    lower: text.toLowerCase(),
+    lines,
+    lineStarts,
+    lineMap,
+  };
 }
 
 /** The 0-based line holding an offset. */

@@ -109,6 +109,12 @@ const DEPRECATED = /\bdeprecat/i;
 const ENDS =
   /\b(?:remov|no longer|end[- ]of[- ]life|eol|sunset|shut|retir|stop|discontinu|unsupported|fail|4\d\d\b)/i;
 const EARLIEST_WORDING = /\b(?:earliest|no earlier than|not before)\b/i;
+// What the provider says it still means to do, as opposed to a removal a changelog heading dates.
+const STILL_TO_COME =
+  /\b(?:will|(?:going|scheduled|planned) to)\s+(?:soon\s+)?(?:be\s+)?(?:remov|no longer|sunset|shut|retir|stop|discontinu|deprecat|end\b)/i;
+// "remains available until" is an end date, so it doesn't count.
+const KEPT =
+  /\b(?:remains?|stays?|continues? to|unaffected|unchanged|not affected)\b(?!.*\buntil\b)/i;
 const GITHUB_RELEASES = /^https:\/\/api\.github\.com\/repos\/[^/]+\/[^/]+\/releases\b/;
 const FEED_URL = /(?:\.(?:xml|rss|atom)|\/feed\/?)(?:[?#]|$)/i;
 const MONTH_NAME =
@@ -134,6 +140,8 @@ const WRITTEN_DATE = new RegExp(
 );
 // A day that isn't part of a longer name: 2025-03-31.basil is an API version, not a date.
 const ISO_DAY = /(?<![\w-])(\d{4}-\d{2}-\d{2})(?![\w.-])/g;
+const SLASH_DATE = /(?<![\w/.-])(\d{1,2})\/(\d{1,2})\/(\d{4})(?![\w/-])/g;
+const MONTHS_IN_YEAR = 12;
 // A provider's dated API version: Stripe's 2025-03-31.basil, Shopify's 2026-04.
 const DATED_VERSION = /^\d{4}-\d{2}(?:-\d{2}(?:\.\w+)?)?$/;
 
@@ -326,6 +334,7 @@ function proposeChange(change: ProviderChange, context: ProposeContext): Proposa
   const all = matchersOf(change);
   const fresh = all.filter(
     (named) =>
+      !quoteKeeps(named.matcher, quote) &&
       !refused.some((one) => holds(one, named)) &&
       !file?.entries.some((entry) => entry.matchers.some((one) => holds(one, named))) &&
       !file?.future.some(
@@ -348,9 +357,7 @@ function proposeChange(change: ProviderChange, context: ProposeContext): Proposa
   // 15 of 20 read matchers failed a hand-check, so until a person writes one, a hit gets the small AI
   // check and never goes straight to a fix.
   const matchers = fresh.map(
-    (named) =>
-      handWritten.get(key(named.matcher)) ??
-      (named.matcher.kind === 'package' ? named.matcher : { ...named.matcher, ambiguous: true }),
+    (named) => handWritten.get(key(named.matcher)) ?? { ...named.matcher, ambiguous: true },
   );
 
   const named = replacementOf(change);
@@ -375,7 +382,8 @@ function proposeChange(change: ProviderChange, context: ProposeContext): Proposa
   };
   // The quote has to travel with a shutdown, because entriesInForce turns this source into a live entry's on its day.
   const source = { url: change.source.url, checkedOn: today, ...(quote ? { quote } : {}) };
-  const date = latestDay(change.effectiveDate ?? '');
+  const said = endDate(change.effectiveDate ?? '', quote);
+  const date = latestDay(said);
   const earliest = EARLIEST_WORDING.test(`${change.title} ${quote}`);
   // A past date the provider only calls the earliest stays a shutdown, and the list's checks reject it.
   if (date > today || (date && earliest)) {
@@ -383,7 +391,7 @@ function proposeChange(change: ProviderChange, context: ProposeContext): Proposa
       ...common,
       diesOn: date,
       // A month-only date doesn't say which day, so it waits for a source read to turn on.
-      ...(date !== change.effectiveDate || earliest ? { earliest: true } : {}),
+      ...(date !== said || earliest ? { earliest: true } : {}),
       source,
     };
     return { ...base, id, future };
@@ -496,15 +504,44 @@ function statedDates(text: string): string[] {
     const days = day ? `-${day.padStart(2, '0')}` : '';
     return `${year}-${String(number).padStart(2, '0')}${days}`;
   });
-  return [...[...text.matchAll(ISO_DAY)].map((found) => found[1]), ...written];
+  // shortcut: month first unless that can't be a month, so 03/04/2027 written day first reads wrong and
+  // the check rejects it, read the provider's locale if a day-first page gets refused.
+  const slashed = [...text.matchAll(SLASH_DATE)].map(([, first, second, year]) => {
+    const [month, day] = Number(first) > MONTHS_IN_YEAR ? [second, first] : [first, second];
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  });
+  return [...[...text.matchAll(ISO_DAY)].map((found) => found[1]), ...written, ...slashed];
+}
+
+const sameDate = (one: string, other: string) => one.startsWith(other) || other.startsWith(one);
+
+/** A notice dates its deprecation too, so what ends the name is the latest date a quote agrees with. */
+function endDate(said: string, quote: string): string {
+  const stated = statedDates(normaliseForQuote(quote));
+  if (!said || !stated.some((one) => sameDate(one, said))) return said;
+  return stated.reduce((latest, one) => (one > latest ? one : latest), said);
+}
+
+/** Whether the quote names this and every sentence about it says it stays: a live name beside a dead one. */
+function quoteKeeps(matcher: DeadApiMatcher, quote: string): boolean {
+  const about = quote.split(SENTENCE_END).filter((sentence) => namedIn(matcher, sentence));
+  return about.length > 0 && about.every((one) => KEPT.test(one) && !ENDS.test(one));
 }
 
 /** Why the source doesn't back the date, which alone decides dead or future. */
-function dateProblem(said: string, quote: string, page: FetchedPage): string | undefined {
-  const agrees = (stated: string) => stated.startsWith(said) || said.startsWith(stated);
+function dateProblem(
+  said: string,
+  quote: string,
+  page: FetchedPage,
+  inForce: boolean,
+): string | undefined {
+  const agrees = (stated: string) => sameDate(stated, said);
   const inQuote = statedDates(normaliseForQuote(quote));
   if (inQuote.length > 0) {
     return inQuote.some(agrees) ? undefined : `the quote says ${inQuote.join(', ')}, not ${said}`;
+  }
+  if (inForce && STILL_TO_COME.test(quote)) {
+    return `the quote says this is still to come and gives no date, so ${said} can't be when it ended: ${quote}`;
   }
   // A changelog's date is often its heading, so a quote with no date of its own needs it on the page.
   const onPage = page.text.includes(said) || statedDates(page.text).some(agrees);
@@ -524,21 +561,21 @@ function pageProblem(
     return `the quote says deprecated with no end: ${quote}`;
   }
   // A name the model made up, or a live one beside the dead one, would flag working code: the quote
-  // has to name it. A package comes from the change's sdk, so the page is enough for that.
+  // has to name it, a package too, or a read's sdk would flag a product the notice never mentions.
   const keys = new Set(draft.matchers.map((one) => matcherKey(draft.provider, one)));
   const claimed = matchersOf(change).filter((one) =>
     keys.has(matcherKey(draft.provider, one.matcher)),
   );
-  const absent = claimed.filter(({ matcher }) =>
-    matcher.kind === 'package' ? !nameIn(matcher.value, page.text) : !namedIn(matcher, quote),
-  );
+  const absent = claimed.filter(({ matcher }) => !namedIn(matcher, quote));
   if (absent.length > 0) {
     return `${absent.map((one) => one.label).join(', ')} isn't in the quote from ${page.url}`;
   }
   const named = replacementOf(change);
   const made = named ? replacementWords(named).filter((word) => !nameIn(word, page.text)) : [];
   if (made.length > 0) return `replacement ${made.join(', ')} isn't on ${page.url}`;
-  return change.effectiveDate ? dateProblem(change.effectiveDate, quote, page) : undefined;
+  return change.effectiveDate
+    ? dateProblem(change.effectiveDate, quote, page, 'diedOn' in draft)
+    : undefined;
 }
 
 function formatOf(url: string): Parameters<Fetcher['fetch']>[1] {

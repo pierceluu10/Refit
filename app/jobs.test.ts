@@ -596,7 +596,7 @@ describe('a failure', () => {
     expect(JSON.stringify(await w.records())).not.toContain(SECRET_TOKEN);
   });
 
-  it('records a failed fix, keeps the scan, retries on a real change and not on a tick', async () => {
+  it('records a failed fix, keeps the scan, and a quiet repo gets its retry from the next tick', async () => {
     const w = world();
     w.scanResult = report([live('AN-1', 'a.ts')]);
     w.fix = async () => {
@@ -607,13 +607,137 @@ describe('a failure', () => {
     expect(failed).toMatchObject({ decision: 'scanned', clean: false, fix: 'failed' });
     expect(failed?.error).not.toContain(SECRET_TOKEN);
 
+    const headReads = w.calls.head;
+    w.fix = async () => [RECORD];
+    await w.run(job('clock'));
+    expect(await w.last()).toMatchObject({ decision: 'scanned', why: 'fix-retry', fix: 'ran' });
+    expect(w.calls.fix).toBe(2);
+    expect(w.calls.head).toBe(headReads + 1);
+
+    await w.run(job('clock'));
+    expect(await w.last()).toMatchObject({ decision: 'skipped', why: 'unchanged-dirty' });
+    expect(w.calls.fix).toBe(2);
+  });
+
+  it.each<[string, RunRecord[]]>([
+    ['no records', []],
+    ['a task the cap stopped', [{ ...RECORD, outcome: 'failed', costUsd: 0 }]],
+    ['a review with nothing to show', [{ ...RECORD, outcome: 'needs-review' }]],
+    [
+      'a verdict beside a task that never ran',
+      [
+        { ...RECORD, outcome: 'not-affected' },
+        { ...RECORD, outcome: 'failed' },
+      ],
+    ],
+  ])("doesn't count %s as the fix's try", async (_name, records) => {
+    const w = world();
+    w.scanResult = report([live('AN-1', 'a.ts')]);
+    w.fix = async () => records;
+    await w.run(job('install'));
+    expect(await w.last()).toMatchObject({ decision: 'scanned', fix: 'unfinished' });
+    expect((await w.triggers.state(REPO))?.attempted).toEqual([]);
+
+    w.head.set(REPO, TREE_B);
+    await w.run(job('push'));
+    expect(w.calls.fix).toBe(2);
+  });
+
+  it.each<[string, RunRecord[]]>([
+    ['a PR', [{ ...RECORD, outcome: 'needs-review', pr: 'https://github.com/example/pull/1' }]],
+    [
+      'a PR beside a task that failed',
+      [
+        { ...RECORD, pr: 'https://github.com/example/pull/1' },
+        { ...RECORD, outcome: 'failed' },
+      ],
+    ],
+    ['a not-affected verdict', [{ ...RECORD, outcome: 'not-affected' }]],
+  ])('counts %s as the try, so no tick pays for a second', async (_name, records) => {
+    const w = world();
+    w.scanResult = report([live('AN-1', 'a.ts')]);
+    w.fix = async () => records;
+    await w.run(job('install'));
+    expect(await w.last()).toMatchObject({ fix: 'ran' });
     await w.run(job('clock'));
     expect(await w.last()).toMatchObject({ decision: 'skipped', why: 'unchanged-dirty' });
     expect(w.calls.fix).toBe(1);
+  });
 
-    w.fix = async () => [RECORD];
-    w.head.set(REPO, TREE_B);
-    await w.run(job('push'));
+  it("records what the whole run spent on a fix, not only its tasks' share, even when it fails", async () => {
+    let spent = 2;
+    const w = world({ spentUsd: () => spent });
+    w.scanResult = report([live('AN-1', 'a.ts')], {
+      check: { outcome: 'checked', costUsd: 0.25, asked: 1 },
+    });
+    w.fix = async () => {
+      spent += 0.5;
+      return [{ ...RECORD, outcome: 'not-affected', costUsd: 0 }];
+    };
+    await w.run(job('install'));
+    expect((await w.last())?.costUsd).toBeCloseTo(0.75);
+
+    w.fix = async () => {
+      spent += 0.125;
+      throw new Error('match down');
+    };
+    await expect(w.run(job('manual'))).rejects.toThrow('match down');
+    expect((await w.last())?.costUsd).toBeCloseTo(0.375);
+  });
+
+  it.each<[string, () => Promise<DeadScanReport>]>([
+    ['finishes', async () => report()],
+    [
+      'fails',
+      async () => {
+        throw new Error('the scan broke');
+      },
+    ],
+  ])('leaves a repo removed while its job was running, whether the job %s', async (name, scan) => {
+    let removeNow = true;
+    const w = world({
+      scan: async () => {
+        if (!removeNow) return report();
+        removeNow = false;
+        await w.triggers.forget({ repo: REPO, installationId: INSTALLATION }, new Date());
+        return scan();
+      },
+    });
+    const running = w.run(job('clock'));
+    if (name === 'fails') await expect(running).rejects.toThrow('the scan broke');
+    else await running;
+    expect(await w.triggers.state(REPO)).toBeUndefined();
+    const later = new Date(`${DAY_ONE}T12:00:00Z`);
+    later.setHours(later.getHours() + 72);
+    expect(summarizeTriggers(await w.records(), later)[0]).toMatchObject({
+      status: 'removed',
+      stale: false,
+    });
+    await w.run(job('repos-added'));
+    expect(await w.last()).toMatchObject({ decision: 'scanned', why: 'first-scan' });
+  });
+
+  it("doesn't touch a job's state when another repo is the one removed", async () => {
+    const w = world({
+      scan: async () => {
+        await w.triggers.forget({ repo: REPOS[1], installationId: INSTALLATION }, new Date());
+        return report();
+      },
+    });
+    await w.run(job('clock'));
+    expect((await w.triggers.state(REPO))?.clean).toBe(true);
+    expect(summarizeTriggers(await w.records(), new Date(`${DAY_ONE}T12:00:00Z`))).toContainEqual(
+      expect.objectContaining({ repo: REPO, status: 'clean' }),
+    );
+  });
+
+  it('starts over when a new installation holds a repo whose uninstall named no repos', async () => {
+    const w = world();
+    w.scanResult = report([live('AN-1', 'a.ts')]);
+    await w.run(job('install'));
+    await w.run({ ...job('install'), installationId: INSTALLATION + 1 });
+    expect(await w.last()).toMatchObject({ decision: 'scanned', why: 'first-scan', fix: 'ran' });
+    expect((await w.triggers.state(REPO))?.installationId).toBe(INSTALLATION + 1);
     expect(w.calls.fix).toBe(2);
   });
 

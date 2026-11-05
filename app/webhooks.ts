@@ -117,21 +117,38 @@ async function pushedByPerson(event: PullRequestEvent, deps: WebhookDeps): Promi
   return commits.some(isPersonCommit);
 }
 
+// We only ever push to the repo itself. GitHub names a fork's head repo, or null once it's deleted.
+const fromFork = ({ pull_request: { head }, repository }: PullEvent) =>
+  head.repo !== undefined && head.repo?.full_name !== repository.full_name;
+
+// The verdict goes first, and its failure must not cost the evidence: they go to separate stores.
+async function verdictThenEvidence(verdict: () => Promise<void>, evidence: () => Promise<void>) {
+  try {
+    await verdict();
+  } finally {
+    await evidence();
+  }
+}
+
 async function verdictFor(event: PullRequestEvent, deps: WebhookDeps): Promise<void> {
   const pr = event.pull_request;
-  if (!pr.head.ref.startsWith(BRANCH_PREFIX)) {
+  if (!pr.head.ref.startsWith(BRANCH_PREFIX) || fromFork(event)) {
     if (event.action === 'closed') await deps.evidence.revertMerged(event);
     return;
   }
   // The verdict goes first: memory's recordVerdict overwrites `merged` and `closed`, and the evidence
   // sent after it puts the diff and the comment back.
   if (event.action === 'closed') {
-    await deps.recordVerdict(pr.html_url, pr.merged ? 'merged' : 'closed');
-    await deps.evidence.closed(event);
+    await verdictThenEvidence(
+      () => deps.recordVerdict(pr.html_url, pr.merged ? 'merged' : 'closed'),
+      () => deps.evidence.closed(event),
+    );
   }
   if (event.action === 'synchronize' && (await pushedByPerson(event, deps))) {
-    await deps.recordVerdict(pr.html_url, 'edited');
-    await deps.evidence.edited(event);
+    await verdictThenEvidence(
+      () => deps.recordVerdict(pr.html_url, 'edited'),
+      () => deps.evidence.edited(event),
+    );
   }
 }
 
