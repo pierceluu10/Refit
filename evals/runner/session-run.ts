@@ -18,6 +18,7 @@ import { parseArgs } from 'node:util';
 import { repoTask } from '../../harness/findings.ts';
 import { liveSmoke } from '../../harness/smoke.ts';
 import { budgetFromEnv, runTask } from '../../harness/index.ts';
+import { unredact } from '../../harness/secrets.ts';
 import type { HarnessDeps, HarnessRunRecord } from '../../harness/index.ts';
 import { CHECK_MODEL } from '../../inventory/dead-check.ts';
 import { sdkModel } from '../../orchestrator/agent-sdk.ts';
@@ -47,8 +48,15 @@ function gradeDiff(repoDir: string, lock: RepoLock, diff: string) {
     cpSync(repoDir, copy, { recursive: true, verbatimSymlinks: true });
     if (diff.trim()) {
       const patch = path.join(copy, '.run.patch');
-      writeFileSync(patch, diff);
-      execFileSync('git', ['-C', copy, 'apply', '--whitespace=nowarn', patch], { stdio: 'pipe' });
+      const original = (file: string) => readFileSync(path.join(copy, file), 'utf8').split('\n');
+      writeFileSync(patch, unredact(diff, original));
+      try {
+        execFileSync('git', ['-C', copy, 'apply', '--whitespace=nowarn', patch], { stdio: 'pipe' });
+      } catch {
+        // A paid run's result outlives its grade: the diff's still in the record for a person.
+        const why = "the run's diff doesn't apply";
+        return lock.required.map((change) => ({ id: change.id, fixed: false, why }));
+      }
       rmSync(patch);
     }
     return lock.required.map((change) => ({ id: change.id, ...gradeChange(copy, change) }));

@@ -6,7 +6,7 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-05.rebuild-2';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-05.rebuild-3';
 
 // The day the run happens, so the agent can tell a change in effect from a later one.
 const today = () => new Date().toISOString().slice(0, 10);
@@ -137,13 +137,14 @@ const LIST_RULES = [
   '## The list is the scope',
   [
     '- Plain code scanned this repo against a kept list of dead APIs. The kickoff message gives every entry it found, with file and line. Fix all of them in this one session.',
-    '- "Out of scope" is not an answer for anything on the list. If a finding is a false alarm (the code never reaches that provider, or the object is the app\'s own), leave it and report it in `falseAlarms` with your evidence.',
+    '- "Out of scope" is not an answer for anything on the list. If a finding is a false alarm (the code never reaches that provider, or the object is the app\'s own), leave it and report it in `falseAlarms` with your evidence. Code that deletes, strips or ignores the dead thing is not a use: keep it and report it there too.',
     "- No major upgrade unless a list entry requires it. Don't move a package across a major version to fix something else. An SDK with no named constant for the new version isn't a reason: pass the version as a plain string and say so in `unproven`.",
     '- If a fix needs a secret or an ID nobody has yet, read it from config (an env var with a clear name, added to any env template the repo keeps) and say in `personMustDo` what a person must set. Never decline because of it.',
     '- Change defaults and live paths, not only tests. A retired model left as a fallback default is still a break, and so is one in a config, a picker or a shared constant.',
     "- Replacements come from the list entry. Don't use a name that isn't in it, however likely it looks, and don't stop on a name the entry says is itself dead.",
     '- An entry\'s "requires" line is part of the fix: for example, moving to a newer Claude model means dropping `temperature` on that path.',
     "- Don't edit an existing test just to make it pass. If a test hard-codes the dead name, change only that name, to the entry's replacement, and say so. A test that asserts old behaviour stays failing until you can say why in `unproven`.",
+    "- A version can live in more than one layer. After moving one, look for what still carries the old one: generated clients, resource classes, import paths with the version in them. A pin tied to a package's own release, such as a UI extension's `api_version` and its SDK, moves with that package: if the package can't move, leave the pin and say so in `unproven`.",
     '- Other problems you notice go in your finish summary. Fix only what is on the list.',
   ].join('\n'),
 ].join('\n\n');

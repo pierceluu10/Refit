@@ -19,6 +19,7 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { claudeAgentSession } from '../../harness/agent.ts';
+import { unredact } from '../../harness/secrets.ts';
 import { compareChecks, installCommand, runChecks } from '../../harness/checks.ts';
 import { BudgetLedger } from '../../harness/ledger.ts';
 import { MODEL, TURN_RESERVE_USD, prepareBaseline } from '../../harness/run.ts';
@@ -398,39 +399,6 @@ export type CodeCheck = {
   checked: string[];
 };
 
-/**
- * Refit's recorded diffs pass the secret scrubber, which also rewrites lines the change didn't
- * touch, so the patch no longer matches the file. Context and removed lines are the repo's own
- * text: they are restored from the original file. An added line the scrubber rewrote stays as
- * recorded, since that is what the PR would carry.
- */
-export function unredact(diff: string, original: (file: string) => string[] | undefined): string {
-  let lines: string[] | undefined;
-  let at = 0;
-  return diff
-    .split('\n')
-    .map((line) => {
-      const file = line.match(/^--- a\/(.+)$/)?.[1];
-      if (file !== undefined) {
-        lines = original(file);
-        return line;
-      }
-      if (line.startsWith('--- ')) lines = undefined;
-      const hunk = line.match(/^@@ -(\d+)/);
-      if (hunk) {
-        at = Number(hunk[1]) - 1;
-        return line;
-      }
-      if (line.startsWith(' ') || (line.startsWith('-') && !line.startsWith('---'))) {
-        const real = lines?.[at];
-        at += 1;
-        return line.includes('[redacted]') && real !== undefined ? `${line[0]}${real}` : line;
-      }
-      return line;
-    })
-    .join('\n');
-}
-
 /** A syntax or load check for one changed file, when its language has a cheap one. */
 export function syntaxCheck(file: string): { name: string; command: string } | undefined {
   const quoted = `'${file.replace(/'/g, `'\\''`)}'`;
@@ -623,6 +591,8 @@ function repoResults(inDir: string): RepoResult[] {
     (a, b) => attemptedTasks(b).length - attemptedTasks(a).length || a.repo.localeCompare(b.repo),
   );
 }
+
+export { unredact };
 
 async function main(argv: string[]) {
   const flag = (name: string) => {

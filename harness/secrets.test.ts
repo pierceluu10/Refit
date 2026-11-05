@@ -22,6 +22,13 @@ describe('redactSecrets', () => {
     );
   });
 
+  it('never takes the next line for the value of an empty key', () => {
+    const text = 'OPENROUTER_API_KEY=\nOPENROUTER_MODEL=deepseek/deepseek-chat-v3.1:free\n';
+    expect(redactSecrets(text, {})).toBe(text);
+    const diff = '-GITHUB_TOKEN=\n-GITHUB_MODEL=openai/gpt-4o-mini-2024\n';
+    expect(redactSecrets(diff, {})).toBe(diff);
+  });
+
   it('leaves code that reads keys alone', () => {
     const code = [
       'apiKey: await getApiKey(),',

@@ -17,7 +17,7 @@ const PYTHON_IMAGE = 'python:3.12-bookworm';
 const PYTHON_MANIFESTS = ['requirements.txt', 'pyproject.toml', 'setup.py', 'setup.cfg', 'Pipfile'];
 const EXCLUDED = new Set(['.git', 'node_modules']);
 // Hard limit 4: real env files (and direnv's .envrc) never enter the sandbox; templates (.env.example etc.) do.
-const ENV_TEMPLATE = /^\.env\.(?:example|sample|template|dist)$/;
+const ENV_TEMPLATE = /^\.env(?:\.[\w-]+)*\.(?:example|sample|template|dist)$/;
 export const isRealEnvFile = (name: string) =>
   (name === '.env' || name === '.envrc' || name.startsWith('.env.')) && !ENV_TEMPLATE.test(name);
 

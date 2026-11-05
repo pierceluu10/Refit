@@ -25,14 +25,48 @@ export function secretValues(env: NodeJS.ProcessEnv = process.env): string[] {
 // or `process.env.API_KEY` stays readable; a digit-free secret slips through.
 // A reference to an env var is no secret, digits in its name or not (`process.env.R2_ACCESS_KEY_ID`
 // was redacted in round 3, and the PR diff no longer matched the file).
+// The value sits on the name's line: an empty KEY= must not swallow the next line.
 const NAMED_SECRET =
-  /(\b[\w.-]*(?:KEY|TOKEN|SECRET|PASSWORD)[\w.-]*["']?\s*[:=]\s*["']?)(?!process\.env\.|import\.meta\.env\.|os\.environ|Deno\.env\.)(?=[\w+/=.~-]*\d)([\w+/=.~-]{8,})/gi;
+  /(\b[\w.-]*(?:KEY|TOKEN|SECRET|PASSWORD)[\w.-]*["']?[ \t]*[:=][ \t]*["']?)(?!process\.env\.|import\.meta\.env\.|os\.environ|Deno\.env\.)(?=[\w+/=.~-]*\d)([\w+/=.~-]{8,})/gi;
 
 export function redactSecrets(text: string, env: NodeJS.ProcessEnv = process.env): string {
   let out = text;
   for (const value of secretValues(env)) out = out.split(value).join('[redacted]');
   for (const pattern of SECRET_PATTERNS) out = out.replace(pattern, '[redacted]');
   return out.replace(NAMED_SECRET, '$1[redacted]');
+}
+
+/**
+ * Recorded diffs pass the scrubber, which also rewrites lines the change didn't touch, so the patch
+ * no longer matches the file. Context and removed lines are the repo's own text, so whatever applies
+ * a diff restores them from the original file. An added line the scrubber rewrote stays as recorded,
+ * since that is what the PR would carry.
+ */
+export function unredact(diff: string, original: (file: string) => string[] | undefined): string {
+  let lines: string[] | undefined;
+  let at = 0;
+  return diff
+    .split('\n')
+    .map((line) => {
+      const file = line.match(/^--- a\/(.+)$/)?.[1];
+      if (file !== undefined) {
+        lines = original(file);
+        return line;
+      }
+      if (line.startsWith('--- ')) lines = undefined;
+      const hunk = line.match(/^@@ -(\d+)/);
+      if (hunk) {
+        at = Number(hunk[1]) - 1;
+        return line;
+      }
+      if (line.startsWith(' ') || (line.startsWith('-') && !line.startsWith('---'))) {
+        const real = lines?.[at];
+        at += 1;
+        return line.includes('[redacted]') && real !== undefined ? `${line[0]}${real}` : line;
+      }
+      return line;
+    })
+    .join('\n');
 }
 
 // Environment for untrusted code: the host's env minus anything that looks like a credential.

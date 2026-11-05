@@ -284,7 +284,7 @@ The first scored round on Pierce's scanner, and the first with Shopify and Meta 
 
 | Repo | Required fixed | Label | Cost | Time |
 | --- | --- | --- | --- | --- |
-| `tungbinzzz/instagram-app-shopify` | 2 of 2 | Fixed | $0.1722 | 112 s |
+| `tungbinzzz/instagram-app-shopify` | 2 of 2 | Fixed, **I disagree** | $0.1722 | 112 s |
 | `sabbir-noyon/wishkit-app-shopify` | 2 of 2 | Fixed | $0.0928 | 89 s |
 | `ksyp-7/shopify-theme-app-extension-vite-react` | 2 of 2 | Fixed, **I disagree** | $0.1950 | 219 s |
 | `diegocsrdias/postmedia` | 2 of 2 | Fixed | $0.1055 | 41 s |
@@ -297,7 +297,7 @@ The first scored round on Pierce's scanner, and the first with Shopify and Meta 
 | Target | Result |
 | --- | --- |
 | Required changes fixed, at least 70% | 13 of 13 by static locks, or 11 of 11 without `buykori`, which has no real break |
-| "Fixed" a hand-check agrees with, at least 90% | **Missed: 7 of 8, 88%** |
+| "Fixed" a hand-check agrees with, at least 90% | **Missed: 6 of 8, 75%.** I first logged 7 of 8, then a container test in round 4 changed my read of `tungbinzzz` |
 | Cost with matches, about $0.50, never above $1 | $0.11 on average, $0.20 at most |
 | Time with matches, under 5 minutes | Met on all 8. The slowest took 219 s |
 | Unneeded major upgrades, none | **Missed on 1 of 8.** `ksyp-7` moved 5 packages |
@@ -307,7 +307,7 @@ Eight Fixed labels out of eight looked too good, so I read all 8 diffs, and the 
 **Reading every result:**
 
 - **`ksyp-7`, Fixed. I disagree.** The list says the replacement version is 2026-10, and the installed SDK has no enum value for it. This session moved `shopify-app-remix` 3 to 6, `shopify-api` 11 to 15, `session-storage-prisma` 5 to 11 and Prisma 5 to 6, which raises the Node minimum to 22. It also rewrote `customShopDomains` as a regex, and it says the app was never run on Prisma 6. `tungbinzzz` and `wishkit` faced the same gap and passed `"2026-10"` as a string, with no upgrade. The upgrade was unneeded, and the label had no way to see it.
-- **`tungbinzzz`, Fixed. I agree.** It leaves `restResources` importing `rest/admin/2024-10`. The session says so, and nothing in the app uses a name from the entry's `requires` lines.
+- **`tungbinzzz`, Fixed. I disagree, corrected after round 4.** It leaves `restResources` importing `rest/admin/2024-10`, and the session says so. I first accepted that. A container test then showed those classes still send `/admin/api/2024-10/`, and this app calls `admin.rest.resources.Metafield` on 5 or more lines, so a dead version stays live. The scan doesn't flag that import.
 - **`wishkit`, Fixed. I agree.** The `"2026-10" as ApiVersion` cast is ugly but honest, and the PR says so. It also moved `shopify.app.toml` from 2026-04, which wasn't dead. That's harmless. Its one `requires` hit, `productVariantsBulkUpdate`, comes from the template and sends no quantities.
 - **`postmedia`, Fixed. I agree.** Both sizes the repo sends, 1024x1024 and 1024x1536, meet the new rules.
 - **`next-gen-ai-yt`, Fixed. I agree.** It keeps the legacy SDK, which the entry allows unless the call needs the new one.
@@ -322,3 +322,52 @@ Eight Fixed labels out of eight looked too good, so I read all 8 diffs, and the 
 **Does the fix work?** I reran `ksyp-7` on the new prompt, not for score: 2 of 2 locks, no major upgrades, $0.1144, 104 s, against $0.1950 and 219 s. It passed the version as a string. To check that path I ran `@shopify/shopify-api` 11.0.0 and 12.2.0 in a container with a mocked fetch: on both, a plain `"2026-10"` reaches `/admin/api/2026-10/` for GraphQL and REST. That shows the SDK sends it, not that Shopify answers.
 
 **The scan's AI check,** measured on all 26 repos where the scan was only unsure: $0.0163 in all, about $0.0006 a repo, and 7.6 s on average. It ruled out every match on 1 repo and some matches on 5 others. Across 196 repos the scan averaged 1.6 s, and took 18 s at most.
+
+## O8 round 4: harder breaks
+
+**When:** 2026-11-05, 07:19 to 07:34. **Commit:** `3da47e5c` on `rebuild/integration`. **Locks:** `evals/rounds/o8-4/`. **Spend:** $1.23 of a $9 cap.
+
+Every repo is fresh. This round tests the major-upgrade fix on 3 more Shopify repos, and adds Meta fields, a call that must change shape, a provider that shut down, and a repo with many files to move.
+
+| Repo | Required fixed | Label | Cost | Time |
+| --- | --- | --- | --- | --- |
+| `meisbobzheng/pinpoint-archive` | 2 of 2 | Fixed | $0.1497 | 172 s |
+| `LazerTechnologies/shopify-app-development-course` | 2 of 2 | Fixed, **I disagree** | $0.1227 | 119 s |
+| `aaronarrays/shopify-vercel-app` | 2 of 2 | Fixed | $0.0784 | 84 s |
+| `dvygolov/AdReplica` | 4 of 4 | Fixed, **I disagree** | $0.1857 | 100 s |
+| `AtonIA00/aton-member-dashboard` | 2 of 2 | Needs a look | $0.1649 | 130 s |
+| `Hrithik450/harnes` | 1 of 1 | Fixed | $0.0591 | 130 s |
+| `Muregis/educore-school-management-system` | 6 of 6 | Fixed, **I disagree** | $0.1987 | 92 s |
+| `ogSulem/pulse` | 4 of 4 | Needs a look | $0.2665 | About 75 s |
+| **Total** | **23 of 23** | | **$1.2257** | |
+
+`pulse` crashed the grader, not the run: see the redaction bug below. I graded its source files offline, from its saved record.
+
+| Target | Result |
+| --- | --- |
+| Required changes fixed, at least 70% | 23 of 23 by static locks |
+| "Fixed" a hand-check agrees with, at least 90% | **Missed: 3 of 6, 50%** |
+| Cost with matches, about $0.50, never above $1 | $0.15 on average, $0.27 at most |
+| Time with matches, under 5 minutes | Met on all 8. The slowest took 172 s |
+| Unneeded major upgrades, none | **Met.** All 3 Shopify repos passed the version as a string |
+
+The locks can't see what went wrong here. They show a name moved, and every lock passed, while half the Fixed labels didn't survive a read. Treat 23 of 23 as a floor on effort, not as proof of quality.
+
+**Reading every result:**
+
+- **`LazerTechnologies`, Fixed. I disagree.** It moved four extension `api_version` lines to 2026-10 and left their code on React with `@shopify/ui-extensions` 2025.4 and 2025.7. Those move together, and no check builds the extensions, so nothing caught it. The list says older extensions keep working, but the scan's AI check called them live.
+- **`AdReplica`, Fixed. I disagree.** The main work is right: requests and new creatives use `instagram_user_id`, and a test imports the code. But it also removed `delete ...instagram_actor_id` from `materializePageMappedPackage`, which only strips the dead field, to get a clean rescan. Old packages now carry the dead field through, and the session says so. A person would ask to keep that line.
+- **`educore`, Fixed. I disagree.** The rescan says clean, but `.env.production.template` still has v18.0. The sandbox treated that name as a real env file, so the session and the rescan never saw it. The session said so, but the label couldn't.
+- **`pinpoint-archive`, Fixed. I agree.** It wraps the 2024-10 REST classes so they send 2026-10. That looked like a hack, so I tested it: in a container, the classes as generated send `/admin/api/2024-10/`, and the wrapped ones send `/admin/api/2026-10/`.
+- **`aaronarrays`, Fixed. I agree.** No REST or GraphQL calls of its own.
+- **`harnes`, Fixed. I agree.** A plain version bump.
+- **`aton-member-dashboard`, Needs a look. I agree.** It replaced all five root `?ids=` calls with per-object calls, and its only proof is a source check. It sends many more requests and says so.
+- **`pulse`, Needs a look. I agree.** It swapped GitHub Models for a config-driven Foundry provider and says a person must set it up. It moved the metric's request and its read together. The PR says billing moves to Azure.
+
+**Causes, biggest first:**
+
+1. **Versions live in more than one layer.** `LazerTechnologies` moved one layer too many, and `tungbinzzz` too few. The prompt now says to look for what still carries the old version, and that a pin tied to a package's release moves with that package.
+2. **A rescan can push a session to delete good code.** The prompt now says code that deletes or ignores the dead thing isn't a use, and goes in `falseAlarms`. The scan side went to Pierce.
+3. **The sandbox hid an env template.** It now lets in `.env.production.template` and the like. Real env files stay out.
+
+**A bug that would have lost a PR:** the secret scrubber let a value start on the next line, so an empty `GITHUB_TOKEN=` in a diff ate the following line, and with it the line's diff marker. `git apply` then called the patch corrupt, in the grader here and, in production, in the PR opener, so a finished fix would never have become a PR. A value must now sit on its name's line. Separately, a redacted context line could stop a patch applying, which round 3 of the old plan had seen too, so the PR opener and the grader now restore context and removed lines from the repo's own file. Records stay redacted. A grader failure also no longer loses a paid run's result.
