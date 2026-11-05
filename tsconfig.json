@@ -20,6 +20,7 @@
     "vite.config.ts",
     "app",
     "inventory",
+    "dead-apis",
     "harness",
     "memory",
     "providers",
