@@ -219,3 +219,34 @@ These were built in O3: failed checks and what the rescan still finds go back to
 ### One PR per repo
 
 One session gives one PR per repo by construction. The PR body lists each entry, its source and how many uses it had.
+
+## O8 round 2: Stripe field breaks
+
+**When:** 2026-11-05, 03:34 to 04:51. **Commit:** `37974dc0` on `rebuild/integration`. **Locks:** `evals/rounds/o8-2/`. **Spend:** $0.95 of a $6 cap.
+
+| Repo | Required fixed | Label | Cost | Time |
+| --- | --- | --- | --- | --- |
+| `mattogodoy/nametag` | 3 of 3 | Needs a look | $0.2452 | 1,807 s |
+| `anvveber/hyperion` | 2 of 3 | Needs a look | $0.2465 | 2,172 s |
+| `0-CYBERDYNE-SYSTEMS-0/quorum` | 2 of 2 | Fixed | $0.1684 | 343 s |
+| `atrueempire/yk` | 4 of 4 | Fixed | $0.2946 | 264 s |
+| **Total** | **11 of 12** | | **$0.9548** | |
+
+| Target | Result |
+| --- | --- |
+| Required changes fixed, at least 70% | 11 of 12, 92%, by static locks |
+| Cost with matches, about $0.50, never above $1 | $0.24 on average, $0.29 at most |
+| Time with matches, under 5 minutes | **Missed on 3 of 4.** 264 s, 343 s, and 30 and 36 minutes. All were before the time fixes in O10 |
+| Unneeded major upgrades | None |
+| "Fixed" a hand-check agrees with, at least 90% | 2 of 2 |
+
+**Reading every failure:**
+
+- **`hyperion` R3:** a real partial fix. It reads `invoice.payments` but never expands it, so on a current webhook the payment intent stays null. The session said so under "unproven". Needs a look is the right label.
+- **`nametag`:** all 3 locks pass, and this is the best fix of the night: it retrieves the invoice with `payments` expanded and keeps a fallback for older payloads. It's Needs a look only because the rescan still sees the deliberate fallback the list asks for. That's the safe way round.
+- **`hyperion`, leftover rescan hits:** one is its deliberate fallback. The other, `app/api/billing/cancel/route.ts:58`, already reads `items.data[0]`, so that's a false alarm from the stand-in scan.
+- **`yk`:** it moved Azure deployment names too, which aren't OpenAI-hosted model ids. It's a stand-in scan problem, and it's unclear whether those needed moving. Also the build was killed once with exit 137 during the session, then passed on the harness's own run, so the sandbox's 4 GB is tight for this repo.
+
+**Top cause of the misses: time.** Baselines took 12 to 14 minutes and the suite ran several times. O10's changes target that, and round 3 reruns `hyperion` to measure it.
+
+**The label rules, replayed:** the tighter rules came after round 1. Replayed over rounds 1 and 2 with no spend, 5 of 10 repos stay Fixed, and the hand-check agrees with all 5. It's a replay, so round 3 is the real test.
