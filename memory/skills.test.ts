@@ -29,6 +29,7 @@ function makeRun(id: string, record: Partial<RunRecord>, recordedAt = '2026-11-0
     record: makeRecord(record),
     transcript: '',
     usedRecipeIds: ['recipe-stripe-charges'],
+    evidence: { rescanClean: true },
   };
   return run;
 }
@@ -295,7 +296,10 @@ describe('recordRecipeOutcome on the recipe a run was distilled into', () => {
   });
 
   it('keeps the repo while another successful run from it still backs the recipe', async () => {
-    const { store, run } = await storeWithSource({ outcome: 'verified' }, 'recipe-stripe-charges');
+    const { store, run } = await storeWithSource(
+      { outcome: 'verified', humanVerdict: 'merged' },
+      'recipe-stripe-charges',
+    );
 
     await recordRecipeOutcome(run, { store, now });
 

@@ -1,14 +1,17 @@
 import type { MigrationTask, RetrieveRecipes, RunRecord, RunView } from '../shared/types.ts';
 import { defaultAi, type Embedder, type Model } from './ai.ts';
 import { extractRecipe, succeeded } from './extract.ts';
+import { mergeHabits } from './habits.ts';
 import { createRetriever } from './retrieve.ts';
 import { promoteSkills, recordRecipeOutcome } from './skills.ts';
 import { JsonMemoryStore, type MemoryStore } from './store.ts';
-import type { HumanVerdict, MemoryRecipe, StoredRun } from './types.ts';
+import type { FixEvidence, HumanVerdict, MemoryRecipe, StoredRun } from './types.ts';
 import { toRunView } from './views.ts';
 
 export * from './ai.ts';
 export { extractRecipe, succeeded } from './extract.ts';
+export { habitNotes, knownPlan, type RepoHabits } from './habits.ts';
+export { lessonsFrom, type DetectionLesson } from './lessons.ts';
 export { createRetriever, recipesForEntries, renderMemoryForPrompt } from './retrieve.ts';
 export { runSelfEval } from './selfeval.ts';
 export { promoteSkills, recordRecipeOutcome } from './skills.ts';
@@ -49,6 +52,11 @@ function oneAtATime<T>(task: () => Promise<T>): Promise<T> {
   return result;
 }
 
+const keepHabits = async (run: StoredRun, store: MemoryStore) =>
+  store.saveHabits(
+    mergeHabits(await store.getHabits(run.task.repo), run, new Date().toISOString()),
+  );
+
 // Called by the orchestrator after every run. The run is stored first, so a failed AI pass loses nothing.
 // `commit` is the commit the run read; the self-eval reruns the task on it.
 export async function learnFromRun(
@@ -66,6 +74,7 @@ export async function learnFromRun(
   return oneAtATime(async () => {
     // Read again: a verdict may have reached the run while it waited.
     const run = (await deps.store.getRun(recorded.id)) ?? recorded;
+    await keepHabits(run, deps.store);
     return learn(run, await recordRecipeOutcome(run, deps), deps);
   });
 }
@@ -85,7 +94,28 @@ export async function recordVerdict(
     const run = (await deps.store.getRun(recorded.id)) ?? recorded;
     const demoted = await recordRecipeOutcome(run, deps);
     const distilled = run.extraction?.status === 'done' && run.extraction.mode === 'recipe';
-    return learn(run, demoted, deps, succeeded(run.record) && !distilled);
+    return learn(run, demoted, deps, succeeded(run) && !distilled);
+  });
+}
+
+// What really happened to a PR, from the GitHub App. Stored at once. A person's edits or closing
+// comment reach the recipe the next time learning runs; a revert counts against it now.
+export async function recordEvidence(
+  runIdOrPr: string,
+  evidence: FixEvidence,
+  deps: MemoryDeps = defaultMemory(),
+): Promise<Learned | undefined> {
+  const recorded = await deps.store.addEvidence(runIdOrPr, evidence);
+  if (!recorded) return undefined;
+  return oneAtATime(async () => {
+    const stored = (await deps.store.getRun(recorded.id)) ?? recorded;
+    const teaches = evidence.merged?.humanDiff || evidence.closed?.comment;
+    const { extraction: _learned, ...unlearned } = stored;
+    const run = teaches ? unlearned : stored;
+    if (teaches) await deps.store.saveRun(run);
+    await keepHabits(run, deps.store);
+    const demoted = await recordRecipeOutcome(run, deps);
+    return { run, promoted: await promoteSkills(deps), demoted };
   });
 }
 

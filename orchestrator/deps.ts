@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { runTask, TURN_RESERVE_USD, type HarnessRunRecord } from '../harness/index.ts';
 import { isRepoTask } from '../harness/findings.ts';
+import { modelPlan } from '../harness/prepare.ts';
 import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
 import { BudgetLedger as InventoryLedger, runInventory } from '../inventory/index.ts';
 import {
@@ -12,6 +13,8 @@ import {
   createRetriever,
   defaultAi,
   defaultMemory,
+  habitNotes,
+  knownPlan,
   learnFromRun,
   recipesForEntries,
 } from '../memory/index.ts';
@@ -281,6 +284,11 @@ export function createDeps({
           return [];
         });
         const recipesUsd = ai.budget.spentUsd;
+        const habits = await ai.store.getHabits(task.repo).catch(() => undefined);
+        const proved = knownPlan(habits);
+        // The first plan is the repo's proven setup. A second means the checks still failed, so a
+        // model reads what went wrong.
+        let planned = false;
         // shortcut: a harness that throws reports no spend, so until it returns its whole share counts as spent; charge it live through the harness's chargeRun (O5) once that lands.
         spentUsd = hold.usd;
         const record = await runTask(task, dir, {
@@ -290,6 +298,14 @@ export function createDeps({
           loadToolPack: (provider): Promise<ToolPack> =>
             loadToolPack(provider, { hints: hintsFor(task.usages) }),
           retrieveRecipes: async () => recipes,
+          habitNotes: habitNotes(habits),
+          ...(proved && {
+            planPreparation: (evidence, ledger) => {
+              if (planned) return modelPlan(evidence, ledger);
+              planned = true;
+              return Promise.resolve(proved);
+            },
+          }),
         });
         spentUsd = recipesUsd + record.costUsd;
         return record;

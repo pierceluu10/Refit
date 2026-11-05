@@ -2,7 +2,14 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { MigrationTask, RunRecord } from '../shared/types.ts';
-import type { HumanVerdict, MemoryRecipe, SelfEvalReport, StoredRun } from './types.ts';
+import type { RepoHabits } from './habits.ts';
+import type {
+  FixEvidence,
+  HumanVerdict,
+  MemoryRecipe,
+  SelfEvalReport,
+  StoredRun,
+} from './types.ts';
 
 // Everything memory/ persists. Async throughout so a Postgres implementation can drop in.
 export interface MemoryStore {
@@ -20,10 +27,14 @@ export interface MemoryStore {
   // merged PR can't be reopened, and a late 'edited' never replaces 'closed': GitHub can deliver an
   // event after a later one, and a redelivery can replay an old one.
   recordVerdict(runIdOrPr: string, verdict: HumanVerdict): Promise<StoredRun | undefined>;
+  addEvidence(runIdOrPr: string, evidence: FixEvidence): Promise<StoredRun | undefined>;
 
   saveRecipe(recipe: MemoryRecipe): Promise<void>;
   getRecipe(id: string): Promise<MemoryRecipe | undefined>;
   listRecipes(): Promise<MemoryRecipe[]>;
+
+  getHabits(repo: string): Promise<RepoHabits | undefined>;
+  saveHabits(habits: RepoHabits): Promise<void>;
 
   saveSelfEval(report: SelfEvalReport): Promise<void>;
   listSelfEvals(): Promise<SelfEvalReport[]>;
@@ -31,7 +42,28 @@ export interface MemoryStore {
   setSelfEvalTaskIds(ids: string[]): Promise<void>;
 }
 
-type Collection = 'runs' | 'recipes' | 'selfevals';
+// The plain verdict the app sends today, as evidence, until its P7 evidence arrives.
+const verdictEvidence = (verdict: HumanVerdict, at = new Date().toISOString()): FixEvidence =>
+  verdict === 'merged'
+    ? { merged: { at } }
+    : verdict === 'closed'
+      ? { closed: { at } }
+      : { edited: true };
+
+// Fields that may move on after they were first set: a later revert, a merge that now has its diff.
+const keepNew = (old: FixEvidence = {}, fresh: FixEvidence): FixEvidence => ({
+  ...(fresh.reverted ? { reverted: fresh.reverted } : {}),
+  ...(fresh.merged?.humanDiff && !old.merged?.humanDiff ? { merged: fresh.merged } : {}),
+  ...(fresh.closed?.comment && !old.closed?.comment ? { closed: fresh.closed } : {}),
+});
+
+// A repo session's record carries its last rescan.
+const rescanEvidence = (record: RunRecord) => {
+  const { rescan } = record as RunRecord & { rescan?: { clean: boolean } };
+  return rescan ? { evidence: { rescanClean: rescan.clean } } : {};
+};
+
+type Collection = 'runs' | 'recipes' | 'selfevals' | 'habits';
 
 // Local JSON: one file per item under <dir>/<collection>/, written atomically.
 export class JsonMemoryStore implements MemoryStore {
@@ -62,6 +94,7 @@ export class JsonMemoryStore implements MemoryStore {
       transcript: transcript ?? (await readTranscript(record.transcriptPath)),
       usedRecipeIds,
       ...(commit && { commit }),
+      ...rescanEvidence(record),
     };
     await this.write('runs', run.id, run);
     return run;
@@ -80,18 +113,33 @@ export class JsonMemoryStore implements MemoryStore {
   }
 
   async recordVerdict(runIdOrPr: string, verdict: HumanVerdict) {
-    const run =
-      (await this.getRun(runIdOrPr)) ??
-      (await this.listRuns())
-        .filter((candidate) => candidate.record.pr === runIdOrPr)
-        .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt))
-        .at(-1);
+    const run = await this.findRun(runIdOrPr);
     if (!run) return undefined;
     const current = run.record.humanVerdict;
     if (current === 'merged' || (current === 'closed' && verdict === 'edited')) return run;
     run.record = { ...run.record, humanVerdict: verdict };
+    run.evidence = { ...run.evidence, ...verdictEvidence(verdict) };
     await this.write('runs', run.id, run);
     return run;
+  }
+
+  async addEvidence(runIdOrPr: string, evidence: FixEvidence) {
+    const run = await this.findRun(runIdOrPr);
+    if (!run) return undefined;
+    // A close or merge is once; a redelivered webhook keeps the first.
+    run.evidence = { ...evidence, ...run.evidence, ...keepNew(run.evidence, evidence) };
+    await this.write('runs', run.id, run);
+    return run;
+  }
+
+  private async findRun(runIdOrPr: string) {
+    return (
+      (await this.getRun(runIdOrPr)) ??
+      (await this.listRuns())
+        .filter((candidate) => candidate.record.pr === runIdOrPr)
+        .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt))
+        .at(-1)
+    );
   }
 
   saveRecipe(recipe: MemoryRecipe) {
@@ -104,6 +152,14 @@ export class JsonMemoryStore implements MemoryStore {
 
   listRecipes() {
     return this.list<MemoryRecipe>('recipes');
+  }
+
+  getHabits(repo: string) {
+    return this.read<RepoHabits>('habits', repo);
+  }
+
+  saveHabits(habits: RepoHabits) {
+    return this.write('habits', habits.repo, habits);
   }
 
   saveSelfEval(report: SelfEvalReport) {

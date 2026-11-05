@@ -322,7 +322,7 @@ export async function runTask(
       before,
       installOutput,
       packageManagerNote(pm, pmVersion),
-      preparationNotes(preparation),
+      [...preparationNotes(preparation), ...(deps.habitNotes ?? [])],
       isRepoTask(task) ? task : undefined,
     );
     let sessionId: string | undefined;
@@ -509,6 +509,7 @@ export async function runTask(
       summary,
       preparation,
       ...(label ? { note: label.reason } : {}),
+      ...(finalReport ? { report: finalReport } : {}),
       ...(rescan ? { rescan } : {}),
       ...(smoke?.length ? { smoke } : {}),
       cache: ledger.cache,

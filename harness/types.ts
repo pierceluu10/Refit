@@ -118,6 +118,8 @@ export type HarnessDeps = {
   chargeRun?: ChargeRun;
   // A repo session's proof: the same plain-code scan, over the sandbox's working copy. It only reads.
   rescan?: (dir: string) => Promise<ScanResult>;
+  // What earlier runs learned about this repo, for the kickoff message.
+  habitNotes?: string[];
   // The optional live smoke call. It runs on the host, after the session.
   smoke?: (task: RepoTask) => Promise<SmokeResult[]>;
   fetch?: typeof fetch;
@@ -134,6 +136,7 @@ export type HarnessRunRecord = RunRecord & {
   agentChecks: { name: string; command: string; before: string; after: string }[];
   // Why a repo session got its label, in a line, and what the last rescan found.
   note?: string;
+  report?: FinishReport;
   rescan?: ScanResult;
   smoke?: SmokeResult[];
   // Input tokens by how they were billed: a healthy session reads far more than it writes.

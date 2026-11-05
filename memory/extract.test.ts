@@ -57,7 +57,7 @@ describe('extractRecipe', () => {
   });
 
   it('creates a new recipe linked to its run from one strict-schema model pass', async () => {
-    const { store, run } = await setup();
+    const { store, run } = await setup({ humanVerdict: 'merged' });
     await store.saveRecipe(makeRecipe({ id: 'recipe-shopify', provider: 'shopify' }));
     const { model, requests } = fakeModel();
 
@@ -87,7 +87,7 @@ describe('extractRecipe', () => {
   });
 
   it('merges into the recipe the model names, deduping repos and dropping the stale embedding', async () => {
-    const { store, run } = await setup();
+    const { store, run } = await setup({ humanVerdict: 'merged' });
     const skill = {
       status: 'active' as const,
       prompt: 'skill',
@@ -112,7 +112,7 @@ describe('extractRecipe', () => {
     });
     expect(sameRepo).not.toHaveProperty('embedding');
 
-    const other = await setup({ repo: 'example-org/billing' });
+    const other = await setup({ humanVerdict: 'merged', repo: 'example-org/billing' });
     await other.store.saveRecipe(sameRepo!);
     const newRepo = await extractRecipe(other.run, { store: other.store, model, now: () => NOW });
 
@@ -138,7 +138,7 @@ describe('extractRecipe', () => {
       'stripe-sources-removed',
     ]);
 
-    const other = await setup({ repo: 'example-org/billing' });
+    const other = await setup({ humanVerdict: 'merged', repo: 'example-org/billing' });
     await other.store.saveRecipe({ ...recipe!, changeIds: ['stripe-older-change'] });
     const merged = await extractRecipe(other.run, {
       store: other.store,
@@ -309,5 +309,44 @@ describe('extractRecipe', () => {
       status: 'done',
       mode: 'pitfalls',
     });
+  });
+
+  it('makes only a low-confidence recipe from a clean rescan with no merge, and no repo counts', async () => {
+    const { store, run } = await setup();
+    const { model } = fakeModel();
+    const recipe = await extractRecipe(run, { store, model, now: () => NOW });
+    expect(recipe).toMatchObject({ confidence: 'low', verifiedRepos: 0, repos: [] });
+    expect(recipe?.benchmarkOnly).toBe(false);
+  });
+
+  it('labels a recipe from a locked test benchmark-only', async () => {
+    const { store, run } = await setup({ outcome: 'needs-review' });
+    const { model } = fakeModel();
+    const benchmark = { ...run, evidence: { rescanClean: true, lockedTest: true } };
+    const recipe = await extractRecipe(benchmark, { store, model, now: () => NOW });
+    expect(recipe).toMatchObject({ confidence: 'low', benchmarkOnly: true, verifiedRepos: 0 });
+  });
+
+  it('learns nothing from "verified" with no rescan', async () => {
+    const { store, run } = await setup();
+    const { model } = fakeModel();
+    expect(await extractRecipe({ ...run, evidence: {} }, { store, model })).toBeUndefined();
+    expect(model.json).not.toHaveBeenCalled();
+  });
+
+  it('feeds what a person changed before merging into the model', async () => {
+    const { store, run } = await setup({ humanVerdict: 'merged' });
+    const { model, requests } = fakeModel();
+    const merged = {
+      ...run,
+      evidence: {
+        rescanClean: true,
+        edited: true,
+        merged: { at: NOW.toISOString(), humanDiff: 'diff --git a/x b/x\n-bad\n+good\n' },
+      },
+    };
+    await extractRecipe(merged, { store, model, now: () => NOW });
+    expect(requests[0].prompt).toContain('What the human changed before merging');
+    expect(requests[0].prompt).toContain('+good');
   });
 });
