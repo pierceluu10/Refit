@@ -18,6 +18,16 @@ describe('the gpt-3.5-turbo proven fix', () => {
 `);
   });
 
+  it('takes out a temperature line that carries a comment', () => {
+    const before = `model: "gpt-3.5-turbo",
+      temperature: 0.7, // Adjust the temperature as needed
+      stream: true,
+`;
+    expect(fix.apply(before, 'route.ts')).toBe(`model: "gpt-5.6-terra",
+      stream: true,
+`);
+  });
+
   it('leaves a longer name alone', () => {
     expect(fix.apply(`model: "gpt-3.5-turbo-instruct",`, 'a.ts')).toBeUndefined();
   });

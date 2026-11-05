@@ -1,0 +1,130 @@
+[
+  {
+    "repo": "PRIYESHSINGH24/buddy_connect",
+    "commit": "4e5e7e7bd7c9645d5a889f4c9ad51dc9b3917f03",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "gemini-1",
+        "file": "app/api/ai/chat/route.ts",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": [
+          {
+            "from": "gemini-2.0-flash",
+            "to": "gemini-3.6-flash"
+          }
+        ]
+      },
+      {
+        "id": "R2",
+        "entryId": "gemini-1",
+        "file": "lib/ai-advanced-utils.ts",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": [
+          {
+            "from": "gemini-2.0-flash",
+            "to": "gemini-3.6-flash"
+          }
+        ]
+      },
+      {
+        "id": "R3",
+        "entryId": "gemini-1",
+        "file": "lib/ai-client.ts",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": [
+          {
+            "from": "gemini-2.0-flash",
+            "to": "gemini-3.6-flash"
+          }
+        ]
+      },
+      {
+        "id": "R4",
+        "entryId": "gemini-1",
+        "file": "lib/ai-utils.ts",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": [
+          {
+            "from": "gemini-2.0-flash",
+            "to": "gemini-3.6-flash"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "repo": "palashb01/DocuChat",
+    "commit": "4f222d3a5131129ebeb7f4239c96bdd6392e38da",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "openai-1",
+        "file": "src/app/api/message/route.ts",
+        "dead": "[\"']gpt-3\\.5-turbo[\"']",
+        "alive": ["gpt-5\\.6-terra"],
+        "proof": [
+          {
+            "from": "gpt-3.5-turbo",
+            "to": "gpt-5.6-terra"
+          }
+        ]
+      },
+      {
+        "id": "R2",
+        "entryId": "openai-requires",
+        "file": "src/app/api/message/route.ts",
+        "dead": "temperature\\s*:",
+        "alive": [],
+        "proof": [
+          {
+            "from": "temperature: 0.7, // Adjust the temperature as needed",
+            "to": ""
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "repo": "AyeletHillel/fine-tune",
+    "commit": "4ee956be046af38a59475ea0a8a01e6191f1f01d",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "openai-1",
+        "file": "src/index.ts",
+        "dead": "[\"']gpt-3\\.5-turbo[\"']",
+        "alive": ["gpt-5\\.6-terra"],
+        "proof": [
+          {
+            "from": "gpt-3.5-turbo",
+            "to": "gpt-5.6-terra"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "repo": "jackstonemedia/StoneAIOMainSystem",
+    "commit": "58c3cef9b8a011f4c1ba0fc8c38bc56fbedb8c9e",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "gemini-1",
+        "file": "src/data/workflowNodes.ts",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": [
+          {
+            "from": "gemini-2.0-flash",
+            "to": "gemini-3.6-flash"
+          }
+        ]
+      }
+    ]
+  }
+]

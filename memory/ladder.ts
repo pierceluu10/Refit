@@ -86,7 +86,13 @@ export function ladderFrom(runs: StoredRun[], at: string): LadderEntry[] {
   for (const run of runs) {
     const items = evidenceOf(run);
     if (items.length === 0) continue;
-    for (const id of entryIds(run)) byEntry.set(id, [...(byEntry.get(id) ?? []), ...items]);
+    const covered = run.evidence?.lockedEntries;
+    for (const id of entryIds(run)) {
+      const mine = items.filter(
+        (item) => item.kind !== 'locked-test' || !covered || covered.includes(id),
+      );
+      byEntry.set(id, [...(byEntry.get(id) ?? []), ...mine]);
+    }
   }
   return [...byEntry].map(([entryId, evidence]) => ({
     entryId,

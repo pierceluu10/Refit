@@ -96,6 +96,20 @@ describe('the ladder from stored runs', () => {
     expect(provenAllowed(undefined, merged)).toBe(false);
   });
 
+  it('counts a locked test only for the entries it covered', () => {
+    const task = {
+      ...makeTask({ repo: 'acme/a' }),
+      entries: [{ id: 'GE-1' }, { id: 'OA-3' }],
+    } as StoredRun['task'];
+    const covered = {
+      ...run('a', { rescanClean: true, lockedTest: true, lockedEntries: ['GE-1'] }),
+      task,
+    };
+    const ladder = ladderFrom([covered], at);
+    expect(ladder.find((e) => e.entryId === 'GE-1')?.evidence).toHaveLength(1);
+    expect(ladder.find((e) => e.entryId === 'OA-3')?.evidence).toHaveLength(0);
+  });
+
   it('keeps benchmark evidence out of what customers may run', () => {
     const tests = ['a', 'b', 'c'].map((id) => run(id, { rescanClean: true, lockedTest: true }));
     const [entry] = ladderFrom(tests, at);

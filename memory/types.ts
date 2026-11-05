@@ -7,6 +7,7 @@ export type HumanVerdict = NonNullable<RunRecord['humanVerdict']>;
 export type FixEvidence = {
   rescanClean?: boolean;
   lockedTest?: boolean; // benchmarks only: a stand-in for a merge, never counted for customers
+  lockedEntries?: string[]; // the list entries its locked tests covered; unset means all of them
   edited?: boolean; // a person's commits changed our PR
   merged?: { at: string; humanDiff?: string }; // humanDiff: our PR against what was merged
   closed?: { at: string; comment?: string };

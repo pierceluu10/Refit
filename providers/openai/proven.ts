@@ -6,7 +6,7 @@ import { modelSwap } from '../toolkit/proven.ts';
 // had to move, so a file with one of them goes to Claude.
 const NEEDS_READING = /fineTuning|fine_tuning|top_p|topP|logprobs|\bn:\s*\d|frequency_penalty/;
 // The newer reasoning models reject `temperature`, and every real fix took out this one line.
-const TEMPERATURE_LINE = /^[ \t]*temperature\s*:\s*[\d.]+,?[ \t]*\r?\n/gm;
+const TEMPERATURE_LINE = /^[ \t]*temperature\s*:\s*[\d.]+,?[ \t]*(?:\/\/.*)?\r?\n/gm;
 
 // Benchmark-only so far: its evidence is locked tests, not merged PRs.
 export const provenFixes: ProvenFix[] = [

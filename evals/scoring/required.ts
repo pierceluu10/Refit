@@ -12,8 +12,8 @@ export type RequiredChange = {
   dead: string;
   /** Regexes that show the fix: at least one must match. Empty when removing the code is the fix. */
   alive: string[];
-  /** The smallest edit that fixes it, used only to prove the lock can pass. */
-  proof: { from: string; to: string };
+  /** The smallest edits that fix it, used only to prove the lock can pass. */
+  proof: { from: string; to: string } | { from: string; to: string }[];
 };
 
 export type RepoLock = { repo: string; commit: string; required: RequiredChange[] };
@@ -42,9 +42,13 @@ export function proveLock(dir: string, lock: RepoLock): string[] {
   const problems: string[] = [];
   for (const change of lock.required) {
     if (gradeChange(dir, change).fixed) problems.push(`${change.id} passes at baseline`);
-    const text = read(dir, change.file);
-    if (!text.includes(change.proof.from)) problems.push(`${change.id}: proof edit not found`);
-    writeFileSync(path.join(dir, change.file), text.split(change.proof.from).join(change.proof.to));
+    let text = read(dir, change.file);
+    const edits = Array.isArray(change.proof) ? change.proof : [change.proof];
+    if (!edits.some(({ from }) => text.includes(from))) {
+      problems.push(`${change.id}: proof edit not found`);
+    }
+    for (const { from, to } of edits) text = text.split(from).join(to);
+    writeFileSync(path.join(dir, change.file), text);
   }
   for (const change of lock.required) {
     if (!gradeChange(dir, change).fixed) problems.push(`${change.id} fails on its proof edit`);

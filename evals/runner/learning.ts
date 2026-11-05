@@ -2,7 +2,7 @@
 // Does memory help? From the same commits, on fresh repos, one session with memory on and one with it
 // off. The order varies by repo, a repo that fed the memory can't be tested, and each arm's diff is
 // written under a shuffled label, so a grader who hasn't seen the key can compare them blind.
-//   node evals/runner/learning.ts feed <results.json>... --memory <dir>
+//   node evals/runner/learning.ts feed <lock.json>... <results.json>... --memory <dir>
 //   APTITUDE_AI_BUDGET_USD=5 node evals/runner/learning.ts test <lock.json> <out> --memory <dir>
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
@@ -28,7 +28,7 @@ const stable = (text: string) => createHash('sha256').update(text).digest();
 
 // Stores a round's runs as evidence. A run counts only if every locked change passed, and that
 // stand-in for a merge stays labelled: nothing here can ever be proven for a customer.
-export async function feed(files: string[], store: SqliteMemoryStore) {
+export async function feed(files: string[], locks: RepoLock[], store: SqliteMemoryStore) {
   const embedder = new LocalEmbedder();
   let fed = 0;
   for (const file of files) {
@@ -44,8 +44,17 @@ export async function feed(files: string[], store: SqliteMemoryStore) {
         { task, record: result.record, commit: result.commit },
         { store, embedder },
       );
-      if (result.required.every((change) => change.fixed)) {
-        await recordEvidence(run.id, { lockedTest: true }, { store, embedder });
+      const lock = locks.find((one) => one.repo === result.repo);
+      const entriesOf = (fixed: boolean) =>
+        (lock?.required ?? [])
+          .filter(
+            (change) => (result.required.find((r) => r.id === change.id)?.fixed ?? false) === fixed,
+          )
+          .map((change) => change.entryId);
+      const missed = entriesOf(false);
+      const lockedEntries = [...new Set(entriesOf(true))].filter((id) => !missed.includes(id));
+      if (lockedEntries.length > 0) {
+        await recordEvidence(run.id, { lockedTest: true, lockedEntries }, { store, embedder });
       }
       fed += 1;
     }
@@ -127,8 +136,14 @@ async function main(argv: string[]) {
   if (!values.memory) throw new Error('--memory <dir> is required');
   const store = SqliteMemoryStore.forOwner(values.memory, OWNER);
   const [command, ...rest] = positionals;
-  if (command === 'feed') console.log(`fed ${await feed(rest, store)} run(s)`);
-  else if (command === 'test') await test(rest[0] as string, rest[1] as string, store);
+  if (command === 'feed') {
+    const [lockFiles, results] = [
+      rest.filter((file) => file.endsWith('lock.json')),
+      rest.filter((file) => !file.endsWith('lock.json')),
+    ];
+    const locks = lockFiles.flatMap((file) => JSON.parse(readFileSync(file, 'utf8')) as RepoLock[]);
+    console.log(`fed ${await feed(results, locks, store)} run(s)`);
+  } else if (command === 'test') await test(rest[0] as string, rest[1] as string, store);
   else throw new Error('usage: learning.ts feed|test ...');
 }
 
