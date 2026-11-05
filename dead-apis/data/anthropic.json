@@ -485,6 +485,12 @@
         {
           "kind": "string",
           "value": "claude-3-haiku-20240307"
+        },
+        {
+          "kind": "string",
+          "value": "claude-3-haiku",
+          "bare": true,
+          "ambiguous": true
         }
       ],
       "replacement": "claude-haiku-4-5-20251001, as the page lists it. Active but legacy: its \"not sooner than October 15, 2026\" has passed with no retirement date announced, so re-check before relying on it. The current Haiku is claude-haiku-5-5, which needs more: see its guide.",
@@ -534,6 +540,12 @@
         {
           "kind": "string",
           "value": "claude-3-opus-20240229"
+        },
+        {
+          "kind": "string",
+          "value": "claude-3-opus",
+          "bare": true,
+          "ambiguous": true
         },
         {
           "kind": "string",
@@ -592,6 +604,12 @@
         {
           "kind": "string",
           "value": "claude-3-sonnet-20240229"
+        },
+        {
+          "kind": "string",
+          "value": "claude-3-sonnet",
+          "bare": true,
+          "ambiguous": true
         }
       ],
       "replacement": "claude-sonnet-5-5, as the page lists it. Active, retirement not sooner than September 28, 2027.",

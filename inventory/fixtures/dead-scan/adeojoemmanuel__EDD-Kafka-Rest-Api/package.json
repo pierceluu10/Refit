@@ -1,0 +1,5 @@
+{
+  "name": "event-driven-system",
+  "description": "Excerpt of adeojoemmanuel/EDD-Kafka-Rest-Api, package.json, seen in P5.",
+  "dependencies": { "openai": "^4.0.0" }
+}

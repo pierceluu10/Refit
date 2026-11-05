@@ -18,6 +18,17 @@ function flags(text: string): string[] {
     .map(({ entry }) => entry);
 }
 
+describe('a bare string matcher', () => {
+  const bare = { kind: 'string', value: 'claude-3-haiku', bare: true } as const;
+
+  it('is the name alone, not a segment of a longer id', () => {
+    expect(textMatches(bare, "model: 'claude-3-haiku'")).toBe(true);
+    expect(textMatches(bare, "model: 'anthropic/claude-3-haiku'")).toBe(false);
+    expect(textMatches(bare, "model: 'bedrock:claude-3-haiku'")).toBe(false);
+    expect(textMatches({ ...bare, bare: false }, "model: 'anthropic/claude-3-haiku'")).toBe(true);
+  });
+});
+
 describe('string matchers are whole tokens', () => {
   // Each of these is a live name that sits inside or next to a dead one, found by the spot-check.
   it.each([

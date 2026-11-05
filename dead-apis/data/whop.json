@@ -1,0 +1,69 @@
+{
+  "provider": "whop",
+  "officialHosts": ["docs.whop.com"],
+  "entries": [
+    {
+      "id": "WH-1.public-graphql",
+      "provider": "whop",
+      "what": "Whop retired its public GraphQL API. Every method on the @whop/api server client (WhopServerSdk, makeWhopServerSdk) sends a GraphQL operation, and api.whop.com/public-graphql returns 410. verifyUserToken is local and keeps working.",
+      "diedOn": "2026-10-26",
+      "source": {
+        "url": "https://docs.whop.com/developer/api/migrate-from-previous-versions",
+        "checkedOn": "2026-11-05",
+        "quote": "`https://api.whop.com/public-graphql`, or uses the `@whop/api` package | October 26, 2026"
+      },
+      "lookFor": [
+        "A GraphQL operation called on the @whop/api client, such as whopSdk.users.getUser or whopSdk.notifications.sendPushNotification",
+        "A request to api.whop.com/public-graphql"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\b\\w*[wW]hop\\w*(?:\\.with(?:User|Company)\\([^)]*\\))?(?:\\.\\w+)?\\.(?:checkIfUserHasAccessToExperience|checkIfUserHasAccessToAccessPass|checkIfUserHasAccessToCompany|listMessagesFromChat|sendMessageToChat|sendDirectMessageToUser|listDirectMessageConversations|getUser|getCurrentUser|listUsersForExperience|getExperience|listExperiences|getAccessPass|listAccessPasses|listAccessPassesForExperience|createAccessPass|updateAccessPass|deleteAccessPass|listPlans|getCompany|listMemberships|listAuthorizedUsers|listWaitlistEntries|listReceiptsForCompany|chargeUser|createCheckoutSession|payUser|getAttachment|sendPushNotification|listCoursesForExperience|listCoursesForCompany|getCourse|getLesson|getUserLessonInteractions|markLessonAsCompleted|listForumPostsFromForum|createForumPost|createWebhook|updateWebhook|deleteWebhook|testWebhook)\\s*\\("
+        },
+        {
+          "kind": "url",
+          "value": "api.whop.com/public-graphql"
+        }
+      ],
+      "replacement": "The Current API at https://api.whop.com/api/v1 through @whop/sdk. The guide maps each GraphQL operation to its endpoint.",
+      "requires": [
+        "withUser and withCompany have no equivalent in @whop/sdk: pass the user or account ID on each request.",
+        "Without an SDK, send Api-Version-Date on every request.",
+        "Keep the same API key; a 403 means it lacks the permission that endpoint needs."
+      ],
+      "context": {
+        "packages": ["@whop/api"],
+        "hosts": ["api.whop.com"]
+      }
+    }
+  ],
+  "future": [
+    {
+      "id": "WH-2.api-v2",
+      "provider": "whop",
+      "what": "Whop API v2 stops working.",
+      "diesOn": "2026-11-13",
+      "source": {
+        "url": "https://docs.whop.com/developer/api/migrate-from-previous-versions",
+        "checkedOn": "2026-11-05",
+        "quote": "`https://api.whop.com/api/v2` or `https://api.whop.com/v2` | November 13, 2026"
+      },
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "api.whop.com/api/v2*"
+        },
+        {
+          "kind": "url",
+          "value": "api.whop.com/v2*"
+        }
+      ],
+      "replacement": "The Current API at https://api.whop.com/api/v1. The guide maps each v2 route.",
+      "requires": [],
+      "context": {
+        "hosts": ["api.whop.com"]
+      }
+    }
+  ]
+}

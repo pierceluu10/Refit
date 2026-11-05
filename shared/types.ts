@@ -128,7 +128,14 @@ export type RunView = {
 // read on an object from that provider, `package` a dependency name. `ambiguous` means a hit is common
 // words or the same shape as the app's own code, so it goes to the small AI check and never to a fix.
 export type DeadApiMatcher =
-  | { kind: 'string'; value: string; caseSensitive?: boolean; ambiguous?: boolean }
+  | {
+      kind: 'string';
+      value: string;
+      caseSensitive?: boolean;
+      ambiguous?: boolean;
+      /** The name alone, so a router's anthropic/claude-3-haiku isn't Anthropic's claude-3-haiku. */
+      bare?: boolean;
+    }
   | { kind: 'regex'; value: string; ambiguous?: boolean }
   | { kind: 'url'; value: string; ambiguous?: boolean }
   | { kind: 'field'; value: string; on?: string[]; ambiguous?: boolean }

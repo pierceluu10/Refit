@@ -10,6 +10,7 @@ The loop for P5. Each round measures a fresh random sample (seed `pierce-p5`, di
 | ----- | ---------------- | -------------- | ----- | ---------- | -------------------- | ----------- | --------- | ------------------------------------------ | -------------------- |
 | 1     | 2026-11-05 09:58 | `948862f5`     | 16    | 60         | 57% (89%)            | 64          | 48%       | $0.0116 for all 21 repos with unclear hits | 0.15 / 14.6          |
 | 2     | 2026-11-05 10:48 | `468423d4`     | 16    | 25         | 52% (81%)            | 37          | 35%       | $0.0185 for all repos with unclear hits    | 0.2 / 15.2           |
+| 3     | 2026-11-05 11:16 | `ab593087`     | 16    | 118        | 86% (97%)            | 177         | 58%       | $0.0194 for all repos with unclear hits    | 0.2 / 16.0           |
 
 ## Round 1
 
@@ -67,3 +68,36 @@ The loop for P5. Each round measures a fresh random sample (seed `pierce-p5`, di
 - clean: true with a named unlisted provider is unchanged. The regression clones must stay clean while naming unlisted providers, so these still read as clean. A dead product at an unlisted host only surfaces once it has a list entry.
 - Tableau password sign-in stays unclear rather than live: it depends on Cloud versus on-premise Server, and no live sign-in was tried. azure-keyvault stays unclear when unpinned, because no wheel was opened.
 - jasper reads at GitHubV4IssueClient.ts:421 and 426 stay quiet as a common word in a file that never names GitHub. They weren't listed as misses, and the query lines now carry the finding.
+
+## Round 3
+
+**Numbers:** 102 of 118 dead items flagged, 102 of 177 live lines correct, 16 couldn't be told. False alarms by repo: bicalhobim__ia.rt_bim 64, liamstamper__lamp-bot 5, nicuk__docsflow 3, adeojoemmanuel/EDD-Kafka-Rest-Api 1, kousalyaChintha__InfiniteCode 1. A committed virtualenv in one repo gave 56 of the 75 false alarms. Round 3's gain partly reflects a sample with more on-list findings, so don't read it as all from the fixes.
+
+**Top causes, and what changed:**
+
+- **Committed virtualenv (Lib/site-packages) scanned as app code** (56): site-packages and dist-packages added to the walk's skipped folders (inventory/repo-files.ts). bicalhobim went from 15.3 s to 0.1 s, and app.py's own Assistants calls stay flagged.
+- **Whop has no list file, so @whop/api GraphQL calls match nothing** (9): New dead-apis/data/whop.json. WH-1.public-graphql has a regex for the 41 operations in Whop's guide on a whop-named client, plus a URL matcher; verifyUserToken and @whop/sdk methods don't match. WH-2.api-v2 sits in future, starting 2026-11-13. Also added a general rule: a Convex function nothing in the repo calls goes to unclear (5 notification and auth lines). All 9 misses are live.
+- **Backup copies of an entry point treated as running code** (8): backupReach: a name with a bkp, bak, backup, old, orig or copy mark, an original beside it, and no other file naming it is catalog. Imported backups, backups with no original and names like gold.js stay live.
+- **OpenRouter has no list file, and its routes retire with no notice** (4): New dead-apis/data/openrouter.json with 12 slugs, each confirmed that day as empty /endpoints and absent from /api/v1/models. Quote is the fetched text; diedOn is the probe date, following muapi. A docs/ folder a vercel, netlify or firebase config serves now counts as running code, which reaches docs/script.js. A list under a table key the code never reads is catalog, so the 4 unread keys in nicuk don't become new false alarms.
+- **The list matched only dated Claude 3 ids, so undated names had no matcher** (3): Added claude-3-opus, claude-3-sonnet and claude-3-haiku as ambiguous matchers with a new additive bare flag (shared/types.ts, dead-apis/match.ts), so anthropic/claude-3-haiku stays out and tinypivot keeps exactly 3. These land as unclear, not live, because the undated name is a reading; the AI check settles them.
+- **`x.y || 'literal'` classed live though y always has its own default** (2): fallbackReach sends it to unclear and shows the line that sets the default as a read. Environment left sides and left sides with no default elsewhere stay live. This also moved 3 kousalya gpt-4 fallback lines from live to unclear; the gpt-4 default itself stays live at Index.jsx.
+- **Display label of an option record counted as a second live use** (2): label added to DISPLAY_KEY, so it is catalog. The record's value stays live.
+- **Model id copied into the app's own usage record counted as sent** (1): bookkeepingReach: an argument under a save, record, track or log call ending in usage, cost, tokens or similar is catalog. The real call two lines up stays live.
+- **Request body sent to an /api path no route serves** (1): missingRouteReach compares fetch('/api/...') with Next.js app and pages routes, including dynamic and catch-all segments, and goes to unclear. It stays off when next.config has rewrites or the repo has no routes.
+- **File imports a name its module doesn't export, so it can't load (adeojo)** (1): brokenImportReach sends the file to unclear when a relative named import's module never mentions the name. The other half of the hand-check's reasoning, a service no deploy config starts, is not detected.
+- **Existing rule 'a parameter default every caller overrides is catalog' bailed on any package **init** re-export** (1): defaultReach now ignores the re-export when the repo has no setup.py or pyproject and a caller sits outside the package folder. Published packages and packages with no outside caller keep their old result. An existing test covers that case and still passes unedited.
+- **Existing orphan rule was defeated: a same-named twin module matched by path tail, and a dynamic-load check matched the folder name 'ai' inside any word** (1): With a same-named module present, a JS module counts as imported only if a quoted path resolves to it. The dynamic-load check now needs the folder as a path part. Result is unclear, as the orphan rule intends.
+- **String inside an object member or plain-class method nothing calls** (1): uncalledMemberReach goes to unclear for members of `= {` objects and classes with no base. Returned objects such as Vite plugins, subclasses and members passed to framework calls stay live.
+- **List read only inside `if (x)` where `const x = false`** (1): deadBranchReach makes both that list and code directly inside such a branch catalog. let, true, computed flags and any read outside the guard stay live. This also stops the AI check's wrong upgrade, since a catalog line is never sent to it.
+
+**Not fixed:**
+
+- 6 of the 19 non-venv false alarms are now unclear, not catalog: adeojo chat.service.ts:18, kousalya LeftPanel.jsx:158, lamp-bot AIConfigurationClient.tsx:686 and :1249, nicuk lib-frontend/ai/providers.ts:34 and lib/ai/providers.ts:107. Their reasons and reads say why they may not run, but the AI check could still upgrade them. Not tested, because no model call was allowed.
+- AI check reasoning from absence: the four z.enum upgrades in vadik88888-prog/beauty-saas ('an admin can pick') need the check to see the dropdown. No rule shows that, and a prompt change can't be measured without a model call, so dead-check.ts is untouched.
+- A service no deploy config starts, or routes no root app mounts (adeojo): this needs per-repo knowledge of how a monorepo deploys. Only the typo'd import half is a rule.
+- lamp-bot's handler whose only button is commented out: JSX reachability has no general rule. The missing-route rule catches this line for a different reason.
+- OpenRouter's catalog changes with no notice feed. The file holds only slugs seen in this sample, and being listed takes openrouter off the unlisted queue, so a new retirement stays invisible until someone re-probes. It needs a periodic diff of /api/v1/models in the refresh, which is outside this task.
+- Known real miss, kept by the brief: anthropic/claude-3-haiku and google/gemini-2.0-flash-001 also have zero OpenRouter endpoints. I left those and other gateway-shaped ids out of the file because tinypivot must keep exactly 3 Anthropic findings, and the same shape is used by other gateways. So tinypivot's api/ai-proxy.ts:103 and unified-handler.ts:214 are dead but not flagged by the OpenRouter list.
+- nicuk lib/query-complexity-classifier.ts:296 and :298 are newly live via OR-1. They go into a recommendedModel field nothing appears to read, so these are likely new false alarms. Current rules treat a holder nothing reads as no evidence.
+- The Whop regex needs 'whop' in the client's name, so `sdk.users.getUser` on an @whop/api client is missed. A wider root would catch unrelated SDKs.
+- The false-guard rule covers only JS `const x = false` with `if (x) {`, not Python or ternaries. It carries a shortcut comment in the code.
