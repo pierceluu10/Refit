@@ -41,6 +41,12 @@ describe('redactSecrets', () => {
     expect(redactSecrets(code, env)).toBe(code);
   });
 
+  it('redacts a key glued to a word, and leaves ordinary words ending in sk- alone', () => {
+    expect(redactSecrets('xsk_live_abcdefghijklmnop1234', {})).toBe('x[redacted]');
+    const word = 'task-abcdefghijklmnopqrstuvwx';
+    expect(redactSecrets(word, {})).toBe(word);
+  });
+
   it('still redacts known prefixes and env values', () => {
     const out = redactSecrets('token sk_live_1234567890abcdefgh and value-from-env-99', {
       HOST_TOKEN: 'value-from-env-99',

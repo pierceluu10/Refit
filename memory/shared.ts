@@ -16,6 +16,12 @@ export type Scrub = {
   keep: string[]; // provider names that are safe: what the list holds
 };
 
+// What must not leave with a PR's learning: its owner and repo. Provider names stay.
+export function scrubFor(pr: string, providers: string[]): Scrub {
+  const [, owner, repo] = /github\.com\/([^/]+)\/([^/]+)/.exec(pr) ?? [];
+  return { names: [owner, repo].filter((name) => name !== undefined), keep: providers };
+}
+
 const ESCAPE = /[.*+?^${}()|[\]\\]/g;
 
 export function scrubText(text: string, { names, keep }: Scrub): string {

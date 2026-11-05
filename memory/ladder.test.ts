@@ -68,6 +68,12 @@ describe('the ladder from stored runs', () => {
     ]);
   });
 
+  it('forgets a close once the PR merges', () => {
+    const closed = { closed: { at }, rescanClean: true };
+    expect(evidenceOf(run('a', { ...closed, merged: { at } }))).toMatchObject([{ kind: 'merged' }]);
+    expect(evidenceOf(run('a', closed))).toMatchObject([{ kind: 'closed' }]);
+  });
+
   it('counts an edited merge as edited, and a revert against the fix', () => {
     const [entry] = ladderFrom(
       [

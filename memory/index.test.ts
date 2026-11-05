@@ -7,7 +7,9 @@ import { makeRecord, makeTask } from './fixtures/tasks.ts';
 import {
   createRetriever,
   learnFromRun,
+  habitNotes,
   recordEvidence,
+  recordHabits,
   recordVerdict,
   renderMemoryForPrompt,
 } from './index.ts';
@@ -213,6 +215,34 @@ describe('recordVerdict', () => {
     const redelivered = await recordEvidence(pr, later, deps);
     expect(redelivered?.run.evidence?.merged).toEqual(evidence.merged);
     expect(await store.listRuns()).toHaveLength(1);
+  });
+
+  it('keeps the earliest time, and a plain verdict never wipes a diff', async () => {
+    const { deps } = await setup();
+    const pr = prFor('example-org/shop');
+    await learnFromRun(
+      { task: makeTask(), record: makeRecord({ pr, outcome: 'needs-review' }), transcript: 'ok' },
+      deps,
+    );
+    const mergedAt = '2026-11-04T00:00:00.000Z';
+    await deps.store.addEvidence(pr, { merged: { at: '2026-11-04T09:00:00.000Z' } });
+    const sent = await deps.store.addEvidence(pr, { merged: { at: mergedAt, humanDiff: 'd' } });
+    expect(sent?.evidence?.merged).toEqual({ at: mergedAt, humanDiff: 'd' });
+    const after = await deps.store.recordVerdict(pr, 'merged');
+    expect(after?.evidence?.merged).toEqual({ at: mergedAt, humanDiff: 'd' });
+  });
+
+  it('keeps repeated edits through later runs, for the customer alone', async () => {
+    const { store, deps } = await setup();
+    const repo = 'example-org/shop';
+    await recordHabits({ repo, edits: { repeatedFiles: ['src/pay.ts'] } }, deps);
+    const record = makeRecord({ pr: prFor(repo) });
+    await learnFromRun({ task: makeTask({ repo }), record, transcript: 'ok' }, deps);
+    const habits = await store.getHabits(repo);
+    expect(habits?.repeatedEdits).toEqual(['src/pay.ts']);
+    expect(habitNotes(habits)).toContain(
+      'People keep changing this file after our PRs, so read it closely: `src/pay.ts`',
+    );
   });
 
   it('counts a closed PR against the recipes its run used and takes its repo off the recipe it made', async () => {

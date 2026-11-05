@@ -2,15 +2,16 @@
 
 const SECRET_NAME = /KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIAL|PRIVATE|AUTH|SESSION/i;
 
+// No leading word boundary, except on `sk-`, which ends ordinary words: a key glued to text still counts.
 const SECRET_PATTERNS = [
   /\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{20,}/g, // Anthropic, OpenAI
-  /\b[sr]k_(?:live|test)_[A-Za-z0-9]{16,}/g, // Stripe
-  /\bwhsec_[A-Za-z0-9]{16,}/g,
-  /\bgh[pousr]_[A-Za-z0-9]{30,}/g, // GitHub
-  /\bgithub_pat_[A-Za-z0-9_]{30,}/g,
-  /\bxox[abpors]-[A-Za-z0-9-]{10,}/g, // Slack
-  /\bAKIA[0-9A-Z]{16}\b/g, // AWS
-  /\bshp(?:at|ca|pa|ss)_[a-fA-F0-9]{32}\b/g, // Shopify
+  /[sr]k_(?:live|test)_[A-Za-z0-9]{16,}/g, // Stripe
+  /whsec_[A-Za-z0-9]{16,}/g,
+  /gh[pousr]_[A-Za-z0-9]{30,}/g, // GitHub
+  /github_pat_[A-Za-z0-9_]{30,}/g,
+  /xox[abpors]-[A-Za-z0-9-]{10,}/g, // Slack
+  /AKIA[0-9A-Z]{16}\b/g, // AWS
+  /shp(?:at|ca|pa|ss)_[a-fA-F0-9]{32}\b/g, // Shopify
   /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g,
 ];
 
