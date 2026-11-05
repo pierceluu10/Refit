@@ -498,3 +498,30 @@ describe('a path that looks like a test', () => {
     ).toEqual(['live']);
   });
 });
+
+describe('a package.json script is a command, not prose', () => {
+  const COMMAND =
+    'gcloud functions deploy proxy --gen2 --runtime=nodejs20 --region=us-east1 --trigger-http';
+
+  it('flags a runtime in a scripts value, and not the same words in a description', async () => {
+    const report = await scan({
+      'package.json': JSON.stringify(
+        {
+          name: 'proxy',
+          description: `Deploy it with ${COMMAND} as the readme says`,
+          scripts: { deploy: COMMAND },
+          dependencies: { '@google-cloud/functions-framework': '^3.0.0' },
+        },
+        null,
+        2,
+      ),
+    });
+    const lines = report.details
+      .filter((one) => one.entryId === 'GC-2.nodejs20')
+      .map((one) => [one.line, one.matchClass]);
+    expect(lines, explain(report)).toEqual([
+      [3, 'comment'],
+      [5, 'unclear'],
+    ]);
+  });
+});

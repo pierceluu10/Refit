@@ -1,6 +1,6 @@
 {
   "provider": "bing-search",
-  "officialHosts": ["learn.microsoft.com"],
+  "officialHosts": ["learn.microsoft.com", "blogs.bing.com/webmaster"],
   "entries": [
     {
       "id": "BS-1.bing-search-apis",
@@ -32,6 +32,28 @@
       "context": {
         "hosts": ["api.bing.microsoft.com", "api.cognitive.microsoft.com"]
       }
+    },
+    {
+      "id": "BS-2.sitemap-ping",
+      "provider": "bing-search",
+      "what": "Bing removed anonymous sitemap submission, the unauthenticated bing.com/ping request. The post is headed as removed and says it stops from its publication date. It doesn't say what a ping gets now, and that was not tested.",
+      "diedOn": "2022-05-13",
+      "source": {
+        "url": "https://blogs.bing.com/webmaster/2022/5/Spring-cleaning-Removed-Bing-anonymous-sitemap-submission/",
+        "checkedOn": "2026-11-05",
+        "quote": "we will be deprecating the ability for anonymous sitemap submissions starting today"
+      },
+      "lookFor": ["A request to bing.com/ping?sitemap=..."],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "bing.com/ping?sitemap*"
+        }
+      ],
+      "replacement": "List the sitemap in robots.txt or submit it in Bing Webmaster Tools. The post also encourages IndexNow for real-time changes.",
+      "requires": [
+        "There is no request to swap in for the ping itself. IndexNow is a different request with its own key, and Webmaster Tools needs an account."
+      ]
     }
   ],
   "future": []

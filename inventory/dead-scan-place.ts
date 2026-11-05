@@ -107,6 +107,8 @@ const MODEL_KEYS = [
 ];
 // Printable ASCII with no space is a bare value. Chinese or Japanese prose has no spaces either.
 const BARE_VALUE = /^[\x21-\x7e]*$/;
+// What a template fills in is code, so a space in f"https://x/{quote(a, safe='')}" isn't a word break.
+const TEMPLATE_HOLE = /\$?\{[^{}]*\}/g;
 // A string that opens like GraphQL or a request is what gets sent, whatever it says.
 const REQUEST_TEXT =
   /^\s*(?:(?:query|mutation|subscription|fragment)\b|(?:GET|POST|PUT|PATCH|DELETE|curl)\s)/;
@@ -123,6 +125,8 @@ const BEFORE_STATEMENT_STRING = /[(,=[{+%]$/;
 const JSX_TEXT = /(?:<\/|(?<![\w$.)\]])<)[A-Za-z][^<>]*>\s*[^(\s<>{}=;&|][^<>{}=;&|]*$/;
 // What can sit right before an object literal's brace, as opposed to a block's.
 const BEFORE_OBJECT = /(?:[=:,([]|\breturn|\bin)\s*$/;
+const PACKAGE_MANIFEST = /(?:^|\/)package\.json$/;
+const SCRIPTS_KEY = /"scripts"\s*:\s*$/;
 
 type Enclosure = { open: number; char: string };
 
@@ -179,12 +183,20 @@ function isJsxText(source: Source, span: Span): boolean {
 export const isGraphqlText = (source: Source, span: Span) =>
   span.kind === 'string' && GRAPHQL_SELECTION.test(innerText(source, span));
 
+// A value under "scripts" in a package.json is a shell command, however much it reads like a sentence.
+function isPackageScript(source: Source, span: Span): boolean {
+  if (!PACKAGE_MANIFEST.test(source.file)) return false;
+  const object = enclosing(source.code, span.start);
+  return object?.char === '{' && SCRIPTS_KEY.test(before(source.text, object.open));
+}
+
 /** Whether a name in a longer string is prose, such as an error message, and not what the code sends. */
 export function isProse(source: Source, span: Span, name: string, offset: number): boolean {
   if (span.kind !== 'string') return false;
+  if (isPackageScript(source, span)) return false;
   if (isJsxText(source, span)) return true;
   const inner = innerText(source, span);
-  if (inner.trim() === name || BARE_VALUE.test(inner)) return false;
+  if (inner.trim() === name || BARE_VALUE.test(inner.replace(TEMPLATE_HOLE, ''))) return false;
   if (isDocstring(source, span)) return true;
   if (REQUEST_TEXT.test(inner) || GRAPHQL_SELECTION.test(inner)) return false;
   const lineStart = source.lineStarts[lineIndexAt(source, offset)];

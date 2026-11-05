@@ -82,6 +82,33 @@
       }
     },
     {
+      "id": "OR-1.deepseek-deepseek-chat-v3.1-free",
+      "provider": "openrouter",
+      "what": "OpenRouter has no endpoint for deepseek/deepseek-chat-v3.1:free, so requests through OpenRouter fail. Checked on 2026-11-05: its endpoints list is empty and /api/v1/models no longer lists it. OpenRouter published no retirement notice, so the true date is on or before this one.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/deepseek/deepseek-chat-v3.1:free/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"endpoints\":[]"
+      },
+      "lookFor": [
+        "The model ID deepseek/deepseek-chat-v3.1:free in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "deepseek/deepseek-chat-v3.1:free"
+        }
+      ],
+      "replacement": "deepseek/deepseek-chat-v3.1, the same model without the free tier, which still has providers.",
+      "replacementIds": ["deepseek/deepseek-chat-v3.1"],
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
+    },
+    {
       "id": "OR-1.meta-llama-llama-3.3-70b-instruct-free",
       "provider": "openrouter",
       "what": "OpenRouter has no endpoint for meta-llama/llama-3.3-70b-instruct:free, so requests through OpenRouter fail. Checked on 2026-11-05: its endpoints list is empty and /api/v1/models no longer lists it. OpenRouter published no retirement notice, so the true date is on or before this one.",

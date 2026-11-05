@@ -22,6 +22,7 @@ const OPENAI_PACKAGE = { 'package.json': manifest({ openai: '^6.0.0' }) };
 const ANTHROPIC_PACKAGE = { 'package.json': manifest({ '@anthropic-ai/sdk': '^1.0.0' }) };
 const STRIPE_AT = (range: string) => ({ 'package.json': manifest({ stripe: range }) });
 const STRIPE_IMPORT = "import Stripe from 'stripe';\n";
+const NODE_PACKAGE = { 'package.json': manifest({ openai: '^6.0.0' }) };
 
 const repos: string[] = [];
 async function scan(files: Record<string, string>, today = TODAY): Promise<DeadScanReport> {
@@ -5107,5 +5108,156 @@ describe('a byte order mark', () => {
       'a.js': js,
     });
     expect(classesOf(report, entry, 'a.js'), explain(report)).toEqual(['live']);
+  });
+});
+
+describe('P5 round 7: entries for what the list missed', () => {
+  const lineClasses = (report: DeadScanReport, entryId: string) =>
+    report.details
+      .filter((one) => one.entryId === entryId)
+      .map((one) => [one.line, one.matchClass]);
+
+  it("flags the Atlas Data API's host, and not the Atlas Admin API beside it", async () => {
+    const report = await scan({
+      ...NODE_PACKAGE,
+      'a.js': [
+        "fetch('https://data.mongodb-api.com/app/x/endpoint/data/v1/action/insertOne');",
+        "fetch('https://us-east-1.aws.data.mongodb-api.com/app/x/endpoint/data/v1/action/find');",
+        "fetch('https://cloud.mongodb.com/api/atlas/v2/groups');",
+      ].join('\n'),
+    });
+    expect(lineClasses(report, 'MD-1.atlas-data-api'), explain(report)).toEqual([
+      [1, 'live'],
+      [2, 'live'],
+    ]);
+  });
+
+  it('flags a retired Cerebras model, and not the same words on another provider', async () => {
+    const report = await scan({
+      ...NODE_PACKAGE,
+      'a.js': [
+        "const cerebras = new OpenAI({ baseURL: 'https://api.cerebras.ai/v1' });",
+        "cerebras.chat.completions.create({ model: 'llama-3.3-70b' });",
+        "cerebras.chat.completions.create({ model: 'qwen-3-32b' });",
+        "cerebras.chat.completions.create({ model: 'gpt-oss-120b' });",
+      ].join('\n'),
+      'b.js': [
+        "const groq = new OpenAI({ baseURL: 'https://api.groq.com/openai/v1' });",
+        "groq.chat.completions.create({ model: 'llama-3.3-70b-versatile' });",
+        "const router = new OpenAI({ baseURL: 'https://openrouter.ai/api/v1' });",
+        "router.chat.completions.create({ model: 'meta-llama/llama-3.3-70b' });",
+        "router.chat.completions.create({ model: 'qwen/qwen3-32b' });",
+      ].join('\n'),
+    });
+    expect(lineClasses(report, 'CE-1.llama-3.3-70b'), explain(report)).toEqual([[2, 'live']]);
+    expect(lineClasses(report, 'CE-2.qwen-3-32b')).toEqual([[3, 'live']]);
+    expect(
+      report.details.filter((one) => one.file === 'b.js' && one.entryId.startsWith('CE-')),
+    ).toEqual([]);
+  });
+
+  it('leaves a name Groq also has quiet in a repo with no Cerebras in it', async () => {
+    const report = await scan({
+      ...NODE_PACKAGE,
+      'a.js':
+        "new OpenAI({ baseURL: 'https://api.groq.com/openai/v1' }).chat.completions.create({ model: 'deepseek-r1-distill-llama-70b' });",
+    });
+    expect(lineClasses(report, 'CE-11.deepseek-r1-distill-llama-70b'), explain(report)).toEqual([]);
+    expect(lineClasses(report, 'GR-10.deepseek-r1-distill-llama-70b')).toEqual([[1, 'live']]);
+  });
+
+  it("flags Google's sitemap ping, and not another path on the host", async () => {
+    const report = await scan({
+      'a.py': [
+        'import requests',
+        `ping_url = f"https://www.google.com/ping?sitemap={quote(url, safe='')}"`,
+        'requests.get("https://www.google.com/recaptcha/api/siteverify")',
+        `print(f"Pinged https://www.google.com/ping?sitemap={quote(url, safe='')} just now")`,
+      ].join('\n'),
+    });
+    expect(lineClasses(report, 'GS-1.sitemap-ping'), explain(report)).toEqual([
+      [2, 'live'],
+      [4, 'comment'],
+    ]);
+  });
+
+  it("flags Bing's anonymous sitemap ping, and not IndexNow on the same host", async () => {
+    const report = await scan({
+      'a.py': [
+        'import requests',
+        `ping_url = f"https://www.bing.com/ping?sitemap={quote(url, safe='')}"`,
+        'requests.get(f"https://www.bing.com/indexnow?url={url}&key={key}")',
+      ].join('\n'),
+    });
+    expect(lineClasses(report, 'BS-2.sitemap-ping'), explain(report)).toEqual([[2, 'live']]);
+  });
+
+  it("flags Google's Heatmap Layer, and not deck.gl's, even in a file using both", async () => {
+    const report = await scan({
+      'package.json': manifest({
+        '@react-google-maps/api': '^2.0.0',
+        '@deck.gl/aggregation-layers': '^9.0.0',
+      }),
+      'old.tsx': [
+        "import { GoogleMap, HeatmapLayerF } from '@react-google-maps/api';",
+        'const ref: google.maps.visualization.HeatmapLayer | null = null;',
+        'export const View = () => <GoogleMap><HeatmapLayerF data={[]} /></GoogleMap>;',
+      ].join('\n'),
+      'multi.tsx': [
+        'import {',
+        '  GoogleMap,',
+        '  HeatmapLayer,',
+        "} from '@react-google-maps/api';",
+        'export const View = () => <GoogleMap><HeatmapLayer data={[]} /></GoogleMap>;',
+      ].join('\n'),
+      'new.tsx': [
+        "import { GoogleMap } from '@react-google-maps/api';",
+        "import { HeatmapLayer } from '@deck.gl/aggregation-layers';",
+        'export const layer = new HeatmapLayer({ id: "heat" });',
+        'export const View = () => <GoogleMap />;',
+      ].join('\n'),
+      'other.tsx': "import { HeatmapLayer } from 'react-map-gl';\nexport const a = HeatmapLayer;\n",
+    });
+    const flagged = report.details
+      .filter((one) => one.entryId === 'GM-1.heatmap-layer')
+      .map((one) => [one.file, one.line, one.matchClass]);
+    expect(flagged, explain(report)).toEqual([
+      ['multi.tsx', 1, 'live'],
+      ['old.tsx', 1, 'live'],
+      ['old.tsx', 2, 'live'],
+      ['old.tsx', 3, 'live'],
+    ]);
+  });
+
+  it('flags a free OpenRouter model with no endpoint, and not the paid one', async () => {
+    const report = await scan({
+      ...NODE_PACKAGE,
+      'a.js': [
+        "const router = new OpenAI({ baseURL: 'https://openrouter.ai/api/v1' });",
+        "router.chat.completions.create({ model: 'deepseek/deepseek-chat-v3.1:free' });",
+        "router.chat.completions.create({ model: 'deepseek/deepseek-chat-v3.1' });",
+      ].join('\n'),
+    });
+    expect(lineClasses(report, 'OR-1.deepseek-deepseek-chat-v3.1-free'), explain(report)).toEqual([
+      [2, 'live'],
+    ]);
+  });
+
+  it('flags a sunset LinkedIn version by its header, and not the same number elsewhere', async () => {
+    const report = await scan({
+      ...NODE_PACKAGE,
+      'a.js': [
+        "const LINKEDIN_API_VERSION = '202501';",
+        "fetch('https://api.linkedin.com/rest/posts', { headers: { 'Linkedin-Version': '202408' } });",
+        "fetch('https://api.linkedin.com/rest/images', { headers: { 'Linkedin-Version': '202610' } });",
+        "const INVOICE_MONTH = '202501';",
+        "export const build = { version: '202501' };",
+      ].join('\n'),
+    });
+    expect(lineClasses(report, 'LI-1.202501'), explain(report)).toEqual([[1, 'live']]);
+    expect(lineClasses(report, 'LI-1.202408')).toEqual([[2, 'live']]);
+    expect(report.details.filter((one) => one.entryId.startsWith('LI-') && one.line > 2)).toEqual(
+      [],
+    );
   });
 });

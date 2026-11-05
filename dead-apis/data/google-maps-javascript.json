@@ -1,0 +1,64 @@
+{
+  "provider": "google-maps-javascript",
+  "officialHosts": ["developers.google.com/maps"],
+  "entries": [
+    {
+      "id": "GM-1.heatmap-layer",
+      "provider": "google-maps-javascript",
+      "what": "The Heatmap Layer in the Maps JavaScript API is decommissioned, as of release 3.65.1c on 2026-05-20. A loader that pins an older version may keep it for as long as that version is served.",
+      "diedOn": "2026-05-20",
+      "source": {
+        "url": "https://developers.google.com/maps/documentation/javascript/releases",
+        "checkedOn": "2026-11-05",
+        "quote": "The Heatmap Layer functionality in the Maps JavaScript API is now decommissioned."
+      },
+      "lookFor": [
+        "HeatmapLayer or HeatmapLayerF imported from @react-google-maps/api",
+        "google.maps.visualization, in code or a type",
+        "The visualization library asked for by importLibrary, useMapsLibrary, a libraries list given to a Maps loader, or libraries= on the Maps script URL. Not a HeatmapLayer from deck.gl or any other library."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bHeatmapLayerF\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bimport\\s*(?:type\\s*)?\\{[^}]*\\bHeatmapLayer\\b[^}]*\\}\\s*from\\s*[\"']@react-google-maps/api[\"']"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bgoogle\\.maps\\.visualization\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\b(?:importLibrary|useMapsLibrary)\\(\\s*[\"']visualization[\"']"
+        },
+        {
+          "kind": "regex",
+          "value": "maps\\.googleapis\\.com/maps/api/js\\?[^\"'\\s]*libraries=[^\"'\\s&]*visualization"
+        },
+        {
+          "kind": "regex",
+          "value": "[Ll]ibraries\\s*[:=]\\s*\\{?\\s*\\[[^\\]\\n]*[\"']visualization[\"']",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The deprecations page suggests a third-party library integration such as deck.gl, which has its own HeatmapLayer.",
+      "requires": [
+        "deck.gl is a new dependency with its own layer API and an overlay on the map, so this is a rewrite of the layer rather than a rename. Also drop visualization from the libraries the loader asks for."
+      ],
+      "context": {
+        "packages": [
+          "@react-google-maps/api",
+          "@googlemaps/js-api-loader",
+          "@googlemaps/react-wrapper",
+          "@vis.gl/react-google-maps",
+          "google-map-react"
+        ],
+        "hosts": ["maps.googleapis.com/maps/api/js"]
+      }
+    }
+  ],
+  "future": []
+}

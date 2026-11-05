@@ -1,0 +1,32 @@
+{
+  "provider": "mongodb-data-api",
+  "officialHosts": ["www.mongodb.com/docs"],
+  "entries": [
+    {
+      "id": "MD-1.atlas-data-api",
+      "provider": "mongodb-data-api",
+      "what": "The MongoDB Atlas Data API has reached end of life, along with the HTTPS Endpoints on the same host. The docs give no date, so the true date is on or before the day this was checked.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://www.mongodb.com/docs/atlas/app-services/data-api/",
+        "checkedOn": "2026-11-05",
+        "quote": "You can no longer use the Data API."
+      },
+      "lookFor": ["A request to data.mongodb-api.com, on any regional subdomain"],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "data.mongodb-api.com*"
+        }
+      ],
+      "replacement": "The deprecation page lists alternatives, such as an Express.js API of your own in front of the cluster.",
+      "requires": [
+        "This is not a rename: there is no new host to swap in. Something of your own has to take these requests and reach the cluster, usually through a MongoDB driver, and auxiliary App Services features need their own replacements."
+      ],
+      "context": {
+        "hosts": ["data.mongodb-api.com"]
+      }
+    }
+  ],
+  "future": []
+}
