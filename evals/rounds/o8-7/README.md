@@ -19,7 +19,7 @@ It's also the first round to measure true first runs. Saved installs are cleared
 | `mdrahbar21/shopifyApp`                                                        | Shopify         | typecheck, build   | 1        |
 | `hookdeck/shopify-festive-notifications`                                       | Shopify         | typecheck, build   | 3        |
 
-**What this round can't show:** a $0 sweep at 2026-10 finds no dead document in these 10 repos, so the rule about documents can't move their results. That's what `rerun-lock.json` is for. It reruns `polidario/weeklyhow-remix-app`, `ksyp-7/shopify-theme-app-extension-vite-react` and `jahmedabeer/Shopify-Storefront-AI-agent`, and adds `productVariantUpdate` to the first two. Those repos aren't fresh, so the rerun doesn't count toward any score. A lock can't read refusal handling, so the hand-check reads `Shopify-Storefront-AI-agent`.
+**What this round can't show:** a $0 sweep at 2026-10 finds no dead document in these 10 repos, so the rule about documents can't move their results. That's what `rerun-lock.json` is for. It reruns `polidario/weeklyhow-remix-app`, `ksyp-7/shopify-theme-app-extension-vite-react` and `jahmedabeer/Shopify-Storefront-AI-agent`, and adds `productVariantUpdate` to the first two. A second pass adds `chandandadhekar/ListAI-V2` and `Shopify/shop-chat-agent`, to see whether the numbered requirements cost more or label too much as Needs a look. Those repos aren't fresh, so the reruns don't count toward any score. A lock can't read refusal handling, so the hand-check reads `Shopify-Storefront-AI-agent`.
 
 **Left out of the locks:**
 

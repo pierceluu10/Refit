@@ -82,7 +82,7 @@ const prompt = buildSystemPrompt({
 
 describe('buildSystemPrompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-05.rebuild-4');
+    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-05.rebuild-5');
   });
 
   it('puts the sections in the plan order', () => {
@@ -343,5 +343,23 @@ describe('a repo session', () => {
     expect(kickoff).toContain('Replacement: claude-sonnet-5-5');
     expect(kickoff).toContain('Drop `temperature`.');
     expect(kickoff).not.toContain('AN-9');
+  });
+
+  it('numbers each requirement once, so the session can answer for every one', () => {
+    const task = repoTask('acme/a', scan('src/a.py'), [entry('AN-1')]);
+    const second = { ...entry('AN-1'), id: 'AN-2', requires: ['Drop `temperature`.', 'New line.'] };
+    const both = { ...task, entries: [...task.entries, second] };
+    const kickoff = buildKickoffMessage([], undefined, undefined, [], both);
+    expect(kickoff.match(/\[r1\] Drop `temperature`\./g)).toHaveLength(1);
+    expect(kickoff).toContain('[r2] New line.');
+  });
+
+  it('names what the provider validator rejects', () => {
+    const task = repoTask('acme/a', scan('src/a.py'), [entry('AN-1')]);
+    const kickoff = buildKickoffMessage([], undefined, undefined, [], task, [
+      'app/a.tsx: Field "productVariantUpdate" does not exist on type Mutation.',
+    ]);
+    expect(kickoff).toContain('Each is part of this fix');
+    expect(kickoff).toContain('app/a.tsx: Field "productVariantUpdate"');
   });
 });

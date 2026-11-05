@@ -60,23 +60,35 @@ const where = (finding: Finding) =>
   `  - ${finding.file}:${finding.line} (${finding.matchClass}${finding.version ? `, version ${finding.version}` : ''})`;
 
 // The list as the session reads it: the entries first, each with its findings.
+// Each "requires" line once across the task, in order. Its place is the id the session answers by.
+export const requirementLines = (task: RepoTask) => [
+  ...new Set(task.entries.flatMap((entry) => entry.requires)),
+];
+
 export function renderList(task: RepoTask): string {
+  const lines = requirementLines(task);
+  const shown = new Set<string>();
   return task.entries
-    .map((entry) =>
-      [
+    .map((entry) => {
+      const fresh = entry.requires.filter((line) => !shown.has(line));
+      fresh.forEach((line) => shown.add(line));
+      return [
         `### ${entry.id}: ${entry.what}`,
         `- Provider: ${entry.provider}`,
         `- Died: ${entry.diedOn}`,
         `- Source: ${entry.source.url} (checked ${entry.source.checkedOn})`,
         entry.versions ? `- Applies to: ${entry.versions}` : '',
         `- Replacement: ${entry.replacement}`,
-        entry.requires.length ? `- The replacement requires: ${entry.requires.join(' ')}` : '',
+        entry.requires.length
+          ? `- The replacement requires${fresh.length ? ':' : ' the same as above.'}`
+          : '',
+        ...fresh.map((line) => `  - [r${lines.indexOf(line) + 1}] ${line}`),
         '- Found at:',
         ...task.findings.filter((finding) => finding.entryId === entry.id).map(where),
       ]
         .filter(Boolean)
-        .join('\n'),
-    )
+        .join('\n');
+    })
     .join('\n\n');
 }
 
@@ -213,6 +225,7 @@ export function labelFix(input: {
   majors?: string[]; // major moves no entry asks for
   noSuccessor?: string[]; // entries with nothing named to move to
   requirementsLeft?: string[]; // what the session says it left undone
+  documents?: string[]; // what the provider's validator still rejects
 }): FixLabel {
   const before = input.findings.filter(counts).length;
   const left = leftOf(input.findings, input.rescan).length;
@@ -244,6 +257,13 @@ export function labelFix(input: {
     return {
       outcome: 'needs-review',
       reason: `The rescan is clean, but the list says to remove what's still here: ${input.stillSet.join(', ')}.`,
+    };
+  }
+  if (input.documents?.length) {
+    const count = input.documents.length;
+    return {
+      outcome: 'needs-review',
+      reason: `The rescan is clean, but the provider's validator still rejects ${count} name${count === 1 ? '' : 's'} in the repo's GraphQL.`,
     };
   }
   if (input.requirementsLeft?.length) {
