@@ -75,6 +75,8 @@ export type ToolContext = {
   checks: CheckCommand[];
   onFinish: (report: FinishReport) => void;
   onToolPackCall?: (run: ValidatorRun) => void;
+  // What the session's own check run found, so the harness needn't repeat a pass on the same code.
+  onChecksRun?: (runs: CheckRun[]) => Promise<void>;
   // Registers an agent-named check: the harness runs it on the baseline and returns that run.
   addCheck?: (check: CheckCommand) => Promise<CheckRun>;
   // Drops a check the agent added (never a detected one); false when there is none by that name.

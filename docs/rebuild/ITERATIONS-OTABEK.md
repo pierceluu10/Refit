@@ -134,3 +134,49 @@ So a proven fix helps a lot when it finishes the repo, and doesn't help when it 
 Replayed over these runs with no spend, every Assistants rework becomes Needs a look, and the 3 Fixed that remain are all ones the blind read agrees with.
 
 **The AI sweep and the tracked numbers** are built (`orchestrator/sweep.ts`, `evals/runner/sweep-run.ts`, `memory/metrics.ts`), and not measured yet against the real scanner.
+
+## O8 round 1: the whole product
+
+**When:** 2026-11-05, 03:15 to 03:31. **Commit:** `b9c436b9` on `rebuild/integration`. **Locks:** `evals/rounds/o8-1/`. **Spend:** $1.44 of an $8 cap.
+
+Scan: the labelled stand-in, on Pierce's real list. Memory started empty. No PR opened. The Stripe planner screen and the O7 grader were running on the same machine, so times may be a little high.
+
+| Repo | Required fixed | Label then | Cost | Time |
+| --- | --- | --- | --- | --- |
+| `rainmana/cursorify` | 4 of 4 | Fixed | $0.2714 | 77 s |
+| `vadik88888-prog/beauty-saas` | 3 of 3 | Fixed | $0.3195 | 342 s |
+| `djnightmare9909/Dungeon-master-OS-WFGY` | 1 of 1 | Fixed | $0.1096 | 73 s |
+| `jasperapp/jasper` | 2 of 2, not counted | Fixed | $0.1930 | 86 s |
+| `edwinsatya/llm-output-guard` | 1 of 1 | Fixed | $0.1697 | 119 s |
+| `XDTerminated/t2-chat-t3c-2025` | 3 of 3 | Fixed | $0.3796 | 292 s |
+| **Total, counted** | **12 of 12** | | **$1.25** | |
+
+**Excluded:** `jasperapp/jasper`. Its only check, a fallback `tsc`, fails before any edit on a missing generated file, so it has no working check of its own. Its 2 of 2 aren't counted.
+
+| Target | Result |
+| --- | --- |
+| Required changes fixed, at least 70% | 12 of 12, by static locks |
+| Cost with matches, about $0.50, never above $1 | $0.25 on average, $0.38 at most |
+| Time with matches, under 5 minutes | 5 of 6. `beauty-saas` took 5 min 42 s |
+| Cost with no match, about $0 | $0.00 and 1 s, on 3 repos |
+| Unneeded major upgrades | None |
+| "Fixed" a hand-check agrees with, at least 90% | **5 of 6, 83%. Missed.** |
+
+**Cost per required change fixed:** $0.10.
+
+**The hand-check.** I read all 6 diffs, since there are fewer than 10:
+
+| Repo | Agree? | Why |
+| --- | --- | --- |
+| `cursorify` | Yes | It kept `temperature` only for effort `none`, which the list allows, and said so. It also edited `lib/` by hand to match `src/`. |
+| `beauty-saas` | Yes | It also maps stored retired ids to a live model, which is what a live path needs. |
+| `Dungeon-master-OS-WFGY` | Yes | It moved from `generateImages` to `generateContent` with an image response, and read the new shape. |
+| `llm-output-guard` | Yes | It left a real false alarm alone and said why: `ada` is an Indonesian word in a test. |
+| `t2-chat-t3c-2025` | Yes, with a caveat | It says the legacy SDK may not send what Gemini 3.6 needs. That's honest, and it's a limit of the list's scope. |
+| `jasper` | **No** | It's a full rework of an Electron renderer that reads the API secret from the environment, and the list says never to put that in client code. It said so, but only under "unproven". |
+
+**Top cause:** a rework labelled Fixed. It's the same cause the O7 blind read found, and `37974dc0` already fixes it: replayed over this round, `jasper` becomes Needs a look.
+
+**What changed for round 2:** Fixed now needs a check that imports the changed code when the fix is a rework, and nothing left in its own hunks that the entry says to remove.
+
+**For Pierce:** `OA-1.base-ada` matched the Indonesian word `ada`, which is a false alarm the session handled.

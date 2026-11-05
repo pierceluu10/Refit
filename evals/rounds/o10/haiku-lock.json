@@ -1,0 +1,170 @@
+[
+  {
+    "repo": "smartflow-systems/smartflow-hub",
+    "commit": "acfbd7674b90954d535c14f8a0e0102548029f50",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "anthropic-1",
+        "file": "src/lib/ai.ts",
+        "dead": "claude-sonnet-4-20250514",
+        "alive": ["claude-sonnet-5-5"],
+        "proof": {
+          "from": "claude-sonnet-4-20250514",
+          "to": "claude-sonnet-5-5"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "nfindler/playbook-pipeline",
+    "commit": "e15ab69fb1155650127f0c777d3734c0ae4c8b71",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "anthropic-2",
+        "file": "scripts/step6_synthesis.py",
+        "dead": "claude-opus-4-20250514",
+        "alive": ["claude-opus-4-8"],
+        "proof": {
+          "from": "claude-opus-4-20250514",
+          "to": "claude-opus-4-8"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "souravdas2003/Chatbot-Using-Anthropic-Api-Key",
+    "commit": "f8b31e4f9bb420210fc9883017a8ca950042ab8e",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "anthropic-7",
+        "file": "server.js",
+        "dead": "claude-3-haiku-20240307",
+        "alive": ["claude-haiku-4-5-20251001"],
+        "proof": {
+          "from": "claude-3-haiku-20240307",
+          "to": "claude-haiku-4-5-20251001"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "Anassarwar14/Chat-Nest-AI",
+    "commit": "38dd23e1031c5fdad36e3a830092f00d519baac6",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "groq-1",
+        "file": "app/api/chat/[chatId]/route.ts",
+        "dead": "llama-3\\.3-70b-versatile",
+        "alive": ["openai/gpt-oss-120b"],
+        "proof": {
+          "from": "llama-3.3-70b-versatile",
+          "to": "openai/gpt-oss-120b"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "Miguel07Alm/text2question",
+    "commit": "ce789503da89a1a7cc488c96e0717727b5abb4ec",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "gemini-1",
+        "file": "src/app/[lang]/page.tsx",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-2.0-flash",
+          "to": "gemini-3.6-flash"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "gemini-1",
+        "file": "src/app/api/chat/route.ts",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-2.0-flash",
+          "to": "gemini-3.6-flash"
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "gemini-1",
+        "file": "src/app/api/check-answer/route.ts",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-2.0-flash",
+          "to": "gemini-3.6-flash"
+        }
+      },
+      {
+        "id": "R4",
+        "entryId": "gemini-1",
+        "file": "src/types/types.ts",
+        "dead": "gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "gemini-2.0-flash",
+          "to": "gemini-3.6-flash"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "liamstamper/lamp-bot",
+    "commit": "3bd2634ceeb9c820666f2369ddf3ceea8651da98",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "groq-1",
+        "file": "lib/webhook/promptModel.ts",
+        "dead": "llama-3\\.3-70b-versatile",
+        "alive": ["openai/gpt-oss-120b"],
+        "proof": {
+          "from": "llama-3.3-70b-versatile",
+          "to": "openai/gpt-oss-120b"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "groq-1",
+        "file": "lib/ai/modelChoices.ts",
+        "dead": "llama-3\\.3-70b-versatile",
+        "alive": ["openai/gpt-oss-120b"],
+        "proof": {
+          "from": "llama-3.3-70b-versatile",
+          "to": "openai/gpt-oss-120b"
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "groq-2",
+        "file": "lib/ai/modelChoices.ts",
+        "dead": "llama-3\\.1-8b-instant",
+        "alive": ["openai/gpt-oss-20b"],
+        "proof": {
+          "from": "llama-3.1-8b-instant",
+          "to": "openai/gpt-oss-20b"
+        }
+      },
+      {
+        "id": "R4",
+        "entryId": "groq-1",
+        "file": "app/(content)/dashboard/ai-configuration/components/AIConfigurationClient.tsx",
+        "dead": "llama-3\\.3-70b-versatile",
+        "alive": ["openai/gpt-oss-120b"],
+        "proof": {
+          "from": "llama-3.3-70b-versatile",
+          "to": "openai/gpt-oss-120b"
+        }
+      }
+    ]
+  }
+]

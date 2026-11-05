@@ -673,6 +673,33 @@ describe('a repo session', () => {
     expect(checksTouchChange(['config.yaml'], ['build'], undefined)).toBe(false);
   });
 
+  it('reuses checks the session already passed on the same code, and only those', async () => {
+    const dir = fixtureRepo();
+    const commands: string[] = [];
+    const counted = async (repoDir: string) => {
+      const box = await createSandbox(repoDir, { mode: 'local' });
+      return {
+        ...box,
+        exec: (command: string, options?: { timeoutMs?: number }) => {
+          commands.push(command);
+          return box.exec(command, options);
+        },
+      };
+    };
+    const ranAfterEdit: ScriptedTurn = async (call, input) => {
+      await fix(call, input);
+      await call('run_checks', {});
+      await finish()(call, input);
+    };
+    await runTask(repoTaskFor([live('src/pay.js')]), dir, {
+      ...deps([ranAfterEdit]),
+      createSandbox: counted,
+      rescan,
+    });
+    // Once for the baseline and once by the session; the harness doesn't repeat it.
+    expect(commands.filter((command) => command.includes('run test'))).toHaveLength(2);
+  });
+
   describe('with a proven fix', () => {
     const swap = {
       entryId: entry.id,

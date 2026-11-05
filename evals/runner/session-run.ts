@@ -6,6 +6,7 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, cpSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
+import { parseArgs } from 'node:util';
 import { repoTask } from '../../harness/findings.ts';
 import { liveSmoke } from '../../harness/smoke.ts';
 import { budgetFromEnv, runTask } from '../../harness/index.ts';
@@ -127,10 +128,15 @@ export async function runProductRepo(lock: RepoLock, deps: LoopDeps): Promise<Se
 }
 
 async function main(argv: string[]) {
-  const product = argv.includes('--product');
-  const [lockFile, outDir] = argv.filter((arg) => arg !== '--product');
+  const { values, positionals } = parseArgs({
+    args: argv,
+    allowPositionals: true,
+    options: { product: { type: 'boolean', default: false }, model: { type: 'string' } },
+  });
+  const { product, model } = values;
+  const [lockFile, outDir] = positionals;
   if (!lockFile || !outDir)
-    throw new Error('usage: session-run.ts <lock.json> <out-dir> [--product]');
+    throw new Error('usage: session-run.ts <lock.json> <out-dir> [--product] [--model <id>]');
   const capUsd = budgetFromEnv();
   const locks = JSON.parse(readFileSync(lockFile, 'utf8')) as RepoLock[];
   mkdirSync(outDir, { recursive: true });
@@ -152,7 +158,9 @@ async function main(argv: string[]) {
       console.log(`stopped before ${lock.repo}: $${spentUsd.toFixed(2)} of $${capUsd} spent`);
       break;
     }
-    const result = deps ? await runProductRepo(lock, deps) : await runRepoLock(lock, outDir);
+    const result = deps
+      ? await runProductRepo(lock, deps)
+      : await runRepoLock(lock, outDir, model ? { model } : {});
     spentUsd += result.costUsd;
     results.push(result);
     const fixed = result.required.filter((change) => change.fixed).length;

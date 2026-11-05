@@ -118,7 +118,7 @@ export async function createSandbox(
     // prettier-ignore
     const started = await run('docker', [
       'run', '-d', '--rm', '--name', name, ...user,
-      '--memory', '4g', '--cpus', '2', '--security-opt', 'no-new-privileges',
+      '--memory', '4g', '--cpus', process.env.APTITUDE_SANDBOX_CPUS ?? '2', '--security-opt', 'no-new-privileges',
       ...Object.entries(SANDBOX_ENV).flatMap(([key, value]) => ['-e', `${key}=${value}`]),
       '-e', 'HOME=/tmp',
       '-v', `${dir}:/work`, '-w', '/work', image, 'sleep', 'infinity',

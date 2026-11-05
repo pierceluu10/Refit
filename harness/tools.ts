@@ -459,6 +459,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
           return `no check matches ${names.join(', ')}. Available: ${ctx.checks.map((c) => c.name).join(', ')}`;
         }
         const runs = await runChecks(sandbox, selected);
+        await ctx.onChecksRun?.(runs);
         const report = runs
           .map((run) => {
             const head = `## ${run.name}: ${run.ok ? 'pass' : 'fail'}\ncommand: ${run.command}`;
