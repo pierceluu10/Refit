@@ -104,12 +104,12 @@ async function checksRunCode(
       ),
     );
     for (const text of [check.command, ...texts]) {
-      const modules = text.matchAll(
-        /(?:\bfrom\s+|\bimport\s*\(?\s*|\brequire\(\s*)["'`]([^"'`]+)/g,
-      );
-      if ([...modules].some(([, module]) => names.some((name) => module?.includes(name)))) {
-        return true;
-      }
+      // JS names a module in quotes; Python doesn't.
+      const modules = [
+        ...text.matchAll(/(?:\bfrom\s+|\bimport\s*\(?\s*|\brequire\(\s*)["'`]([^"'`]+)/g),
+        ...text.matchAll(/^\s*(?:from|import)\s+([\w.]+)/gm),
+      ];
+      if (modules.some(([, module]) => names.some((name) => module?.includes(name)))) return true;
     }
   }
   return false;
