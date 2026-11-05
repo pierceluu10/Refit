@@ -1,0 +1,50 @@
+{
+  "provider": "azure-keyvault",
+  "officialHosts": ["github.com/Azure/azure-sdk-for-python"],
+  "entries": [
+    {
+      "id": "KV-1.namespace-without-code",
+      "provider": "azure-keyvault",
+      "what": "The old azure.keyvault namespace, such as KeyVaultClient. From azure-keyvault 4.0.0 the package holds no code, so these imports don't resolve. Read from the changelog: no wheel was opened.",
+      "diedOn": "2019-10-31",
+      "source": {
+        "url": "https://github.com/Azure/azure-sdk-for-python/blob/main/sdk/keyvault/azure-keyvault/CHANGELOG.md",
+        "checkedOn": "2026-11-05",
+        "quote": "namespace does not contain code anymore"
+      },
+      "lookFor": [
+        "from azure.keyvault import ...",
+        "azure.keyvault.generated, azure.keyvault.models or azure.keyvault.v7_0 and the like"
+      ],
+      "matchers": [
+        { "kind": "regex", "value": "\\bfrom[ \\t]+azure\\.keyvault[ \\t]+import\\b" },
+        { "kind": "regex", "value": "\\bazure\\.keyvault\\.(?:generated|models|version|v\\d)\\b" }
+      ],
+      "appliesTo": {
+        "describe": "azure-keyvault 4.0.0 and later.",
+        "sdkSince": [
+          {
+            "package": "azure-keyvault",
+            "version": "4.0.0",
+            "ecosystem": "python"
+          }
+        ]
+      },
+      "versions": "azure-keyvault 4.0.0 and later.",
+      "replacement": "azure-keyvault-keys, azure-keyvault-secrets and azure-keyvault-certificates.",
+      "replacementIds": [
+        "azure-keyvault-keys",
+        "azure-keyvault-secrets",
+        "azure-keyvault-certificates"
+      ],
+      "requires": [
+        "All code needs adapting to the new namespaces: the clients and their credentials differ."
+      ],
+      "context": {
+        "packages": ["azure-keyvault"],
+        "hosts": ["vault.azure.net"]
+      }
+    }
+  ],
+  "future": []
+}

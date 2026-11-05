@@ -3,16 +3,17 @@
 import path from 'node:path';
 import { escapeRegex } from '../dead-apis/match.ts';
 import { lineIndexAt, reportedLine, spanAt, type Source, type Span } from './dead-scan-lex.ts';
-import { enclosing, listName, wordPattern } from './dead-scan-place.ts';
+import { closeOf, enclosing, listName, wordPattern } from './dead-scan-place.ts';
 import type { Manifest } from './scanners.ts';
 
-export type Reach = { kind: 'catalog' | 'unclear'; reason: string };
+export type Reach = { kind: 'catalog' | 'unclear'; reason: string; reads?: string[] };
 
 export type Readers = {
   /** Files that can read a value: written code and config, no tests, docs or build output. */
   sources: Source[];
   manifests: Manifest[];
-  orphans: Map<string, boolean>;
+  /** Modules nothing that runs imports, worked out once a hit asks. */
+  orphans?: Set<string>;
   /** Reads of a word in a file, since a package's hits ask about the same few names. */
   reads: Map<string, Read[]>;
   uses: Map<string, Uses>;
@@ -59,11 +60,55 @@ const KEY_BEFORE = /(?:^|[\s{,])([A-Za-z_$][\w$]*)\s*:\s*$/;
 const PYTHON_NAMES =
   /^(?:and|assert|await|elif|if|in|is|lambda|not|or|return|yield|while|abs|all|any|bool|bytes|callable|dict|enumerate|exit|filter|float|format|frozenset|getattr|hasattr|input|int|isinstance|issubclass|iter|len|list|map|max|min|next|object|open|print|range|repr|reversed|round|set|setattr|sorted|str|sum|super|tuple|type|vars|zip)$/;
 const LOCAL_IMPORT = /\bfrom\s+["'](?:\.{1,2}\/|[@~]\/)|\brequire\(\s*["']\.{1,2}\//;
+const PYTHON_BARE_IMPORT = /^[ \t]*(?:import|from)[ \t]+(\w+)/gm;
+const PYTHON_FROM_IMPORT = /^[ \t]*from[ \t]+(\.*)([\w.]*)[ \t]+import[ \t]+(\([^)]*\)|[^\n]*)/gm;
+const PYTHON_RELATIVE_IMPORT = /^[ \t]*from[ \t]+\./m;
+const PAIR_MENTION = /(?=\b([\w-]+)[./]([\w-]+))/g;
+// A URL or a media type has slashes, and no module's path: cdn.x/libs/pdf.js, application/pdf.
+const NOT_A_PATH =
+  /\b(?:https?|wss?):\/\/[^\s'"`<>)]+|\b(?:application|image|text|audio|video)\/[\w.+-]+/g;
+const PATH_MENTION = /\/([\w$.-]+)/g;
+const JS_BARE_IMPORT = /(?:\bfrom\s+|\brequire\(\s*|\bimport\(\s*)["'`]([\w$.-]+)["'`]/g;
+const SCRIPT_TAG_FILE = /["'`]([\w$.-]+\.(?:m?js|cjs|tsx?|jsx))["'`]/g;
+const EXTENSION = /\.[^.]+$/;
+// Code that loads a folder's modules by listing them, so none of them has to be imported by name.
+const DYNAMIC_LOAD =
+  /\b(?:importlib|__import__|pkgutil|iter_modules|readdirSync|readdir|require\.context|import\.meta\.glob|glob)\b/;
+// A Python module a framework loads by its name, as the ENTRY_NAME list does for JS.
+const PYTHON_ENTRY_NAME =
+  /^(?:__main__|manage|wsgi|asgi|settings|urls|views|models|admin|apps|tasks|signals|serializers|forms|setup|celery|run|train|bot)$/;
+const PYTHON_MAIN_GUARD = /^if\s+__name__\s*==/m;
+const PYTHON_TOP_LEVEL_CALL = /^[A-Za-z_][\w.]*\s*\(/m;
+const PYTHON_NOTEBOOK = '.ipynb';
+const PYTHON_INIT = '__init__';
+// Past this a file is data. Nothing that size imports a module by a name a scan could read.
+const MAX_GRAPH_CHARS = 2_000_000;
+const STAR_ARGUMENT = /^\s*\*/;
+const DEFINING_HEAD =
+  /(?:\b(?:def|function\*?)\s+([\w$]+)|\b(?:const|let|var)\s+([\w$]+)\s*=\s*(?:async\s*)?)\s*$/;
+const PARAMETER_DEFAULT = /(?:^|,)\s*(?:\.\.\.)?([\w$]+)\s*(?::[^=,]*)?=\s*["'`]?$/;
+const SELF_PARAMETER = /^\s*(?:self|cls)\s*(?:,|$)/;
+const ANNOTATION_BEFORE = /(?:\w\s*:|->|\|)\s*$/;
+const IMPORT_LINE = /^\s*(?:from\s|import\s)/;
+const IMPORT_OPEN = /\bimport\s*$/;
+const CLASS_LINE = /^\s*class\s+(\w+)/;
+const INIT_METHOD = '__init__';
+const TOP_LEVEL_DEF = /^(?:async\s+)?(?:def|function\*?)\s+([\w$]+)/;
+const TOP_LEVEL_CALL = /^(?:await\s+)?([A-Za-z_$][\w$]*)\s*\(/gm;
+const DECORATOR_LINE = /^\s*@/;
+const IMPORT_AS = /^[ \t]*import[ \t]+([\w.]+)[ \t]+as[ \t]+(\w+)[ \t]*(?:#.*)?$/gm;
+const MODEL_WORD = /\bmodel\b/;
+const MEMBER_CALL = /(?:^|[^\w$.])([\w$]+)(?:\??\.[\w$]+)*\??\.([\w$]+)\s*$/;
+const LOCAL_SPECIFIER = /^(?:\.{1,2}\/|[@~]\/)/;
+const RELATIVE_CODE_IMPORT = /(?:\bfrom\s+|\brequire\(\s*)["'](\.{1,2}\/[^"']+)["']/g;
+// With an extension that isn't code, such as ./x.css or ./data.json, which the scan may not read.
+const NON_CODE_IMPORT = /\.(?!m?[jt]sx?["']?$|cjs$)\w+$/;
+const SPECIFIER_PREFIX = /^(?:(?:\.{1,2}|[@~])\/)+/;
 // Names and folders a framework or a runner starts on its own, so nothing has to import them.
 const ENTRY_NAME =
   /^(?:index|main|app|server|cli|route|page|layout|loading|error|handler|worker|middleware|proxy|background|content|popup|preload|sw|service-worker|\w+\.config)$/;
 const ENTRY_FOLDER =
-  /(?:^|\/)(?:app|pages|api|functions|routes|scripts?|bin|cli|tools|commands|lambdas?|handlers|workers|jobs|migrations|plugins|bench|benchmarks)\//;
+  /(?:^|\/)(?:app|pages|api|functions|routes|scripts?|bin|cli|tools|commands|lambdas?|handlers|workers|jobs|migrations|plugins|bench|benchmarks|convex|prisma)\//;
 
 const isComment = (source: Source, offset: number) =>
   spanAt(source.spans, offset)?.kind === 'comment';
@@ -321,21 +366,358 @@ function unresolvedCall(source: Source, offset: number): Reach | undefined {
       };
 }
 
-// Only with a graph to read: a lone script or a short excerpt has no imports to be missing from.
-function isOrphan(readers: Readers, source: Source): boolean {
-  const known = readers.orphans.get(source.file);
-  if (known !== undefined) return known;
-  const name = path.posix.basename(source.file).replace(/\.[^.]+$/, '');
-  const inFolder = source.file.includes('/');
-  const candidate =
-    source.mode === JS_MODE &&
-    inFolder &&
+const folderOf = (file: string) => path.posix.dirname(file);
+const lastFolder = (file: string) => path.posix.basename(folderOf(file));
+const moduleName = (file: string) => path.posix.basename(file).replace(EXTENSION, '');
+const isPythonModule = (source: Source) =>
+  source.mode === PYTHON_MODE && !source.file.endsWith(PYTHON_NOTEBOOK);
+
+function pythonFromImports(source: Source, mentions: Set<string>): void {
+  for (const [, dots, module, names] of source.text.matchAll(PYTHON_FROM_IMPORT)) {
+    let base = folderOf(source.file);
+    for (let up = 1; up < dots.length; up += 1) base = folderOf(base);
+    const from = module ? module.split('.').at(-1) : path.posix.basename(base);
+    if (dots && module) mentions.add(`${path.posix.basename(base)}/${module.split('.')[0]}`);
+    for (const one of names.replace(/[()]/g, '').split(',')) {
+      const name = one.trim().split(/\s/)[0];
+      if (name) mentions.add(`${from}/${name}`);
+    }
+  }
+}
+
+// What a file names that could be a module: `f/n` for Python's folder and module, `/n` for a JS path's
+// tail, and `bare/n` for an import with no path, which a local module or a package can answer.
+function mentionsOf(source: Source): Set<string> {
+  const mentions = new Set<string>();
+  if (source.text.length > MAX_GRAPH_CHARS) return mentions;
+  for (const [, folder, name] of source.text.matchAll(PAIR_MENTION)) {
+    mentions.add(`${folder}/${name}`);
+  }
+  for (const [, tail] of source.text.replace(NOT_A_PATH, '').matchAll(PATH_MENTION)) {
+    mentions.add(`/${tail}`);
+    mentions.add(`/${tail.replace(EXTENSION, '')}`);
+  }
+  if (isPythonModule(source)) {
+    pythonFromImports(source, mentions);
+    for (const [, name] of source.text.matchAll(PYTHON_BARE_IMPORT)) mentions.add(`bare/${name}`);
+  } else {
+    for (const [, name] of source.text.matchAll(JS_BARE_IMPORT)) mentions.add(`bare/${name}`);
+    for (const [, name] of source.text.matchAll(SCRIPT_TAG_FILE)) {
+      mentions.add(`/${name.replace(EXTENSION, '')}`);
+    }
+  }
+  return mentions;
+}
+
+const normalName = (name: string) => name.toLowerCase().replace(/[-_.]+/g, '-');
+
+function isDependency(readers: Readers, name: string): boolean {
+  return readers.manifests.some((manifest) =>
+    manifest.dependencies.some((one) => normalName(one.name) === normalName(name)),
+  );
+}
+
+function namesModule(readers: Readers, mentions: Set<string>, target: Source): boolean {
+  const name = moduleName(target.file);
+  const named = isPythonModule(target) ? `${lastFolder(target.file)}/${name}` : `/${name}`;
+  return mentions.has(named) || (mentions.has(`bare/${name}`) && !isDependency(readers, name));
+}
+
+// A main guard says a module can be started by hand, unless its folder is plainly a library: one whose
+// modules import each other, where the guard is a debug block.
+function isLibraryFolder(
+  source: Source,
+  python: Source[],
+  mentionsFor: (one: Source) => Set<string>,
+  readers: Readers,
+): boolean {
+  const folder = folderOf(source.file);
+  const siblings = python.filter((one) => folderOf(one.file) === folder);
+  return siblings.some((one) =>
+    siblings.some((other) => other !== one && namesModule(readers, mentionsFor(one), other)),
+  );
+}
+
+function isImportedModule(source: Source): boolean {
+  const name = moduleName(source.file);
+  if (!source.file.includes('/') || ENTRY_FOLDER.test(source.file)) return false;
+  if (source.mode === JS_MODE) return !ENTRY_NAME.test(name);
+  // A package's __init__ is what importers see from outside the repo, and top-level calls are a script.
+  return (
+    isPythonModule(source) &&
     !ENTRY_NAME.test(name) &&
-    !ENTRY_FOLDER.test(source.file) &&
-    readers.sources.filter((one) => LOCAL_IMPORT.test(one.text)).length >= MIN_LOCAL_IMPORTS &&
-    !readers.sources.some((one) => one !== source && one.text.includes(name));
-  readers.orphans.set(source.file, candidate);
-  return candidate;
+    !PYTHON_ENTRY_NAME.test(name) &&
+    name !== PYTHON_INIT &&
+    !PYTHON_TOP_LEVEL_CALL.test(source.code)
+  );
+}
+
+function hasGraph(readers: Readers, python: Source[]): { js: boolean; python: boolean } {
+  const local = new Set(python.flatMap((one) => [moduleName(one.file), lastFolder(one.file)]));
+  const importsLocal = (one: Source) =>
+    PYTHON_RELATIVE_IMPORT.test(one.text) ||
+    [...one.text.matchAll(PYTHON_BARE_IMPORT)].some(([, name]) => local.has(name));
+  return {
+    js:
+      readers.sources.filter((one) => one.mode === JS_MODE && LOCAL_IMPORT.test(one.text)).length >=
+      MIN_LOCAL_IMPORTS,
+    python: python.filter(importsLocal).length >= MIN_LOCAL_IMPORTS,
+  };
+}
+
+// A relative import of code that isn't in the repo stops the module at load.
+function canLoad(readers: Readers, source: Source): boolean {
+  return [...source.text.matchAll(RELATIVE_CODE_IMPORT)].every(
+    ([, specifier]) =>
+      NON_CODE_IMPORT.test(specifier) || localModule(readers, source, specifier) !== undefined,
+  );
+}
+
+/**
+ * The modules nothing that runs reaches. Everything that isn't a module waiting to be imported runs,
+ * and each file it names runs too, so two left-over modules that import each other stay left over.
+ * Only with a graph to read: a lone script or a short excerpt has no imports to be missing from.
+ */
+function orphansOf(readers: Readers): Set<string> {
+  if (readers.orphans) return readers.orphans;
+  const known = new Map<Source, Set<string>>();
+  const mentionsFor = (one: Source) => {
+    const held = known.get(one) ?? mentionsOf(one);
+    known.set(one, held);
+    return held;
+  };
+  const python = readers.sources.filter(isPythonModule);
+  const graph = hasGraph(readers, python);
+  const waiting = new Set(
+    readers.sources.filter((one) => {
+      if (!isImportedModule(one) || !(one.mode === JS_MODE ? graph.js : graph.python)) return false;
+      if (one.mode === JS_MODE) return true;
+      return (
+        !PYTHON_MAIN_GUARD.test(one.code) || isLibraryFolder(one, python, mentionsFor, readers)
+      );
+    }),
+  );
+  // A JS module nobody names may still be an entry a bundler starts, so what it imports counts, unless
+  // it can't load. In Python a module with no start of its own only runs through its importers.
+  const running = readers.sources.filter(
+    (one) => !waiting.has(one) || (one.mode === JS_MODE && canLoad(readers, one)),
+  );
+  while (running.length > 0) {
+    const one = running.pop() as Source;
+    const mentions = mentionsFor(one);
+    const loads = DYNAMIC_LOAD.test(one.text);
+    for (const module of waiting) {
+      if (module === one) continue;
+      const loaded = loads && one.text.includes(lastFolder(module.file));
+      if (loaded || namesModule(readers, mentions, module)) {
+        waiting.delete(module);
+        running.push(module);
+      }
+    }
+  }
+  readers.orphans = new Set([...waiting].map((one) => one.file));
+  return readers.orphans;
+}
+
+function callArguments(code: string, open: number): string[] {
+  const close = closeOf(code, open);
+  const parts: string[] = [];
+  let depth = 0;
+  let start = open + 1;
+  for (let at = open + 1; at < close; at += 1) {
+    const char = code[at];
+    if (char === '(' || char === '[' || char === '{') depth += 1;
+    else if (char === ')' || char === ']' || char === '}') depth -= 1;
+    else if (char === ',' && depth === 0) {
+      parts.push(code.slice(start, at));
+      start = at + 1;
+    }
+  }
+  const last = code.slice(start, close);
+  return last.trim() ? [...parts, last] : parts;
+}
+
+function classAbove(source: Source, offset: number): string | undefined {
+  const depth = lineAt(source, offset).search(/\S/);
+  for (let index = lineIndexAt(source, offset) - 1; index >= 0; index -= 1) {
+    const above = source.lines[index];
+    if (above.trim() && above.search(/\S/) < depth) return CLASS_LINE.exec(above)?.[1];
+  }
+  return undefined;
+}
+
+// Whether one read of a function is a call that hands it this parameter. A read that isn't a call,
+// such as a reference or a string, can do anything, so it counts against.
+function passesParameter(read: Read, word: string, parameter: string, index: number): boolean {
+  const { source, offset } = read;
+  const at = offset + word.length;
+  const open = at + source.code.slice(at, at + LOOK_BACK_CHARS).search(/\S|$/);
+  if (source.code[open] !== '(' || spanAt(source.spans, offset)) return false;
+  const args = callArguments(source.code, open);
+  if (args.some((arg) => new RegExp(`^\\s*${escapeRegex(parameter)}\\s*=(?!=)`).test(arg))) {
+    return true;
+  }
+  const shown = args.slice(0, index + 1);
+  return (
+    shown.length > index && !shown.some((arg) => STAR_ARGUMENT.test(arg) || /^\s*\.\.\./.test(arg))
+  );
+}
+
+const isTypeAnnotation = ({ source, offset }: Read) =>
+  ANNOTATION_BEFORE.test(source.code.slice(Math.max(0, offset - LOOK_BACK_CHARS), offset));
+
+function isImportOf(read: Read): boolean {
+  if (IMPORT_LINE.test(read.line) || CLASS_LINE.test(read.line)) return true;
+  const around = enclosing(read.source.code, read.offset);
+  return (
+    around?.char === '(' &&
+    IMPORT_OPEN.test(
+      read.source.code.slice(Math.max(0, around.open - LOOK_BACK_CHARS), around.open),
+    )
+  );
+}
+
+/** A parameter's default, when every call in the repo passes that parameter, so it's never what's sent. */
+function defaultReach(readers: Readers, source: Source, span: Span): Reach | undefined {
+  const { code } = source;
+  const open = enclosing(code, span.start);
+  if (open?.char !== '(') return undefined;
+  const head = DEFINING_HEAD.exec(code.slice(Math.max(0, open.open - LOOK_BACK_CHARS), open.open));
+  const defined = head?.[1] ?? head?.[2];
+  const parameters = code.slice(open.open + 1, span.start + 1);
+  const parameter = PARAMETER_DEFAULT.exec(parameters)?.[1];
+  if (!defined || !parameter || JS_EXPORTED.test(lineAt(source, open.open))) return undefined;
+  const isInit = defined === INIT_METHOD;
+  const word = isInit ? classAbove(source, open.open) : defined;
+  if (!word) return undefined;
+  const earlier = callArguments(
+    `(${parameters.slice(0, parameters.lastIndexOf(parameter))})`,
+    0,
+  ).filter((part) => !SELF_PARAMETER.test(part));
+  const orphans = orphansOf(readers);
+  const definedHere = new RegExp(
+    `(?:\\bdef\\s+|\\bfunction\\s+|\\bclass\\s+)${escapeRegex(word)}\\b`,
+  );
+  const callers = readers.sources.filter(
+    (one) => one === source || !(orphans.has(one.file) || definedHere.test(one.text)),
+  );
+  const allReads = callers.flatMap((one) => readsIn(readers, one, word));
+  // A package that re-exports a function offers it to callers this repo can't show.
+  if (allReads.some((read) => moduleName(read.source.file) === PYTHON_INIT)) return undefined;
+  const reads = allReads.filter((read) => !isImportOf(read) && !(isInit && isTypeAnnotation(read)));
+  if (reads.length === 0) return undefined;
+  return reads.every((read) => passesParameter(read, word, parameter, earlier.length))
+    ? {
+        kind: 'catalog',
+        reason: `the default of ${parameter}: every call of ${word} passes its own, so this one is never sent`,
+      }
+    : undefined;
+}
+
+function enclosingTopLevelDef(source: Source, offset: number): string | undefined {
+  const first = lineIndexAt(source, offset);
+  for (let index = first; index >= 0; index -= 1) {
+    const line = source.lines[index];
+    if (!line.trim() || /^\s/.test(line)) continue;
+    const name = TOP_LEVEL_DEF.exec(line)?.[1];
+    return name && index !== first && !DECORATOR_LINE.test(source.lines[index - 1] ?? '')
+      ? name
+      : undefined;
+  }
+  return undefined;
+}
+
+/** A function nothing calls, in a script that shows what it does run. */
+function uncalledReach(readers: Readers, source: Source, offset: number): Reach | undefined {
+  const name = enclosingTopLevelDef(source, offset);
+  if (!name) return undefined;
+  const called = [...source.code.matchAll(TOP_LEVEL_CALL)]
+    .map((match) => match[1])
+    .find(
+      (one) =>
+        one !== name &&
+        new RegExp(`^(?:async\\s+)?(?:def|function\\*?)\\s+${escapeRegex(one)}\\b`, 'm').test(
+          source.code,
+        ),
+    );
+  const started = called ?? (PYTHON_MAIN_GUARD.test(source.code) ? 'its main guard' : undefined);
+  if (!started || readers.sources.some((one) => readsIn(readers, one, name).length > 0)) {
+    return undefined;
+  }
+  return {
+    kind: 'unclear',
+    reason: `inside ${name}, which nothing calls: this script starts from ${started}`,
+  };
+}
+
+function localModule(readers: Readers, source: Source, specifier: string): Source | undefined {
+  const code = specifier.replace(/\.[cm]?[jt]sx?$/, '');
+  const wanted = specifier.startsWith('.')
+    ? path.posix.join(folderOf(source.file), code)
+    : code.replace(SPECIFIER_PREFIX, '');
+  return readers.sources.find((one) => {
+    const bare = one.file.replace(EXTENSION, '');
+    if (bare === wanted || bare === `${wanted}/index`) return true;
+    return !specifier.startsWith('.') && bare.endsWith(`/${wanted}`);
+  });
+}
+
+const importLine = (source: Source, offset: number) =>
+  `${source.file}:${reportedLine(source, lineIndexAt(source, offset))}: ${lineAt(source, offset).trim()}`;
+
+// `import cc_anthropic as anthropic`: a local module takes the SDK's name, so calls that read like the
+// SDK's run that module's code instead, and it decides what goes where.
+function facadeReach(readers: Readers, source: Source, packages: string[]): Reach | undefined {
+  if (source.mode !== PYTHON_MODE) return undefined;
+  const own = new Set(packages.map(normalName));
+  for (const match of source.text.matchAll(IMPORT_AS)) {
+    const [, module, alias] = match;
+    if (!own.has(normalName(alias)) || normalName(module) === normalName(alias)) continue;
+    const file = `/${module.replace(/\./g, '/')}.py`;
+    const facade = readers.sources.find((one) => `/${one.file}`.endsWith(file));
+    if (!facade) continue;
+    const lines = facade.lines.flatMap((line, index) =>
+      MODEL_WORD.test(line) ? [`${facade.file}:${index + 1}: ${line.trim()}`] : [],
+    );
+    return {
+      kind: 'unclear',
+      reason: `this file imports its own ${facade.file} under the name ${alias}, so that module decides what's sent, not the SDK`,
+      reads: [importLine(source, match.index), ...lines].slice(0, MAX_READS_SHOWN),
+    };
+  }
+  return undefined;
+}
+
+// `ai.models.generateImages(...)` where `ai` is the app's own Proxy or object: a method its module
+// never names isn't there to call, whatever the real SDK offers.
+function wrapperReach(readers: Readers, source: Source, offset: number): Reach | undefined {
+  if (source.mode !== JS_MODE) return undefined;
+  let at = offset;
+  for (let level = 0; level < MAX_ANCESTORS; level += 1) {
+    const open = enclosing(source.code, at);
+    if (!open) return undefined;
+    at = open.open;
+    if (open.char !== '(') continue;
+    const call = MEMBER_CALL.exec(source.code.slice(Math.max(0, at - LOOK_BACK_CHARS), at));
+    if (!call) return undefined;
+    const [, root, method] = call;
+    const imported = new RegExp(
+      `\\bimport\\s[^;]*?\\b${escapeRegex(root)}\\b[^;]*?\\bfrom\\s+["']([^"']+)["']`,
+    ).exec(source.text)?.[1];
+    if (!imported || !LOCAL_SPECIFIER.test(imported)) return undefined;
+    const module = localModule(readers, source, imported);
+    const wrapped = new RegExp(
+      `\\b${escapeRegex(root)}\\s*(?::[^=\\n]*)?=\\s*(?:new\\s+Proxy\\s*\\(|\\{)`,
+    );
+    if (!module || !wrapped.test(module.code) || wordPattern(method).test(module.text)) {
+      return undefined;
+    }
+    return {
+      kind: 'unclear',
+      reason: `${root} is the app's own wrapper in ${module.file}, which never names ${method}, so this call may fail before it sends anything`,
+    };
+  }
+  return undefined;
 }
 
 /** Where the code reads what holds a list or a picked option, for the AI check to follow. */
@@ -364,19 +746,25 @@ export type ReachInput = {
   span?: Span;
   picker: boolean;
   fileNamesProvider: boolean;
+  packages: string[];
 };
 
 /** Why this match never reaches the API, or undefined when nothing here shows that. */
 export function reachOf(readers: Readers, input: ReachInput): Reach | undefined {
-  const { source, offset, span, picker, fileNamesProvider } = input;
-  if (isOrphan(readers, source)) {
+  const { source, offset, span, picker, fileNamesProvider, packages } = input;
+  if (orphansOf(readers).has(source.file)) {
     return {
       kind: 'unclear',
-      reason: 'no other file in this repo names this module, so it may be left over from a rewrite',
+      reason:
+        'nothing that runs imports this module, so it may be left over from a rewrite, and it only runs if someone starts it by hand',
     };
   }
   if (span?.kind !== 'string') return undefined;
   return (
+    facadeReach(readers, source, packages) ??
+    wrapperReach(readers, source, offset) ??
+    defaultReach(readers, source, span) ??
+    uncalledReach(readers, source, offset) ??
     unresolvedCall(source, offset) ??
     assignedReach(readers, source, span, fileNamesProvider) ??
     constructedReach(readers, source, offset) ??

@@ -1,0 +1,3 @@
+# Excerpt of bcrant/Tableau2Slack, requirements.txt, seen in P5.
+tableauserverclient == 0.11
+slackclient == 2.5.0

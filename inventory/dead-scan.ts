@@ -48,11 +48,12 @@ import {
   type Source,
   type Span,
 } from './dead-scan-lex.ts';
-import { calledProviders } from './dead-scan-hosts.ts';
+import { calledProviders, namedProviders } from './dead-scan-hosts.ts';
 import {
   closeOf,
   enclosing,
   holdsOptionTag,
+  isGraphqlText,
   isProse,
   stringPlace,
   textPlace,
@@ -653,6 +654,8 @@ function otherHostsOf(source: Source): OtherHosts {
 function otherHostReason(hit: Hit, repo: Repo, line: string): string | undefined {
   const { context } = hit.entry;
   if (!context) return undefined;
+  // azure-keyvault's own lines say azure, and that isn't another host to it.
+  if (OTHER_HOSTS.some((host) => host.pattern.test(hit.entry.provider))) return undefined;
   const hosts = context.hosts ?? [];
   const lineHost = OTHER_HOSTS.find((host) => host.pattern.test(line));
   if (lineHost && !hosts.some((host) => line.toLowerCase().includes(host))) {
@@ -706,6 +709,20 @@ function onlyDeadNames(hit: Hit, repo: Repo): boolean {
   return names.length > 0 && names.every((name) => dead.some((one) => tokenMatches(one, name)));
 }
 
+// `'claude-sonnet-4': {...}` beside a request that sends 'claude-sonnet-4-20250514': the key is the app's
+// own, and the name sent is reported on its own line. Another key doesn't count: neither is shown sent.
+function translatedTo(hit: Hit): string | undefined {
+  const { source, entry, name } = hit;
+  const names = entry.matchers.filter((matcher) => matcher.kind === 'string');
+  return source.spans
+    .filter((span) => span.kind === 'string' && source.code[span.end] !== ':')
+    .map((span) => innerText(source, span))
+    .find(
+      (text) =>
+        text !== name && tokensOf(text).some((one) => names.some((m) => tokenMatches(m, one))),
+    );
+}
+
 function classify(hit: Hit, repo: Repo): Verdict {
   const { entry, matcher, source, offset } = hit;
   const lineIndex = lineIndexAt(source, offset);
@@ -729,6 +746,13 @@ function classify(hit: Hit, repo: Repo): Verdict {
     }
     return { matchClass: place.kind, reason: place.reason, version };
   }
+  if (place?.tableKey) {
+    const sent = translatedTo(hit);
+    if (sent) {
+      const reason = `a key of the app's own: the code sends ${sent}, reported where it does`;
+      return { matchClass: 'catalog', reason, version };
+    }
+  }
   const picker = place?.kind === 'picker' ? place.reason : undefined;
   const table = place?.kind === 'unclear' ? place.reason : undefined;
 
@@ -746,7 +770,9 @@ function classify(hit: Hit, repo: Repo): Verdict {
     if (foreign) return { quiet: true, reason: `a URL on another host: ${foreign}` };
     // A common word in a file with no sign of the provider is the app's own, as with no provider at all.
     // A picker's option isn't a common word, and what's picked often reaches the provider in another file.
-    if (matcher.kind !== 'url' && !picker && !fileNamesProvider(repo, source, context)) {
+    // Nor is a field a GraphQL query asks for, and the client it goes through is often in another file.
+    const asked = span !== undefined && isGraphqlText(source, span);
+    if (matcher.kind !== 'url' && !picker && !asked && !fileNamesProvider(repo, source, context)) {
       return { quiet: true, reason: `a common word in a file that never names ${entry.provider}` };
     }
   }
@@ -800,12 +826,14 @@ function judge(hit: Hit, repo: Repo): Verdict {
     span,
     picker: place !== undefined && 'kind' in place && place.kind === 'picker',
     fileNamesProvider: !entry.context || fileNamesProvider(repo, source, entry.context),
+    packages: entry.context?.packages ?? [],
   });
   if (reach) {
     return {
       ...verdict,
       matchClass: reach.kind,
       reason: `${reach.reason} (scan: ${verdict.reason})`,
+      ...(reach.reads ? { reads: reach.reads } : {}),
     };
   }
   if (verdict.matchClass !== 'unclear') return verdict;
@@ -918,6 +946,7 @@ async function unlistedProviders(
     ...usages.map((usage) => providerId(usage.provider)),
     ...dependencies.map(providerId),
     ...hostsOf.keys(),
+    ...namedProviders(sources.filter((source) => !isIgnoredForFacts(source.file))),
   ]);
   return {
     providers: [...found].filter((provider) => provider && !listed.has(provider)).sort(),
@@ -953,7 +982,6 @@ export async function scanDeadApis(
         (source) => source.mode !== 'prose' && !isIgnoredForFacts(source.file),
       ),
       manifests,
-      orphans: new Map(),
       reads: new Map(),
       uses: new Map(),
     },

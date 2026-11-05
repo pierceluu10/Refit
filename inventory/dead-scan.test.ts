@@ -2442,3 +2442,610 @@ describe('seen in P5, round 1: what the AI check is told', () => {
     expect(text && 'text' in text ? text.text : '').toMatch(/Where the code reads what holds it/);
   });
 });
+
+describe('seen in P5, round 2: providers the list had no file for', () => {
+  const liveIn = (report: DeadScanReport, entryId: string) =>
+    report.details.filter((one) => one.entryId === entryId && one.matchClass === 'live');
+
+  it('flags One Call 2.5, and no other /2.5/ API', async () => {
+    const report = await scanFixture('natbat__pillarpointstewards');
+    expect(
+      liveIn(report, 'OW-1.one-call-2.5').map((one) => one.file),
+      explain(report),
+    ).toEqual(['pillarpointstewards/weather/views.py']);
+    const other = await scan({
+      'a.py': 'requests.get("https://api.openweathermap.org/data/2.5/weather?q=x")',
+    });
+    expect(fixTargets(other), explain(other)).toEqual([]);
+  });
+
+  it("flags Moonshot's own models, and leaves Groq's Kimi names to Groq", async () => {
+    const report = await scanFixture('xiaoshuntian__academic-paper-skill');
+    expect(
+      liveIn(report, 'KM-1.moonshot-v1').map((one) => one.line),
+      explain(report),
+    ).toEqual([6]);
+    const groq = await scan({
+      'a.py':
+        'requests.post("https://api.groq.com/x", json={"model": "moonshotai/kimi-k2-0905-preview"})',
+    });
+    expect(classesOf(groq, 'KM-2.kimi-offline'), explain(groq)).toEqual([]);
+    const own = await scan({
+      'a.py':
+        'requests.post("https://api.moonshot.cn/v1/x", json={"model": "kimi-k2-0905-preview"})',
+    });
+    expect(classesOf(own, 'KM-2.kimi-offline'), explain(own)).toEqual(['unclear']);
+  });
+
+  it('reads a table of Moonshot models as a table', async () => {
+    const report = await scan({
+      'a.ts': [
+        "const base = 'https://api.moonshot.cn/v1';",
+        "const PRICES = { a: 'moonshot-v1-8k', b: 'moonshot-v1-32k', c: 'moonshot-v1-128k' };",
+      ].join('\n'),
+    });
+    expect(new Set(classesOf(report, 'KM-1.moonshot-v1')), explain(report)).toEqual(
+      new Set(['catalog']),
+    );
+  });
+
+  it('flags the Coinbase Pro hosts, and not the Exchange ones', async () => {
+    const report = await scanFixture('LeviathanLevi__Coinbase-Pro-Crypto-Trading-Bot-CrypFinder');
+    expect(liveIn(report, 'CB-1.pro-rest'), explain(report)).toHaveLength(1);
+    expect(liveIn(report, 'CB-2.pro-websocket'), explain(report)).toHaveLength(1);
+    expect(report.clean).toBe(false);
+    const exchange = await scan({
+      'a.js':
+        'fetch("https://api.exchange.coinbase.com/products");\nnew WebSocket("wss://ws-feed.exchange.coinbase.com");',
+    });
+    expect(fixTargets(exchange), explain(exchange)).toEqual([]);
+  });
+
+  it('flags files_upload live and the Tableau sign-in for reading, and not their replacements', async () => {
+    const report = await scanFixture('bcrant__Tableau2Slack');
+    const file = 'Tableau2Slack.py';
+    expect(classesOf(report, 'SL-1.files-upload', file), explain(report)).toEqual(['live']);
+    expect(classesOf(report, 'TB-1.password-sign-in', file), explain(report)).toEqual(['unclear']);
+    expect(report.unlistedProviders).toEqual([]);
+    const fine = await scan({
+      'requirements.txt': 'slack-sdk==3.0.0\ntableauserverclient==0.30\n',
+      'a.py': [
+        'import tableauserverclient as TSC',
+        'from slack_sdk import WebClient',
+        'auth = TSC.PersonalAccessTokenAuth(name, token, site)',
+        'WebClient(t).files_upload_v2(channel=c, file=f)',
+      ].join('\n'),
+    });
+    expect(fixTargets(fine), explain(fine)).toEqual([]);
+  });
+
+  it("doesn't take another SDK's files.upload for Slack's", async () => {
+    const report = await scan({
+      'package.json': manifest({ '@slack/web-api': '^7.0.0', openai: '^6.0.0' }),
+      'a.ts': "import OpenAI from 'openai';\nconst x = new OpenAI();\nx.files.upload({ file: f });",
+      'b.ts':
+        "import { WebClient } from '@slack/web-api';\nnew WebClient(t).files.upload({ file: f });",
+    });
+    expect(classesOf(report, 'SL-1.files-upload', 'a.ts'), explain(report)).toEqual([]);
+    expect(classesOf(report, 'SL-1.files-upload', 'b.ts'), explain(report)).toEqual(['unclear']);
+  });
+
+  it('flags Azure AD Graph and the old Key Vault namespace, with no Azure OpenAI reason', async () => {
+    const report = await scanFixture('outlook__ALTAR');
+    expect(liveIn(report, 'AG-1.graph-windows-net'), explain(report)).toHaveLength(2);
+    const vault = report.details.filter((one) => one.entryId === 'KV-1.namespace-without-code');
+    expect(
+      vault.map((one) => one.matchClass),
+      explain(report),
+    ).toEqual(['unclear', 'unclear']);
+    expect(vault[0].reason).toMatch(/declared with no version/);
+    expect(vault[0].reason).not.toMatch(/Azure OpenAI/);
+  });
+
+  it('reads the Key Vault version, and leaves the new namespaces and other Azure hosts alone', async () => {
+    const old = await scan({
+      'requirements.txt': 'azure-keyvault==1.1.0\n',
+      'a.py': 'from azure.keyvault import KeyVaultClient\n',
+    });
+    expect(fixTargets(old), explain(old)).toEqual([]);
+    expect(old.quiet.map((one) => one.entryId)).toEqual(['KV-1.namespace-without-code']);
+    const newest = await scan({
+      'requirements.txt': 'azure-keyvault==4.2.0\n',
+      'a.py': 'from azure.keyvault import KeyVaultClient\n',
+    });
+    expect(classesOf(newest, 'KV-1.namespace-without-code'), explain(newest)).toEqual(['live']);
+    const fine = await scan({
+      'requirements.txt': 'azure-keyvault-secrets==4.8.0\n',
+      'a.py': [
+        'from azure.keyvault.secrets import SecretClient',
+        'requests.get("https://x.blob.core.windows.net/y")',
+      ].join('\n'),
+    });
+    expect(fixTargets(fine), explain(fine)).toEqual([]);
+  });
+});
+
+describe('seen in P5, round 2: an old toolkit inside a CI action', () => {
+  const step = (lines: string[]) =>
+    ({ '.github/workflows/ci.yml': ['jobs:', '  a:', '    steps:', ...lines].join('\n') }) as const;
+
+  it('flags setup-python@v3 with a cache input', async () => {
+    const report = await scanFixture('natbat__pillarpointstewards');
+    const hits = report.details.filter((one) => one.entryId === 'GH-6.toolkit-cache');
+    expect(
+      hits.map((one) => [one.line, one.matchClass]),
+      explain(report),
+    ).toEqual([[10, 'live']]);
+  });
+
+  it("doesn't flag one with no cache input, a later tag, or another step's cache", async () => {
+    const report = await scan({
+      ...step([
+        '      - uses: actions/setup-python@v3',
+        '        with:',
+        '          python-version: "3.11"',
+        '      - uses: actions/setup-node@v4',
+        '        with:',
+        '          cache: npm',
+        '      - uses: actions/setup-python@v5',
+        '        with:',
+        '          cache: pip',
+      ]),
+    });
+    expect(classesOf(report, 'GH-6.toolkit-cache'), explain(report)).toEqual([]);
+  });
+});
+
+describe('seen in P5, round 2: a GraphQL query in a template', () => {
+  it('reads a selection as what the code asks for, even with the client in another file', async () => {
+    const report = await scanFixture('jasperapp__jasper');
+    const file = 'src/GitHubV4IssueClient.ts';
+    expect(classesOf(report, 'GH-5.pushedDate', file), explain(report)).toEqual([
+      'comment',
+      'unclear',
+      'unclear',
+    ]);
+    expect(report.clean).toBe(false);
+  });
+
+  it('still reads prose and f-strings as prose', async () => {
+    const report = await scan({
+      'requirements.txt': 'pygithub==2.0.0\n',
+      'a.py': [
+        'import requests',
+        'requests.get("https://api.github.com/x")',
+        'print(f"the field pushedDate is {value} on Commit {name}")',
+        'print("pushedDate is gone, see nodes for more")',
+      ].join('\n'),
+    });
+    expect(new Set(classesOf(report, 'GH-5.pushedDate')), explain(report)).toEqual(
+      new Set(['comment']),
+    );
+  });
+});
+
+describe('seen in P5, round 2: a module nothing that runs imports', () => {
+  const KEY = 'OA-1.gpt-4-0125-preview';
+  const SEND = 'client.chat.completions.create(model="gpt-4-turbo-preview", messages=[])';
+  const GRAPH = {
+    'requirements.txt': 'openai\n',
+    'src/__init__.py': '',
+    'src/run.py': 'from pkg.one import one\nfrom pkg.two import two\nprint(one, two)\n',
+    'src/pkg/__init__.py': '',
+    'src/pkg/one.py': 'from pkg.two import two\none = two\n',
+    'src/pkg/two.py': 'from pkg.three import three\ntwo = three\n',
+    'src/pkg/three.py': 'three = 3\n',
+  };
+
+  it('asks about a whole package only its own modules import, and the debug block in it', async () => {
+    const report = await scanFixture('UW-Madison-Lee-Lab__TAPE');
+    const reasons = report.details.filter((one) => one.file.startsWith('src/llms/'));
+    expect(
+      reasons.filter((one) => one.entryId !== 'OA-1.o1').map((one) => one.matchClass),
+      explain(report),
+    ).toEqual(['unclear', 'unclear', 'unclear']);
+    expect(reasons[0].reason).toMatch(/nothing that runs imports this module/);
+  });
+
+  it("doesn't let a same-named module in another folder hold it", async () => {
+    const report = await scan({
+      ...GRAPH,
+      'src/other/llm.py': `from openai import OpenAI\nclient = OpenAI()\ndef go():\n    ${SEND}\n`,
+      'src/used/llm.py': 'x = 1\n',
+      'src/run2.py': 'from used.llm import x\nprint(x)\n',
+    });
+    expect(classesOf(report, KEY, 'src/other/llm.py'), explain(report)).toEqual(['unclear']);
+  });
+
+  it.each([
+    ['from a file that runs', 'from pkg.left import go\nprint(go)\n'],
+    ['by a relative import', 'from .pkg.left import go\nprint(go)\n'],
+    ['from the package', 'from pkg import left\nprint(left)\n'],
+    ['by a bare import', 'import left\nprint(left)\n'],
+    ['by name in a loader', 'importlib.import_module("pkg.left")\n'],
+    ['by a list of modules that loads the folder', 'importlib.import_module(f"pkg.{name}")\n'],
+  ])('leaves a module imported %s as it was', async (_name, importer) => {
+    const report = await scan({
+      ...GRAPH,
+      'src/pkg/left.py': `from openai import OpenAI\nclient = OpenAI()\ndef go():\n    ${SEND}\n`,
+      'src/start.py': importer,
+    });
+    expect(classesOf(report, KEY), explain(report)).toEqual(['live']);
+  });
+
+  it('leaves a script alone: a main guard outside a library, a top-level call, a package __init__', async () => {
+    const script = `from openai import OpenAI\nclient = OpenAI()\nif __name__ == "__main__":\n    ${SEND}\n`;
+    const report = await scan({
+      'requirements.txt': 'openai\n',
+      'src/run.py':
+        'from lib.a import a\nfrom lib.b import b\nfrom lib.c import c\nprint(a, b, c)\n',
+      'src/lib/a.py': 'a = 1\n',
+      'src/lib/b.py': 'b = 1\n',
+      'src/lib/c.py': 'c = 1\n',
+      'src/a1.py': 'from lib.a import a\nprint(a)\n',
+      'src/a2.py': 'from lib.b import b\nprint(b)\n',
+      'other/script.py': script,
+      'other/toplevel.py': `from openai import OpenAI\nclient = OpenAI()\n${SEND}\n`,
+      'pack/__init__.py': `from openai import OpenAI\nclient = OpenAI()\ndef go():\n    ${SEND}\n`,
+    });
+    expect(classesOf(report, KEY), explain(report)).toEqual(['live', 'live', 'live']);
+  });
+
+  it('asks about a JS module only a module that cannot load imports', async () => {
+    const report = await scanFixture('Jmk125__ConstructionDocuments');
+    expect(classesOf(report, KEY, 'services/openai.js'), explain(report)).toEqual(['unclear']);
+  });
+
+  it("doesn't count a package of the same name as an import of the module", async () => {
+    const graph = {
+      ...OPENAI_PACKAGE,
+      'src/index.ts':
+        "import { a } from './a.js';\nimport { b } from './b.js';\nimport OpenAI from 'openai';\na(b, OpenAI);",
+      'src/a.ts': "import { b } from './b.js';\nexport const a = (x) => b(x);",
+      'src/b.ts': "import { c } from './c.js';\nexport const b = (x) => c(x);",
+      'src/c.ts': 'export const c = (x) => x;',
+      'src/openai.ts': "export const m = 'gpt-4-turbo-preview';",
+    };
+    const report = await scan(graph);
+    expect(classesOf(report, KEY, 'src/openai.ts'), explain(report)).toEqual(['unclear']);
+    const used = await scan({
+      ...graph,
+      'src/d.ts': "import { m } from './openai.js';\nexport const d = m;",
+    });
+    expect(classesOf(used, KEY, 'src/openai.ts'), explain(used)).toEqual(['live']);
+    const convex = await scan({
+      ...graph,
+      'convex/seed.ts': "export const m = 'gpt-4-turbo-preview';",
+    });
+    expect(classesOf(convex, KEY, 'convex/seed.ts'), explain(convex)).toEqual(['live']);
+  });
+});
+
+describe('seen in P5, round 2: a name that is only tested', () => {
+  const KEY = 'OA-1.o1';
+  const PY = 'from openai import OpenAI\nclient = OpenAI()\n';
+
+  it('calls a substring test a check, with no AI call to get it wrong', async () => {
+    const report = await scanFixture('UW-Madison-Lee-Lab__TAPE');
+    const hits = report.details.filter((one) => one.entryId === KEY);
+    expect(
+      hits.map((one) => one.matchClass),
+      explain(report),
+    ).toEqual(['catalog', 'catalog']);
+  });
+
+  it.each([
+    ['any with in', 'any(x in name for x in ("o1", "o3", "o4"))'],
+    ['all with not in', 'all(x not in name for x in ("o1", "o3", "o4"))'],
+    ['any with startswith', 'any(name.startswith(x) for x in ("o1", "o3", "o4"))'],
+    ['any with equals', 'any(name == x for x in ["o1", "o3", "o4"])'],
+  ])('reads %s as a test', async (_name, line) => {
+    const report = await scan({ 'requirements.txt': 'openai\n', 'a.py': `${PY}ok = ${line}\n` });
+    expect(classesOf(report, KEY), explain(report)).toEqual(['catalog']);
+  });
+
+  it.each([
+    [
+      'a loop that sends each',
+      'for x in ("o1", "o3", "o4"):\n    client.responses.create(model=x)',
+    ],
+    [
+      'a comprehension that sends each',
+      '[client.responses.create(model=x) for x in ("o1", "o3", "o4")]',
+    ],
+    ['a test mixed into a send', 'any(send(x) in name for x in ("o1", "o3", "o4"))'],
+  ])("doesn't read %s as a test", async (_name, line) => {
+    const report = await scan({ 'requirements.txt': 'openai\n', 'a.py': `${PY}${line}\n` });
+    expect(classesOf(report, KEY), explain(report)).not.toEqual(['catalog']);
+  });
+
+  it('reads the same shape in JS, and not a callback that sends', async () => {
+    const js = (line: string) => ({
+      ...OPENAI_PACKAGE,
+      'a.ts': `import OpenAI from 'openai';\nconst client = new OpenAI();\n${line}`,
+    });
+    const test = await scan(js(`const ok = ['o1', 'o3', 'o4'].some((x) => name.startsWith(x));`));
+    expect(classesOf(test, KEY), explain(test)).toEqual(['catalog']);
+    const send = await scan(js(`['o1', 'o3', 'o4'].some((x) => client.send(x));`));
+    expect(classesOf(send, KEY), explain(send)).not.toEqual(['catalog']);
+  });
+});
+
+describe('seen in P5, round 2: a default every caller overrides', () => {
+  const KEY = 'OA-1.gpt-3.5-turbo-0613';
+  const DEF = `from openai import OpenAI\nclient = OpenAI()\ndef send(messages, model="gpt-3.5-turbo-0613", **kw):\n    return client.chat.completions.create(model=model, messages=messages, **kw)\n`;
+  const withCall = (call: string, extra: Record<string, string> = {}) =>
+    scan({ 'requirements.txt': 'openai\n', 'a.py': `${DEF}${call}\n`, ...extra });
+
+  it('calls it never sent, on a function and on a class', async () => {
+    const report = await scanFixture('UW-Madison-Lee-Lab__TAPE');
+    expect(classesOf(report, KEY, 'src/utils/llm.py'), explain(report)).toEqual([
+      'catalog',
+      'catalog',
+      'catalog',
+    ]);
+  });
+
+  it.each([
+    ['by keyword', 'send([], model=picked)'],
+    ['by keyword beside **kwargs', 'send([], model=picked, **options)'],
+    ['by position', 'send([], picked)'],
+  ])('reads a call that passes it %s', async (_name, call) => {
+    const report = await withCall(call);
+    expect(classesOf(report, KEY), explain(report)).toEqual(['catalog']);
+  });
+
+  it.each([
+    ['a call that leaves it out', 'send([], model=picked)\nsend([])'],
+    ['*args, which may not reach it', 'send(*args)'],
+    ['**kwargs alone, which may not hold it', 'send([], **options)'],
+    ['a reference, which can be called any way', 'send([], model=picked)\nhandlers = [send]'],
+  ])('keeps it live with %s', async (_name, call) => {
+    const report = await withCall(call);
+    expect(classesOf(report, KEY), explain(report)).toEqual(['live']);
+  });
+
+  it('keeps it live with no caller, one in another file, or a package exporting it', async () => {
+    const none = await withCall('');
+    expect(classesOf(none, KEY), explain(none)).toEqual(['live']);
+    const other = await withCall('send([], model=picked)', {
+      'b.py': 'from a import send\nsend([])\n',
+    });
+    expect(classesOf(other, KEY, 'a.py'), explain(other)).toEqual(['live']);
+    const exported = await scan({
+      'requirements.txt': 'openai\n',
+      'pack/__init__.py': 'from pack.a import send\n',
+      'pack/a.py': `${DEF}send([], model=picked)\n`,
+    });
+    expect(classesOf(exported, KEY, 'pack/a.py'), explain(exported)).toEqual(['live']);
+  });
+
+  it('reads a JS default the same way, and never an exported one', async () => {
+    const js = (keyword: string, call: string) => ({
+      ...OPENAI_PACKAGE,
+      'a.ts': `import OpenAI from 'openai';\nconst client = new OpenAI();\n${keyword} send(m, model = 'gpt-3.5-turbo-0613') {\n  return client.chat.completions.create({ model, messages: m });\n}\n${call}`,
+    });
+    const passed = await scan(js('function', 'send([], picked);'));
+    expect(classesOf(passed, KEY), explain(passed)).toEqual(['catalog']);
+    const omitted = await scan(js('function', 'send([]);'));
+    expect(classesOf(omitted, KEY), explain(omitted)).toEqual(['live']);
+    const exported = await scan(js('export function', 'send([], picked);'));
+    expect(classesOf(exported, KEY), explain(exported)).toEqual(['live']);
+  });
+});
+
+describe('seen in P5, round 2: a function nothing calls', () => {
+  const KEY = 'OA-1.gpt-3.5-turbo';
+
+  it('asks about the one a script never starts, and keeps the one it does', async () => {
+    const report = await scanFixture('AyeletHillel__fine-tune');
+    expect(classesOf(report, KEY, 'src/index.ts'), explain(report)).toEqual(['unclear', 'live']);
+    expect(report.details[0].reason).toMatch(/inside mainShort, which nothing calls/);
+  });
+
+  const script = (body: string, extra: Record<string, string> = {}) =>
+    scan({
+      ...OPENAI_PACKAGE,
+      'a.js': `async function short() {\n  send({ model: 'gpt-3.5-turbo' });\n}\nasync function main() {}\n${body}`,
+      ...extra,
+    });
+
+  it.each([
+    ['the script calls it', 'short();\nmain();'],
+    ['it goes to a call by name', 'main(short);'],
+    ['the file has no start of its own', 'module.exports = { main, short };'],
+  ])('leaves it when %s', async (_name, body) => {
+    const report = await script(body);
+    expect(classesOf(report, KEY), explain(report)).toEqual(['live']);
+  });
+
+  it('leaves it when another file names it, or a decorator registers it', async () => {
+    const other = await script('main();', {
+      'b.js': "const { short } = require('./a');\nshort();",
+    });
+    expect(classesOf(other, KEY, 'a.js'), explain(other)).toEqual(['live']);
+    const decorated = await scan({
+      'requirements.txt': 'openai\n',
+      'a.py': [
+        'import openai',
+        '@app.route("/x")',
+        'def handler():',
+        '    openai.chat.completions.create(model="gpt-3.5-turbo")',
+        'def main():',
+        '    pass',
+        'main()',
+      ].join('\n'),
+    });
+    expect(classesOf(decorated, KEY), explain(decorated)).toEqual(['live']);
+  });
+});
+
+describe("seen in P5, round 2: the app's own stand-in for an SDK", () => {
+  it('asks about a local module imported under the SDK name, and shows what it does', async () => {
+    const report = await scanFixture('nfindler__playbook-pipeline');
+    const hit = report.details.find((one) => one.entryId === 'AN-1.claude-opus-4-20250514');
+    expect(hit?.matchClass, explain(report)).toBe('unclear');
+    expect(hit?.reason).toMatch(
+      /imports its own scripts\/cc_anthropic\.py under the name anthropic/,
+    );
+    expect(hit?.reads?.join('\n')).toMatch(/_model_alias/);
+  });
+
+  it('leaves the real SDK, a local module under another name, and an alias of the SDK', async () => {
+    const send = 'client.messages.create(model="claude-opus-4-20250514")';
+    const files = (head: string) => ({
+      'requirements.txt': 'anthropic\n',
+      'helpers.py': 'x = 1\n',
+      'a.py': `${head}\nclient = sdk.Anthropic()\n${send}\n`,
+    });
+    for (const head of ['import anthropic as sdk', 'import helpers as sdk\nimport anthropic']) {
+      const report = await scan(files(head));
+      expect(classesOf(report, 'AN-1.claude-opus-4-20250514'), explain(report)).toEqual(['live']);
+    }
+  });
+
+  it('asks about a method a wrapper never offers', async () => {
+    const report = await scanFixture('djnightmare9909__Dungeon-master-OS-WFGY');
+    const hit = report.details.find((one) => one.entryId === 'GE-1.imagen-4.0-generate-001');
+    expect(hit?.matchClass, explain(report)).toBe('unclear');
+    expect(hit?.reason).toMatch(/never names generateImages/);
+  });
+
+  it('leaves a real client, a wrapper with the method, and a package client', async () => {
+    const call =
+      "import { ai } from './gemini';\nai.models.generateImages({ model: 'imagen-4.0-generate-001' });";
+    const files = (gemini: string, a = call) => ({
+      'package.json': manifest({ '@google/genai': '^1.0.0' }),
+      'gemini.ts': gemini,
+      'a.ts': a,
+    });
+    const real = await scan(files('export const ai = new GoogleGenAI({ apiKey });'));
+    const wrapper = await scan(
+      files('export const ai = new Proxy({}, { get: () => ({ generateImages: f }) });'),
+    );
+    const sdk = await scan(
+      files(
+        'export const x = 1;',
+        "import { ai } from '@google/genai';\nai.models.generateImages({ model: 'imagen-4.0-generate-001' });",
+      ),
+    );
+    for (const report of [real, wrapper, sdk]) {
+      expect(classesOf(report, 'GE-1.imagen-4.0-generate-001', 'a.ts'), explain(report)).toEqual([
+        'live',
+      ]);
+    }
+  });
+});
+
+describe('seen in P5, round 2: a table key the code translates', () => {
+  const KEY = 'AN-1.claude-sonnet-4-20250514';
+
+  it('leaves the key out and keeps the request line', async () => {
+    const report = await scanFixture('Jmk125__ConstructionDocuments');
+    const file = 'lib/aiHandler.js';
+    const hits = report.details.filter((one) => one.entryId === KEY && one.file === file);
+    expect(
+      hits.map((one) => one.matchClass),
+      explain(report),
+    ).toEqual(['catalog', 'unclear']);
+    expect(hits[0].reason).toMatch(/sends claude-sonnet-4-20250514/);
+  });
+
+  it('keeps asking when no other name stands in for it, or the other name is only a key too', async () => {
+    const table = (extra: string) => ({
+      ...ANTHROPIC_PACKAGE,
+      'a.ts': `import Anthropic from '@anthropic-ai/sdk';\nconst MODELS = {\n  'claude-sonnet-4': { name: 'x' },\n  ${extra}\n};\nexport const ids = Object.keys(MODELS);`,
+    });
+    const alone = await scan(table("'other': { name: 'y' },"));
+    expect(classesOf(alone, KEY), explain(alone)).toEqual(['unclear']);
+    const keys = await scan(table("'claude-sonnet-4-20250514': { name: 'y' },"));
+    expect(new Set(classesOf(keys, KEY)), explain(keys)).toEqual(new Set(['unclear']));
+  });
+});
+
+describe('seen in P5, round 2: naming providers with no list file', () => {
+  const NODE = { 'package.json': manifest({ express: '^4.0.0' }) };
+
+  it('names a catalog provider by an environment key in code, and not by one in an example', async () => {
+    const report = await scan({
+      ...NODE,
+      'a.js': 'const url = process.env.SUPABASE_URL;\nconst other = process.env.ACME_URL;',
+      '.env.example': 'CLERK_API_KEY=\n',
+      'README.md': 'Set SENTRY_API_KEY first.\n',
+    });
+    expect(report.unlistedProviders).toEqual(['supabase']);
+  });
+
+  it("names a domain behind S3's path style, and not a bucket with no domain", async () => {
+    const report = await scan({
+      ...NODE,
+      'a.ts': [
+        "const ZIP_URL = 'https://s3.us-east-1.amazonaws.com/download.acme.gov/data.zip';",
+        "const OTHER_URL = 'https://s3.amazonaws.com/my-bucket/data.zip';",
+      ].join('\n'),
+    });
+    expect(report.unlistedProviders).toEqual(['acme.gov']);
+  });
+
+  it('names a catalog host a script tag loads, and no other script host', async () => {
+    const report = await scan({
+      ...NODE,
+      'a.html': [
+        '<script src="https://accounts.google.com/gsi/client" async></script>',
+        '<script src="https://cdn.acme.io/lib"></script>',
+      ].join('\n'),
+    });
+    expect(report.unlistedProviders).toEqual(['google-identity']);
+  });
+
+  it('names packages the catalog was missing', async () => {
+    const report = await scan({
+      'package.json': manifest({ inngest: '^3.0.0', 'google-auth-library': '^10.0.0' }),
+      'requirements.txt': 'gTTS\nSpeechRecognition\n',
+      'a.py': 'from gtts import gTTS\nimport speech_recognition as sr\n',
+    });
+    expect(report.unlistedProviders).toEqual([
+      'google-identity',
+      'google-translate-tts',
+      'google-web-speech',
+      'inngest',
+    ]);
+  });
+
+  it('names fly from a workflow action', async () => {
+    const report = await scanFixture('natbat__pillarpointstewards');
+    expect(report.unlistedProviders).toContain('fly');
+  });
+});
+
+describe('seen in P5, round 2: what the AI check is told', () => {
+  it('says a test sends nothing, a translated key is not sent, and to name its own id', async () => {
+    const report = await scanFixture('nfindler__playbook-pipeline');
+    let request: ModelRequest | undefined;
+    const client = {
+      model: CHECK_MODEL,
+      complete: async (one: ModelRequest) => {
+        request = one;
+        return {
+          stopReason: 'end_turn',
+          content: [{ type: 'text', text: '[]' }],
+          usage: { inputTokens: 1, outputTokens: 1 },
+        };
+      },
+    } as unknown as ModelClient;
+    const openLedger = async () =>
+      ({
+        assertCanSpend: () => undefined,
+        record: async () => undefined,
+      }) as unknown as BudgetLedger;
+    await checkUnclear(report, path.join(FIXTURES, 'nfindler__playbook-pipeline'), {
+      client,
+      openLedger,
+    });
+    expect(request?.system).toMatch(/only picks a branch and sends nothing/);
+    expect(request?.system).toMatch(/table key the code turns into another id/);
+    expect(request?.system).toMatch(/item's own id/);
+    const text = request?.messages[0].content[0];
+    expect(text && 'text' in text ? text.text : '').toMatch(/_model_alias/);
+  });
+});

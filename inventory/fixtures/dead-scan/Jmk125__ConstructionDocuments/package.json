@@ -1,0 +1,4 @@
+{
+  "name": "excerpt-of-jmk125-constructiondocuments-seen-in-p5",
+  "dependencies": { "openai": "^4.0.0", "@anthropic-ai/sdk": "^0.20.0", "pdf-parse": "^1.1.1" }
+}
