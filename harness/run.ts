@@ -172,16 +172,19 @@ export async function prepareBaseline(
   // checks need. What it writes is snapshotted, so only the agent's edit is in the PR, and the PR
   // names any repo file it changed.
   const changed = new Set<string>();
-  const settle = async () => {
+  const settle = async (only?: CheckRun[]) => {
     checks.forEach((check, i) => (check.command = withEnv(commands[i] as string, preparation.env)));
     for (const file of filesFromDiff(await sandbox.diff().catch(() => ''))) changed.add(file);
     await sandbox.snapshot?.();
-    return runChecks(sandbox, checks);
+    return runChecks(
+      sandbox,
+      only ? checks.filter((check) => only.some((run) => run.name === check.name)) : checks,
+    );
   };
   const preparation = await prepareRepo(sandbox, checks, ledger, planPreparation);
   let before = await settle();
   // One more look with the failures in hand: a missing env var or generated client often shows
-  // only when a check runs.
+  // only when a check runs. Only what failed runs again: on a big repo a pass takes minutes.
   const failing = before.filter((run) => !run.ok);
   if (failing.length > 0 && !preparation.error) {
     const failures = failing
@@ -192,7 +195,8 @@ export async function prepareBaseline(
       preparation.steps.push(...retry.steps);
       Object.assign(preparation.env, retry.env);
       preparation.reasoning = `${preparation.reasoning}\n${retry.reasoning}`.trim();
-      before = await settle();
+      const again = await settle(failing);
+      before = before.map((run) => again.find((rerun) => rerun.name === run.name) ?? run);
     }
   }
   if (changed.size > 0) preparation.changedFiles = [...changed];
