@@ -112,10 +112,13 @@ function dependency(name: string, version: string, index: number, dev: boolean):
 
 // ---- Manifests ----
 
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 const JSON_ENTRY = /"([^"]+)"\s*:\s*"([^"]*)"/g;
 
-// Reads `"section": { "name": "version" }` objects; `sections` maps each section to its dev flag.
-function parseJsonSections(lines: string[], sections: Record<string, boolean>): Dependency[] {
+// For a manifest that isn't valid JSON (comments, a trailing comma): reads the sections line by line.
+function readJsonSectionLines(lines: string[], sections: Record<string, boolean>): Dependency[] {
   const dependencies: Dependency[] = [];
   let dev: boolean | undefined;
   const collect = (text: string, index: number) => {
@@ -136,6 +139,35 @@ function parseJsonSections(lines: string[], sections: Record<string, boolean>): 
       collect(line, index);
     }
   });
+  return dependencies;
+}
+
+const lineOfKey = (lines: string[], key: string, from: number): number => {
+  const pattern = new RegExp(`"${escapeRegExp(key)}"\\s*:`);
+  const found = lines.findIndex((line, index) => index >= from && pattern.test(line));
+  return found < 0 ? from : found;
+};
+
+// Reads `"section": { "name": "version" }` objects; `sections` maps each section to its dev flag.
+function parseJsonSections(lines: string[], sections: Record<string, boolean>): Dependency[] {
+  let manifest: unknown;
+  try {
+    manifest = JSON.parse(lines.join('\n'));
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
+    return readJsonSectionLines(lines, sections);
+  }
+  if (!isPlainObject(manifest)) return [];
+  const dependencies: Dependency[] = [];
+  for (const [section, entries] of Object.entries(manifest)) {
+    if (!Object.hasOwn(sections, section) || !isPlainObject(entries)) continue;
+    const opening = lineOfKey(lines, section, 0);
+    for (const [name, version] of Object.entries(entries)) {
+      if (typeof version !== 'string') continue;
+      const index = lineOfKey(lines, name, opening);
+      dependencies.push(dependency(name, version, index, sections[section]));
+    }
+  }
   return dependencies;
 }
 

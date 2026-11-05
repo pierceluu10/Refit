@@ -30,6 +30,7 @@ import type {
 } from '../shared/types.ts';
 import { catalogEntry, dependencyProvider } from './catalog.ts';
 import {
+  besideReplacement,
   bindingsOf,
   fieldReads,
   readEvidence,
@@ -74,7 +75,7 @@ export type FindingDetail = Finding & {
   withFix: boolean;
   /** A vendored tool or build output: never reaches a fix. */
   vendored?: boolean;
-  /** The AI check said this isn't the provider's: it stays out of a fix. */
+  /** The scan or the AI check says this isn't a break to fix: it stays out of a fix. */
   ruledOut?: boolean;
   /** Where the code reads what holds this value, so the AI check can see where it goes. */
   reads?: string[];
@@ -137,6 +138,7 @@ type Classed = {
   reason: string;
   version?: string;
   vendored?: boolean;
+  ruledOut?: boolean;
   reads?: string[];
 };
 type Verdict = Classed | { quiet: true; reason: string; version?: string };
@@ -221,6 +223,13 @@ const CODE_MODES: ReadonlySet<FileMode> = new Set(['js', 'python', 'clike', 'php
 const URL_IN_LINE = /https?:\/\/[^\s'"`<>)]+/g;
 const BASE_URL_LINE = /base.?url|endpoint|api.?url|api.?base/i;
 const POINTS_A_CLIENT = /base.?url|endpoint|api.?url|api.?base|AzureOpenAI\s*\(/i;
+// `delete x.field`, `del x["field"]`, `unset($x['field'])`, and `x.pop("field")` standing alone.
+const STRIPS_FIELD =
+  /(?:^|[\s;{(])(?:delete|del)\s+[\w$.?!\[\]'"-]*$|\bunset\(\s*[$\w.\[\]'">-]*$|^\s*[$\w.\[\]'"@>-]+\.(?:pop|delete)\(\s*[:'"]?$/;
+// Shopify's own config for an extension. Its api_version moves with @shopify/ui-extensions, as SH-1 says.
+const EXTENSION_CONFIG = 'shopify.extension.toml';
+const UI_EXTENSION_TYPE = /^\s*type\s*=\s*"\w*ui_extension"/m;
+const API_VERSION_SETTING = /^\s*api_version\s*=/;
 const CLASS_RANK: Record<MatchClass, number> = {
   live: 4,
   unclear: 3,
@@ -612,6 +621,25 @@ function hitsIn(repo: Repo, source: Source, entries: DeadApiEntry[]): Hit[] {
 
 // ---- Judging ----
 
+// Code that names something dead without depending on it, so a fix has nothing to do there.
+function harmlessUse({ source, entry, matcher, offset, read }: Hit): string | undefined {
+  const lineIndex = lineIndexAt(source, offset);
+  if (
+    path.posix.basename(source.file) === EXTENSION_CONFIG &&
+    API_VERSION_SETTING.test(source.lines[lineIndex]) &&
+    UI_EXTENSION_TYPE.test(source.text)
+  ) {
+    return "a UI extension's own version: older ones keep working, and Shopify CLI only refuses to deploy one past 12 months";
+  }
+  if (STRIPS_FIELD.test(source.text.slice(source.lineStarts[lineIndex], offset))) {
+    return 'code that strips the field, which is not a use of it';
+  }
+  if (matcher.kind === 'field' && read && besideReplacement(source, entry, matcher, read)) {
+    return 'the replacement is read here or right beside it, so this handles the new shape';
+  }
+  return undefined;
+}
+
 function placeOf(hit: Hit, span: Span | undefined, repo: Repo): Classed | Place | undefined {
   const { source, entry, name, offset } = hit;
   const dotFolder = dotFolderOf(source.file);
@@ -636,6 +664,8 @@ function placeOf(hit: Hit, span: Span | undefined, repo: Repo): Classed | Place 
   if (isTestPath(source.file) && !served) {
     return { matchClass: 'test', reason: 'a test, fixture, example or docs path' };
   }
+  const harmless = harmlessUse(hit);
+  if (harmless) return { matchClass: 'catalog', ruledOut: true, reason: harmless };
   if (hit.matcher.kind === 'field' || hit.matcher.kind === 'package') return undefined;
   if (span?.kind === 'string' && offset + name.length <= span.end) {
     if (isProse(source, span, name, offset)) {
@@ -769,7 +799,11 @@ function classify(hit: Hit, repo: Repo): Verdict {
       const reason = `${place.guardedBy} only accepts names that are dead, and the code stops on anything else`;
       return { matchClass: 'live', reason, version };
     }
-    return { matchClass: place.kind, reason: place.reason, version };
+    // Only a line or file that says so: one that merely names another host may hold this provider's table.
+    const otherHost = place.kind === 'catalog' ? otherHostReason(hit, repo, line, true) : undefined;
+    return otherHost
+      ? { matchClass: 'catalog', ruledOut: true, reason: `${place.reason}; ${otherHost}`, version }
+      : { matchClass: place.kind, reason: place.reason, version };
   }
   if (place?.tableKey) {
     const sent = translatedTo(hit);
@@ -1058,6 +1092,7 @@ export async function scanDeadApis(
           lookFor: hit.entry.lookFor,
           ...(verdict.version ? { version: verdict.version } : {}),
           ...(verdict.vendored ? { vendored: true } : {}),
+          ...(verdict.ruledOut ? { ruledOut: true } : {}),
           ...(verdict.reads ? { reads: verdict.reads } : {}),
         });
       }
