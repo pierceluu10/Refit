@@ -119,6 +119,8 @@ export type HarnessDeps = {
   chargeRun?: ChargeRun;
   // A repo session's proof: the same plain-code scan, over the sandbox's working copy. It only reads.
   rescan?: (dir: string) => Promise<ScanResult>;
+  // The session's first model. Defaults to Sonnet.
+  model?: string;
   // Plain-code fixes the ladder allows here. They run before any session.
   provenFixes?: (task: RepoTask) => Promise<ProvenFix[]>;
   // What earlier runs learned about this repo, for the kickoff message.

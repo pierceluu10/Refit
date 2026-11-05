@@ -27,7 +27,10 @@ function modelRules(): Rule[] {
     if (!['anthropic', 'openai', 'gemini', 'groq'].includes(provider)) continue;
     const source = /https:\/\/\S+?(?=[) ,]|$)/m.exec(section)?.[0] ?? '';
     const body = section.split('**Not dead yet')[0];
-    const requires = [...body.matchAll(/^- \*\*Requires:\*\* (.*)$/gm)].map((m) => m[1]);
+    // A "requires" bullet, with any sub-bullets under it.
+    const requires = [...body.matchAll(/^- \*\*Requires:\*\* (.*(?:\n  - .*)*)$/gm)].map((m) =>
+      m[1].replace(/\n  - /g, ' '),
+    );
     let row = 0;
     for (const line of body.split('\n')) {
       if (!line.startsWith('| `')) continue;
@@ -83,6 +86,24 @@ const FIXED: Rule[] = [
       /["']UA-\d{4,}-\d+["']/,
       /["']react-ga["']/,
       /["']universal-analytics["']/,
+    ],
+  },
+  {
+    id: 'OA-2',
+    provider: 'openai',
+    what: 'Assistants API',
+    diedOn: '2026-08-26',
+    source: { url: 'https://platform.openai.com/docs/deprecations', checkedOn: '2026-11-04' },
+    lookFor: ['/v1/assistants', '/v1/threads', 'client.beta.assistants', 'client.beta.threads'],
+    replacement: 'Responses API and Conversations API.',
+    requires: [
+      'Real rework: threads and runs do not map one to one. See the Assistants migration guide.',
+    ],
+    matchers: [],
+    patterns: [
+      /\bbeta\.(assistants|threads)\b/,
+      /\/v1\/(assistants|threads)\b/,
+      /assistants=v[12]\b/,
     ],
   },
   ...(

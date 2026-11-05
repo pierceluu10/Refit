@@ -11,7 +11,8 @@ import { usageCostUsd, type BudgetLedger } from './ledger.ts';
 import { redactSecrets } from './secrets.ts';
 import type { CheckCommand, Sandbox } from './types.ts';
 
-export const PREPARE_MODEL = 'claude-sonnet-5-5';
+// Haiku: reading scripts for codegen steps needs no more, and Sonnet's plan was a quarter of a fix's cost.
+export const PREPARE_MODEL = 'claude-haiku-5-5';
 const MAX_TOKENS = 3000;
 const STEP_TIMEOUT_MS = 10 * 60_000;
 const OUTPUT_TAIL = 2000;
@@ -136,11 +137,11 @@ const planFromAnswer = (answer: {
 
 // With no API key, the same call through the Agent SDK on the machine's logged-in credentials. The
 // charge is the SDK's own estimate.
-async function loginPlan(evidence: string, ledger: BudgetLedger): Promise<Plan> {
+async function loginPlan(evidence: string, ledger: BudgetLedger, model: string): Promise<Plan> {
   for await (const message of query({
     prompt: evidence,
     options: {
-      model: PREPARE_MODEL,
+      model,
       systemPrompt: SYSTEM,
       tools: [],
       outputFormat: { type: 'json_schema', schema: SCHEMA },
@@ -150,11 +151,7 @@ async function loginPlan(evidence: string, ledger: BudgetLedger): Promise<Plan> 
     },
   })) {
     if (message.type !== 'result') continue;
-    ledger.charge({
-      model: PREPARE_MODEL,
-      costUsd: message.total_cost_usd,
-      note: 'codegen plan',
-    });
+    ledger.charge({ model, costUsd: message.total_cost_usd, note: 'codegen plan' });
     if (message.subtype !== 'success') throw new Error(`plan ended with ${message.subtype}`);
     return planFromAnswer(message.structured_output as Parameters<typeof planFromAnswer>[0]);
   }
@@ -162,25 +159,29 @@ async function loginPlan(evidence: string, ledger: BudgetLedger): Promise<Plan> 
 }
 
 // The real planner: one Messages API call, charged to the task's ledger.
-export const modelPlan: PlanPreparation = async (evidence, ledger) => {
-  ledger.assertCanSpend();
-  if (!process.env.ANTHROPIC_API_KEY) return loginPlan(evidence, ledger);
-  const client = new Anthropic({ maxRetries: 2 });
-  const response = await client.messages.create({
-    model: PREPARE_MODEL,
-    max_tokens: MAX_TOKENS,
-    system: SYSTEM,
-    messages: [{ role: 'user', content: evidence }],
-    output_config: { format: { type: 'json_schema', schema: SCHEMA } },
-  });
-  ledger.charge({
-    model: PREPARE_MODEL,
-    costUsd: usageCostUsd(PREPARE_MODEL, response.usage),
-    note: 'codegen plan',
-  });
-  const text = response.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('');
-  return planFromAnswer(JSON.parse(text));
-};
+export const planWith =
+  (model: string): PlanPreparation =>
+  async (evidence, ledger) => {
+    ledger.assertCanSpend();
+    if (!process.env.ANTHROPIC_API_KEY) return loginPlan(evidence, ledger, model);
+    const client = new Anthropic({ maxRetries: 2 });
+    const response = await client.messages.create({
+      model,
+      max_tokens: MAX_TOKENS,
+      system: SYSTEM,
+      messages: [{ role: 'user', content: evidence }],
+      output_config: { format: { type: 'json_schema', schema: SCHEMA } },
+    });
+    ledger.charge({
+      model,
+      costUsd: usageCostUsd(model, response.usage),
+      note: 'codegen plan',
+    });
+    const text = response.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('');
+    return planFromAnswer(JSON.parse(text));
+  };
+
+export const modelPlan = planWith(PREPARE_MODEL);
 
 const VALID_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const shellQuote = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;

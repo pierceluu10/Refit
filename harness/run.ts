@@ -353,7 +353,7 @@ export async function runTask(
           }
         : task;
     const session = deps.session ?? claudeAgentSession;
-    let model = MODEL;
+    let model = deps.model ?? MODEL;
     let prompt = buildKickoffMessage(
       before,
       installOutput,
@@ -384,7 +384,8 @@ export async function runTask(
       !provenDone && iteration < (deps.maxIterations ?? Infinity);
       iteration++
     ) {
-      const callReserveUsd = model === MODEL ? reserveUsd : reserveUsd * ESCALATED_RESERVE_FACTOR;
+      const callReserveUsd =
+        model === ESCALATION_MODEL ? reserveUsd * ESCALATED_RESERVE_FACTOR : reserveUsd;
       if (ledger.remainingUsd <= callReserveUsd) break;
       if (!models.includes(model)) models.push(model);
       finishedThisIteration = false;
@@ -449,8 +450,9 @@ export async function runTask(
       // would re-read the whole session uncached (about $0.75 at 150k tokens) to no end.
       const stuck =
         newFailures > 0 && (result.stopReason !== 'done' || newFailures >= previousNewFailures);
-      const escalated = stuck && model === MODEL;
-      if (escalated) model = ESCALATION_MODEL;
+      // Haiku steps up to Sonnet first, and only Sonnet to Opus.
+      const escalated = stuck && model !== ESCALATION_MODEL;
+      if (escalated) model = model === MODEL ? ESCALATION_MODEL : MODEL;
       previousNewFailures = newFailures;
       if (retryRescan) {
         rescanRetries += 1;
