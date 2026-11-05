@@ -1,6 +1,6 @@
 // The PR body: change, why, proof, unproven, behaviour changes. It states only facts passed in.
 import type { MigrationTask, RunRecord } from '../shared/types.ts';
-import { isRepoTask, liveFindings, type RepoTask, type ScanResult } from './findings.ts';
+import { isRepoTask, leftOf, type RepoTask, type ScanResult } from './findings.ts';
 import { redactSecrets } from './secrets.ts';
 import type { SmokeResult } from './smoke.ts';
 import type { CheckCommand, CheckComparison, FinishReport, ValidatorRun } from './types.ts';
@@ -99,7 +99,7 @@ function unprovenItems(input: PrBodyInput, grades: ValidatorGrade[]): string[] {
 // proven, and what a person must do.
 function writeRepoBody(input: PrBodyInput, task: RepoTask, proof: string[], unproven: string[]) {
   const { report } = input;
-  const left = input.rescan ? liveFindings(input.rescan) : [];
+  const left = input.rescan ? leftOf(task.findings, input.rescan) : [];
   const died = task.entries.map((entry) => {
     const found = task.findings.filter((finding) => finding.entryId === entry.id);
     return `| ${cell(entry.what)} | ${entry.diedOn} | ${entry.source.url} (checked ${entry.source.checkedOn}) | ${found.length} |`;

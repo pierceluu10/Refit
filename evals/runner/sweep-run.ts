@@ -9,24 +9,24 @@ import { createBudget } from '../../orchestrator/budget.ts';
 import { SWEEP_MODEL, sweepRepo } from '../../orchestrator/sweep.ts';
 import type { RepoLock } from '../scoring/required.ts';
 import { gitCheckout } from './checkout.ts';
-import { standinList, standinScan } from './standin-scan.ts';
+import { evalScanner } from './session-run.ts';
 
 async function main([listFile, out]: string[]) {
   if (!listFile || !out) throw new Error('usage: sweep-run.ts <repos.json> <out.json>');
   const budget = createBudget(budgetFromEnv());
   const ask = agentSdk({ budget, model: SWEEP_MODEL });
-  const list = standinList();
+  const scanner = evalScanner(budget);
   const rows = [];
   for (const { repo, commit } of JSON.parse(readFileSync(listFile, 'utf8')) as RepoLock[]) {
     const checkout = await gitCheckout()({ repo, commit });
     try {
-      const scan = standinScan(checkout.repoDir, list);
+      const scan = await scanner.scan(checkout.repoDir, repo);
       const { lessons, costUsd } = await sweepRepo({
         repo,
         dir: checkout.repoDir,
         commit,
         scan,
-        list,
+        list: scanner.list(),
         ask,
       });
       rows.push({ repo, clean: scan.clean, costUsd, lessons });

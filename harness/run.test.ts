@@ -573,6 +573,52 @@ describe('a repo session', () => {
     expect(record.note).toContain('still finds 1 of 1');
   });
 
+  it('sends a fix what goes with it, and leaves comments and stray catalogs out', () => {
+    const at = (entryId: string, file: string, matchClass: Finding['matchClass']): Finding => ({
+      entryId,
+      file,
+      line: 1,
+      matchClass,
+    });
+    const findings = [
+      at('stripe-charges', 'a.js', 'live'),
+      at('stripe-charges', 'a.test.js', 'test'),
+      at('stripe-charges', 'b.js', 'comment'),
+      at('stripe-charges', 'picker.js', 'catalog'),
+      at('stripe-charges', 'dist/app.js', 'catalog'),
+      at('other', 'other.test.js', 'test'),
+      at('unsure', 'c.js', 'unclear'),
+    ];
+    const details = findings.map((one) => ({ ...one, withFix: one.file === 'picker.js' }));
+    const task = repoTask('example/fixture-shop', { ...scanOf(findings), details } as ScanResult, [
+      entry,
+    ]);
+    expect(task.findings.map(({ file }) => file)).toEqual([
+      'a.js',
+      'a.test.js',
+      'picker.js',
+      'c.js',
+    ]);
+  });
+
+  it('holds an unclear match against the fix only where the first scan sent it', () => {
+    const unclear = (file: string): Finding => ({ ...live(file), matchClass: 'unclear' });
+    const base = { newFailures: 0, changed: true, touched: true };
+    // The check called a.js live; the plain rescan can only call it unclear again.
+    const kept = labelFix({ ...base, findings: [live('a.js')], rescan: scanOf([unclear('a.js')]) });
+    expect(kept.outcome).toBe('failed');
+    // The check ruled b.js out, so the task never had it.
+    const other = labelFix({
+      ...base,
+      findings: [live('a.js')],
+      rescan: scanOf([unclear('b.js')]),
+    });
+    expect(other.outcome).toBe('verified');
+    // A failed check left only unclear matches, and the fix took them.
+    const unsure = labelFix({ ...base, findings: [unclear('a.js')], rescan: scanOf([]) });
+    expect(unsure.outcome).toBe('verified');
+  });
+
   it('calls a partly clean rescan needs a look', () => {
     const label = labelFix({
       findings: [live('a.js'), live('b.js')],

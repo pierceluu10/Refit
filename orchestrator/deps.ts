@@ -7,7 +7,11 @@ import { runTask, TURN_RESERVE_USD, type HarnessRunRecord } from '../harness/ind
 import { isRepoTask, providersOf } from '../harness/findings.ts';
 import { modelPlan } from '../harness/prepare.ts';
 import { liveSmoke } from '../harness/smoke.ts';
+import { entriesInForce, loadDeadApis } from '../dead-apis/list.ts';
+import { utcDay } from '../dead-apis/proposals.ts';
 import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
+import { checkUnclear } from '../inventory/dead-check.ts';
+import { scanDeadApis } from '../inventory/dead-scan.ts';
 import { BudgetLedger as InventoryLedger, runInventory } from '../inventory/index.ts';
 import {
   Budget as MemoryBudget,
@@ -21,7 +25,7 @@ import {
   recipesForEntries,
 } from '../memory/index.ts';
 import { anyProviderWatcher, type AnyWatchReport } from '../providers/core/any-watcher.ts';
-import { BudgetLedger as WatchLedger } from '../providers/core/model.ts';
+import { BudgetLedger as WatchLedger, type ModelClient } from '../providers/core/model.ts';
 import { folderWatcher, listProviderIds } from '../providers/core/registry.ts';
 import {
   defaultWatchDir,
@@ -71,6 +75,8 @@ const WATCH_CALL_USD = 0.5;
 // One recipe retrieval or extraction; memory refuses an Opus call whose worst case passes its cap. A
 // 150KB transcript's worst case was $1.06 in round 3's first iteration, so $1 lost that recipe.
 export const MEMORY_USD = 2;
+// The scan's one small check, well above its worst case of about $0.06 at 300 unclear matches.
+const CHECK_USD = 0.25;
 // Parts in flight at once. The run budget's holds, not this, keep the spend under the cap.
 const CONCURRENCY = 4;
 
@@ -207,6 +213,29 @@ async function headCommit(dir: string): Promise<string | undefined> {
   }
 }
 
+// What a real run scans with. The first scan's check spends from the run's cap, and only when the scan
+// is unsure; the rescan is plain code. storeDir feeds the unlisted-provider queue, which evals leave alone.
+export function deadApiScan(
+  budget: Budget,
+  { client, storeDir }: { client?: ModelClient; storeDir?: string } = {},
+): { scan: ScanRepo; rescan: ScanRepo; list: () => DeadApiEntry[] } {
+  return {
+    scan: async (dir, repo) => {
+      const report = await scanDeadApis(dir, repo, { storeDir });
+      if (!report.details.some((detail) => detail.matchClass === 'unclear')) return report;
+      return held(
+        budget,
+        `the ${repo} scan check`,
+        CHECK_USD,
+        (capUsd) => new InventoryLedger({ capUsd }),
+        (ledger) => checkUnclear(report, dir, { client, openLedger: async () => ledger }),
+      );
+    },
+    rescan: (dir, repo) => scanDeadApis(dir, repo, { storeDir }),
+    list: () => entriesInForce(loadDeadApis(), utcDay(new Date())),
+  };
+}
+
 const failed = (taskId: string, costUsd: number, note: string): RunRecord & { note: string } => ({
   taskId,
   outcome: 'failed',
@@ -224,6 +253,7 @@ export function createDeps({
   log = (line: string) => console.error(line),
   watchCache = defaultWatchCache,
   scan,
+  rescan = scan,
   list,
   login = false,
   benchmark = false,
@@ -232,8 +262,9 @@ export function createDeps({
   budget?: Budget;
   log?: (line: string) => void;
   watchCache?: string;
-  // The plain-code scan and the list. With them a repo gets one session and a rescan.
+  // The plain-code scan and the list (deadApiScan). With them a repo gets one session and a rescan.
   scan?: ScanRepo;
+  rescan?: ScanRepo;
   list?: () => DeadApiEntry[];
   // Run on the machine's logged-in Claude credentials: the Agent SDK needs no API key.
   login?: boolean;
@@ -357,7 +388,7 @@ export function createDeps({
           loadToolPack: (provider): Promise<ToolPack> =>
             loadToolPack(provider, { hints: hintsFor(task.usages) }),
           retrieveRecipes: async () => recipes,
-          ...(scan && { rescan: (at) => scan(at, task.repo), smoke: liveSmoke }),
+          ...(rescan && { rescan: (at) => rescan(at, task.repo), smoke: liveSmoke }),
           habitNotes: habitNotes(habits),
           provenFixes: async (repo) => {
             const runs = await ai.store.listRuns();

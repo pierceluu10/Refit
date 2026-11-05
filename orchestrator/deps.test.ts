@@ -7,9 +7,11 @@ import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
 import { listProviderIds } from '../providers/core/registry.ts';
 import type { MigrationTask, RunRecord } from '../shared/types.ts';
 import { BudgetExceededError, createBudget } from './budget.ts';
-import { anyWatcher, cachedChanges, createDeps, REPO_USD } from './deps.ts';
+import { anyWatcher, cachedChanges, createDeps, deadApiScan, REPO_USD } from './deps.ts';
 import { stubRunTask } from './stubs.ts';
 import { TURN_RESERVE_USD } from '../harness/index.ts';
+import { makeRepo } from '../inventory/test-fixtures.ts';
+import type { ModelClient } from '../providers/core/model.ts';
 
 // The any-provider watcher, offline: it spends $0.30 of the ledger it is given and finds one change.
 // Its report says the read finished, unless a test sets `endedEarly`.
@@ -363,5 +365,39 @@ describe('cachedChanges', () => {
     const watch = vi.fn(async () => []);
     await cachedChanges(dir, 'meta', watch);
     expect(watch).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('deadApiScan', () => {
+  const client: ModelClient & { calls: number } = {
+    model: 'claude-haiku-5-5',
+    calls: 0,
+    async complete() {
+      this.calls += 1;
+      return {
+        content: [{ type: 'text', text: '[{"id": 1, "verdict": "live", "reason": "It posts."}]' }],
+        stopReason: 'end_turn',
+        usage: { inputTokens: 100_000, outputTokens: 1000 },
+      };
+    },
+  };
+
+  it('spends from the run cap only when the scan is unsure', async () => {
+    const budget = createBudget(1);
+    const { scan } = deadApiScan(budget, { client });
+    const sure = await makeRepo({ 'package.json': '{}', 'a.ts': 'export const a = 1;' });
+    expect((await scan(sure, 'acme/sure')).clean).toBe(true);
+    expect(client.calls).toBe(0);
+    expect(budget.spentUsd()).toBe(0);
+
+    const unsure = await makeRepo({
+      'package.json': JSON.stringify({ dependencies: { openai: '^6.0.0' } }, null, 2),
+      'a.ts': "fetch('/v1/edits');",
+    });
+    const report = await scan(unsure, 'acme/unsure');
+    expect(client.calls).toBe(1);
+    expect(report.findings.map((finding) => finding.matchClass)).toEqual(['live']);
+    expect(budget.spentUsd()).toBeGreaterThan(0);
+    expect(budget.heldUsd()).toBe(0);
   });
 });

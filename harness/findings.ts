@@ -12,10 +12,26 @@ export const providersOf = (task: RepoTask) => [
   ...new Set(task.entries.map((entry) => entry.provider)),
 ];
 
-// One task for the whole repo: one session, one sandbox, one PR. Comments and catalogs never start
-// a fix, so a repo whose findings are all of those has nothing to attempt.
+const placeOf = ({ entryId, file, line }: Finding) => `${entryId}|${file}|${line}`;
+
+// What goes to the session: live code, what the check left unsure, what the scan says goes with a fix,
+// and the tests of an entry that's moving, since they pin the old name. A comment or a catalog alone
+// starts nothing, so a repo whose findings are all of those has nothing to attempt.
+function fixFindings(scan: ScanResult & { details?: (Finding & { withFix: boolean })[] }) {
+  const withFix = new Set(scan.details?.filter((detail) => detail.withFix).map(placeOf));
+  const goes = (finding: Finding) =>
+    finding.matchClass === 'live' ||
+    finding.matchClass === 'unclear' ||
+    withFix.has(placeOf(finding));
+  const moving = new Set(scan.findings.filter(goes).map((finding) => finding.entryId));
+  return scan.findings.filter(
+    (finding) => goes(finding) || (finding.matchClass === 'test' && moving.has(finding.entryId)),
+  );
+}
+
+// One task for the whole repo: one session, one sandbox, one PR.
 export function repoTask(repo: string, scan: ScanResult, list: DeadApiEntry[]): RepoTask {
-  const findings = scan.findings;
+  const findings = fixFindings(scan);
   const ids = new Set(findings.map((finding) => finding.entryId));
   const entries = list.filter((entry) => ids.has(entry.id));
   const first = entries[0];
@@ -64,10 +80,20 @@ export function renderList(task: RepoTask): string {
     .join('\n\n');
 }
 
+const counts = (finding: Finding) =>
+  finding.matchClass === 'live' || finding.matchClass === 'unclear';
+
 // What a rescan still finds: only live code counts. A test that keeps the dead name is reported, not
-// held against the fix, unless the live path still has it too.
-export const liveFindings = (scan: ScanResult) =>
-  scan.findings.filter((finding) => finding.matchClass === 'live');
+// held against the fix, unless the live path still has it too. The rescan has no AI check, so it can
+// only call unclear what the first scan's check put on this fix: that still counts, where it was found.
+export function leftOf(findings: Finding[], scan: ScanResult): Finding[] {
+  const named = new Set(findings.filter(counts).map((f) => `${f.entryId}|${f.file}`));
+  return scan.findings.filter(
+    (finding) =>
+      finding.matchClass === 'live' ||
+      (finding.matchClass === 'unclear' && named.has(`${finding.entryId}|${finding.file}`)),
+  );
+}
 
 const JS_CHECK = /^(typecheck|build|test)$/;
 const JS_FILE = /\.(ts|tsx|js|jsx|mjs|cjs|vue|svelte)$/;
@@ -140,8 +166,8 @@ export function labelFix(input: {
   codeRan?: boolean; // a passing check imports the code that changed
   stillSet?: string[]; // what the entry says to remove and a changed file still has
 }): FixLabel {
-  const before = input.findings.filter((finding) => finding.matchClass === 'live').length;
-  const left = liveFindings(input.rescan).length;
+  const before = input.findings.filter(counts).length;
+  const left = leftOf(input.findings, input.rescan).length;
   const failures = `${input.newFailures} new check failure${input.newFailures === 1 ? '' : 's'}`;
   if (!input.changed) return { outcome: 'failed', reason: 'The session changed nothing.' };
   if (input.newFailures > 0) return { outcome: 'failed', reason: `The fix caused ${failures}.` };

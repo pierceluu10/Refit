@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // One repo session per repo, from a locked round file, under one dollar cap: checkout, scan, session,
-// proof, grade. It runs what the product's scan path runs, with the stand-in scan until Pierce's lands.
+// proof, grade. It runs what the product's scan path runs.
 //   APTITUDE_AI_BUDGET_USD=5 node evals/runner/session-run.ts evals/rounds/o2/lock.json out-dir
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, cpSync, writeFileSync } from 'node:fs';
@@ -11,13 +11,14 @@ import { repoTask } from '../../harness/findings.ts';
 import { liveSmoke } from '../../harness/smoke.ts';
 import { budgetFromEnv, runTask } from '../../harness/index.ts';
 import type { HarnessDeps, HarnessRunRecord } from '../../harness/index.ts';
-import { createBudget } from '../../orchestrator/budget.ts';
-import { createDeps, REPO_USD } from '../../orchestrator/deps.ts';
+import { CHECK_MODEL } from '../../inventory/dead-check.ts';
+import { sdkModel } from '../../orchestrator/agent-sdk.ts';
+import { createBudget, type Budget } from '../../orchestrator/budget.ts';
+import { createDeps, deadApiScan, REPO_USD } from '../../orchestrator/deps.ts';
 import { runRepo, type LoopDeps } from '../../orchestrator/loop.ts';
 import { loadToolPack } from '../../providers/toolkit/pack.ts';
 import { gradeChange, majorUpgrades, proveLock, type RepoLock } from '../scoring/required.ts';
 import { gitCheckout } from './checkout.ts';
-import { standinList, standinScan } from './standin-scan.ts';
 
 export type SessionResult = {
   repo: string;
@@ -48,10 +49,17 @@ function gradeDiff(repoDir: string, lock: RepoLock, diff: string) {
   }
 }
 
+// The real scan. Evals leave the unlisted-provider queue alone, and log in when there's no API key.
+export const evalScanner = (budget: Budget = createBudget(budgetFromEnv())) =>
+  deadApiScan(budget, {
+    client: process.env.ANTHROPIC_API_KEY ? undefined : sdkModel(CHECK_MODEL),
+  });
+
 export async function runRepoLock(
   lock: RepoLock,
   outDir: string,
   extra: HarnessDeps = {},
+  scanner = evalScanner(),
 ): Promise<SessionResult> {
   const started = Date.now();
   const base = { repo: lock.repo, commit: lock.commit };
@@ -63,13 +71,12 @@ export async function runRepoLock(
     rmSync(proofCopy, { recursive: true, force: true });
     if (problems.length) throw new Error(`lock does not hold: ${problems.join('; ')}`);
 
-    const list = standinList();
-    const scan = standinScan(checkout.repoDir, list);
+    const scan = await scanner.scan(checkout.repoDir, lock.repo);
     if (scan.clean) {
       const required = gradeDiff(checkout.repoDir, lock, '');
       return { ...base, outcome: 'clean', required, costUsd: 0, durationMs: Date.now() - started };
     }
-    const task = repoTask(lock.repo, scan, list);
+    const task = repoTask(lock.repo, scan, scanner.list());
     const repoOut = path.join(outDir, lock.repo.replace('/', '__'));
     mkdirSync(repoOut, { recursive: true });
     writeFileSync(path.join(repoOut, 'task.json'), JSON.stringify(task));
@@ -77,7 +84,7 @@ export async function runRepoLock(
       budgetUsd: REPO_USD,
       outDir: repoOut,
       loadToolPack: (provider) => loadToolPack(provider, {}),
-      rescan: async (dir) => standinScan(dir, list),
+      rescan: (dir) => scanner.rescan(dir, lock.repo),
       smoke: (task) => liveSmoke(task),
       ...extra,
     });
@@ -140,14 +147,14 @@ async function main(argv: string[]) {
   const capUsd = budgetFromEnv();
   const locks = JSON.parse(readFileSync(lockFile, 'utf8')) as RepoLock[];
   mkdirSync(outDir, { recursive: true });
-  const list = standinList();
+  const budget = createBudget(capUsd);
+  const scanner = evalScanner(budget);
   const deps = product
     ? createDeps({
-        budget: createBudget(capUsd),
+        budget,
         login: !process.env.ANTHROPIC_API_KEY,
         benchmark: true,
-        scan: async (dir) => standinScan(dir, list),
-        list: () => list,
+        ...scanner,
       })
     : undefined;
   let spentUsd = 0;
@@ -158,9 +165,13 @@ async function main(argv: string[]) {
       console.log(`stopped before ${lock.repo}: $${spentUsd.toFixed(2)} of $${capUsd} spent`);
       break;
     }
+    const before = budget.spentUsd();
     const result = deps
       ? await runProductRepo(lock, deps)
-      : await runRepoLock(lock, outDir, model ? { model } : {});
+      : await runRepoLock(lock, outDir, model ? { model } : {}, scanner);
+    // No record carries the scan's check, but the budget saw it, and a product run's fix too.
+    const seen = budget.spentUsd() - before;
+    result.costUsd = deps ? seen : result.costUsd + seen;
     spentUsd += result.costUsd;
     results.push(result);
     const fixed = result.required.filter((change) => change.fixed).length;

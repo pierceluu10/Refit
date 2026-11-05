@@ -170,6 +170,7 @@ describe('runRepoJob', () => {
     vi.stubEnv('APTITUDE_AI_BUDGET_USD', '8');
     const budgets: unknown[] = [];
     vi.doMock('./deps.ts', () => ({
+      deadApiScan: () => ({}),
       createDeps: ({ budget }: { budget: unknown }) => {
         budgets.push(budget);
         return fakeDeps().deps;

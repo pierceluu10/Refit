@@ -19,7 +19,7 @@ import {
   isRepoTask,
   isRework,
   labelFix,
-  liveFindings,
+  leftOf,
   providersOf,
   requiredRemovals,
   type RepoTask,
@@ -387,7 +387,8 @@ export async function runTask(
         }
       }
     }
-    const left = rescan ? liveFindings(rescan) : [];
+    const named = isRepoTask(task) ? task.findings : [];
+    const left = rescan ? leftOf(named, rescan) : [];
     const provenDone = provenEntries.length > 0 && rescan !== undefined && left.length === 0;
     // What a proven fix left is the session's list.
     const sessionTask: RepoTask | undefined = !isRepoTask(task)
@@ -466,7 +467,7 @@ export async function runTask(
       comparisons = compareChecks(before, after);
       const newFailures = newFailureCount(comparisons);
       rescan = await deps.rescan?.(sandbox.dir);
-      const left = (rescan ? liveFindings(rescan) : []).filter(
+      const left = (rescan ? leftOf(named, rescan) : []).filter(
         (finding) =>
           !(report as FinishReport | undefined)?.falseAlarms?.some(
             (alarm) => alarm.entryId === finding.entryId && alarm.file === finding.file,
@@ -614,7 +615,8 @@ export async function runTask(
       ...(label ? { note: label.reason } : {}),
       ...(provenEntries.length ? { provenFixes: provenEntries } : {}),
       ...(finalReport ? { report: finalReport } : {}),
-      ...(rescan ? { rescan } : {}),
+      // Clean as this fix reads it: a match the first scan's check ruled out is unclear again here.
+      ...(rescan ? { rescan: { ...rescan, clean: leftOf(named, rescan).length === 0 } } : {}),
       ...(smoke?.length ? { smoke } : {}),
       cache: ledger.cache,
       timing,

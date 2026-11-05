@@ -1,9 +1,9 @@
 # orchestrator
 
-Aptitude's end-to-end loop. With a scan (`createDeps({ scan, list })`) a repo runs scan → one session
-for every finding → rescan and label → PR → record. A clean scan stops at $0, and learning happens
-later, in batches (`memory/scripts/learn.ts`). Without a scan it runs the changelog path: inventory →
-watch → match → harness → PR → record. Every change ends as an attempted task or a recorded verdict.
+Aptitude's end-to-end loop. A real run scans (`deadApiScan`): scan → one session for every finding →
+rescan and label → PR → record. A clean scan stops at $0, and learning happens later, in batches
+(`memory/scripts/learn.ts`). Without a scan, as offline, it runs the changelog path: inventory → watch
+→ match → harness → PR → record. Every change ends as an attempted task or a recorded verdict.
 
 | File           | What it does                                                                        |
 | -------------- | ----------------------------------------------------------------------------------- |

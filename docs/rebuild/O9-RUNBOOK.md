@@ -5,7 +5,7 @@
 ## Before anything opens
 
 1. **Get the approval and a cap** in writing. A cap of about $60 covers the estimate below, which assumes the rebuild's measured $0.17 a repo and allows for Claude Code on both prompts.
-2. **Freeze the code.** Run from one commit of `rebuild/integration`, with Pierce's scanner in place of `evals/runner/standin-scan.ts`. Nothing gets tuned after step 4.
+2. **Freeze the code.** Run from one commit of `rebuild/integration`, on Pierce's scanner. Nothing gets tuned after step 4.
 3. **Check for overlap.** Some of the `LIST-TEST.md` repos came from a GitHub code search, so they may be in a sealed set. Compare them with the sealed lists when the set opens, in code, without printing names, and drop any overlap.
 
 ## The run

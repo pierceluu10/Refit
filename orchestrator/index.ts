@@ -1,7 +1,8 @@
 // The orchestrator's entry point for the GitHub App: the whole loop on one checked-out repo.
 import type { RunRepoJob } from '../shared/types.ts';
 import { createBudget } from './budget.ts';
-import { createDeps } from './deps.ts';
+import { PROPOSED_DIR } from '../dead-apis/proposals.ts';
+import { createDeps, deadApiScan } from './deps.ts';
 import { runOrg, type LoopDeps } from './loop.ts';
 
 // inventory → watch → match → harness → the caller's PR opener → record, for one repo.
@@ -29,7 +30,8 @@ let shared: RunRepoJob | undefined;
 export const runRepoJob: RunRepoJob = (input) => {
   if (!shared) {
     const budget = process.env.ANTHROPIC_API_KEY ? createBudget() : undefined;
-    shared = createRunRepoJob(createDeps({ budget }), budget?.capUsd);
+    const scan = budget && deadApiScan(budget, { storeDir: PROPOSED_DIR });
+    shared = createRunRepoJob(createDeps({ budget, ...scan }), budget?.capUsd);
   }
   return shared(input);
 };
