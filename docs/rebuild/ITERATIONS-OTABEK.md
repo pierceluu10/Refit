@@ -532,3 +532,19 @@ Both plain-code fixes did what they were for. The last row is a new problem: `le
 
 **What changed, `rebuild-6`:** an answer of `left` now comes back once, with an instruction to do it if a code change can. `left` is only for what the code needs and no change here can do. Tuning and review advice is `not-applicable`.
 
+### Third reruns: `rebuild-6`, 13 repos
+
+Round 7's 10 repos plus 3 of the harder ones, for $1.7886. They aren't fresh and don't count.
+
+| 10 repos | Round 7 | `rebuild-6` |
+| --- | --- | --- |
+| Labels | 9 Fixed, 1 Needs a look | same |
+| Cost | $1.2928 | $1.2363 |
+| Locks | 23 of 23 | 22 of 23 |
+
+So numbered requirements cost nothing extra and didn't over-label the Shopify repos. The lock miss is `LolaDesk`, which moved the version to a constant defaulting to `2026-10`. That's a right fix my lock read too narrowly.
+
+**The push back backfired on the 3 harder repos.** All 3 read Fixed, and none added `refusal` handling. They answered `not-applicable` and wrote in `unproven` that a refusal could loop. Those are false Fixed labels, and that's worse than `rebuild-5`.
+
+**What changed, `rebuild-7`:** a line that came back can only become `done`, with a change to show for it, or stay `left`. `not-applicable` now means the code has nothing the line is about, or it's tuning or review advice. A line that says to handle, remove or replace something the code can meet applies.
+

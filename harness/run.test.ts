@@ -612,7 +612,10 @@ describe('a repo session', () => {
   it('pushes back once on a requirement answered left, and keeps the answer if it stays', async () => {
     const needsWork = { ...entry, requires: ['Handle stop_reason refusal.'] };
     const seen: string[] = [];
-    const run = (second: Record<string, unknown>) =>
+    const guard: ScriptedTurn = async (call) => {
+      await call('write_file', { path: 'src/guard.js', content: 'export const stop = true;\n' });
+    };
+    const run = (second: ScriptedTurn) =>
       runTask(
         repoTask('example/fixture-shop', scanOf([live('src/pay.js')]), [needsWork]),
         fixtureRepo(),
@@ -622,18 +625,25 @@ describe('a repo session', () => {
             both(fix, finish({ requirements: { r1: 'left' } })),
             async (call, input) => {
               seen.push(input.prompt);
-              await finish({ requirements: second })(call, input);
+              await second(call, input);
             },
           ]),
           rescan,
         },
       );
-    expect((await run({ r1: 'done' })).outcome).toBe('verified');
+    const done = finish({ requirements: { r1: 'done' } });
+    expect((await run(both(guard, done))).outcome).toBe('verified');
     expect(seen[0]).toContain('You answered these `left`');
     expect(seen[0]).toContain('- Handle stop_reason refusal.');
-    const kept = await run({ r1: 'left' });
-    expect(kept.outcome).toBe('needs-review');
-    expect(kept.note).toContain('left 1 list requirement undone');
+    for (const dodge of [
+      finish({ requirements: { r1: 'left' } }),
+      finish({ requirements: { r1: 'not-applicable' } }),
+      done, // nothing changed since it came back
+    ]) {
+      const kept = await run(dodge);
+      expect(kept.outcome).toBe('needs-review');
+      expect(kept.note).toContain('left 1 list requirement undone');
+    }
   });
 
   it("calls it couldn't fix when every use is still there", async () => {

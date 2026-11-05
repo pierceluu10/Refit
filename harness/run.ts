@@ -429,7 +429,8 @@ export async function runTask(
     let rescanRetries = 0;
     let majorsTold = false;
     let documentsTold = false;
-    let requirementsTold = false;
+    let requirementsTold: string[] = [];
+    let diffWhenTold = '';
     if (provenDone) {
       report = {
         verdict: 'migrated',
@@ -507,7 +508,7 @@ export async function runTask(
         isRepoTask(task) && !majorsTold ? unneededMajors(await sandbox.diff(), task.entries) : [];
       const documents: string[] = documentsTold ? [] : await documentsLeft();
       // One push back: an answer of `left` must not become the easy way out of the work.
-      const undone: string[] = requirementsTold
+      const undone: string[] = requirementsTold.length
         ? []
         : ((report as FinishReport | undefined)?.requirementsLeft ?? []);
       const retryFix =
@@ -535,7 +536,10 @@ export async function runTask(
       if (retryFix) report = undefined;
       majorsTold ||= majors.length > 0;
       documentsTold ||= documents.length > 0;
-      requirementsTold ||= undone.length > 0;
+      if (undone.length) {
+        requirementsTold = undone;
+        diffWhenTold = await sandbox.diff();
+      }
       prompt = buildRetryMessage({
         comparisons,
         after,
@@ -552,6 +556,17 @@ export async function runTask(
 
     const diff = redactSecrets(await sandbox.diff());
     const finalReport = report as FinishReport | undefined;
+    // What came back once can only be done, with a change to show for it, or stay left. Given the
+    // choice, sessions renamed it not-applicable and carried on (round 7's regression).
+    const changedSinceTold = (await sandbox.diff()) !== diffWhenTold;
+    const stayedLeft = requirementsTold.filter(
+      (line) => !changedSinceTold || !finalReport?.requirementsDone?.includes(line),
+    );
+    if (finalReport && stayedLeft.length) {
+      finalReport.requirementsLeft = [
+        ...new Set([...(finalReport.requirementsLeft ?? []), ...stayedLeft]),
+      ];
+    }
     const proofTest =
       finalReport?.proofTest && after.some((run) => run.name === finalReport.proofTest)
         ? finalReport.proofTest
