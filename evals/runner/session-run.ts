@@ -9,7 +9,7 @@ import path from 'node:path';
 import { repoTask } from '../../harness/findings.ts';
 import { liveSmoke } from '../../harness/smoke.ts';
 import { budgetFromEnv, runTask } from '../../harness/index.ts';
-import type { HarnessRunRecord } from '../../harness/index.ts';
+import type { HarnessDeps, HarnessRunRecord } from '../../harness/index.ts';
 import { REPO_USD } from '../../orchestrator/deps.ts';
 import { loadToolPack } from '../../providers/toolkit/pack.ts';
 import { gradeChange, proveLock, type RepoLock } from '../scoring/required.ts';
@@ -44,7 +44,11 @@ function gradeDiff(repoDir: string, lock: RepoLock, diff: string) {
   }
 }
 
-export async function runRepoLock(lock: RepoLock, outDir: string): Promise<SessionResult> {
+export async function runRepoLock(
+  lock: RepoLock,
+  outDir: string,
+  extra: HarnessDeps = {},
+): Promise<SessionResult> {
   const started = Date.now();
   const base = { repo: lock.repo, commit: lock.commit };
   const checkout = await gitCheckout()({ repo: lock.repo, commit: lock.commit });
@@ -61,12 +65,17 @@ export async function runRepoLock(lock: RepoLock, outDir: string): Promise<Sessi
       const required = gradeDiff(checkout.repoDir, lock, '');
       return { ...base, outcome: 'clean', required, costUsd: 0, durationMs: Date.now() - started };
     }
-    const record = await runTask(repoTask(lock.repo, scan, list), checkout.repoDir, {
+    const task = repoTask(lock.repo, scan, list);
+    const repoOut = path.join(outDir, lock.repo.replace('/', '__'));
+    mkdirSync(repoOut, { recursive: true });
+    writeFileSync(path.join(repoOut, 'task.json'), JSON.stringify(task));
+    const record = await runTask(task, checkout.repoDir, {
       budgetUsd: REPO_USD,
-      outDir: path.join(outDir, lock.repo.replace('/', '__')),
+      outDir: repoOut,
       loadToolPack: (provider) => loadToolPack(provider, {}),
       rescan: async (dir) => standinScan(dir, list),
       smoke: (task) => liveSmoke(task),
+      ...extra,
     });
     return {
       ...base,
@@ -119,4 +128,12 @@ async function main([lockFile, outDir]: string[]) {
   );
 }
 
-if (process.argv[1] === import.meta.filename) await main(process.argv.slice(2));
+if (process.argv[1] === import.meta.filename) {
+  process.exitCode = await main(process.argv.slice(2)).then(
+    () => 0,
+    (error: unknown) => {
+      console.error(error);
+      return 1;
+    },
+  );
+}

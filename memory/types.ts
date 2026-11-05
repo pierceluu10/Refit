@@ -57,19 +57,3 @@ export type MemoryRecipe = Recipe & {
   confidence?: 'low' | 'merged';
   benchmarkOnly?: boolean;
 };
-
-export type SelfEvalReport = {
-  id: string;
-  ranAt: string;
-  taskIds: string[];
-  results: {
-    taskId: string;
-    before: RunRecord['outcome'];
-    after: RunRecord['outcome'] | 'error';
-  }[];
-  verifiedRateBefore: number;
-  verifiedRateAfter: number;
-  previousVerifiedRate?: number;
-  costUsd: number;
-  summary: string;
-};

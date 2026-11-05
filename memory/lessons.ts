@@ -3,13 +3,13 @@
 import type { StoredRun } from './types.ts';
 
 export type DetectionLesson = {
-  kind: 'false-alarm' | 'miss' | 'rejected';
+  kind: 'false-alarm' | 'miss' | 'sweep-miss' | 'rejected';
   entryId?: string;
   repo: string;
   commit?: string;
   file?: string;
   why: string;
-  runId: string;
+  runId?: string;
 };
 
 type RepoFields = {

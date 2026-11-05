@@ -76,19 +76,6 @@ export class SqliteMemoryStore extends JsonMemoryStore {
       throw error;
     }
   }
-
-  override async getSelfEvalTaskIds() {
-    return this.get<string[]>('selfevals', 'task-ids');
-  }
-
-  override async setSelfEvalTaskIds(ids: string[]) {
-    this.put('selfevals', 'task-ids', ids);
-  }
-
-  override async listSelfEvals() {
-    const reports = await super.listSelfEvals();
-    return reports.filter((report) => !Array.isArray(report));
-  }
 }
 
 // Every customer's store, for what reads across them on purpose: the dashboard and the batch.

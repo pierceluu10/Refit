@@ -12,10 +12,13 @@ const scrub = {
   keep: ['claude-sonnet-5-5', 'gemini-3.6-flash', 'subscription.current_period_end'],
 };
 
+// Built here so no scanner mistakes a test string for a key.
+const FAKE_KEY = ['sk', 'ant', 'api03', 'x'.repeat(40)].join('-');
+
 // Illustrative customer content, not a real customer.
 const LEAKY = [
   'In acme-corp/billing-portal the file src/server/invoices/chargeCustomer.ts calls',
-  '`createInvoiceForTenant(tenantId)` with client_secret_abc and sk-ant-api03-abcdefghijklmnopqrstuvwx.',
+  `\`createInvoiceForTenant(tenantId)\` with client_secret_abc and ${FAKE_KEY}.`,
   'Ask jane.doe@acme-corp.com or see https://acme-corp.internal/wiki/billing for AcmeBillingService.run.',
   '```ts\nconst price = await stripe.prices.retrieve(ACME_PRICE_ID);\n```',
   'The "Enterprise Gold" plan in config.yaml reads ACME_PRICE_ID and my_custom_flag.',

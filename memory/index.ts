@@ -4,6 +4,7 @@ import { defaultAi, type Embedder, type Model } from './ai.ts';
 import { extractRecipe, succeeded } from './extract.ts';
 import { mergeHabits } from './habits.ts';
 import { ladderFrom } from './ladder.ts';
+import { lessonsFrom } from './lessons.ts';
 import { createRetriever } from './retrieve.ts';
 import { promoteSkills, recordRecipeOutcome } from './skills.ts';
 import { customerStores, SqliteMemoryStore } from './sqlite-store.ts';
@@ -16,8 +17,8 @@ export { extractRecipe, succeeded } from './extract.ts';
 export { habitNotes, knownPlan, type RepoHabits } from './habits.ts';
 export { ladderFrom, provenAllowed, type LadderEntry, type Level } from './ladder.ts';
 export { lessonsFrom, type DetectionLesson } from './lessons.ts';
+export { learningMetrics, type LearningMetrics } from './metrics.ts';
 export { createRetriever, recipesForEntries, renderMemoryForPrompt } from './retrieve.ts';
-export { runSelfEval } from './selfeval.ts';
 export { promoteSkills, recordRecipeOutcome } from './skills.ts';
 export { customerStores, SqliteMemoryStore } from './sqlite-store.ts';
 export { JsonMemoryStore, type MemoryStore } from './store.ts';
@@ -76,6 +77,7 @@ async function keepHabits(run: StoredRun, store: MemoryStore) {
   const at = new Date().toISOString();
   await store.saveHabits(mergeHabits(await store.getHabits(run.task.repo), run, at));
   for (const entry of ladderFrom(await store.listRuns(), at)) await store.saveLadder(entry);
+  for (const lesson of lessonsFrom(run)) await store.saveLesson(lesson);
 }
 
 // Called by the orchestrator after every run. The run is stored first, so a failed AI pass loses nothing.

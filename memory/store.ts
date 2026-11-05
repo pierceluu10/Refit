@@ -4,13 +4,8 @@ import { join } from 'node:path';
 import type { MigrationTask, RunRecord } from '../shared/types.ts';
 import type { RepoHabits } from './habits.ts';
 import type { LadderEntry } from './ladder.ts';
-import type {
-  FixEvidence,
-  HumanVerdict,
-  MemoryRecipe,
-  SelfEvalReport,
-  StoredRun,
-} from './types.ts';
+import type { DetectionLesson } from './lessons.ts';
+import type { FixEvidence, HumanVerdict, MemoryRecipe, StoredRun } from './types.ts';
 
 // Everything memory/ persists. Async throughout so a Postgres implementation can drop in.
 export interface MemoryStore {
@@ -38,11 +33,8 @@ export interface MemoryStore {
   saveHabits(habits: RepoHabits): Promise<void>;
   saveLadder(entry: LadderEntry): Promise<void>;
   listLadder(): Promise<LadderEntry[]>;
-
-  saveSelfEval(report: SelfEvalReport): Promise<void>;
-  listSelfEvals(): Promise<SelfEvalReport[]>;
-  getSelfEvalTaskIds(): Promise<string[] | undefined>;
-  setSelfEvalTaskIds(ids: string[]): Promise<void>;
+  saveLesson(lesson: DetectionLesson): Promise<void>;
+  listLessons(): Promise<DetectionLesson[]>;
 }
 
 // The plain verdict the app sends today, as evidence, until its P7 evidence arrives.
@@ -66,7 +58,7 @@ const rescanEvidence = (record: RunRecord) => {
   return rescan ? { evidence: { rescanClean: rescan.clean } } : {};
 };
 
-export type Collection = 'runs' | 'recipes' | 'selfevals' | 'habits' | 'ladder';
+export type Collection = 'runs' | 'recipes' | 'habits' | 'ladder' | 'lessons';
 
 // Local JSON: one file per item under <dir>/<collection>/, written atomically.
 export class JsonMemoryStore implements MemoryStore {
@@ -188,21 +180,14 @@ export class JsonMemoryStore implements MemoryStore {
     return this.list<LadderEntry>('ladder');
   }
 
-  saveSelfEval(report: SelfEvalReport) {
-    return this.write('selfevals', report.id, report);
+  // Keyed by what it says, so a redelivered webhook or a rerun adds nothing.
+  saveLesson(lesson: DetectionLesson) {
+    const { kind, entryId, repo, file, why } = lesson;
+    return this.write('lessons', [kind, entryId, repo, file, why].join('\n').slice(0, 200), lesson);
   }
 
-  listSelfEvals() {
-    return this.list<SelfEvalReport>('selfevals');
-  }
-
-  async getSelfEvalTaskIds() {
-    return readJson<string[]>(join(this.dir, 'selfeval-tasks.json'));
-  }
-
-  async setSelfEvalTaskIds(ids: string[]) {
-    await mkdir(this.dir, { recursive: true });
-    await atomicWrite(join(this.dir, 'selfeval-tasks.json'), ids);
+  listLessons() {
+    return this.list<DetectionLesson>('lessons');
   }
 
   protected async write(collection: Collection, id: string, value: unknown) {
