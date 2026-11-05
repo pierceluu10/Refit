@@ -1,0 +1,44 @@
+{
+  "provider": "youtube-transcript-api",
+  "officialHosts": ["github.com/jdepoix"],
+  "entries": [
+    {
+      "id": "YT-1.static-methods",
+      "provider": "youtube-transcript-api",
+      "what": "The static methods YouTubeTranscriptApi.get_transcript, get_transcripts and list_transcripts were removed in v1.2.0, so calling one raises AttributeError.",
+      "diedOn": "2025-07-21",
+      "source": {
+        "url": "https://github.com/jdepoix/youtube-transcript-api/releases",
+        "checkedOn": "2026-11-05",
+        "quote": "Removed the deprecated methods get_transcript , get_transcripts and list_transcripts"
+      },
+      "lookFor": [
+        "A call of get_transcript, get_transcripts or list_transcripts on the YouTubeTranscriptApi class"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bYouTubeTranscriptApi\\.(?:list_transcripts|get_transcripts?)\\s*\\("
+        }
+      ],
+      "appliesTo": {
+        "describe": "youtube-transcript-api 1.2.0 and later.",
+        "sdkSince": [
+          {
+            "package": "youtube-transcript-api",
+            "version": "1.2.0",
+            "ecosystem": "python"
+          }
+        ]
+      },
+      "replacement": "An instance: YouTubeTranscriptApi().fetch(video_id) or YouTubeTranscriptApi().list(video_id).",
+      "requires": [
+        "fetch() returns objects with attributes, so p[\"text\"] becomes p.text unless the result goes through to_raw_data(). This shape change is a reading of the v1.0.0 notes."
+      ],
+      "context": {
+        "packages": ["youtube-transcript-api"]
+      }
+    }
+  ],
+  "future": []
+}

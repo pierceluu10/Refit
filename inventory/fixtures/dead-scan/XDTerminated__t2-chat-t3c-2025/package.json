@@ -1,0 +1,4 @@
+{
+  "name": "excerpt-of-xdterminated-t2-chat-t3c-2025-seen-in-p5",
+  "dependencies": { "next": "15.3.3", "@google/generative-ai": "^0.24.0", "groq-sdk": "^0.20.0" }
+}

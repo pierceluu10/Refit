@@ -33,8 +33,10 @@ function fakeDeps(compared: ComparedCommit[] = []) {
   const verdicts: [string, HumanVerdict][] = [];
   const tokenRequests: number[] = [];
   const listedWith: string[] = [];
+  const consent: string[] = [];
   const deps: WebhookDeps = {
     queue: { enqueue: async (job) => void jobs.push(job) },
+    forgetRepo: async () => {},
     recordVerdict: async (pr, verdict) => void verdicts.push([pr, verdict]),
     tokens: {
       token: async (id) => {
@@ -50,8 +52,18 @@ function fakeDeps(compared: ComparedCommit[] = []) {
       comparisons.push([token, repo, base, head]);
       return compared;
     },
+    evidence: {
+      closed: async () => {},
+      edited: async () => {},
+      revertMerged: async () => {},
+      pushed: async () => {},
+    },
+    consent: {
+      recordInstall: async (id) => void consent.push(`install ${id}`),
+      forget: async (id) => void consent.push(`forget ${id}`),
+    },
   };
-  return { deps, jobs, verdicts, tokenRequests, listedWith, comparisons };
+  return { deps, jobs, verdicts, tokenRequests, listedWith, comparisons, consent };
 }
 
 describe('verifySignature', () => {
@@ -99,6 +111,23 @@ describe('handleWebhook', () => {
     expect(fake.listedWith).toEqual([INSTALL_TOKEN]);
     expect(fake.jobs).toEqual(expected);
     expect(jobs).toEqual(expected);
+  });
+
+  it('installation.created records the default consent even when listing repos fails', async () => {
+    const fake = fakeDeps();
+    fake.deps.listRepos = async () => {
+      throw new Error('GitHub is down');
+    };
+    await expect(
+      handleWebhook('installation', fixture('installation.created'), fake.deps),
+    ).rejects.toThrow('GitHub is down');
+    expect(fake.consent).toEqual([`install ${INSTALLATION_ID}`]);
+  });
+
+  it('installation.deleted forgets the consent', async () => {
+    const fake = fakeDeps();
+    await handleWebhook('installation', fixture('installation.deleted'), fake.deps);
+    expect(fake.consent).toEqual([`forget ${INSTALLATION_ID}`]);
   });
 
   it('installation.deleted forgets the payload repos without calling the API', async () => {

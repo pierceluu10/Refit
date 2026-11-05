@@ -1,6 +1,6 @@
 {
   "provider": "anthropic",
-  "officialHosts": ["platform.claude.com", "anthropic.com"],
+  "officialHosts": ["platform.claude.com", "anthropic.com", "raw.githubusercontent.com/anthropics"],
   "entries": [
     {
       "id": "AN-1.claude-sonnet-4-20250514",
@@ -1508,6 +1508,66 @@
       "replacement": "The Messages API, as the page lists it.",
       "requires": [
         "The call shape changes: Messages takes a messages list, not a prompt string, and returns content blocks to read by type. (A reading: the page says only to use the Messages API.)"
+      ],
+      "context": {
+        "packages": [
+          "@anthropic-ai/sdk",
+          "anthropic",
+          "@anthropic-ai/aws-sdk",
+          "@anthropic-ai/foundry-sdk",
+          "@anthropic-ai/google-cloud-sdk",
+          "@ai-sdk/anthropic",
+          "@langchain/anthropic",
+          "langchain-anthropic"
+        ],
+        "hosts": ["api.anthropic.com"]
+      }
+    },
+    {
+      "id": "AN-8.skills-fields",
+      "provider": "anthropic",
+      "what": "The SDKs' beta Skills namespace dropped display_title and latest_version. On a current SDK, client.beta.skills.create(display_title=...) raises a TypeError in Python, and reading display_title or latest_version off a skill fails: the fields are display_name and latest_version_id.",
+      "diedOn": "2026-08-27",
+      "source": {
+        "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-python/main/CHANGELOG.md",
+        "checkedOn": "2026-11-05",
+        "quote": "`BetaSkill` uses `display_name` (was `display_title`, also the `create()` keyword)"
+      },
+      "lookFor": [
+        "display_title passed to client.beta.skills.create, or display_title or latest_version read off a skill from client.beta.skills. Not a local variable of the same name, and not a skill's container reference in Messages."
+      ],
+      "matchers": [
+        {
+          "kind": "field",
+          "value": "display_title",
+          "on": ["skills.create", "skill"]
+        },
+        {
+          "kind": "field",
+          "value": "latest_version",
+          "on": ["skill"]
+        }
+      ],
+      "versions": "The Python SDK from 1.2.0 and the TypeScript SDK from 0.122.0, both August 27, 2026. The API itself still takes the old shape from a request sending the skills-2025-10-02 header, so this follows the SDK version, not the model or the API version.",
+      "appliesTo": {
+        "describe": "The Python SDK from 1.2.0 and the TypeScript SDK from 0.122.0, both August 27, 2026. The API itself still takes the old shape from a request sending the skills-2025-10-02 header, so this follows the SDK version, not the model or the API version.",
+        "sdkSince": [
+          {
+            "package": "anthropic",
+            "version": "1.2.0",
+            "ecosystem": "python"
+          },
+          {
+            "package": "@anthropic-ai/sdk",
+            "version": "0.122.0",
+            "ecosystem": "npm"
+          }
+        ]
+      },
+      "replacement": "display_name and latest_version_id on the Skills shapes, as the Python changelog and the Skills guide name them.",
+      "requires": [
+        "display_name is not unique and takes up to 255 characters, per the Skills guide, where display_title was unique per workspace. Code that relies on a duplicate title failing, or that keys existing skills by title, needs another way to find a prior upload.",
+        "latest_version_id is a version ID such as skver_..., not an epoch-microsecond string, so stop parsing it as a number."
       ],
       "context": {
         "packages": [

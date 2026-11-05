@@ -31,7 +31,7 @@ const S3_HOST = /(?:^|\.)s3[\w.-]*\.amazonaws\.com$/i;
 const S3_DOMAIN_BUCKET = /^\/((?:[a-z0-9-]+\.)+[a-z]{2,})\//i;
 // An environment key a provider's own name opens, read by code that takes its address from there.
 const PROVIDER_ENV_KEY =
-  /\b([A-Z][A-Z0-9]*)_(?:URL|API_?URL|API_?KEY|CLIENT_(?:ID|SECRET)|ANON_KEY|SERVICE_ROLE_KEY|TOKEN|SECRET(?:_KEY)?)\b/g;
+  /\b([A-Z][A-Z0-9]*)_(?:URL|API_?URL|BASE_?URL|API_?KEY|CLIENT_(?:ID|SECRET)|ANON_KEY|SERVICE_ROLE_KEY|TOKEN|SECRET(?:_KEY)?)\b/g;
 // The OpenAI SDK's own client for Azure, which leaves no package or host of Azure's to go by.
 const AZURE_OPENAI = /\bAzureOpenAI\b|\bAZURE_OPENAI_[A-Z]+\b/;
 const AZURE_OPENAI_PROVIDER = 'azure-openai';
@@ -39,6 +39,9 @@ const AZURE_OPENAI_PROVIDER = 'azure-openai';
 const SCRIPT_TAG_HOST = /<script\b[^>]*\bsrc=["'](?:https?:)?\/\/((?:[a-z0-9-]+\.)+[a-z]{2,})/gi;
 const WORKFLOW_PATH = /(?:^|\/)\.github\/workflows\//;
 const USES_ACTION = /\buses:\s*["']?([\w.-]+\/[\w.-]+)/g;
+// A sign-in provider leaves no host in the repo: Auth.js holds it. Its local kinds call nobody.
+const AUTH_PROVIDER_IMPORT = /["'](?:next-auth|@auth\/core)\/providers\/([\w-]+)["']/g;
+const LOCAL_AUTH = /^(?:credentials|passkey|email|nodemailer)$/;
 const TWO_PART_SUFFIX = /\.(?:ac|co|com|edu|gov|net|org)\.[a-z]{2}$/;
 
 const domainOf = (host: string) =>
@@ -127,6 +130,9 @@ export function namedProviders(sources: Source[]): string[] {
         if (catalogEntry(word.toLowerCase())) names.add(word.toLowerCase());
       }
       if (AZURE_OPENAI.test(source.text)) names.add(AZURE_OPENAI_PROVIDER);
+      for (const [, word] of source.text.matchAll(AUTH_PROVIDER_IMPORT)) {
+        if (!LOCAL_AUTH.test(word)) names.add(catalogEntry(word) ? word : `${word}-oauth`);
+      }
     }
   }
   return [...names];

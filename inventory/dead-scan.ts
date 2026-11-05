@@ -30,6 +30,7 @@ import type {
 } from '../shared/types.ts';
 import { catalogEntry, dependencyProvider } from './catalog.ts';
 import {
+  besideReplacement,
   bindingsOf,
   fieldReads,
   readEvidence,
@@ -59,7 +60,7 @@ import {
   textPlace,
   type Place,
 } from './dead-scan-place.ts';
-import { holderReads, reachOf, type Readers } from './dead-scan-reach.ts';
+import { holderReads, reachOf, recordPicker, type Readers } from './dead-scan-reach.ts';
 import { gateFor, loadVersionFacts, type VersionFacts } from './dead-scan-version.ts';
 import { OutsideRepoError, readText, walkFiles } from './repo-files.ts';
 import { isSecretEnvFile, scanRepo } from './scan.ts';
@@ -74,10 +75,12 @@ export type FindingDetail = Finding & {
   withFix: boolean;
   /** A vendored tool or build output: never reaches a fix. */
   vendored?: boolean;
-  /** The AI check said this isn't the provider's: it stays out of a fix. */
+  /** The scan or the AI check says this isn't a break to fix: it stays out of a fix. */
   ruledOut?: boolean;
   /** Where the code reads what holds this value, so the AI check can see where it goes. */
   reads?: string[];
+  /** The list's own words for what counts and what doesn't, for the AI check to go by. */
+  lookFor?: string[];
 };
 
 export type SkippedFile = { file: string; reason: string };
@@ -135,6 +138,7 @@ type Classed = {
   reason: string;
   version?: string;
   vendored?: boolean;
+  ruledOut?: boolean;
   reads?: string[];
 };
 type Verdict = Classed | { quiet: true; reason: string; version?: string };
@@ -219,6 +223,13 @@ const CODE_MODES: ReadonlySet<FileMode> = new Set(['js', 'python', 'clike', 'php
 const URL_IN_LINE = /https?:\/\/[^\s'"`<>)]+/g;
 const BASE_URL_LINE = /base.?url|endpoint|api.?url|api.?base/i;
 const POINTS_A_CLIENT = /base.?url|endpoint|api.?url|api.?base|AzureOpenAI\s*\(/i;
+// `delete x.field`, `del x["field"]`, `unset($x['field'])`, and `x.pop("field")` standing alone.
+const STRIPS_FIELD =
+  /(?:^|[\s;{(])(?:delete|del)\s+[\w$.?!\[\]'"-]*$|\bunset\(\s*[$\w.\[\]'">-]*$|^\s*[$\w.\[\]'"@>-]+\.(?:pop|delete)\(\s*[:'"]?$/;
+// Shopify's own config for an extension. Its api_version moves with @shopify/ui-extensions, as SH-1 says.
+const EXTENSION_CONFIG = 'shopify.extension.toml';
+const UI_EXTENSION_TYPE = /^\s*type\s*=\s*"\w*ui_extension"/m;
+const API_VERSION_SETTING = /^\s*api_version\s*=/;
 const CLASS_RANK: Record<MatchClass, number> = {
   live: 4,
   unclear: 3,
@@ -519,7 +530,7 @@ function regionsOf(source: Source): Region[] {
   code.forEach((text, lineIndex) => {
     if (!text.trim()) return;
     const textIsRead = source.mode === 'hash' || source.file.endsWith(XML_EXTENSION);
-    if (textIsRead || holdsOptionTag(source.lines[lineIndex])) {
+    if (textIsRead || holdsOptionTag(source.lines[lineIndex], source.mode)) {
       regions.push({ lineIndex, offset: source.lineStarts[lineIndex], text });
     }
   });
@@ -610,6 +621,25 @@ function hitsIn(repo: Repo, source: Source, entries: DeadApiEntry[]): Hit[] {
 
 // ---- Judging ----
 
+// Code that names something dead without depending on it, so a fix has nothing to do there.
+function harmlessUse({ source, entry, matcher, offset, read }: Hit): string | undefined {
+  const lineIndex = lineIndexAt(source, offset);
+  if (
+    path.posix.basename(source.file) === EXTENSION_CONFIG &&
+    API_VERSION_SETTING.test(source.lines[lineIndex]) &&
+    UI_EXTENSION_TYPE.test(source.text)
+  ) {
+    return "a UI extension's own version: older ones keep working, and Shopify CLI only refuses to deploy one past 12 months";
+  }
+  if (STRIPS_FIELD.test(source.text.slice(source.lineStarts[lineIndex], offset))) {
+    return 'code that strips the field, which is not a use of it';
+  }
+  if (matcher.kind === 'field' && read && besideReplacement(source, entry, matcher, read)) {
+    return 'the replacement is read here or right beside it, so this handles the new shape';
+  }
+  return undefined;
+}
+
 function placeOf(hit: Hit, span: Span | undefined, repo: Repo): Classed | Place | undefined {
   const { source, entry, name, offset } = hit;
   const dotFolder = dotFolderOf(source.file);
@@ -634,6 +664,8 @@ function placeOf(hit: Hit, span: Span | undefined, repo: Repo): Classed | Place 
   if (isTestPath(source.file) && !served) {
     return { matchClass: 'test', reason: 'a test, fixture, example or docs path' };
   }
+  const harmless = harmlessUse(hit);
+  if (harmless) return { matchClass: 'catalog', ruledOut: true, reason: harmless };
   if (hit.matcher.kind === 'field' || hit.matcher.kind === 'package') return undefined;
   if (span?.kind === 'string' && offset + name.length <= span.end) {
     if (isProse(source, span, name, offset)) {
@@ -671,7 +703,7 @@ function otherHostsOf(source: Source): OtherHosts {
   return found;
 }
 
-function otherHostReason(hit: Hit, repo: Repo, line: string): string | undefined {
+function otherHostReason(hit: Hit, repo: Repo, line: string, offered: boolean): string | undefined {
   const { context } = hit.entry;
   if (!context) return undefined;
   // azure-keyvault's own lines say azure, and that isn't another host to it.
@@ -688,6 +720,8 @@ function otherHostReason(hit: Hit, repo: Repo, line: string): string | undefined
   // Naming the SDK doesn't help here: an OpenAI client is often pointed at OpenRouter or Azure.
   if (pointed) return `the file points a client at ${pointed}`;
   if (fileNamesProvider(repo, source, context)) return undefined;
+  // A row users pick, in the provider's own spelling and not a gateway's vendor/name: it goes to the provider.
+  if (offered && !hit.name.includes('/')) return undefined;
   return named ? `the file targets ${named} and never names the provider` : undefined;
 }
 
@@ -754,7 +788,8 @@ function classify(hit: Hit, repo: Repo): Verdict {
 
   const place = placeOf(hit, span, repo);
   if (place && 'matchClass' in place) return { ...place, version };
-  if (place && (place.kind === 'comment' || place.kind === 'catalog')) {
+  const fed = place?.modelRecord ? recordPicker(repo.readers, source, offset) : undefined;
+  if (place && !fed && (place.kind === 'comment' || place.kind === 'catalog')) {
     if (
       place.guardedBy &&
       entry.context &&
@@ -764,7 +799,11 @@ function classify(hit: Hit, repo: Repo): Verdict {
       const reason = `${place.guardedBy} only accepts names that are dead, and the code stops on anything else`;
       return { matchClass: 'live', reason, version };
     }
-    return { matchClass: place.kind, reason: place.reason, version };
+    // Only a line or file that says so: one that merely names another host may hold this provider's table.
+    const otherHost = place.kind === 'catalog' ? otherHostReason(hit, repo, line, true) : undefined;
+    return otherHost
+      ? { matchClass: 'catalog', ruledOut: true, reason: `${place.reason}; ${otherHost}`, version }
+      : { matchClass: place.kind, reason: place.reason, version };
   }
   if (place?.tableKey) {
     const sent = translatedTo(hit);
@@ -773,7 +812,7 @@ function classify(hit: Hit, repo: Repo): Verdict {
       return { matchClass: 'catalog', reason, version };
     }
   }
-  const picker = place?.kind === 'picker' ? place.reason : undefined;
+  const picker = place?.kind === 'picker' ? place.reason : fed;
   const table = place?.kind === 'unclear' ? place.reason : undefined;
 
   const ambiguous = 'ambiguous' in matcher && matcher.ambiguous === true;
@@ -796,12 +835,17 @@ function classify(hit: Hit, repo: Repo): Verdict {
       return { quiet: true, reason: `a common word in a file that never names ${entry.provider}` };
     }
   }
-  const otherHost = otherHostReason(hit, repo, line);
-  if (otherHost) return { matchClass: 'unclear', reason: otherHost, version };
+  const otherHost = otherHostReason(hit, repo, line, fed !== undefined);
+  // The AI check rules a list row out unless it's told users pick from it.
+  if (otherHost) {
+    const reason = fed ? `${otherHost}; ${fed}` : otherHost;
+    return { matchClass: 'unclear', reason, version };
+  }
   if (gate.state === 'unknown') return { matchClass: 'unclear', reason: gate.reason };
   const passed = gate.state === 'at-or-after' ? `; ${gate.reason}` : '';
   if (table) return { matchClass: 'unclear', reason: `${table}${passed}`, version };
-  if (ambiguous && !(matcher.kind === 'url' && hostOnLineOrBaseUrl(hit, line))) {
+  // A row users pick isn't the common word the list marks a name ambiguous for.
+  if (ambiguous && !fed && !(matcher.kind === 'url' && hostOnLineOrBaseUrl(hit, line))) {
     return {
       matchClass: 'unclear',
       reason: `the list marks this name ambiguous${passed}`,
@@ -1045,8 +1089,10 @@ export async function scanDeadApis(
           reason: verdict.reason,
           text: lineTextOf(source.lines[lineIndex]),
           withFix: false,
+          lookFor: hit.entry.lookFor,
           ...(verdict.version ? { version: verdict.version } : {}),
           ...(verdict.vendored ? { vendored: true } : {}),
+          ...(verdict.ruledOut ? { ruledOut: true } : {}),
           ...(verdict.reads ? { reads: verdict.reads } : {}),
         });
       }

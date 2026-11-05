@@ -1,0 +1,5 @@
+{
+  "name": "excerpt-of-borodinka-hire-wise-seen-in-p5",
+  "dependencies": { "firebase": "^10.0.0" },
+  "engines": { "node": "18" }
+}

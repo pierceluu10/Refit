@@ -10,6 +10,8 @@ export type Place = {
   guardedBy?: string;
   /** A key in a table the code walks: what's sent may be the key, or what the code turns it into. */
   tableKey?: boolean;
+  /** A model's record beside its metadata, which a picker may offer: what's picked is what's sent. */
+  modelRecord?: boolean;
 };
 
 // The registry's model-id shapes, to count a list of models that mixes providers.
@@ -52,6 +54,8 @@ const WALK_TEST = (word: string) =>
 const SOME_TEST_AFTER =
   /^\s*\.(?:some|every)\s*\(\s*\(?\s*(\w+)\s*\)?\s*=>\s*[\w$.\[\]?]*(?:\.(?:includes|startsWith|endsWith|indexOf)\(\s*\1\s*\)|\s*[=!]==?\s*\1\b|\1\s*[=!]==?)/;
 const WALK_LOOK_CHARS = 200;
+// A bare word where an id goes: /v18.0/pixel_id/events can't be a request unless the code fills it in.
+const PLACEHOLDER_IN_URL = /^https?:\/\/[^/\s]+\/(?:[^/\s?#]+\/)*?([a-z]\w*_id)(?:[/?#]|$)/i;
 // `assert x in NAME`, or a rejection when it isn't: the code stops unless the value is on the list.
 const GUARDED_BY = (name: string) =>
   new RegExp(
@@ -73,6 +77,7 @@ const TYPE_OPEN = /\b(?:interface\s+\w+[^{]*|type\s+\w+[^=]*=\s*)$/;
 const TYPE_LINE = /^\s*(?:export\s+)?type\s+\w+/;
 const VERSIONS_KEY = /\bversions["']?\s*[:=]\s*$/;
 const OPTION_TAG = /<(?:option|SelectItem|MenuItem|Select\.Option|Option)\b/;
+const OPTION_WITH_VALUE = /<(?:option|SelectItem|MenuItem|Select\.Option|Option)\b[^>]*\bvalue=/;
 const PICKER_NAME = /model|option|choice|select|dropdown|picker/i;
 const DENY_NAME = /deprecated|retired|legacy|unsupported|blocked|denied|deny/i;
 const METADATA_NAME = /(?:^|\.)(?:keywords|tags|categories|topics)$/i;
@@ -195,8 +200,20 @@ function onlyTested(source: Source, list: Enclosure): boolean {
   return walk !== null && WALK_TEST(walk[2]).test(walk[1]);
 }
 
+function isPlaceholderUrl(source: Source, span: Span): boolean {
+  const word = PLACEHOLDER_IN_URL.exec(innerText(source, span))?.[1];
+  if (!word) return false;
+  return !new RegExp(`\\.replace(?:All)?\\(\\s*["'\`/]${word}`).test(source.text);
+}
+
 function checkPlace(source: Source, span: Span): Place | undefined {
   const { code } = source;
+  if (isPlaceholderUrl(source, span)) {
+    return {
+      kind: 'catalog',
+      reason: 'a URL with a placeholder where the id goes, so not a request',
+    };
+  }
   const line = source.lines[lineIndexAt(source, span.start)];
   const ahead = before(code, span.start);
   const behind = after(code, span.end);
@@ -303,7 +320,11 @@ function objectPlace(source: Source, span: Span, list: Enclosure): Place | undef
   const body = source.text.slice(list.open, close);
   const keyBefore = source.text.slice(list.open, span.start);
   if (RECORD_NAME_KEY.test(keyBefore) && RECORD_METADATA.test(body)) {
-    return { kind: 'catalog', reason: 'a model record beside metadata such as its context window' };
+    return {
+      kind: 'catalog',
+      modelRecord: true,
+      reason: 'a model record beside metadata such as its context window',
+    };
   }
   if (OPTION_VALUE_KEY.test(keyBefore) && LABEL_KEY.test(body)) {
     return { kind: 'picker', reason: 'an option record offered to users, with a label and value' };
@@ -426,5 +447,6 @@ export function textPlace(line: string, name: string, provider: string): Place |
     : undefined;
 }
 
-/** Lines where JSX or HTML text can hold a name outside quotes. */
-export const holdsOptionTag = (line: string) => OPTION_TAG.test(line);
+/** Lines where JSX or HTML text can hold a name outside quotes. JSX with a value on the tag only labels it. */
+export const holdsOptionTag = (line: string, mode: Source['mode']) =>
+  OPTION_TAG.test(line) && !(mode === 'js' && OPTION_WITH_VALUE.test(line));

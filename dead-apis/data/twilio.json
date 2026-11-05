@@ -391,7 +391,7 @@
         "quote": "will no longer be able to be sent"
       },
       "lookFor": [
-        "a Twilio message to or from whatsapp:+... whose Body holds a template, or that starts a conversation. Not a reply inside the 24-hour window, and not code that only reads an inbound From."
+        "a Twilio message to or from whatsapp:+... whose Body holds a template, or that starts a conversation. Not a reply inside the 24-hour window, which is what a send is when it comes from the handler of an inbound message, back to the number that just wrote. Not code that only reads an inbound From."
       ],
       "matchers": [
         {

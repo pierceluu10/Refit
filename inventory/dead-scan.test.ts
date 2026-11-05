@@ -848,6 +848,13 @@ describe('unlisted providers', () => {
     expect(queue[0].hints.packages).toContain('resend');
   });
 
+  it('show up from a package.json written on one line', async () => {
+    const report = await scan({
+      'package.json': JSON.stringify({ dependencies: { resend: '^4.0.0', stripe: '^15.0.0' } }),
+    });
+    expect(report.unlistedProviders).toEqual(['resend']);
+  });
+
   it('are returned even with no store, and a listed provider never is', async () => {
     const report = await scan({
       'package.json': manifest({ resend: '^4.0.0', stripe: '^15.0.0' }),
@@ -3461,5 +3468,782 @@ describe('P5 round 3: providers the report should name', () => {
         'strapi',
       ]),
     );
+  });
+});
+
+describe('P5 round 4: a model record a picker offers', () => {
+  it('flags the records a file hands to a picker, under an import alias', async () => {
+    const report = await scanFixture('atrueempire__yk');
+    const file = 'config/provider/anthropic.ts';
+    const live = report.details.filter((one) => one.file === file && one.matchClass === 'live');
+    expect(
+      live.map((one) => one.entryId),
+      explain(report),
+    ).toEqual(['AN-1.claude-3-sonnet-20240229', 'AN-1.claude-2.1']);
+    expect(live[0].reason).toContain('components/layout/model-select.tsx');
+  });
+
+  it('keeps a record whose only importer is commented out as catalog', async () => {
+    const report = await scanFixture('atrueempire__yk');
+    expect(
+      classesOf(report, 'AN-1.claude-2.0', 'config/provider/azure.ts'),
+      explain(report),
+    ).toEqual(['catalog']);
+  });
+
+  it("doesn't count a record's label, beside its id, as a second use", async () => {
+    const report = await scanFixture('atrueempire__yk');
+    expect(
+      classesOf(report, 'MI-1.open-mistral-7b', 'config/provider/mistral.ts'),
+      explain(report),
+    ).toEqual(['live', 'catalog']);
+  });
+
+  it('keeps a price table only looked up by id as catalog, with a handler in the same file', async () => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      'src/lib/models.ts':
+        "import OpenAI from 'openai';\nexport const client = OpenAI;\nexport const MODELS = [\n  { id: 'gpt-4', contextWindow: 8192 },\n];\n",
+      'src/app/page.tsx':
+        "import { MODELS } from '../lib/models';\nexport const Cost = ({ id }) => <a onClick={() => {}}>{MODELS.find((one) => one.id === id)?.contextWindow}</a>;\n",
+    });
+    expect(classesOf(report, 'OA-1.gpt-4', 'src/lib/models.ts'), explain(report)).toEqual([
+      'catalog',
+    ]);
+  });
+
+  it('flags a list mapped into options in its own file', async () => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      'src/app/page.tsx':
+        "import OpenAI from 'openai';\nexport const client = OpenAI;\nconst MODELS = [\n  { id: 'gpt-4', contextWindow: 8192 },\n];\nexport const Pick = () => <select>{MODELS.map((one) => <option value={one.id} />)}</select>;\n",
+    });
+    expect(classesOf(report, 'OA-1.gpt-4', 'src/app/page.tsx'), explain(report)).toEqual(['live']);
+  });
+});
+
+describe('P5 round 4: what is shown and never sent', () => {
+  it("treats a controlled Select's fallback as display, and keeps its options live", async () => {
+    const report = await scanFixture('swharr__TrailblazerAI');
+    const lines = report.details.filter(
+      (one) =>
+        one.entryId === 'AN-1.claude-sonnet-4-20250514' && one.file.endsWith('admin/page.tsx'),
+    );
+    expect(
+      lines.map((one) => one.matchClass),
+      explain(report),
+    ).toEqual(['catalog', 'live']);
+  });
+
+  it.each([
+    ['a hidden input, which a form posts', '<input type="hidden" value={saved ?? \'gpt-4\'} />'],
+    ['a context provider, which hands it on', "<Ctx.Provider value={saved ?? 'gpt-4'} />"],
+    ['an uncontrolled default, which is the value', "<Select defaultValue={saved ?? 'gpt-4'} />"],
+  ])('keeps %s live', async (_what, jsx) => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      'src/a.tsx': `import OpenAI from 'openai';\nexport const client = OpenAI;\nexport const A = ({ saved }) => ${jsx};\n`,
+    });
+    expect(classesOf(report, 'OA-1.gpt-4', 'src/a.tsx'), explain(report)).toEqual(['live']);
+  });
+
+  it("doesn't read an option's label as its value", async () => {
+    const report = await scanFixture('swharr__TrailblazerAI');
+    const lines = report.details.filter((one) => one.entryId === 'OA-1.o1');
+    expect(
+      lines.map((one) => one.line),
+      explain(report),
+    ).toEqual([17]);
+    expect(classesOf(report, 'OA-1.o1-mini'), explain(report)).toEqual(['live', 'live']);
+  });
+
+  it('still reads the text of an option with no value, and an HTML option', async () => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      'src/a.tsx':
+        "import OpenAI from 'openai';\nexport const client = OpenAI;\nexport const A = () => <select><option>gpt-4</option></select>;\n",
+      'public/a.html': '<select><option value="gpt-4">Four</option></select>\n',
+    });
+    expect(classesOf(report, 'OA-1.gpt-4', 'src/a.tsx'), explain(report)).toEqual(['live']);
+    expect(classesOf(report, 'OA-1.gpt-4', 'public/a.html'), explain(report)).toEqual(['live']);
+  });
+});
+
+describe('P5 round 4: endpoints an SDK hides', () => {
+  it('flags a method of the old SDK that sends a dead path', async () => {
+    const report = await scanFixture('MRwangqi__chatGPT-nodejs');
+    expect(classesOf(report, 'OA-3.v1-engines', 'index.js'), explain(report)).toEqual(['live']);
+  });
+
+  it('reads the Python names too, and leaves the same method on an app object alone', async () => {
+    const report = await scan({
+      'requirements.txt': 'openai==0.28.0\n',
+      'a.py': 'import openai\nprint(openai.Edit.create(model="x"))\n',
+      'quiz.ts':
+        'export const answer = quiz.createAnswer(1);\nexport const edit = doc.createEdit();\n',
+    });
+    expect(classesOf(report, 'OA-3.v1-edits', 'a.py'), explain(report)).toEqual(['live']);
+    expect(classesOf(report, 'OA-3.v1-answers'), explain(report)).toEqual([]);
+    expect(classesOf(report, 'OA-3.v1-edits', 'quiz.ts'), explain(report)).toEqual([]);
+  });
+
+  const HF_CALL = {
+    'route.ts':
+      "import { HfInference } from '@huggingface/inference';\nconst hf = new HfInference('k');\nexport const go = () => hf.textGenerationStream({ model: 'x', inputs: 'y' });\n",
+  };
+
+  it('flags an old SDK whose default host is gone, by its lock', async () => {
+    const report = await scanFixture('atrueempire__yk');
+    expect(
+      classesOf(report, 'HF-1.sdk-default-host', 'app/api/chat/messages/huggingface/route.ts'),
+      explain(report),
+    ).toEqual(['live']);
+  });
+
+  it.each([
+    ['^3.5.0', undefined],
+    ['^2.6.7', 'live'],
+    ['^3.0.0', 'unclear'],
+  ])('reads @huggingface/inference %s as %s', async (range, expected) => {
+    const report = await scan({
+      ...HF_CALL,
+      'package.json': manifest({ '@huggingface/inference': range }),
+    });
+    expect(classesOf(report, 'HF-1.sdk-default-host'), explain(report)).toEqual(
+      expected ? [expected] : [],
+    );
+    if (!expected)
+      expect(report.quiet.map((one) => one.entryId)).toContain('HF-1.sdk-default-host');
+  });
+
+  it('flags a removed static method only past its removal', async () => {
+    const report = await scanFixture('Brettjo77__YTAstroAssistant');
+    expect(classesOf(report, 'YT-1.static-methods'), explain(report)).toEqual(['unclear']);
+    const call = {
+      'a.py':
+        'from youtube_transcript_api import YouTubeTranscriptApi\nYouTubeTranscriptApi.get_transcript("x")\nYouTubeTranscriptApi().fetch("x")\n',
+    };
+    const old = await scan({ ...call, 'requirements.txt': 'youtube-transcript-api==0.6.2\n' });
+    expect(classesOf(old, 'YT-1.static-methods'), explain(old)).toEqual([]);
+    const fresh = await scan({ ...call, 'requirements.txt': 'youtube-transcript-api==1.2.0\n' });
+    expect(classesOf(fresh, 'YT-1.static-methods'), explain(fresh)).toEqual(['live']);
+    expect(fresh.details.map((one) => one.line)).toEqual([2]);
+  });
+});
+
+describe('P5 round 4: providers the list had no file for', () => {
+  it('flags a Mistral and a Perplexity name, and not a router or another host of the same name', async () => {
+    const report = await scanFixture('atrueempire__yk');
+    expect(
+      classesOf(report, 'PX-2.mistral-7b-instruct', 'config/provider/perplexity.ts'),
+      explain(report),
+    ).toEqual(['live']);
+    expect(classesOf(report, 'PX-2.mixtral-8x7b-instruct'), explain(report)).toEqual([]);
+    const slug = await scan({
+      'package.json': manifest({ openai: '^4.0.0' }),
+      'a.ts': "export const model = 'mistralai/mistral-7b-instruct';\n",
+    });
+    expect(classesOf(slug, 'PX-2.mistral-7b-instruct'), explain(slug)).toEqual([]);
+  });
+
+  it('flags a dead host with a path after it', async () => {
+    const literal = await scan({
+      'a.py':
+        'import requests\nrequests.post("https://api-inference.huggingface.co/models/gpt2")\nrequests.post("https://router.huggingface.co/hf-inference/models/gpt2")\n',
+    });
+    expect(classesOf(literal, 'HF-1.api-inference-host'), explain(literal)).toEqual(['live']);
+  });
+
+  it('holds the new files to their sources', () => {
+    const list = loadDeadApis();
+    const ids = list.entries.map((one) => one.id);
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        'MI-1.open-mistral-7b',
+        'PX-2.mixtral-8x7b-instruct',
+        'HF-1.sdk-default-host',
+        'YT-1.static-methods',
+      ]),
+    );
+    const fresh = list.entries.filter((one) => /^(?:MI|PX|HF|YT)-/.test(one.id));
+    for (const entry of fresh) {
+      expect(entry.source.checkedOn, entry.id).toBe(TODAY);
+      expect(entry.source.quote, entry.id).toBeTruthy();
+    }
+  });
+});
+
+describe('P5 round 4: providers the report should name', () => {
+  it('names a client with no host, and a sign-in provider Auth.js holds', async () => {
+    const report = await scan({
+      'package.json': manifest({ '@tavily/core': '^0.5.0', 'duck-duck-scrape': '^2.2.0' }),
+      'requirements.txt': 'youtube-transcript-api>=0.6.2\n',
+      'auth.ts':
+        "import Google from 'next-auth/providers/google';\nimport Apple from 'next-auth/providers/apple';\nimport GitHub from 'next-auth/providers/github';\nimport Credentials from 'next-auth/providers/credentials';\nexport const providers = [Google, Apple, GitHub, Credentials];\n",
+    });
+    expect(report.unlistedProviders).toEqual(
+      expect.arrayContaining(['apple-oauth', 'duckduckgo', 'google-oauth', 'tavily']),
+    );
+    expect(report.unlistedProviders).not.toContain('credentials-oauth');
+    expect(report.unlistedProviders).not.toContain('github-oauth');
+  });
+});
+
+describe('P5 round 5: reach', () => {
+  it('follows a record list through a table and barrels to the picker that offers it', async () => {
+    const report = await scanFixture('XDTerminated__t2-chat-t3c-2025');
+    const file = 'src/lib/api/models.ts';
+    for (const id of [
+      'GR-10.deepseek-r1-distill-llama-70b',
+      'GR-10.qwen-qwen3-32b',
+      'OR-1.qwen-qwq-32b-free',
+      'OR-2.anthropic-claude-4-sonnet',
+      'OR-2.deepseek-deepseek-r1-qwen3-8b',
+      // Ambiguous, or in a file that names only a gateway: a row users pick is sent all the same.
+      'OR-1.anthropic-claude-3.5-sonnet',
+      'GE-1.gemini-2.0-flash-exp',
+    ]) {
+      expect(classesOf(report, id, file), `${id}\n${explain(report)}`).toEqual(['live']);
+    }
+  });
+
+  it('keeps a record list catalog when the table holding it is never offered', async () => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      'models.ts': `export const OLD = [{ id: "gpt-4-0613", contextLength: 8192 }];\nexport const GROUPS = { old: OLD };\n`,
+      'prices.ts': `import { GROUPS } from "./models";\nexport const total = Object.entries(GROUPS).length;\n`,
+      'ui.tsx': `import OpenAI from "openai";\nexport const B = () => <button onClick={() => new OpenAI()} />;\n`,
+    });
+    expect(classesOf(report, 'OA-1.gpt-4', 'models.ts'), explain(report)).toEqual(['catalog']);
+  });
+
+  it('reads a default nothing in the function reads as catalog, and the id it does send as live', async () => {
+    const report = await scanFixture('XDTerminated__t2-chat-t3c-2025');
+    const id = 'GE-1.gemini-2.0-flash-preview-image-generation';
+    const sends = report.details.filter(
+      (one) => one.entryId === id && one.file === 'src/lib/api/google-gemini-api.ts',
+    );
+    expect(
+      sends.map((one) => one.matchClass),
+      explain(report),
+    ).toEqual(['catalog', 'live']);
+    expect(sends[0].reason).toMatch(/default of _model, which generateImage never reads/);
+  });
+
+  it.each([
+    [
+      'a JS body that reads it',
+      'a.ts',
+      `async function f(a, m = "gpt-4") {\n  return send(m);\n}\nf(1);\n`,
+    ],
+    [
+      'a template that reads it',
+      'a.ts',
+      `async function f(a, m = "gpt-4") {\n  return send(\`\${m}\`);\n}\nf(1);\n`,
+    ],
+    ['a Python body that reads it', 'a.py', `def f(m="gpt-4"):\n    return send(m)\n\nf()\n`],
+    ['a one-liner, whose body stays unseen', 'a.py', `def f(m="gpt-4"): return send(m)\n\nf()\n`],
+    ['an assignment in an if', 'a.ts', `if (m = "gpt-4") {\n  go();\n}\n`],
+  ])('leaves a default live with %s', async (_name, file, text) => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      [file]: `import OpenAI from "openai";\n${text}`,
+    });
+    expect(classesOf(report, 'OA-1.gpt-4'), explain(report)).toEqual(['live']);
+  });
+
+  it('rules a method out when every call of its name is on another class', async () => {
+    const report = await scanFixture('XDTerminated__t2-chat-t3c-2025');
+    const [hit] = report.details.filter(
+      (one) =>
+        one.entryId === 'GE-1.gemini-2.0-flash-preview-image-generation' &&
+        one.file === 'src/lib/api/gemini-api.ts' &&
+        one.text.startsWith('model:'),
+    );
+    expect(hit?.matchClass, explain(report)).toBe('catalog');
+    expect(hit?.reason).toMatch(/every call of generateImage here is on GoogleGeminiAPI/);
+  });
+
+  it.each([
+    ['its own class', 'const api = new A();\napi.go();\n'],
+    ['a class that inherits it', 'class C extends A {}\nconst api = new C();\napi.go();\n'],
+    ["a receiver it can't resolve", 'export const run = (api) => api.go();\n'],
+  ])('leaves a method live when a call is on %s', async (_name, caller) => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      'a.ts': `import OpenAI from "openai";\nexport class A {\n  async go(\n    n: number,\n  ): Promise<{ a: string }> {\n    return new OpenAI().chat.completions.create({ model: "gpt-4" });\n  }\n}\n`,
+      'caller.ts': `import { A } from "./a";\nclass B {\n  go() {}\n}\nnew B();\n${caller}`,
+    });
+    expect(classesOf(report, 'OA-1.gpt-4', 'a.ts'), explain(report)).toEqual(['live']);
+  });
+
+  it('reads a Next.js app folder module nothing imports as unclear, and an imported one as live', async () => {
+    const report = await scanFixture('mohammadpurl__next-livekit-streaming');
+    const orphan = report.details.filter((one) => one.file === 'app/openai-assistant.ts');
+    expect(new Set(orphan.map((one) => one.matchClass)), explain(report)).toEqual(
+      new Set(['unclear']),
+    );
+    expect(orphan.every((one) => /nothing that runs imports this module/.test(one.reason))).toBe(
+      true,
+    );
+    expect(classesOf(report, 'OA-1.gpt-4-0125-preview', 'app/lib/avatar-helper.ts')).toEqual([
+      'live',
+    ]);
+    expect(classesOf(report, 'OA-1.gpt-4-0125-preview', 'app/api/chat/route.ts')).toEqual(['live']);
+  });
+
+  it('keeps an entry in an app folder that is no Next.js app', async () => {
+    const report = await scan({
+      'package.json': manifest({ openai: '^6.0.0', express: '^4.0.0' }),
+      'app/worker.ts': `import OpenAI from "openai";\nnew OpenAI().chat.completions.create({ model: "gpt-4" });\n`,
+      'a.ts': `import { x } from "./b";\nx();\n`,
+      'b.ts': `import { y } from "./c";\nexport const x = y;\n`,
+      'c.ts': `import { z } from "./d";\nexport const y = z;\n`,
+      'd.ts': `export const z = () => 1;\n`,
+    });
+    expect(classesOf(report, 'OA-1.gpt-4', 'app/worker.ts'), explain(report)).toEqual(['live']);
+  });
+
+  it('does not count a name in an error message as a call of the function', async () => {
+    const report = await scanFixture('lissettecarlr__chat-openai-streamlit');
+    const [hit] = report.details.filter(
+      (one) => one.entryId === 'OA-1.gpt-3.5-turbo-0613' && one.file === 'src/pages/chat.py',
+    );
+    expect(hit?.matchClass, explain(report)).toBe('catalog');
+    expect(hit?.reason).toMatch(/every call of num_tokens_from_messages passes its own/);
+  });
+
+  it('still counts a call inside an f-string, which sends the default', async () => {
+    const report = await scan({
+      'requirements.txt': 'openai\n',
+      'a.py': `import openai\n\ndef ask(m, model="gpt-4"):\n    return openai.chat.completions.create(model=model, messages=m)\n\nask([], model="x")\nprint(f"got: {ask([])} back")\n`,
+    });
+    expect(classesOf(report, 'OA-1.gpt-4'), explain(report)).toEqual(['live']);
+  });
+
+  it('reads an enum value a case turns into another id as a label', async () => {
+    const report = await scanFixture('Pittawat2542__null-shot-prompting');
+    for (const id of ['OA-1.gpt-3.5-turbo', 'OA-1.gpt-4-turbo', 'AN-1.claude-2.1']) {
+      expect(classesOf(report, id, 'src/models/types.py'), `${id}\n${explain(report)}`).toEqual([
+        'catalog',
+      ]);
+    }
+    expect(classesOf(report, 'OA-1.gpt-3.5-turbo-1106', 'src/config.py')).toEqual(['live']);
+    expect(classesOf(report, 'AN-1.claude-2.1', 'src/config.py')).toEqual(['live']);
+  });
+
+  it.each([
+    ['sent as it is', `client.chat.completions.create(model=M.gpt4.value)\n`],
+    [
+      'tested by a case that sets something else',
+      `match m:\n    case "gpt-4":\n        max_tokens = 8000\nclient.chat.completions.create(model=m)\n`,
+    ],
+  ])('leaves an enum value live when it is %s', async (_name, use) => {
+    const report = await scan({
+      'requirements.txt': 'openai\n',
+      'types.py': `from enum import Enum\n\nclass M(Enum):\n    gpt4 = "gpt-4"\n`,
+      'run.py': `import openai\nfrom types import M\nclient = openai.Client()\nm = M.gpt4.value\n${use}`,
+    });
+    expect(classesOf(report, 'OA-1.gpt-4', 'types.py'), explain(report)).toEqual(['live']);
+  });
+});
+
+describe('P5 round 5: the AI check', () => {
+  const answering = (seen: { text: string }): ModelClient => ({
+    model: CHECK_MODEL,
+    async complete(request) {
+      seen.text = request.messages
+        .flatMap((one) => one.content)
+        .map((one) => JSON.stringify(one))
+        .join('');
+      return {
+        content: [{ type: 'text', text: '[]' }],
+        stopReason: 'end_turn',
+        usage: { inputTokens: 100, outputTokens: 10 },
+      };
+    },
+  });
+
+  it("shows who calls the function, the list's exclusion, and not another client's create", async () => {
+    const repoDir = path.join(FIXTURES, 'elnazar535-coder__eleko-bot');
+    const report = await scanFixture('elnazar535-coder__eleko-bot');
+    const seen = { text: '' };
+    const ledger = () => BudgetLedger.open({ capUsd: 1 });
+    await checkUnclear(report, repoDir, { client: answering(seen), openLedger: ledger });
+    const [sendsFrom] = report.details.filter((one) => one.text.startsWith('from:'));
+    expect(sendsFrom?.reads?.[0], explain(report)).toMatch(
+      /index\.js:\d+: await sendMessage\(from, 'Received'\); \(in app\.post\('\/webhook'/,
+    );
+    expect(seen.text).toContain('Counts as a hit: a Twilio message');
+    expect(seen.text).toContain('from the handler of an inbound message');
+    expect(seen.text).not.toContain('ai.js');
+  });
+
+  it('gives the reads of a list as before, when a list is what holds the value', async () => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      'a.ts': `import OpenAI from "openai";\nconst NAMES = ["gpt-4", "gpt-4-0613", "gpt-3.5-turbo"];\nnew OpenAI().chat.completions.create({ model: NAMES[0] });\n`,
+    });
+    const hit = report.details.find((one) => one.matchClass === 'unclear');
+    expect(hit?.reads?.join(), explain(report)).toMatch(/NAMES\[0\]/);
+  });
+});
+
+describe('P5 round 5: list entries', () => {
+  it('flags a renamed Skills keyword and field under an open range, and not a local of that name', async () => {
+    const report = await scanFixture('rosscrooke__specialist-swarm');
+    const hits = report.details.filter((one) => one.entryId === 'AN-8.skills-fields');
+    expect(
+      hits.map((one) => [one.matchClass, one.text]),
+      explain(report),
+    ).toEqual([
+      ['unclear', 'existing_by_title[page.display_title] = page.id'],
+      ['unclear', 'display_title=display_title,'],
+    ]);
+    expect(hits[0].reason).toMatch(/no top, so a fresh install takes the newest, past 1\.2\.0/);
+    expect(report.clean).toBe(false);
+  });
+
+  it('keeps Skills fields quiet when the SDK is pinned below the rename', async () => {
+    const report = await scan({
+      'requirements.txt': 'anthropic==0.40.0\n',
+      'a.py': `import anthropic\nclient = anthropic.Anthropic()\nclient.beta.skills.create(display_title="x")\n`,
+    });
+    expect(classesOf(report, 'AN-8.skills-fields'), explain(report)).toEqual([]);
+    expect(report.quiet.some((one) => one.entryId === 'AN-8.skills-fields')).toBe(true);
+  });
+
+  it('flags a Cloud Functions runtime in the manifest beside firebase-functions only', async () => {
+    const report = await scanFixture('borodinka__hire-wise');
+    expect(
+      classesOf(report, 'GC-1.nodejs18-and-older', 'functions/package.json'),
+      explain(report),
+    ).toEqual(['unclear']);
+    expect(classesOf(report, 'GC-1.nodejs18-and-older', 'package.json')).toEqual([]);
+  });
+
+  it("leaves AWS Lambda's runtime names alone", async () => {
+    const report = await scan({
+      'package.json': manifest({ 'firebase-functions': '^4.0.0' }),
+      'firebase.json': '{ "functions": { "runtime": "nodejs22" } }\n',
+      'serverless.yml': 'provider:\n  # firebase-functions\n  runtime: nodejs18.x\n',
+    });
+    expect(classesOf(report, 'GC-1.nodejs18-and-older'), explain(report)).toEqual([]);
+  });
+
+  it("flags NVIDIA's retired hosted model on its own API", async () => {
+    const report = await scanFixture('manu14357__smartdoc');
+    expect(
+      classesOf(report, 'NV-1.llama-3.3-70b-instruct', 'src/app/api/message/route.ts'),
+      explain(report),
+    ).toEqual(['live']);
+    expect(report.unlistedProviders).not.toContain('nvidia.com');
+  });
+
+  it('flags the HeyGen token route and the SDK method with no URL on its line', async () => {
+    const report = await scanFixture('mohammadpurl__next-livekit-streaming');
+    expect(
+      classesOf(report, 'HG-1.streaming-rest', 'app/api/heygen-token/route.ts'),
+      explain(report),
+    ).toEqual(['live']);
+    const sdk = report.details.filter(
+      (one) => one.entryId === 'HG-2.streaming-avatar-sdk' && one.matchClass === 'live',
+    );
+    expect(sdk.map((one) => one.text).join('\n'), explain(report)).toMatch(/createStartAvatar/);
+    expect(sdk.some((one) => one.file === 'package.json')).toBe(true);
+  });
+
+  it('names Jira from the address its code reads out of the environment', async () => {
+    const report = await scanFixture('PunsaraniJayawardhana__AIspect');
+    expect(report.unlistedProviders).toContain('jira');
+  });
+});
+
+describe('product runs: a fallback beside the new read', () => {
+  const FALLBACK_REASON = /the replacement is read here or right beside it/;
+  const STRIPE_PIN = "new Stripe('k', { apiVersion: '2026-02-25.clover' });\n";
+
+  it('leaves the fallback a good fix writes clean', async () => {
+    const report = await scan({
+      ...STRIPE_AT('^20.0.0'),
+      'route.ts': `${STRIPE_IMPORT}${STRIPE_PIN}const invoice = event.data.object as Stripe.Invoice;\nexport const id = invoice?.parent?.subscription_details?.subscription ?? invoice?.subscription;\n`,
+    });
+    expect(fixTargets(report), explain(report)).toEqual([]);
+    expect(report.clean).toBe(true);
+    expect(report.details[0].reason).toMatch(FALLBACK_REASON);
+    expect(report.details[0].withFix).toBe(false);
+  });
+
+  it('reads a fallback through Python dict access', async () => {
+    const report = await scan({
+      'requirements.txt': 'stripe==12.0.0\n',
+      'a.py': `import stripe\ninvoice = stripe.Invoice.retrieve("in_1")\nsub = invoice.get("parent", {}).get("subscription_details", {}).get("subscription") or invoice.get("subscription")\n`,
+    });
+    expect(fixTargets(report), explain(report)).toEqual([]);
+  });
+
+  it('reads the new shape through a name bound to its holder', async () => {
+    const report = await scanFixture('CaioF__actors-copilot');
+    expect(fixTargets(report), explain(report)).toEqual([]);
+  });
+
+  it('reads old then new inside a small helper, and in a log beside the new shape', async () => {
+    const report = await scanFixture('charliejo11__gridster');
+    expect(fixTargets(report), explain(report)).toEqual([]);
+    expect(report.clean).toBe(true);
+  });
+
+  it.each(['anvveber__hyperion', 'mattogodoy__nametag'])(
+    'keeps sole reads through a cast flagged in %s, and clears the read of the new shape',
+    async (name) => {
+      const report = await scanFixture(name);
+      const webhook = 'app/api/webhooks/stripe/route.ts';
+      expect(classesOf(report, 'ST-1.current_period_start', webhook), explain(report)).toEqual([
+        'unclear',
+      ]);
+      expect(classesOf(report, 'ST-1.current_period_end', webhook)).toEqual(['unclear']);
+      expect(classesOf(report, 'ST-3.payment_intent', webhook)).toEqual(['unclear']);
+      expect(
+        fixTargets(report).filter((one) => one.file === 'app/api/billing/cancel/route.ts'),
+      ).toEqual([]);
+    },
+  );
+
+  it('still flags a sole read in the next function over from the new shape', async () => {
+    const report = await scan({
+      ...STRIPE_AT('^20.0.0'),
+      'route.ts': `${STRIPE_IMPORT}${STRIPE_PIN}function fresh(invoice: Stripe.Invoice) {\n  return invoice.parent?.subscription_details?.subscription;\n}\nfunction old(invoice: Stripe.Invoice) {\n  return invoice.subscription;\n}\n`,
+    });
+    expect(classesOf(report, 'ST-2.subscription'), explain(report)).toEqual(['live']);
+  });
+
+  it("doesn't take a read of the list that holds the new field as the new shape", async () => {
+    const report = await scan({
+      ...STRIPE_AT('^20.0.0'),
+      'route.ts': `${STRIPE_IMPORT}${STRIPE_PIN}export function go(subscription: Stripe.Subscription) {\n  const item = subscription.items.data[0];\n  return [item.price, subscription.current_period_end];\n}\n`,
+    });
+    expect(classesOf(report, 'ST-1.current_period_end'), explain(report)).toEqual(['live']);
+  });
+
+  it("doesn't take a comment or another field of the new shape as the new read", async () => {
+    const report = await scan({
+      ...STRIPE_AT('^20.0.0'),
+      'route.ts': `${STRIPE_IMPORT}${STRIPE_PIN}export function go(subscription: Stripe.Subscription) {\n  // moved to subscription.items.data[0].current_period_end\n  const start = subscription.items.data[0].current_period_start;\n  return [start, subscription.current_period_end];\n}\n`,
+    });
+    expect(classesOf(report, 'ST-1.current_period_end'), explain(report)).toEqual(['live']);
+  });
+
+  it('keeps a dead method called beside its replacement', async () => {
+    const report = await scan({
+      ...STRIPE_AT('^20.0.0'),
+      'a.ts': `${STRIPE_IMPORT}const stripe = ${STRIPE_PIN}export async function go() {\n  await stripe.invoices.createPreview({});\n  return stripe.invoices.retrieveUpcoming({});\n}\n`,
+    });
+    expect(classesOf(report, 'ST-5.upcoming'), explain(report)).toEqual(['unclear']);
+  });
+
+  it('holds a one-word replacement to the same object', async () => {
+    const report = await scan({
+      'package.json': manifest({ '@shopify/shopify-api': '^12.0.0' }),
+      'both.ts': `import '@shopify/shopify-api';\nexport const id = (payload) => payload.checkout_id ?? payload.checkout_token;\n`,
+      'other.ts': `import '@shopify/shopify-api';\nexport const ids = (payload, cart) => [payload.checkout_id, cart.checkout_token];\n`,
+    });
+    const entry = 'SH-11.webhook-checkout_id';
+    expect(classesOf(report, entry, 'both.ts'), explain(report)).toEqual(['catalog']);
+    expect(classesOf(report, entry, 'other.ts'), explain(report)).not.toContain('catalog');
+    expect(classesOf(report, entry, 'other.ts')).toHaveLength(1);
+  });
+});
+
+describe('product runs: deployment names on another host', () => {
+  it("keeps a table in a file that only names another host going with the provider's fix", async () => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      'a.ts':
+        "import OpenAI from 'openai';\nexport const live = () => new OpenAI().chat.completions.create({ model: 'gpt-4' });\n",
+      'b.ts':
+        "// bedrock is next\nexport const prices = { 'gpt-4': { input: 30 }, 'gpt-3.5-turbo-16k': { input: 3 } };\n",
+    });
+    const table = report.details.find((one) => one.file === 'b.ts' && one.entryId === 'OA-1.gpt-4');
+    expect([table?.matchClass, table?.withFix], explain(report)).toEqual(['catalog', true]);
+  });
+
+  it("keeps Azure deployment names out of a fix, and OpenAI's own record live", async () => {
+    const report = await scanFixture('atrueempire__yk');
+    const azure = report.details.filter(
+      (one) => one.file === 'config/provider/azure.ts' && one.entryId.startsWith('OA-'),
+    );
+    expect(azure.length, explain(report)).toBeGreaterThan(0);
+    expect(
+      new Set(azure.map((one) => [one.matchClass, one.withFix].join())),
+      explain(report),
+    ).toEqual(new Set(['catalog,false']));
+    expect(azure[0].reason).toMatch(/Azure OpenAI/);
+    const own = report.details.find((one) => one.file === 'config/provider/openai.ts');
+    expect([own?.matchClass, own?.withFix], explain(report)).toEqual(['live', true]);
+  });
+
+  it('sends an Azure record a picker offers to the check, not straight to a fix', async () => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      'config/provider/azure.ts':
+        "export const model = [{ id: 'gpt-4', name: 'GPT-4', maxOutputTokens: 4096, price: 18.0 }];\n",
+      'components/model-select.tsx':
+        "import { model as AzureOpenAIModel } from '../config/provider/azure';\nexport const A = ({ pick }) => <ModelSelector onChange={pick} models={AzureOpenAIModel} />;\n",
+    });
+    expect(classesOf(report, 'OA-1.gpt-4', 'config/provider/azure.ts'), explain(report)).toEqual([
+      'unclear',
+    ]);
+  });
+});
+
+describe('product runs: a URL with a placeholder where the id goes', () => {
+  const META_PACKAGE = { 'package.json': manifest({ 'facebook-nodejs-business-sdk': '^20.0.0' }) };
+
+  it("doesn't flag a simulator's log entry or mock data", async () => {
+    const report = await scanFixture('hridoyhossain1001__buykori-client-portal');
+    expect(classesOf(report, 'MG-1.v18.0', 'server.ts'), explain(report)).toEqual(['catalog']);
+    expect(classesOf(report, 'MG-1.v18.0', 'src/lib/mock-data.ts')).toEqual(['catalog']);
+    expect(report.clean, explain(report)).toBe(true);
+  });
+
+  it.each([
+    [
+      'a template that fills the id in',
+      'fetch(`https://graph.facebook.com/v18.0/${pixelId}/events`);',
+    ],
+    ['a real id', "fetch('https://graph.facebook.com/v18.0/1234567890/events');"],
+    ['a word that is part of the path', "fetch('https://graph.facebook.com/v18.0/me/events');"],
+    [
+      'a placeholder the code replaces',
+      "fetch('https://graph.facebook.com/v18.0/pixel_id/events'.replace('pixel_id', id));",
+    ],
+  ])('keeps %s live', async (_what, line) => {
+    const report = await scan({ ...META_PACKAGE, 'a.js': `${line}\n` });
+    expect(classesOf(report, 'MG-1.v18.0', 'a.js'), explain(report)).toEqual(['live']);
+  });
+});
+
+describe('product runs: a REST import that carries its own version', () => {
+  const SHOPIFY_PACKAGE = { 'package.json': manifest({ '@shopify/shopify-api': '^12.0.0' }) };
+  const IMPORT_AT = (version: string) =>
+    `import { restResources } from "@shopify/shopify-api/rest/admin/${version}";\n`;
+
+  it('flags a REST resources import at a dead version', async () => {
+    const report = await scanFixture('tungbinzzz__instagram-app-shopify');
+    expect(
+      classesOf(report, 'SH-1.before-2025-04', 'app/shopify.server.js'),
+      explain(report),
+    ).toEqual(['live']);
+    expect(report.clean).toBe(false);
+  });
+
+  it.each([
+    ['2024-10', 'SH-1.before-2025-04'],
+    ['2025-04', 'SH-1.2025-04'],
+    ['2025-07', 'SH-1.2025-07'],
+    ['2025-10', 'SH-1.2025-10'],
+  ])('reads %s as %s, from the list', async (version, entry) => {
+    const report = await scan({ ...SHOPIFY_PACKAGE, 'a.js': IMPORT_AT(version) });
+    expect(classesOf(report, entry, 'a.js'), explain(report)).toEqual(['live']);
+  });
+
+  it('leaves an import at a live version alone, and a commented one quiet', async () => {
+    const report = await scan({
+      ...SHOPIFY_PACKAGE,
+      'a.js': IMPORT_AT('2026-07'),
+      'b.js': `// ${IMPORT_AT('2024-10')}`,
+    });
+    expect(fixTargets(report), explain(report)).toEqual([]);
+  });
+});
+
+describe('product runs: code that strips a dead field', () => {
+  const META_PACKAGE = { 'package.json': manifest({ 'facebook-nodejs-business-sdk': '^20.0.0' }) };
+
+  it('keeps a delete out of a fix, and a read beside it live', async () => {
+    const report = await scanFixture('dvygolov__AdReplica');
+    const file = 'src/domain/creative.mjs';
+    const lines = report.details.filter(
+      (one) => one.entryId === 'MG-6.instagram_actor_id' && one.file === file,
+    );
+    const by = (text: string) => lines.filter((one) => one.text.includes(text));
+    expect(by('delete ').length, explain(report)).toBe(2);
+    for (const one of by('delete ')) {
+      expect([one.matchClass, one.withFix], explain(report)).toEqual(['catalog', false]);
+    }
+    expect(by('if (osp?.instagram_actor_id)')[0].matchClass, explain(report)).toBe('live');
+  });
+
+  it.each([
+    ['a.js', 'delete spec["instagram_actor_id"];'],
+    ['a.py', 'del spec["instagram_actor_id"]'],
+    ['a.py', 'del spec.instagram_actor_id'],
+    ['a.py', 'spec.pop("instagram_actor_id", None)'],
+    ['a.rb', 'spec.delete("instagram_actor_id")'],
+    ['a.php', 'unset($spec["instagram_actor_id"]);'],
+  ])('reads %s %s as a strip', async (file, line) => {
+    const report = await scan({ ...META_PACKAGE, [file]: `${line}\n` });
+    expect(classesOf(report, 'MG-6.instagram_actor_id', file), explain(report)).toEqual([
+      'catalog',
+    ]);
+  });
+
+  it.each([
+    ['a.py', 'value = spec.pop("instagram_actor_id")'],
+    ['a.py', 'return spec.pop("instagram_actor_id", None)'],
+    ['a.js', 'spec.instagram_actor_id = value;'],
+  ])('keeps %s %s, which uses the value', async (file, line) => {
+    const report = await scan({ ...META_PACKAGE, [file]: `${line}\n` });
+    expect(classesOf(report, 'MG-6.instagram_actor_id', file), explain(report)).toEqual(['live']);
+  });
+
+  it('strips a field matcher too', async () => {
+    const report = await scan({
+      ...STRIPE_AT('^20.0.0'),
+      'a.ts': `${STRIPE_IMPORT}new Stripe('k', { apiVersion: '2026-02-25.clover' });\nexport function go(subscription: Stripe.Subscription) {\n  delete subscription.current_period_end;\n}\n`,
+    });
+    expect(classesOf(report, 'ST-1.current_period_end'), explain(report)).toEqual(['catalog']);
+  });
+});
+
+describe('product runs: api_version in a Shopify extension', () => {
+  const report = () => scanFixture('LazerTechnologies__shopify-app-development-course');
+  const uiExtensions = [
+    ['extensions/customer-cancel-button/shopify.extension.toml', 'SH-1.2025-07'],
+    ['extensions/admin-dob-verification/shopify.extension.toml', 'SH-1.2025-04'],
+  ];
+
+  it.each(uiExtensions)("keeps a UI extension's version out of a fix: %s", async (file, entry) => {
+    const scanned = await report();
+    const found = scanned.details.filter((one) => one.file === file && one.entryId === entry);
+    expect(
+      found.map((one) => [one.matchClass, one.withFix]),
+      explain(scanned),
+    ).toEqual([['catalog', false]]);
+    expect(found[0].reason).toMatch(/keep working/);
+  });
+
+  it("leaves a function's version and the app's for the check", async () => {
+    const scanned = await report();
+    expect(
+      classesOf(
+        scanned,
+        'SH-1.2025-04',
+        'extensions/raffle-discount-function/shopify.extension.toml',
+      ),
+      explain(scanned),
+    ).toEqual(['unclear']);
+    expect(classesOf(scanned, 'SH-1.2025-10', 'shopify.app.toml')).toEqual(['unclear']);
+  });
+
+  it('tells a fix and the check the same thing the list says', () => {
+    const entries = loadDeadApis().entries.filter((entry) => entry.id.startsWith('SH-1.'));
+    expect(entries.length).toBeGreaterThan(0);
+    for (const entry of entries) {
+      expect(entry.what, entry.id).toMatch(/Polaris UI extensions are different.*keep working/);
+      const requires = (entry.requires ?? []).join('\n');
+      expect(requires, entry.id).toMatch(/plain string.*SDK behaviour, not a Shopify promise/s);
+      expect(requires, entry.id).toMatch(/don't bump an extension's api_version alone/);
+    }
   });
 });

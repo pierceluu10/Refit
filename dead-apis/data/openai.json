@@ -4505,12 +4505,19 @@
         "checkedOn": "2026-11-05",
         "quote": "2024-01-04 | /v1/edits | /v1/chat/completions"
       },
-      "lookFor": ["A request to the path /v1/edits"],
+      "lookFor": [
+        "A request to the path /v1/edits",
+        "An SDK call that sends this path on an openai-named client, such as createEdit in the 3.x Node SDK. The method names are read from the source of openai 3.1.0, not the page."
+      ],
       "matchers": [
         {
           "kind": "url",
           "value": "/v1/edits",
           "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\b\\w*[oO]pen[aA][iI]\\w*\\.(?:createEdit)\\s*\\(|\\bopenai\\.Edit\\.create\\s*\\("
         }
       ],
       "replacement": "/v1/chat/completions",
@@ -4540,12 +4547,19 @@
         "checkedOn": "2026-11-05",
         "quote": "2024-01-04 | /v1/fine-tunes | /v1/fine_tuning/jobs"
       },
-      "lookFor": ["A request to the path /v1/fine-tunes"],
+      "lookFor": [
+        "A request to the path /v1/fine-tunes",
+        "An SDK call that sends this path on an openai-named client, such as createFineTune in the 3.x Node SDK. The method names are read from the source of openai 3.1.0, not the page."
+      ],
       "matchers": [
         {
           "kind": "url",
           "value": "/v1/fine-tunes",
           "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\b\\w*[oO]pen[aA][iI]\\w*\\.(?:createFineTune|listFineTunes|retrieveFineTune|cancelFineTune|listFineTuneEvents)\\s*\\(|\\bopenai\\.FineTune\\.\\w+\\s*\\("
         }
       ],
       "replacement": "The page lists /v1/fine_tuning/jobs, which closes to new jobs for active existing customers on 2027-01-06 (OA-4.fine-tuning-jobs) and is already closed to most others. The page names no replacement after it.",
@@ -4574,12 +4588,19 @@
         "checkedOn": "2026-11-05",
         "quote": "2022-12-03 | /v1/engines"
       },
-      "lookFor": ["A request to the path /v1/engines"],
+      "lookFor": [
+        "A request to the path /v1/engines",
+        "An SDK call that sends this path on an openai-named client, such as listEngines in the 3.x Node SDK. The method names are read from the source of openai 3.1.0, not the page."
+      ],
       "matchers": [
         {
           "kind": "url",
           "value": "/v1/engines",
           "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\b\\w*[oO]pen[aA][iI]\\w*\\.(?:listEngines|retrieveEngine)\\s*\\(|\\bopenai\\.Engine\\.(?:list|retrieve)\\s*\\("
         }
       ],
       "replacement": "/v1/models",
@@ -4608,12 +4629,19 @@
         "checkedOn": "2026-11-05",
         "quote": "2022-12-03 | /v1/search"
       },
-      "lookFor": ["A request to the path /v1/search"],
+      "lookFor": [
+        "A request to the path /v1/search",
+        "An SDK call that sends this path on an openai-named client, such as createSearch in the 3.x Node SDK. The method names are read from the source of openai 3.1.0, not the page."
+      ],
       "matchers": [
         {
           "kind": "url",
           "value": "/v1/search",
           "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\b\\w*[oO]pen[aA][iI]\\w*\\.(?:createSearch)\\s*\\(|\\bopenai\\.Engine\\([^)]*\\)\\.search\\s*\\("
         }
       ],
       "replacement": "The page links a search transition guide and names no endpoint.",
@@ -4641,12 +4669,19 @@
         "checkedOn": "2026-11-05",
         "quote": "2022-12-03 | /v1/classifications"
       },
-      "lookFor": ["A request to the path /v1/classifications"],
+      "lookFor": [
+        "A request to the path /v1/classifications",
+        "An SDK call that sends this path on an openai-named client, such as createClassification in the 3.x Node SDK. The method names are read from the source of openai 3.1.0, not the page."
+      ],
       "matchers": [
         {
           "kind": "url",
           "value": "/v1/classifications",
           "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\b\\w*[oO]pen[aA][iI]\\w*\\.(?:createClassification)\\s*\\(|\\bopenai\\.Classification\\.create\\s*\\("
         }
       ],
       "replacement": "The page links a classifications transition guide and names no endpoint.",
@@ -4674,12 +4709,19 @@
         "checkedOn": "2026-11-05",
         "quote": "2022-12-03 | /v1/answers"
       },
-      "lookFor": ["A request to the path /v1/answers"],
+      "lookFor": [
+        "A request to the path /v1/answers",
+        "An SDK call that sends this path on an openai-named client, such as createAnswer in the 3.x Node SDK. The method names are read from the source of openai 3.1.0, not the page."
+      ],
       "matchers": [
         {
           "kind": "url",
           "value": "/v1/answers",
           "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\b\\w*[oO]pen[aA][iI]\\w*\\.(?:createAnswer)\\s*\\(|\\bopenai\\.Answer\\.create\\s*\\("
         }
       ],
       "replacement": "The page links an answers transition guide and names no endpoint.",

@@ -15,7 +15,14 @@ describe('readConfig', () => {
       webhookSecret: 'super-secret-value',
       port: 3000,
       queueFile: '.aptitude/queue.json',
+      triggerDir: '.aptitude/triggers',
+      dataDir: '.aptitude/app',
     });
+  });
+
+  it('honours APTITUDE_APP_DIR', () => {
+    const env = { ...BASE, GITHUB_APP_PRIVATE_KEY: PEM, APTITUDE_APP_DIR: '/data/app' };
+    expect(readConfig(env).dataDir).toBe('/data/app');
   });
 
   it('reads the key from a file and honours PORT', () => {

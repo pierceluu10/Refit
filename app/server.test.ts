@@ -30,10 +30,18 @@ async function start(overrides: Partial<WebhookServerDeps> = {}) {
   server = createWebhookServer({
     webhookSecret: SECRET,
     queue: { enqueue: async (job) => void jobs.push(job) },
+    forgetRepo: async () => {},
     recordVerdict: async (pr, verdict) => void verdicts.push([pr, verdict]),
     tokens: { token: async () => 'ghs_test_installation_token' },
     listRepos: async () => INSTALLED_REPOS,
     compareCommits: async () => [],
+    evidence: {
+      closed: async () => {},
+      edited: async () => {},
+      revertMerged: async () => {},
+      pushed: async () => {},
+    },
+    consent: { recordInstall: async () => {}, forget: async () => {} },
     listRunViews: async () => [],
     viewerRepos: async () => [],
     ...overrides,
