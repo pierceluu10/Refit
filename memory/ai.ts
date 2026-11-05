@@ -1,6 +1,7 @@
 import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import Anthropic from '@anthropic-ai/sdk';
 import { tmpdir } from 'node:os';
+import { MODEL_PRICES } from '../shared/prices.ts';
 
 export class BudgetExceededError extends Error {}
 
@@ -57,9 +58,8 @@ export interface Embedder {
 
 // Sonnet, not Opus: distilling a transcript into a recipe was 41% of round 3's first iteration on Opus.
 export const MODEL = 'claude-sonnet-5-5';
-// Source: Claude API pricing for claude-sonnet-5-5, $2 / $10 per million tokens (harness/ledger.ts, 2026-10-06).
-const INPUT_USD_PER_TOKEN = 2 / 1_000_000;
-const OUTPUT_USD_PER_TOKEN = 10 / 1_000_000;
+const INPUT_USD_PER_TOKEN = MODEL_PRICES[MODEL].input / 1_000_000;
+const OUTPUT_USD_PER_TOKEN = MODEL_PRICES[MODEL].output / 1_000_000;
 
 // Plain fields, not parameter properties: node runs these files by stripping types, and can't strip those.
 export class AnthropicModel implements Model {

@@ -3,6 +3,7 @@
 // run-level dollar cap is one of Aptitude's four hard limits.
 
 import Anthropic from '@anthropic-ai/sdk';
+import { MODEL_PRICES, ratesFor, WEB_SEARCH_USD, type ModelPrice } from '../../shared/prices.ts';
 
 export type TextBlock = { type: 'text'; text: string };
 export type ToolUseBlock = { type: 'tool_use'; id: string; name: string; input: unknown };
@@ -70,48 +71,28 @@ export function isText(block: ContentBlock): block is TextBlock {
   return block.type === 'text' && typeof (block as TextBlock).text === 'string';
 }
 
-type Price = {
-  /** Dollars per million input and output tokens. */
-  input: number;
-  output: number;
-  /** A cache read as a fraction of the input price. */
-  cacheRead: number;
-  /** Above this many prompt tokens, the long-context price applies. */
-  longAbove?: number;
-  long?: { input: number; output: number };
-};
-
-// First-party API list prices, 2026-10. Cache writes (5-minute TTL) cost 1.25x input.
-const PRICES: Record<string, Price> = {
-  'claude-opus-5-5': { input: 4, output: 20, cacheRead: 0.05 },
-  'claude-sonnet-5-5': { input: 2, output: 10, cacheRead: 0.1 },
-  'claude-haiku-5-5': {
-    input: 0.1,
-    output: 0.5,
-    cacheRead: 0.1,
-    longAbove: 100_000,
-    long: { input: 0.5, output: 2.5 },
-  },
-};
 // Unknown models are priced high, cache reads at the full input price, so the cap errs on the side
 // of stopping spend.
-const UNKNOWN_PRICE: Price = { input: 10, output: 50, cacheRead: 1 };
-const CACHE_WRITE = 1.25;
-/** Server-side web search: $10 per 1,000 searches. */
-export const WEB_SEARCH_USD = 0.01;
+const UNKNOWN_PRICE: ModelPrice = {
+  input: 10,
+  output: 50,
+  cacheWrite: 12.5,
+  cacheWriteHour: 20,
+  cacheRead: 10,
+};
+export { WEB_SEARCH_USD };
 
 /** Dollars for a call's usage. `longRate` prices it at the long-context rate whatever its size. */
 export function costOf(model: string, usage: Usage, options: { longRate?: boolean } = {}): number {
-  const price = PRICES[model] ?? UNKNOWN_PRICE;
+  const price = MODEL_PRICES[model] ?? UNKNOWN_PRICE;
   const cacheWrite = usage.cacheWriteTokens ?? 0;
   const cacheRead = usage.cacheReadTokens ?? 0;
   const prompt = usage.inputTokens + cacheWrite + cacheRead;
-  const long = options.longRate || (price.longAbove !== undefined && prompt > price.longAbove);
-  const rate = price.long && long ? price.long : price;
+  const rate = options.longRate && price.long ? price.long : ratesFor(price, prompt);
   const tokens =
     usage.inputTokens * rate.input +
-    cacheWrite * rate.input * CACHE_WRITE +
-    cacheRead * rate.input * price.cacheRead +
+    cacheWrite * rate.cacheWrite +
+    cacheRead * rate.cacheRead +
     usage.outputTokens * rate.output;
   return tokens / 1_000_000 + (usage.webSearches ?? 0) * WEB_SEARCH_USD;
 }
@@ -212,7 +193,7 @@ function worstCost(
     Math.ceil(requestChars(request) * Math.max(tokensPerChar, TOKENS_PER_CHAR)) +
     HIDDEN_PROMPT_TOKENS;
   // An estimate can fall short of a long-context threshold the real prompt passes; take the dearer rate near it.
-  const price = PRICES[model];
+  const price = MODEL_PRICES[model];
   const longRate = Boolean(price?.longAbove && promptTokens > price.longAbove * 0.75);
   const cacheWriteTokens = promptTokens + searches * SEARCH_RESULT_TOKENS;
   return (outputTokens) =>

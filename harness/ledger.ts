@@ -1,4 +1,5 @@
 // Hard limit 2: a run-level dollar cap. Every model call is charged here.
+import { MODEL_PRICES, WEB_SEARCH_USD, ratesFor } from '../shared/prices.ts';
 
 export class BudgetExceededError extends Error {}
 
@@ -8,15 +9,6 @@ export type LedgerEntry = { model: string; costUsd: number; note: string };
 // even if the harness throws later. It must not throw: it runs inside the model stream, where a
 // throw ends the query as an error. The harness's own ledger already enforces its cap.
 export type ChargeRun = (usd: number, label: string) => void;
-
-// Dollars per million tokens. Source: Anthropic model pricing (claude-api skill, cached 2026-10-06),
-// the same rates as orchestrator/budget.ts. Cache writes cost 1.25x input for 5 minutes, 2x for 1 hour;
-// web search is $10 per 1,000 searches.
-const PRICES: Record<string, { input: number; output: number; cacheRead: number }> = {
-  'claude-opus-5-5': { input: 4, output: 20, cacheRead: 0.2 },
-  'claude-sonnet-5-5': { input: 2, output: 10, cacheRead: 0.2 },
-};
-const WEB_SEARCH_USD = 0.01;
 
 // The fields both a message_start usage and a message_delta usage carry; null means not reported.
 export type TokenUsage = {
@@ -30,15 +22,18 @@ export type TokenUsage = {
 
 export function usageCostUsd(model: string, usage: TokenUsage): number {
   // An unknown model is priced as Opus, so a live charge does not undercount; the SDK's total reconciles it.
-  const price = PRICES[Object.keys(PRICES).find((id) => model.includes(id)) ?? 'claude-opus-5-5'];
+  const id = Object.keys(MODEL_PRICES).find((known) => model.includes(known));
   const writes = usage.cache_creation_input_tokens ?? 0;
   const hourWrites = Math.min(writes, usage.cache_creation?.ephemeral_1h_input_tokens ?? 0);
+  const reads = usage.cache_read_input_tokens ?? 0;
+  const inputs = usage.input_tokens ?? 0;
+  const rates = ratesFor(MODEL_PRICES[id ?? 'claude-opus-5-5'], inputs + writes + reads);
   const tokens =
-    (usage.input_tokens ?? 0) * price.input +
-    (writes - hourWrites) * price.input * 1.25 +
-    hourWrites * price.input * 2 +
-    (usage.cache_read_input_tokens ?? 0) * price.cacheRead +
-    (usage.output_tokens ?? 0) * price.output;
+    inputs * rates.input +
+    (writes - hourWrites) * rates.cacheWrite +
+    hourWrites * rates.cacheWriteHour +
+    reads * rates.cacheRead +
+    (usage.output_tokens ?? 0) * rates.output;
   return tokens / 1e6 + (usage.server_tool_use?.web_search_requests ?? 0) * WEB_SEARCH_USD;
 }
 

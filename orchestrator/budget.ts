@@ -1,14 +1,5 @@
 import type Anthropic from '@anthropic-ai/sdk';
-
-// Dollars per million tokens. Source: Anthropic model pricing table (claude-api skill, cached 2026-10-06).
-const PRICES: Record<
-  string,
-  { input: number; output: number; cacheWrite: number; cacheRead: number }
-> = {
-  'claude-opus-5-5': { input: 4, output: 20, cacheWrite: 5, cacheRead: 0.2 },
-  'claude-sonnet-5-5': { input: 2, output: 10, cacheWrite: 2.5, cacheRead: 0.2 },
-  'claude-haiku-5-5': { input: 0.1, output: 0.5, cacheWrite: 0.125, cacheRead: 0.01 },
-};
+import { MODEL_PRICES, ratesFor } from '../shared/prices.ts';
 
 export class BudgetExceededError extends Error {}
 
@@ -32,7 +23,7 @@ export type Budget = {
 };
 
 function price(model: string) {
-  const p = PRICES[model];
+  const p = MODEL_PRICES[model];
   if (!p)
     throw new Error(
       `No price for model ${model}; add it to orchestrator/budget.ts before spending.`,
@@ -42,19 +33,21 @@ function price(model: string) {
 
 // What a Messages API call cost.
 export function costOf(model: string, usage: Anthropic.Usage): number {
-  const p = price(model);
+  const writes = usage.cache_creation_input_tokens ?? 0;
+  const reads = usage.cache_read_input_tokens ?? 0;
+  const p = ratesFor(price(model), usage.input_tokens + writes + reads);
   return (
     (usage.input_tokens * p.input +
       usage.output_tokens * p.output +
-      (usage.cache_creation_input_tokens ?? 0) * p.cacheWrite +
-      (usage.cache_read_input_tokens ?? 0) * p.cacheRead) /
+      writes * p.cacheWrite +
+      reads * p.cacheRead) /
     1e6
   );
 }
 
 // The most a call can cost: every input token plus a full max_tokens of output.
 export function worstCaseUsd(model: string, inputTokens: number, maxOutputTokens: number): number {
-  const p = price(model);
+  const p = ratesFor(price(model), inputTokens);
   return (inputTokens * p.input + maxOutputTokens * p.output) / 1e6;
 }
 
