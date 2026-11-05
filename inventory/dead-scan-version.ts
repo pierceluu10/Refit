@@ -243,7 +243,11 @@ export async function loadVersionFacts(
 ): Promise<VersionFacts> {
   const pins = sources.filter((source) => !ignored(source.file)).flatMap(pinsIn);
   const wanted = new Set(
-    entries.flatMap((entry) => entry.appliesTo?.sdkSince?.map((one) => one.package) ?? []),
+    entries.flatMap((entry) =>
+      [...(entry.appliesTo?.sdkSince ?? []), ...(entry.appliesTo?.sdkUntil ?? [])].map(
+        (one) => one.package,
+      ),
+    ),
   );
   const present = new Set(
     manifests.flatMap((manifest) => manifest.dependencies.map((one) => one.name)),
@@ -373,7 +377,10 @@ function pinFor(
 const dateOf = (version: string) => DATED_VERSION.exec(version)?.[0] ?? version;
 
 function sdkGate(entry: DeadApiEntry, source: Source, facts: VersionFacts): Gate | undefined {
-  const specs = entry.appliesTo?.sdkSince ?? [];
+  const specs = [
+    ...(entry.appliesTo?.sdkSince ?? []),
+    ...(entry.appliesTo?.sdkUntil ?? []).map((one) => ({ ...one, until: true })),
+  ];
   const language = source.file.endsWith('.py') ? 'python' : 'npm';
   const chosen = specs.filter((spec) => (spec.ecosystem ?? 'npm') === language);
   const gates = (chosen.length > 0 ? chosen : specs).flatMap((spec): Gate[] => {
@@ -390,29 +397,31 @@ function sdkGate(entry: DeadApiEntry, source: Source, facts: VersionFacts): Gate
         },
       ];
     }
-    const compared = `${spec.package} ${installed.version} (${installed.via}), removal at ${spec.version}`;
-    if (compareVersions(installed.version, spec.version) >= 0) {
-      return [
-        { state: 'at-or-after', version: installed.version, reason: `SDK default: ${compared}` },
-      ];
-    }
+    const until = 'until' in spec;
+    const compared = `${spec.package} ${installed.version} (${installed.via}), ${until ? 'moved off it' : 'removal'} at ${spec.version}`;
+    const dead: Gate = {
+      state: 'at-or-after',
+      version: installed.version,
+      reason: `SDK default: ${compared}`,
+    };
+    const safe: Gate = {
+      state: 'below',
+      version: installed.version,
+      reason: `below the gate, SDK default: ${compared}`,
+    };
+    if (compareVersions(installed.version, spec.version) >= 0) return [until ? safe : dead];
     const { bounds } = installed;
     const above = bounds?.top === undefined ? 1 : compareVersions(bounds.top, spec.version);
     const reaches = bounds !== undefined && (bounds.topExcluded ? above > 0 : above >= 0);
-    return reaches
-      ? [
-          {
-            state: 'unknown',
-            reason: `the range can install either side of the removal: ${compared}`,
-          },
-        ]
-      : [
-          {
-            state: 'below',
-            version: installed.version,
-            reason: `below the gate, SDK default: ${compared}`,
-          },
-        ];
+    if (reaches) {
+      return [
+        {
+          state: 'unknown',
+          reason: `the range can install either side of the removal: ${compared}`,
+        },
+      ];
+    }
+    return [until ? dead : safe];
   });
   return (
     gates.find((gate) => gate.state === 'at-or-after') ??
@@ -423,7 +432,7 @@ function sdkGate(entry: DeadApiEntry, source: Source, facts: VersionFacts): Gate
 
 export function gateFor(entry: DeadApiEntry, source: Source, facts: VersionFacts): Gate {
   const since = entry.appliesTo?.apiVersionSince;
-  const hasSdk = Boolean(entry.appliesTo?.sdkSince?.length);
+  const hasSdk = Boolean(entry.appliesTo?.sdkSince?.length || entry.appliesTo?.sdkUntil?.length);
   if (!since && !hasSdk) return { state: 'none' };
   const sdk = hasSdk ? sdkGate(entry, source, facts) : undefined;
   if (since) {

@@ -147,6 +147,8 @@ export type DeadApiVersions = {
   describe: string;
   apiVersionSince?: string; // the provider's dated API version that removed it, e.g. 2025-03-31.basil
   sdkSince?: { package: string; version: string; ecosystem?: 'npm' | 'python' }[];
+  // The other way round: versions below this are the dead ones, such as an SDK whose old default host is gone.
+  sdkUntil?: { package: string; version: string; ecosystem?: 'npm' | 'python' }[];
 };
 
 export type DeadApiEntry = {

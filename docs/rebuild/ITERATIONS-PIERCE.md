@@ -6,11 +6,12 @@ The loop for P5. Each round measures a fresh random sample (seed `pierce-p5`, di
 
 **How a round is scored:** an agent reads each repo blind and lists what's really dead, by the list or an official page. It then opens the report and judges every live finding. Recall is really dead items flagged live, unclear or with a fix, out of all really dead items, including providers the list doesn't have. Precision is live lines judged correct, out of live lines judged, after the AI check. These are one agent's readings, and no provider was called to confirm a break.
 
-| Round | Time (UTC)       | Commit scanned | Repos | Dead items | Recall (on the list) | Live judged | Precision | AI check cost                              | Median / max seconds |
-| ----- | ---------------- | -------------- | ----- | ---------- | -------------------- | ----------- | --------- | ------------------------------------------ | -------------------- |
-| 1     | 2026-11-05 09:58 | `948862f5`     | 16    | 60         | 57% (89%)            | 64          | 48%       | $0.0116 for all 21 repos with unclear hits | 0.15 / 14.6          |
-| 2     | 2026-11-05 10:48 | `468423d4`     | 16    | 25         | 52% (81%)            | 37          | 35%       | $0.0185 for all repos with unclear hits    | 0.2 / 15.2           |
-| 3     | 2026-11-05 11:16 | `ab593087`     | 16    | 118        | 86% (97%)            | 177         | 58%       | $0.0194 for all repos with unclear hits    | 0.2 / 16.0           |
+| Round | Time (UTC)       | Commit scanned | Repos | Dead items | Recall (on the list) | Live judged | Precision | AI check cost                                                                  | Median / max seconds |
+| ----- | ---------------- | -------------- | ----- | ---------- | -------------------- | ----------- | --------- | ------------------------------------------------------------------------------ | -------------------- |
+| 1     | 2026-11-05 09:58 | `948862f5`     | 16    | 60         | 57% (89%)            | 64          | 48%       | $0.0116 for all 21 repos with unclear hits                                     | 0.15 / 14.6          |
+| 2     | 2026-11-05 10:48 | `468423d4`     | 16    | 25         | 52% (81%)            | 37          | 35%       | $0.0185 for all repos with unclear hits                                        | 0.2 / 15.2           |
+| 3     | 2026-11-05 11:16 | `ab593087`     | 16    | 118        | 86% (97%)            | 177         | 58%       | $0.0194 for all repos with unclear hits                                        | 0.2 / 16.0           |
+| 4     | 2026-11-05 11:44 | `cbc417f6`     | 16    | 95         | 80% (87%)            | 74          | 85%       | $0.0223 for all repos with unclear hits, plus the fix agent's capped test runs | 0.2 / 4.5            |
 
 ## Round 1
 
@@ -101,3 +102,32 @@ The loop for P5. Each round measures a fresh random sample (seed `pierce-p5`, di
 - nicuk lib/query-complexity-classifier.ts:296 and :298 are newly live via OR-1. They go into a recommendedModel field nothing appears to read, so these are likely new false alarms. Current rules treat a holder nothing reads as no evidence.
 - The Whop regex needs 'whop' in the client's name, so `sdk.users.getUser` on an @whop/api client is missed. A wider root would catch unrelated SDKs.
 - The false-guard rule covers only JS `const x = false` with `if (x) {`, not Python or ternaries. It carries a shortcut comment in the code.
+
+## Round 4
+
+**Numbers:** 76 of 95 dead items flagged, 63 of 74 live lines correct, 0 couldn't be told. False alarms by repo: swharr/TrailblazerAI 10, Anassarwar14/Chat-Nest-AI 1. One repo gave 10 of the 11 false alarms. Precision met 85% on this sample for the first time, at 63 of 74, with no finding left uncertain.
+
+**Top causes, and what changed:**
+
+- **Misses: a model record fed into a picker was classed as a catalog (`{ id, name }` lists mapped into a select), so its values never reached live** (10): Added `recordPicker` in inventory/dead-scan-reach.ts, used by classify in dead-scan.ts: a record list that a local picker renders or that a picker prop receives now continues as a picker instead of catalog. It fired 27 times across the repos. JS/TS only. Fixture atrueempire__yk and tests added.
+- **Misses: the provider had no list file (Mistral 2+, Perplexity, Hugging Face SDK default host, Bitpanda exchange host, youtube-transcript-api static methods)** (8): New dead-apis/data files: mistral.json (MI-1._, MI-2._), perplexity.json (PX-1..4, all bare), huggingface.json (HF-1.*), bitpanda.json (BP-1), youtube-transcript-api.json (YT-1), plus catalog entries. Added additive `sdkUntil` to shared/types.ts and to the version gate for old-SDK-only deaths. Each entry has a source URL, checkedOn 2026-11-05 and a fetched quote. HF and Bitpanda sourcing is weak: see unfixed. Fixtures atrueempire__yk, MRwangqi__chatGPT-nodejs, Brettjo77__YTAstroAssistant and provinzio__CoinTaxman added. YouTube comes out unclear because >=0.6.2 can install either side; the AI check made it live.
+- **False alarms: an allow-list test of a model name in swharr route.ts:37,40,41,42 was flagged even though other branches use their own model** (4): Tried a prompt sentence plus table-name reads, then added caller reads, measuring both on swharr. The AI still said live for all, so both were reverted and dead-check.ts is back to HEAD. Only Anthropic's branch passes `model`, so separating them needs per-branch flow in one repo, and a deterministic rule would also hide the 4 true Anthropic lines.
+- **False alarms: the fallback in a controlled `<Select value={saved || x}>` was read as a sent value, though the kept value is what's used** (2): `controlledValueReach` in inventory/dead-scan-reach.ts makes it catalog. admin/page.tsx:579 and 747 are now catalog. Fixture swharr__TrailblazerAI and tests added.
+- **False alarms: an option's visible label was read as its value (`o1 Mini` matching OA-1.o1)** (2): `holdsOptionTag` in inventory/dead-scan-place.ts: a JSX tag with `value=` makes its text only a label. The wrong OA-1.o1 at admin:678/679 is gone. Those lines still flag correctly as OA-1.o1-mini, because their value= is o1-mini, so the line count there doesn't drop.
+- **Miss: an SDK method hides the dead endpoint, so OpenAI 3.x `createCompletion`-era calls named no URL** (1): Regex matchers added to OA-3.v1-engines, edits, fine-tunes, search, classifications and answers in openai.json. Method names were verified from the openai@3.1.0 dist, and the receiver must be openai-named. Fixture MRwangqi__chatGPT-nodejs added.
+- **False alarm: a model name on a usage record beside token counts (swharr sample-analysis/page.tsx:157) is display data** (1): Built `usageRecordReach`, then deleted it along with its test and fixture. It fired on this one line in all the repos, so it was a one-repo rule. The line is live again.
+- **False alarm: an option in swharr analyze/page.tsx:403 (gemini-pro-vision) is rejected by the server's own allow-list** (1): No rule: one line in one repo, and the same cross-file allow-list problem as the 4 above.
+- **False alarm: Anassarwar14 route.ts:50 `modelName` is a storage-key label inside a template** (1): No rule: grep found this shape only once in the repos.
+
+**Not fixed:**
+
+- swharr route.ts:37,40,41,42 (4 false alarms): allow-list values. Two measured prompt attempts failed and were reverted. Needs per-branch flow, and a deterministic rule would hide true Anthropic lines.
+- swharr sample-analysis/page.tsx:157 (1 false alarm): usage record display data. The rule was built and then deleted because it fired on one line only.
+- swharr analyze/page.tsx:403 gemini-pro-vision (1 false alarm): server allow-list rejects it; one line in one repo.
+- Anassarwar14 route.ts:50 modelName storage-key label (1 false alarm): the shape appears once in the repos.
+- mailerlite: URL inside an inline loader string is not treated as called. DuckDuckGo favicon proxy held under avatarUrl is a picture, not an API call, so it stays unqueued.
+- Perplexity sonar-small-_/sonar-medium-_ in atrueempire__yk: no removal notice in the fetched changelog, so not listed. Those ids are not flagged.
+- Hugging Face: Python huggingface_hub's old default host is not covered, and listing huggingface removes it from the unlisted queue. Sourcing is a forum post quoting the error (diedOn is the post date); no docs page states the retirement. The orchestrator may want to strike it.
+- Bitpanda: sourcing is our own probe date (muapi precedent) plus the successor's docs quote, with no retirement notice. The orchestrator may want to strike it.
+- OpenAI method regex needs an openai-named receiver, so `api.listEngines()` is missed. recordPicker doesn't follow default-export record lists and is JS/TS only.
+- AI check at swharr admin/page.tsx:676: on the final --check run it ruled out OA-1.o1 as a label list, though `value="o1"` is a real option. This is a miss-direction error by the model. I did not change the prompt for it because that prompt already says options count.

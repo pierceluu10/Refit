@@ -59,7 +59,7 @@ import {
   textPlace,
   type Place,
 } from './dead-scan-place.ts';
-import { holderReads, reachOf, type Readers } from './dead-scan-reach.ts';
+import { holderReads, reachOf, recordPicker, type Readers } from './dead-scan-reach.ts';
 import { gateFor, loadVersionFacts, type VersionFacts } from './dead-scan-version.ts';
 import { OutsideRepoError, readText, walkFiles } from './repo-files.ts';
 import { isSecretEnvFile, scanRepo } from './scan.ts';
@@ -519,7 +519,7 @@ function regionsOf(source: Source): Region[] {
   code.forEach((text, lineIndex) => {
     if (!text.trim()) return;
     const textIsRead = source.mode === 'hash' || source.file.endsWith(XML_EXTENSION);
-    if (textIsRead || holdsOptionTag(source.lines[lineIndex])) {
+    if (textIsRead || holdsOptionTag(source.lines[lineIndex], source.mode)) {
       regions.push({ lineIndex, offset: source.lineStarts[lineIndex], text });
     }
   });
@@ -754,7 +754,8 @@ function classify(hit: Hit, repo: Repo): Verdict {
 
   const place = placeOf(hit, span, repo);
   if (place && 'matchClass' in place) return { ...place, version };
-  if (place && (place.kind === 'comment' || place.kind === 'catalog')) {
+  const fed = place?.modelRecord ? recordPicker(repo.readers, source, offset) : undefined;
+  if (place && !fed && (place.kind === 'comment' || place.kind === 'catalog')) {
     if (
       place.guardedBy &&
       entry.context &&
@@ -773,7 +774,7 @@ function classify(hit: Hit, repo: Repo): Verdict {
       return { matchClass: 'catalog', reason, version };
     }
   }
-  const picker = place?.kind === 'picker' ? place.reason : undefined;
+  const picker = place?.kind === 'picker' ? place.reason : fed;
   const table = place?.kind === 'unclear' ? place.reason : undefined;
 
   const ambiguous = 'ambiguous' in matcher && matcher.ambiguous === true;

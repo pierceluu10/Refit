@@ -10,6 +10,8 @@ export type Place = {
   guardedBy?: string;
   /** A key in a table the code walks: what's sent may be the key, or what the code turns it into. */
   tableKey?: boolean;
+  /** A model's record beside its metadata, which a picker may offer: what's picked is what's sent. */
+  modelRecord?: boolean;
 };
 
 // The registry's model-id shapes, to count a list of models that mixes providers.
@@ -73,6 +75,7 @@ const TYPE_OPEN = /\b(?:interface\s+\w+[^{]*|type\s+\w+[^=]*=\s*)$/;
 const TYPE_LINE = /^\s*(?:export\s+)?type\s+\w+/;
 const VERSIONS_KEY = /\bversions["']?\s*[:=]\s*$/;
 const OPTION_TAG = /<(?:option|SelectItem|MenuItem|Select\.Option|Option)\b/;
+const OPTION_WITH_VALUE = /<(?:option|SelectItem|MenuItem|Select\.Option|Option)\b[^>]*\bvalue=/;
 const PICKER_NAME = /model|option|choice|select|dropdown|picker/i;
 const DENY_NAME = /deprecated|retired|legacy|unsupported|blocked|denied|deny/i;
 const METADATA_NAME = /(?:^|\.)(?:keywords|tags|categories|topics)$/i;
@@ -303,7 +306,11 @@ function objectPlace(source: Source, span: Span, list: Enclosure): Place | undef
   const body = source.text.slice(list.open, close);
   const keyBefore = source.text.slice(list.open, span.start);
   if (RECORD_NAME_KEY.test(keyBefore) && RECORD_METADATA.test(body)) {
-    return { kind: 'catalog', reason: 'a model record beside metadata such as its context window' };
+    return {
+      kind: 'catalog',
+      modelRecord: true,
+      reason: 'a model record beside metadata such as its context window',
+    };
   }
   if (OPTION_VALUE_KEY.test(keyBefore) && LABEL_KEY.test(body)) {
     return { kind: 'picker', reason: 'an option record offered to users, with a label and value' };
@@ -426,5 +433,6 @@ export function textPlace(line: string, name: string, provider: string): Place |
     : undefined;
 }
 
-/** Lines where JSX or HTML text can hold a name outside quotes. */
-export const holdsOptionTag = (line: string) => OPTION_TAG.test(line);
+/** Lines where JSX or HTML text can hold a name outside quotes. JSX with a value on the tag only labels it. */
+export const holdsOptionTag = (line: string, mode: Source['mode']) =>
+  OPTION_TAG.test(line) && !(mode === 'js' && OPTION_WITH_VALUE.test(line));
