@@ -11,11 +11,11 @@ message, so sessions with the same tools share a cached prefix. Proven fixes run
 (`proven.ts`). Then the same scan reruns on the working copy, what it still finds goes back to the
 session, and plain code picks the label:
 
-| Label        | Outcome        | Means                                                                 | Action                |
-| ------------ | -------------- | --------------------------------------------------------------------- | --------------------- |
-| Fixed        | `verified`     | Rescan clean, checks no worse, and a passing check touches the change | PR                    |
-| Needs a look | `needs-review` | Partly clean, or no passing check touches the change                  | Draft PR that says so |
-| Couldn't fix | `failed`       | New failures, or every use still there, or no change                  | No PR, short report   |
+| Label        | Outcome        | Means                                                                                                                        | Action                |
+| ------------ | -------------- | ---------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| Fixed        | `verified`     | Rescan clean, checks no worse, and a passing check touches the change                                                        | PR                    |
+| Needs a look | `needs-review` | Partly clean, no passing check touches the change, listed work left undone, or the provider's validator still rejects a name | Draft PR that says so |
+| Couldn't fix | `failed`       | New failures, or every use still there, or no change                                                                         | No PR, short report   |
 
 A clean rescan shows the dead thing is gone, not that a live call works. `smoke.ts` adds an optional
 one-line live call per provider on a sample of fixes, on the host. With no provider key it logs that,
