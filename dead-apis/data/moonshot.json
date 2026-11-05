@@ -62,5 +62,31 @@
       }
     }
   ],
-  "future": []
+  "future": [
+    {
+      "id": "KM-3.kimi-k2-end-of-2026",
+      "provider": "moonshot",
+      "what": "kimi-k2.6, kimi-k2.7-code and kimi-k2.7-code-highspeed are closed to new users, and accounts registered before November 1 keep them until they go fully offline, expected at the end of December 2026. The page gives no day and says expected, so this waits for a source read to confirm it.",
+      "diesOn": "2026-12-31",
+      "earliest": true,
+      "source": {
+        "url": "https://platform.kimi.com/docs/models",
+        "checkedOn": "2026-11-05",
+        "quote": "kimi-k2.6 已停止向新注册用户提供，11 月 1 日前注册的用户仍可继续使用，预计于 2026 年 12 月底全面下线。"
+      },
+      "matchers": [
+        { "kind": "string", "value": "kimi-k2.6", "ambiguous": true },
+        { "kind": "string", "value": "kimi-k2.7-code", "ambiguous": true },
+        { "kind": "string", "value": "kimi-k2.7-code-highspeed", "ambiguous": true }
+      ],
+      "replacement": "None named per model: the page lists kimi-k3 and kimi-k3.1-pro as its current models.",
+      "replacementIds": ["kimi-k3", "kimi-k3.1-pro"],
+      "requires": [
+        "Check the context window and price of the model chosen: the page maps no old id to a new one."
+      ],
+      "context": {
+        "hosts": ["moonshot.cn", "moonshot.ai"]
+      }
+    }
+  ]
 }

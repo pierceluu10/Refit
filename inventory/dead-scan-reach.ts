@@ -13,7 +13,13 @@ import {
 import { closeOf, enclosing, listName, wordPattern } from './dead-scan-place.ts';
 import type { Manifest } from './scanners.ts';
 
-export type Reach = { kind: 'catalog' | 'unclear'; reason: string; reads?: string[] };
+export type Reach = {
+  kind: 'catalog' | 'unclear';
+  reason: string;
+  reads?: string[];
+  /** A catalog verdict that holds only beside another open hit on the entry, so a repo isn't called clean on it. */
+  unclearIfAlone?: boolean;
+};
 
 export type Readers = {
   /** Files that can read a value: written code and config, no tests, docs or build output. */
@@ -24,8 +30,14 @@ export type Readers = {
   /** Reads of a word in a file, since a package's hits ask about the same few names. */
   reads: Map<string, Read[]>;
   uses: Map<string, Uses>;
+  /** The constant that turns off every read of a list's name, by package and name, once a hit asks. */
+  listGuards: Map<string, string | undefined>;
   /** Next.js API routes as path segments, worked out once a hit asks. */
   routes?: string[][];
+  /** What running JS imports, as paths from the repo's root and as an alias's tail. */
+  jsImports?: { whole: Set<string>; tails: string[] };
+  /** Whether running code imports a file whose path looks like a test's, once a hit asks. */
+  imported: Map<string, boolean>;
 };
 
 type Read = { source: Source; line: string; offset: number };
@@ -69,9 +81,11 @@ const PYTHON_MODE = 'python';
 const MODIFIERS =
   '(?:(?:export|default|public|private|protected|static|abstract|async|readonly|override|declare|const|let|var)\\s+|self\\.|this\\.)*';
 const DISPLAY_SINK =
-  /\b(?:console\.\w+|print|pprint|printf|puts|echo|logger\.\w+|logging\.\w+|log\.\w+|render_template|res\.render|st\.(?:write|markdown|text|caption|info))\s*\(/;
+  /\b(?:console\.\w+|print|pprint|printf|puts|echo|logger\.\w+|logging\.\w+|log\.\w+|render_template|res\.render|st\.(?:write|markdown|text|caption|info))\s*\($/;
+// What only formats a value on its way to a display: print(json.dumps(x)).
+const FORMAT_CALL = /^(?:str|repr|format|join|dumps|stringify|String|len|list|sorted|keys|values)$/;
 const PATH_SINK =
-  /\+\s*["'`][/\\]["'`]\s*\+|\b(?:read_csv|read_json|read_excel|read_parquet|to_csv|to_json|open|Path|makedirs|mkdir|os\.path\.\w+)\s*\(|\.(?:csv|jsonl?|tsv|pkl|xlsx?|parquet|npy)\b/;
+  /\+\s*["'`][/\\]["'`]\s*\+|\b(?:read_csv|read_json|read_excel|read_parquet|to_csv|to_json|open|Path|makedirs|mkdir|os\.path\.\w+)\s*\(|\.(?:csv|jsonl?|tsv|pkl|xlsx?|parquet|npy)\b(?!\s*\()/;
 const IMPORT_STAR = /\bimport\s+\*/;
 const PYTHON_IMPORT_LINE = /^\s*(?:from\s+\S+\s+)?import\s/m;
 const PYTHON_DEF_LINE = /^(\s*)(?:async\s+)?def\s+\w+\s*\(([^)]*)\)?/;
@@ -131,6 +145,15 @@ const RELATIVE_CODE_IMPORT = /(?:\bfrom\s+|\brequire\(\s*)["'](\.{1,2}\/[^"']+)[
 // With an extension that isn't code, such as ./x.css or ./data.json, which the scan may not read.
 const NON_CODE_IMPORT = /\.(?!m?[jt]sx?["']?$|cjs$)\w+$/;
 const CODE_EXTENSION = /\.[cm]?[jt]sx?$/;
+const JS_IMPORT = /(?:\bfrom\s+|\bimport\s*\(?\s*|\brequire\(\s*)["'`]([^"'`\n]+)["'`]/g;
+// A test runner's own files import its helpers, and those stay tests.
+const TEST_TOOL_FILE = /(?:vitest|jest|playwright|cypress|karma)[\w.-]*\.\w+$|setupTests\.\w+$/i;
+const RECORD_KEY_BEFORE = /["']?(id|name)["']?\s*[:=]\s*$/;
+// `[0]`, `?.contextWindow`: what's read off a name, up to a call or the end of the chain.
+const CHAIN_AFTER = /^(?:\s*(?:\??\.\s*[\w$]+|\[[^\]]*\]))*/;
+const LOOKUP_CHAIN = /\.find$/;
+const LAST_KEY = /(?:\.\s*|\[\s*["'])([\w$]+)["']?\s*\]?$/;
+const OPEN_INDEX = /\[[^"'\]]*\]$/;
 const SPECIFIER_PREFIX = /^(?:(?:\.{1,2}|[@~])\/)+/;
 // Names and folders a framework or a runner starts on its own, so nothing has to import them.
 const ENTRY_NAME =
@@ -158,6 +181,27 @@ const DYNAMIC_SEGMENT = /^\[.*\]$/;
 const NEXT_CONFIG = /(?:^|\/)next\.config\.\w+$/;
 const REWRITES = /\brewrites\b/;
 const PACKAGING_FILE = /(?:^|\/)(?:setup\.py|pyproject\.toml)$/;
+const PACKAGE_JSON = 'package.json';
+const PUBLISH_FIELDS = [
+  'main',
+  'module',
+  'exports',
+  'types',
+  'typings',
+  'bin',
+  'files',
+  'publishConfig',
+];
+// shopifyApp({ restResources }) only hands the classes over: they send nothing until code uses them.
+const TEMPLATE_REST_IMPORT = /\bimport\s*\{\s*restResources\s*,?\s*\}\s*from\s*["']@shopify\/$/;
+const REST_RESOURCES = 'restResources';
+const REST_USE = /\.rest\b|\brest\??\.resources\b/;
+const SHOPIFY_INIT_OPEN = /\bshopify(?:App|Api)\s*\(\s*$/;
+const SHOPIFY_INIT_CALL = /\bshopify(?:App|Api)\s*\(/;
+const WEBHOOKS_KEY = /\bwebhooks\s*:/;
+// A call: the template's `export const registerWebhooks = shopify.registerWebhooks` registers nothing.
+const REGISTERS_WEBHOOKS = /\bregisterWebhooks\s*\(|\.webhooks\.(?:register|addHandlers)\s*\(/;
+const SUBSCRIBE_MUTATION = /[wW]ebhookSubscriptionCreate/;
 const JS_PATH_STRING = /["'`]([\w$@~./-]*\/[\w$.-]+)["'`]/g;
 // A returned object often goes to a framework that calls its members by name, as a Vite plugin does.
 const OBJECT_OR_PLAIN_CLASS = /(?:(?<![=!<>])=|\bclass\s+[\w$]+)\s*$/;
@@ -270,11 +314,30 @@ function packageOf(readers: Readers, file: string): Source[] {
 
 function holderOf(line: string, word: string): string | undefined {
   const at = line.search(wordPattern(word));
+  const ahead = line.slice(0, at);
+  // Passed to a call: what comes back is the call's result, as in `r = create(model=MODEL)`.
+  if ((ahead.match(/\(/g)?.length ?? 0) > (ahead.match(/\)/g)?.length ?? 0)) return undefined;
   const holder =
     /(?:^|[\s{,(])(?:self\.|this\.)?([\w$]+)["']?\??\s*(?::[^=,]*?)?[:=](?!=)[^,;]*$/.exec(
-      line.slice(0, at),
+      ahead,
     )?.[1];
   return holder === word ? undefined : holder;
+}
+
+// The value is itself what a display call shows, not an argument to some other call inside it.
+function isShown({ source, offset }: Read): boolean {
+  let at = offset;
+  for (let level = 0; level < MAX_ANCESTORS; level += 1) {
+    const open = enclosing(source.code, at);
+    if (!open) return false;
+    at = open.open;
+    if (open.char !== '(') continue;
+    const ahead = source.code.slice(Math.max(0, at - LOOK_BACK_CHARS), at);
+    if (DISPLAY_SINK.test(`${ahead}(`)) return true;
+    const word = CALL_WORD.exec(ahead)?.[1];
+    if (word && !FORMAT_CALL.test(word)) return false;
+  }
+  return false;
 }
 
 // Where a value goes, following what holds it for a couple of steps. Any read that isn't plainly
@@ -293,7 +356,7 @@ function usesOf(
   for (const source of scope) {
     for (const read of readsIn(readers, source, word)) {
       uses.read = true;
-      if (DISPLAY_SINK.test(read.line)) {
+      if (isShown(read)) {
         uses.paths = false;
       } else if (PATH_SINK.test(read.line)) {
         uses.display = false;
@@ -344,21 +407,61 @@ function readElsewhere(readers: Readers, source: Source, word: string, exported:
   );
 }
 
+const hasPackagingFile = (readers: Readers) =>
+  readers.sources.some((one) => PACKAGING_FILE.test(one.file));
+
+// Whether people outside this repo can read a package's exports. With no package.json to say it's an
+// app, or one that can't be read, assume they can.
+function isPublished(readers: Readers, file: string): boolean {
+  if (hasPackagingFile(readers)) return true;
+  const wanted = path.posix.join(packageFolder(readers, file), PACKAGE_JSON);
+  const manifest = readers.sources.find((one) => one.file === wanted);
+  if (!manifest) return true;
+  try {
+    const fields = JSON.parse(manifest.text) as Record<string, unknown>;
+    return fields.private !== true && PUBLISH_FIELDS.some((field) => field in fields);
+  } catch (error) {
+    if (error instanceof SyntaxError) return true;
+    throw error;
+  }
+}
+
+// No file names it but as a key of its own, such as `apiVersion: LATEST_API_VERSION` in a tool's config.
+// A key's value is a read, even under the same name: `apiVersion: apiVersion`, which readsIn takes as a key.
+function isUnreadExport(readers: Readers, source: Source, word: string): boolean {
+  const asValue = new RegExp(`:\\s*${escapeRegex(word)}(?![\\w$])`);
+  return (
+    !isPublished(readers, source.file) &&
+    !readers.sources.some((one) => readsIn(readers, one, word).length > 0 || asValue.test(one.code))
+  );
+}
+
 function assignedReach(
   readers: Readers,
   source: Source,
-  span: Span,
+  start: number,
   namesProvider: boolean,
+  bareValue = false,
 ): Reach | undefined {
   const { code } = source;
-  const around = enclosing(code, span.start);
+  const around = enclosing(code, start);
   if (around?.char === '[') return undefined;
   if (around?.char === '(' && !DEF_BEFORE.test(code.slice(0, around.open))) return undefined;
-  const ahead = code.slice(Math.max(0, span.start - LOOK_BACK_CHARS), span.start);
+  const ahead = code.slice(Math.max(0, start - LOOK_BACK_CHARS), start);
   const assigned = ASSIGNED_WITH_EQUALS.exec(ahead)?.[1];
   if (!assigned) return undefined;
   const word = assigned.replace(/^(?:self|this)\./, '');
-  const where = placeOfDeclaration(source, span.start);
+  const where = placeOfDeclaration(source, start);
+  // Only a bare value, such as an SDK's enum. An exported string may be a config value a word search misses.
+  if (bareValue) {
+    return where === 'exported' && isUnreadExport(readers, source, word)
+      ? {
+          kind: 'catalog',
+          reason: `${word} is exported, and nothing in this repo imports or reads it`,
+          unclearIfAlone: true,
+        }
+      : undefined;
+  }
   if (where !== 'local' && readElsewhere(readers, source, word, where === 'exported')) {
     return undefined;
   }
@@ -761,8 +864,8 @@ function defaultReach(readers: Readers, source: Source, span: Span): Reach | und
   const offeredBy = allReads.find((read) => !called.includes(read));
   if (offeredBy) {
     const folder = `${folderOf(offeredBy.source.file)}/`;
-    const published = readers.sources.some((one) => PACKAGING_FILE.test(one.file));
-    if (published || reads.every((read) => read.source.file.startsWith(folder))) return undefined;
+    if (hasPackagingFile(readers) || reads.every((read) => read.source.file.startsWith(folder)))
+      return undefined;
   }
   return reads.every((read) => passesParameter(read, word, parameter, earlier.length))
     ? {
@@ -922,12 +1025,11 @@ function bookkeepingReach(source: Source, offset: number): Reach | undefined {
     at = open.open;
     if (open.char !== '(') continue;
     const word = CALL_WORD.exec(source.code.slice(Math.max(0, at - LOOK_BACK_CHARS), at))?.[1];
-    if (word && BOOKKEEPING_CALL.test(word)) {
-      return {
-        kind: 'catalog',
-        reason: `a copy kept by ${word}, the app's own record, never sent`,
-      };
-    }
+    if (!word) continue;
+    // Only the nearest call has the value: recordUsage(await create({ model: 'x' })) sends it.
+    return BOOKKEEPING_CALL.test(word)
+      ? { kind: 'catalog', reason: `a copy kept by ${word}, the app's own record, never sent` }
+      : undefined;
   }
   return undefined;
 }
@@ -1008,17 +1110,16 @@ function offeredAs(readers: Readers, one: Source, target: Source, name: string) 
     : undefined;
 }
 
+// Beside an id, a record's name is its label, whatever it spells.
+const isLabelBesideId = (source: Source, open: number, ahead: string) =>
+  NAME_KEY_BEFORE.test(ahead) && ID_KEY.test(source.code.slice(open, closeOf(source.code, open)));
+
 /** Why a model record's list is what users pick from: a file with a handler maps it or passes it as a prop. */
 export function recordPicker(readers: Readers, source: Source, offset: number): string | undefined {
   const record = enclosing(source.code, offset);
   const list = record && enclosing(source.code, record.open);
   if (!record || list?.char !== '[') return undefined;
-  // Beside an id, a record's name is its label, whatever it spells.
-  const key = source.code.slice(record.open, offset - 1);
-  if (
-    NAME_KEY_BEFORE.test(key) &&
-    ID_KEY.test(source.code.slice(record.open, closeOf(source.code, record.open)))
-  ) {
+  if (isLabelBesideId(source, record.open, source.code.slice(record.open, offset - 1))) {
     return undefined;
   }
   const name = listName(source, list).split('.').at(-1);
@@ -1030,6 +1131,54 @@ export function recordPicker(readers: Readers, source: Source, offset: number): 
     }
   }
   return undefined;
+}
+
+// A read that can't carry the record's id off: another key, or a lookup of another key.
+function readsAnotherKey({ source, offset }: Read, word: string, key: string): boolean {
+  const chainAt = (from: number) =>
+    CHAIN_AFTER.exec(source.text.slice(from, from + LOOK_BACK_CHARS));
+  let at = offset + word.length;
+  let chain = chainAt(at)?.[0] ?? '';
+  at += chain.length;
+  if (LOOKUP_CHAIN.test(chain) && source.code[at] === '(') {
+    at = closeOf(source.code, at) + 1;
+    chain = chainAt(at)?.[0] ?? '';
+    at += chain.length;
+  }
+  // `{ old: OLD }` gathers a list under a key, and what's read off that says nothing about this key.
+  if (!chain)
+    return KEY_BEFORE.test(source.code.slice(Math.max(0, offset - LOOK_BACK_CHARS), offset));
+  if (source.code[at] === '(' || OPEN_INDEX.test(chain)) return false;
+  return LAST_KEY.exec(chain)?.[1] !== key;
+}
+
+/** Why a model record may be sent: the code reads it, and not only for its other keys. */
+export function recordSent(readers: Readers, source: Source, offset: number): string | undefined {
+  const record = enclosing(source.code, offset);
+  if (!record) return undefined;
+  const ahead = source.code.slice(record.open, offset - 1);
+  const key = RECORD_KEY_BEFORE.exec(ahead)?.[1];
+  if (!key || isLabelBesideId(source, record.open, ahead)) return undefined;
+  const list = enclosing(source.code, record.open);
+  const name = listName(source, list?.char === '[' ? list : record)
+    .split('.')
+    .at(-1);
+  if (!name) return undefined;
+  const sent = packageOf(readers, source.file).some((one) => {
+    const local = one === source ? name : importedAs(readers, one, source, name);
+    return (
+      local !== undefined &&
+      readsIn(readers, one, local).some(
+        (read) =>
+          !isImportOf(read) &&
+          !NOT_A_VALUE_READ.test(read.line) &&
+          !readsAnotherKey(read, local, key),
+      )
+    );
+  });
+  return sent
+    ? `a model record in ${name}, and the code reads it, so it may send its ${key}`
+    : undefined;
 }
 
 function routesOf(readers: Readers): string[][] {
@@ -1249,6 +1398,25 @@ function unreadKeyReach(readers: Readers, source: Source, offset: number): Reach
     : undefined;
 }
 
+// The `const x = false` this guard's x means: one whose block holds the guard, not redeclared or taken
+// as a parameter on the way there.
+function isAlwaysFalse(source: Source, guard: string, at: number): boolean {
+  const { code } = source;
+  const name = escapeRegex(guard);
+  const rebound = new RegExp(
+    `\\b(?:const|let|var)\\s+[^=;\\n]*(?<![\\w$])${name}(?![\\w$])|(?<!\\b(?:if|while|for|switch|catch)\\s*)\\([^()]*(?<![\\w$.])${name}(?![\\w$])[^()]*\\)\\s*(?::[^{=]*)?(?:\\{|=>)|(?<![\\w$.])${name}\\s*=>`,
+  );
+  const constants = code.matchAll(
+    new RegExp(`\\bconst\\s+${name}\\s*(?::\\s*boolean\\s*)?=\\s*false\\b`, 'g'),
+  );
+  return [...constants].some((constant) => {
+    const end = constant.index + constant[0].length;
+    if (end > at) return false;
+    const block = enclosing(code, constant.index);
+    return (!block || closeOf(code, block.open) > at) && !rebound.test(code.slice(end, at));
+  });
+}
+
 // shortcut: only JS `const x = false` and `if (x) {`, add Python and ternaries when a repo shows them.
 function falseGuard(source: Source, offset: number): string | undefined {
   if (source.mode !== JS_MODE) return undefined;
@@ -1259,16 +1427,20 @@ function falseGuard(source: Source, offset: number): string | undefined {
     at = open.open;
     if (open.char !== '{') continue;
     const guard = GUARD_OPEN.exec(source.code.slice(Math.max(0, at - LOOK_BACK_CHARS), at))?.[1];
-    if (
-      guard &&
-      new RegExp(`\\bconst\\s+${escapeRegex(guard)}\\s*(?::\\s*boolean\\s*)?=\\s*false\\b`).test(
-        source.code,
-      )
-    ) {
-      return guard;
-    }
+    if (guard && isAlwaysFalse(source, guard, at)) return guard;
   }
   return undefined;
+}
+
+// Once per name: every hit in a list of the same name asks, and each read walks up through its braces.
+function listGuard(readers: Readers, file: string, word: string): string | undefined {
+  const key = `${packageFolder(readers, file)}|${word}`;
+  if (readers.listGuards.has(key)) return readers.listGuards.get(key);
+  const reads = packageOf(readers, file).flatMap((one) => readsIn(readers, one, word));
+  const guards = reads.map((read) => falseGuard(read.source, read.offset));
+  const guard = reads.length > 0 && guards.every(Boolean) ? guards[0] : undefined;
+  readers.listGuards.set(key, guard);
+  return guard;
 }
 
 /** Inside a branch a constant turns off, or in a list only ever read inside such a branch. */
@@ -1279,14 +1451,76 @@ function deadBranchReach(readers: Readers, source: Source, offset: number): Reac
   if (list?.char !== '[') return undefined;
   const word = listName(source, list).split('.').at(-1);
   if (!word) return undefined;
-  const reads = packageOf(readers, source.file).flatMap((one) => readsIn(readers, one, word));
-  const guards = reads.map((read) => falseGuard(read.source, read.offset));
-  return reads.length > 0 && guards.every(Boolean)
+  const guard = listGuard(readers, source.file, word);
+  return guard
     ? {
         kind: 'catalog',
-        reason: `the list ${word} is only read inside if (${guards[0]}), and ${guards[0]} is always false`,
+        reason: `the list ${word} is only read inside if (${guard}), and ${guard} is always false`,
       }
     : undefined;
+}
+
+function jsImportsOf(readers: Readers): { whole: Set<string>; tails: string[] } {
+  if (readers.jsImports) return readers.jsImports;
+  const whole = new Set<string>();
+  const tails = new Set<string>();
+  for (const one of readers.sources) {
+    if (one.mode !== JS_MODE || TEST_TOOL_FILE.test(one.file)) continue;
+    for (const match of one.text.matchAll(JS_IMPORT)) {
+      if (isComment(one, match.index)) continue;
+      const code = match[1].replace(CODE_EXTENSION, '');
+      if (code.startsWith('.')) whole.add(path.posix.join(folderOf(one.file), code));
+      // A bare word is a package. An alias or a path from the root has a folder in it.
+      else if (code.includes('/')) tails.add(code.replace(SPECIFIER_PREFIX, ''));
+    }
+  }
+  readers.jsImports = { whole, tails: [...tails] };
+  return readers.jsImports;
+}
+
+/**
+ * Whether code that runs imports a file whose path looks like a test's, so it runs too. One step only.
+ * shortcut: what such a file imports in turn stays a test, follow it when a repo shows that.
+ */
+export function importedByRunningCode(readers: Readers, target: Source): boolean {
+  const known = readers.imported.get(target.file);
+  if (known !== undefined) return known;
+  const found = isPythonModule(target)
+    ? pythonImports(readers, target)
+    : target.mode === JS_MODE && jsImports(readers, target);
+  readers.imported.set(target.file, found);
+  return found;
+}
+
+function jsImports(readers: Readers, target: Source): boolean {
+  const bare = target.file.replace(EXTENSION, '');
+  const folder = bare.replace(/\/index$/, '');
+  const { whole, tails } = jsImportsOf(readers);
+  return (
+    whole.has(bare) ||
+    whole.has(folder) ||
+    tails.some((tail) => `/${bare}`.endsWith(`/${tail}`) || `/${folder}`.endsWith(`/${tail}`))
+  );
+}
+
+// Import statements only: a runner naming "tests/helper.py" in a string doesn't load it.
+function pythonImports(readers: Readers, target: Source): boolean {
+  const name = escapeRegex(moduleName(target.file));
+  const folder = escapeRegex(lastFolder(target.file));
+  const dotted = String.raw`[\w.]*\b${folder}\.${name}\b`;
+  const inFolder = new RegExp(
+    String.raw`^[ \t]*(?:(?:from|import)[ \t]+${dotted}|from[ \t]+[\w.]*\b${folder}[ \t]+import[^\n]*\b${name}\b)`,
+    'm',
+  );
+  const alone = new RegExp(String.raw`^[ \t]*(?:from|import)[ \t]+${name}\b`, 'm');
+  // `import utils` means the running module of that name, when there is one.
+  const canBeAlone =
+    !readers.sources.some((one) => moduleName(one.file) === moduleName(target.file)) &&
+    !isDependency(readers, moduleName(target.file));
+  return readers.sources.some(
+    (one) =>
+      isPythonModule(one) && (inFolder.test(one.text) || (canBeAlone && alone.test(one.text))),
+  );
 }
 
 function localModule(readers: Readers, source: Source, specifier: string): Source | undefined {
@@ -1417,10 +1651,58 @@ function callerReads(readers: Readers, source: Source, offset: number): string[]
     });
 }
 
+/** The template's REST classes, handed to shopifyApp, in a repo where nothing goes on to use them. */
+function unusedRestImportReach(
+  readers: Readers,
+  source: Source,
+  offset: number,
+): Reach | undefined {
+  const ahead = source.text.slice(Math.max(0, offset - LOOK_BACK_CHARS), offset);
+  if (!TEMPLATE_REST_IMPORT.test(ahead)) return undefined;
+  const handed = readsIn(readers, source, REST_RESOURCES).filter((read) => !isImportOf(read));
+  const onlyHandedOver =
+    handed.length > 0 &&
+    handed.every((read) => {
+      const around = enclosing(source.code, read.offset);
+      return (
+        around?.char === '{' &&
+        SHOPIFY_INIT_OPEN.test(
+          source.code.slice(Math.max(0, around.open - LOOK_BACK_CHARS), around.open),
+        )
+      );
+    });
+  if (!onlyHandedOver) return undefined;
+  const used = readers.sources.some(
+    (one) =>
+      REST_USE.test(one.code) ||
+      (one !== source && readsIn(readers, one, REST_RESOURCES).length > 0),
+  );
+  return used
+    ? undefined
+    : {
+        kind: 'catalog',
+        reason:
+          'REST resources handed to shopifyApp, and nothing in this repo uses admin.rest, so they send nothing at this version',
+      };
+}
+
+/** Where the code subscribes to Shopify webhooks itself, one line a file. */
+export function webhookRegistrations(readers: Readers): string[] {
+  return readers.sources.flatMap((source) => {
+    const called = source.code.search(REGISTERS_WEBHOOKS);
+    const configured = SHOPIFY_INIT_CALL.test(source.code) ? source.code.search(WEBHOOKS_KEY) : -1;
+    // A mutation is a string, which the code view blanks.
+    const at = [called, configured, source.text.search(SUBSCRIBE_MUTATION)].find((one) => one >= 0);
+    return at === undefined ? [] : [importLine(source, at)];
+  });
+}
+
 export type ReachInput = {
   source: Source;
   offset: number;
   span?: Span;
+  /** A match in code that isn't quoted, such as ApiVersion.January25: a value, unlike a field read. */
+  bareValue: boolean;
   picker: boolean;
   fileNamesProvider: boolean;
   packages: string[];
@@ -1428,7 +1710,7 @@ export type ReachInput = {
 
 /** Why this match never reaches the API, or undefined when nothing here shows that. */
 export function reachOf(readers: Readers, input: ReachInput): Reach | undefined {
-  const { source, offset, span, picker, fileNamesProvider, packages } = input;
+  const { source, offset, span, bareValue, picker, fileNamesProvider, packages } = input;
   const backup = backupReach(readers, source);
   if (backup) return backup;
   if (orphansOf(readers).has(source.file)) {
@@ -1441,8 +1723,13 @@ export function reachOf(readers: Readers, input: ReachInput): Reach | undefined 
   const stopped =
     brokenImportReach(readers, source) ?? uncalledConvexReach(readers, source, offset);
   if (stopped) return stopped;
-  if (span?.kind !== 'string') return undefined;
+  if (span?.kind !== 'string') {
+    return !span && bareValue
+      ? assignedReach(readers, source, offset, fileNamesProvider, true)
+      : undefined;
+  }
   return (
+    unusedRestImportReach(readers, source, offset) ??
     deadBranchReach(readers, source, offset) ??
     controlledValueReach(source, offset) ??
     unreadKeyReach(readers, source, offset) ??
@@ -1457,7 +1744,7 @@ export function reachOf(readers: Readers, input: ReachInput): Reach | undefined 
     uncalledReach(readers, source, offset) ??
     uncalledMemberReach(readers, source, offset) ??
     unresolvedCall(source, offset) ??
-    assignedReach(readers, source, span, fileNamesProvider) ??
+    assignedReach(readers, source, span.start, fileNamesProvider) ??
     constructedReach(readers, source, offset) ??
     listReach(readers, source, offset) ??
     (picker ? unreadOwnerReach(readers, source, offset) : undefined)

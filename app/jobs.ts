@@ -3,9 +3,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { inForceVersion, type DeadApiList } from '../dead-apis/list.ts';
 import { utcDay } from '../dead-apis/proposals.ts';
-import { redactSecrets } from '../harness/secrets.ts';
 import type { DeadScanReport } from '../inventory/dead-scan.ts';
-import type { Finding, OpenPullRequest, RunRepoJob } from '../shared/types.ts';
+import type { Finding, OpenPullRequest, RunRecord, RunRepoJob } from '../shared/types.ts';
+import { messageOf } from './redact.ts';
 import {
   decide,
   type RepoState,
@@ -27,6 +27,8 @@ export type JobRunnerDeps = {
   triggers: TriggerStore;
   scannerVersion: string;
   now?: () => Date;
+  // What the run has spent. The loop's records leave out match, inventory and watcher spend; this saw it all.
+  spentUsd?: () => number;
   // Tells evidence what this scan found. `at` is from before the clone.
   rescan: (job: UnderstandJob, findings: Finding[], at: string) => Promise<void>;
 };
@@ -37,8 +39,6 @@ type Outcome = Omit<
 >;
 
 const UNSETTLED_CHECKS: ReadonlySet<string> = new Set(['failed', 'capped']);
-const messageOf = (error: unknown) =>
-  redactSecrets(error instanceof Error ? error.message : String(error));
 
 // A finding is its entry in its file: an unrelated edit moves the line, and that isn't a new break.
 const liveFindings = (report: DeadScanReport) => [
@@ -51,6 +51,13 @@ const liveFindings = (report: DeadScanReport) => [
 const openFindings = (report: DeadScanReport) =>
   report.details.filter((one) => one.matchClass === 'live' || one.matchClass === 'unclear').length;
 
+const VERDICTS: ReadonlySet<RunRecord['outcome']> = new Set(['verified', 'not-affected']);
+
+// A PR or a real verdict on every change. No records, or a task that never got to run, isn't a try.
+const hadItsTry = (records: RunRecord[]) =>
+  records.some((record) => record.pr) ||
+  (records.length > 0 && records.every((record) => VERDICTS.has(record.outcome)));
+
 // One job. Everything that wakes a repo comes through here and gets the same decision: one GitHub call
 // for the tree, then either a skip or a fresh checkout and a scan. Only a live finding no fix has been
 // started for goes on to the loop. The app only reads the checkout; the harness runs repo code in its
@@ -60,6 +67,7 @@ export function createJobRunner(deps: JobRunnerDeps) {
 
   // The scan and any fix, in one checkout. The state is saved even when the fix fails, because the scan
   // itself was fine. That failure comes back so the job still ends as failed, once it's on the record.
+  // A fix that didn't get its try stays pending, so the next tick tries again.
   async function scanAndFix(
     job: UnderstandJob,
     token: string,
@@ -89,7 +97,9 @@ export function createJobRunner(deps: JobRunnerDeps) {
       let fix: TriggerRecord['fix'];
       let failure: unknown;
       let fixCostUsd = 0;
+      let fixPending = false;
       if (live.some((finding) => !tried.includes(finding))) {
+        const spentBefore = deps.spentUsd?.() ?? 0;
         try {
           const records = await deps.runRepoJob({
             repo: job.repo,
@@ -98,13 +108,17 @@ export function createJobRunner(deps: JobRunnerDeps) {
             scan: report,
           });
           fixCostUsd = records.reduce((sum, record) => sum + record.costUsd, 0);
-          fix = 'ran';
+          fixPending = !hadItsTry(records);
+          fix = fixPending ? 'unfinished' : 'ran';
           const outcomes = records.map((record) => `${record.taskId} ${record.outcome}`);
           console.log(`ran ${job.repo}: ${outcomes.join(', ') || 'no provider changes'}`);
         } catch (error) {
           fix = 'failed';
           failure = error;
+          fixPending = true;
         }
+        // shortcut: a verdict learning during the fix counts here too, split the budget if that skews a repo.
+        if (deps.spentUsd) fixCostUsd = deps.spentUsd() - spentBefore;
       } else if (live.length > 0) {
         fix = 'already-attempted';
       }
@@ -121,8 +135,8 @@ export function createJobRunner(deps: JobRunnerDeps) {
         checkSettled: !UNSETTLED_CHECKS.has(report.check?.outcome ?? ''),
         findings,
         unlistedProviders,
-        // A fix that failed hasn't had its try: the next real change gets one, the next tick doesn't.
-        attempted: failure ? tried : live,
+        attempted: fixPending ? tried.filter((finding) => live.includes(finding)) : live,
+        fixPending,
       });
       return {
         failure,
@@ -148,7 +162,9 @@ export function createJobRunner(deps: JobRunnerDeps) {
     const today = utcDay(now());
     const list = deps.loadList();
     const listVersion = inForceVersion(list, today);
-    const state = await deps.triggers.state(job.repo);
+    const stored = await deps.triggers.state(job.repo);
+    // Another installation's scan says nothing about this one: a reinstall starts over.
+    const state = stored?.installationId === job.installationId ? stored : undefined;
     const token = await deps.tokens.token(job.installationId);
     const tree = await deps.headTree(token, job.repo);
     if (tree === undefined) {
@@ -173,6 +189,7 @@ export function createJobRunner(deps: JobRunnerDeps) {
 
   return async (job: UnderstandJob): Promise<void> => {
     const startedAt = performance.now();
+    const removals = deps.triggers.removals(job.repo);
     const note = async (outcome: Outcome) => {
       await deps.triggers.append({
         at: now().toISOString(),
@@ -184,6 +201,8 @@ export function createJobRunner(deps: JobRunnerDeps) {
         seconds: (performance.now() - startedAt) / 1000,
       });
       console.log(`${job.reason} ${job.repo}: ${outcome.decision} ${outcome.why}`);
+      // Removed while this ran: what the job just saved mustn't bring the repo back.
+      if (deps.triggers.removals(job.repo) !== removals) await deps.triggers.forget(job, now());
     };
     let result: Awaited<ReturnType<typeof attempt>>;
     try {

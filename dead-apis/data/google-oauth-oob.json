@@ -1,0 +1,48 @@
+{
+  "provider": "google-oauth-oob",
+  "officialHosts": ["developers.google.com/identity", "developer.android.com/identity"],
+  "entries": [
+    {
+      "id": "GI-1.oauth-oob",
+      "provider": "google-oauth-oob",
+      "what": "Google OAuth's out-of-band (OOB) flow is blocked for every client in production, including exempted ones, and users see an error. Apps with the Testing publishing status can still use it.",
+      "diedOn": "2023-01-31",
+      "source": {
+        "url": "https://developers.google.com/identity/protocols/oauth2/resources/oob-migration",
+        "checkedOn": "2026-11-05",
+        "quote": "January 31, 2023 - all existing clients are blocked (including exempted clients)"
+      },
+      "lookFor": [
+        "A Google OAuth redirect_uri of urn:ietf:wg:oauth:2.0:oob, urn:ietf:wg:oauth:2.0:oob:auto or oob. Other OAuth servers use the same values and aren't this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\burn:ietf:wg:oauth:2\\.0:oob\\b",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\bredirect_uri=oob\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "Depends on the client: the loopback IP address flow for desktop, the recommended SDKs for Android and iOS, the Chrome Identity API for Chrome apps, and the Google API client libraries for web.",
+      "requires": [
+        "The user no longer pastes a code in: the app has to receive the redirect itself, so a desktop app runs a local listener on the loopback address."
+      ],
+      "context": {
+        "packages": [
+          "googleapis",
+          "google-auth-library",
+          "google-auth-oauthlib",
+          "google-auth",
+          "google-api-python-client",
+          "oauth2client"
+        ],
+        "hosts": ["accounts.google.com"]
+      }
+    }
+  ],
+  "future": []
+}

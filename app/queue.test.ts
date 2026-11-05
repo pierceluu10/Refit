@@ -126,6 +126,19 @@ describe('createFileQueue', () => {
     expect(await stored()).toEqual([]);
   });
 
+  it('never prints a secret from a failed job', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const token = `ghs_${'x'.repeat(36)}`;
+    const queue = await createFileQueue(file, async () => {
+      throw new Error(`no run records: ${token}`);
+    });
+    await queue.enqueue(understand('org/bad'));
+    await queue.idle();
+    const printed = errors.mock.calls.flat().join('\n');
+    expect(printed, printed).toContain('job understand org/bad failed: no run records: [redacted]');
+    expect(printed).not.toContain(token);
+  });
+
   it('refuses to start on a corrupt queue file rather than drop its jobs', async () => {
     const corrupt = join(dir, 'corrupt.json');
     await writeFile(corrupt, '[{"kind":');
@@ -145,5 +158,29 @@ describe('createFileQueue', () => {
     await runner.release();
     await runner.release();
     await queue.idle();
+  });
+});
+
+describe('a queue file that can no longer be saved', () => {
+  it('logs it and keeps working through the jobs', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const parent = join(dir, 'nested');
+    const ran: string[] = [];
+    const { run, release } = gatedRunner();
+    const queue = await createFileQueue(file, async (job) => {
+      await run(job);
+      ran.push(job.repo);
+      // The queue's folder is gone and a file sits in its place, so no write can succeed.
+      await rm(parent, { recursive: true, force: true });
+      await writeFile(parent, '');
+    });
+    await queue.enqueue(understand('org/a'));
+    await queue.enqueue(understand('org/b'));
+    await release();
+    await release();
+    await queue.idle();
+    expect(ran).toEqual(['org/a', 'org/b']);
+    expect(queue.pending()).toEqual([]);
+    expect(logged).toHaveBeenCalledWith(expect.stringContaining('saving the queue failed'));
   });
 });

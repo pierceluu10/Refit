@@ -1,8 +1,8 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { GitError, InvalidRepoError, cloneRepo, filesFromDiff, treeOfCheckout } from './git.ts';
 
 let repo: string;
@@ -65,6 +65,21 @@ describe('cloneRepo', () => {
       await expect(cloneRepo('token', name, repo)).rejects.toThrow(InvalidRepoError);
     },
   );
+});
+
+describe('a git that never finishes', () => {
+  it('ends as a GitError, even with a child still holding its pipes open', async () => {
+    const bin = mkdtempSync(join(tmpdir(), 'aptitude-fake-git-'));
+    writeFileSync(join(bin, 'git'), '#!/bin/sh\nsleep 5\n');
+    chmodSync(join(bin, 'git'), 0o755);
+    vi.stubEnv('PATH', `${bin}:${process.env.PATH}`);
+    try {
+      await expect(cloneRepo('token', 'org/name', repo, 100)).rejects.toThrow(GitError);
+    } finally {
+      vi.unstubAllEnvs();
+      rmSync(bin, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('treeOfCheckout', () => {

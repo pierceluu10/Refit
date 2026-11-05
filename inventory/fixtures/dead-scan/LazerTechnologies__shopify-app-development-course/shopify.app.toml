@@ -1,3 +1,7 @@
 # Excerpt of LazerTechnologies/shopify-app-development-course at 93cb55752c30, shopify.app.toml.
 [webhooks]
 api_version = "2025-10"
+
+  [[webhooks.subscriptions]]
+  topics = [ "app/uninstalled" ]
+  uri = "/webhooks/app/uninstalled"

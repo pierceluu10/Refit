@@ -1,0 +1,433 @@
+{
+  "provider": "firebase",
+  "officialHosts": ["firebase.google.com"],
+  "entries": [
+    {
+      "id": "FB-1.fcm-legacy-http",
+      "provider": "firebase",
+      "what": "FCM's legacy HTTP and XMPP send APIs are shut down; shutdown began on 2024-07-22. The migration page now returns 404: the quote was read from its web.archive.org copy of 2026-01-08.",
+      "diedOn": "2024-07-22",
+      "source": {
+        "url": "https://firebase.google.com/docs/cloud-messaging/migrate-v1",
+        "checkedOn": "2026-11-05",
+        "quote": "Sending messages (including upstream messages) with those APIs was deprecated on June 20, 2023, and shutdown begins on July 22, 2024."
+      },
+      "lookFor": [
+        "A POST to https://fcm.googleapis.com/fcm/send, usually with Authorization: key=... Not https://fcm.googleapis.com/fcm/send/<token>, a browser Web Push subscription endpoint.",
+        "A connection to fcm-xmpp.googleapis.com:5235"
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "fcm.googleapis.com/fcm/send"
+        },
+        {
+          "kind": "url",
+          "value": "fcm-xmpp.googleapis.com"
+        }
+      ],
+      "replacement": "The HTTP v1 API: POST https://fcm.googleapis.com/v1/projects/<project-id>/messages:send, or the Admin SDK, which handles the token.",
+      "replacementIds": ["fcm.googleapis.com/v1/projects"],
+      "requires": [
+        "An OAuth 2.0 access token replaces the server key: Authorization: Bearer <token>.",
+        "The payload changes too: common keys go under message, with android, apns and webpush blocks for each platform."
+      ]
+    },
+    {
+      "id": "FB-2.fcm-upstream",
+      "provider": "firebase",
+      "what": "FCM upstream messaging from an Android app no longer reaches the app server. Later notes call the upstream methods decommissioned.",
+      "diedOn": "2024-06-21",
+      "source": {
+        "url": "https://firebase.google.com/support/release-notes/android",
+        "checkedOn": "2026-11-05",
+        "quote": "After June 21, 2024, API calls to FirebaseMessaging.send in the app won’t trigger upstream messages to the app server."
+      },
+      "lookFor": [
+        "FirebaseMessaging.send in an Android app, given a RemoteMessage built in the call. Not the Admin SDK for Java, whose FirebaseMessaging.send takes a Message and stays live.",
+        "An upstream address ending in @fcm.googleapis.com or @gcm.googleapis.com"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\.send\\(\\s*(?:new\\s+RemoteMessage\\.Builder\\(|remoteMessage\\()"
+        },
+        {
+          "kind": "regex",
+          "value": "[\"'$\\w}]@[fg]cm\\.googleapis\\.com"
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [
+        "There is no call to swap in. The device has to reach the app server some other way, such as the app's own HTTPS request."
+      ]
+    },
+    {
+      "id": "FB-3.dynamic-links",
+      "provider": "firebase",
+      "what": "Firebase Dynamic Links is shut down: links return 404, the Short Links and Link Stats APIs return 400 or 403, and SDK calls get errors or empty data. Errors ramped up from 2025-08-25.",
+      "diedOn": "2025-08-25",
+      "source": {
+        "url": "https://firebase.google.com/support/dynamic-links-faq",
+        "checkedOn": "2026-11-05",
+        "quote": "On August 25th, 2025, Firebase Dynamic Links will shut down."
+      },
+      "lookFor": [
+        "A request to firebasedynamiclinks.googleapis.com",
+        "A link on a *.page.link subdomain. A Dynamic Link on a custom domain looks like any other URL, so read rewrites in firebase.json by hand.",
+        "The SDK: FirebaseDynamicLinks, buildShortDynamicLink, firebase_dynamic_links, firebase-dynamic-links, Firebase/DynamicLinks or @react-native-firebase/dynamic-links"
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "firebasedynamiclinks.googleapis.com*"
+        },
+        {
+          "kind": "regex",
+          "value": "https?://[\\w-]+\\.page\\.link\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bFirebaseDynamicLinks\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bbuildShortDynamicLink\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bfirebase_dynamic_links\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bcom\\.google\\.firebase:firebase-dynamic-links"
+        },
+        {
+          "kind": "regex",
+          "value": "[\"']Firebase/DynamicLinks[\"']"
+        },
+        {
+          "kind": "package",
+          "value": "@react-native-firebase/dynamic-links",
+          "ecosystem": "npm"
+        }
+      ],
+      "replacement": "App Links and Universal Links for links into an installed app; for full feature parity the FAQ points to other deep-linking providers, which it says Google has not vetted.",
+      "requires": [
+        "App Links and Universal Links need their association files hosted on the domain, and they have no deferred deep link after an install or short-link API.",
+        "Firebase Auth email link sign-in on mobile needs the latest Authentication SDK and the migration the FAQ links to. Web email actions are not affected.",
+        "Links already handed out on page.link can't be kept: those domains go away with the service."
+      ]
+    },
+    {
+      "id": "FB-4.imagen",
+      "provider": "firebase",
+      "what": "All Imagen models are shut down on both Gemini API providers, and a request for one returns a 404. This holds at every SDK version: 12.18.0 of the JS SDK removed the API, but older versions only reach the same dead models.",
+      "diedOn": "2026-08-17",
+      "source": {
+        "url": "https://firebase.google.com/support/releases",
+        "checkedOn": "2026-11-05",
+        "quote": "All Imagen models shut down on August 17, 2026 (note that this shutdown date was extended from the previous June 30, 2026)."
+      },
+      "lookFor": [
+        "getImagenModel from firebase/ai or firebase/vertexai",
+        "imagenModel called on a Firebase AI object in Kotlin, Java, Swift or Dart"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bgetImagenModel\\s*\\("
+        },
+        {
+          "kind": "regex",
+          "value": "\\.imagenModel\\s*\\("
+        }
+      ],
+      "replacement": "A Gemini Nano Banana model, such as gemini-nano-banana-2.1.",
+      "replacementIds": ["gemini-nano-banana-2.1"],
+      "requires": [
+        "Not a rename: the Imagen APIs are gone from the SDK. Use getGenerativeModel with responseModalities including image, and read the image out of the generateContent response."
+      ]
+    },
+    {
+      "id": "FB-5.gemini-2.5-agent-platform",
+      "provider": "firebase",
+      "what": "gemini-2.5-pro, gemini-2.5-flash and gemini-2.5-flash-lite are shut down on the Agent Platform Gemini API (formerly Vertex AI) through Firebase AI Logic. On the Gemini Developer API they are deprecated with no shutdown date, so the same name there is live.",
+      "diedOn": "2026-10-20",
+      "source": {
+        "url": "https://firebase.google.com/support/releases",
+        "checkedOn": "2026-11-05",
+        "quote": "Agent Platform Gemini API (formerly Vertex AI) : October 20, 2026"
+      },
+      "lookFor": [
+        "A Firebase AI Logic model built with one of these names shortly after AgentPlatformBackend, VertexAIBackend, getVertexAI, FirebaseVertexAI, .agentPlatform( or .vertexAI(. Not one built on GoogleAIBackend or .googleAI(, and not a name held in a constant elsewhere."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?<=(?:\\b(?:AgentPlatformBackend|VertexAIBackend|getVertexAI)\\b|\\.(?:agentPlatform|vertexAI)\\(|\\bFirebaseVertexAI\\b)[\\s\\S]{0,600})\\b(?:getGenerativeModel|generativeModel)\\([^)]*?[\"'`]gemini-2\\.5-(?:pro|flash|flash-lite)[\"'`]"
+        }
+      ],
+      "replacement": "A newer model: the models page names gemini-4-argon and gemini-3.8-flash. The notice names gemini-3.6-flash, which is itself shutting down on this API.",
+      "replacementIds": ["gemini-4-argon", "gemini-3.8-flash"],
+      "requires": [
+        "Starting with gemini-3.7-flash, frequency penalty, presence penalty and candidate count fail with a 400, and the MINIMAL thinking level fails on gemini-3.7-flash. gemini-4-argon also fails on thinkingBudget, so read a generationConfig before changing only the name."
+      ]
+    },
+    {
+      "id": "FB-5.gemini-2.5-flash-image",
+      "provider": "firebase",
+      "what": "gemini-2.5-flash-image is shut down on both Gemini API providers, and a request for it returns a 404.",
+      "diedOn": "2026-10-02",
+      "source": {
+        "url": "https://firebase.google.com/support/releases",
+        "checkedOn": "2026-11-05",
+        "quote": "For the image-generating model (Nano Banana), the date for shutdown is the same regardless of your chosen Gemini API provider: October 02, 2026"
+      },
+      "lookFor": ["The model name gemini-2.5-flash-image in a file that uses Firebase AI Logic"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gemini-2.5-flash-image",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "A newer image model: gemini-nano-banana-2.1 is the latest stable one, and the notice names gemini-3.1-flash-image.",
+      "replacementIds": ["gemini-nano-banana-2.1", "gemini-3.1-flash-image"],
+      "requires": [],
+      "context": {
+        "packages": [
+          "firebase",
+          "firebase_ai",
+          "firebase_vertexai",
+          "com.google.firebase:firebase-ai",
+          "com.google.firebase:firebase-vertexai"
+        ]
+      }
+    }
+  ],
+  "future": [
+    {
+      "id": "FB-6.fcm-instance-id-device-groups",
+      "provider": "firebase",
+      "what": "All the InstanceId server APIs and FCM device group management stop working after 2027-09-29. Admin SDKs below Node 14.5.0, Python 7.7.0, Java 9.11.0, Go 4.22.0 and .NET 3.7.0 call the old topic API and need the upgrade. Sending through v1 stays live, without device group tokens.",
+      "diesOn": "2027-09-29",
+      "source": {
+        "url": "https://firebase.google.com/docs/cloud-messaging/troubleshooting",
+        "checkedOn": "2026-11-05",
+        "quote": "All the InstanceId server APIs and the device group feature are deprecated and will be decommissioned on September 29, 2027."
+      },
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "iid.googleapis.com/iid/info*"
+        },
+        {
+          "kind": "url",
+          "value": "iid.googleapis.com/iid/v1*"
+        },
+        {
+          "kind": "url",
+          "value": "fcm.googleapis.com/fcm/notification"
+        },
+        {
+          "kind": "url",
+          "value": "fcm.googleapis.com/gcm/notification"
+        },
+        {
+          "kind": "url",
+          "value": "fcm.googleapis.com/iid/notification"
+        },
+        {
+          "kind": "url",
+          "value": "fcm.googleapis.com/notification"
+        }
+      ],
+      "replacement": "The FCM topic subscription API for topics, the v1 send API with validate_only for token checks, and individual tokens in place of device groups.",
+      "requires": [
+        "batchImport has no replacement: FCM won't create registrations from APNs tokens on the server. Use APNs directly or the FCM iOS SDK on the client."
+      ]
+    },
+    {
+      "id": "FB-7.gemini-3.6-flash-agent-platform",
+      "provider": "firebase",
+      "what": "gemini-3.6-flash shuts down on the Agent Platform Gemini API through Firebase AI Logic. It has no announced shutdown date on the Gemini Developer API.",
+      "diesOn": "2026-11-19",
+      "source": {
+        "url": "https://firebase.google.com/support/releases",
+        "checkedOn": "2026-11-05",
+        "quote": "Agent Platform Gemini API (formerly Vertex AI) : gemini-3.6-flash will shut down November 19, 2026 (short-term availability model)."
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?<=(?:\\b(?:AgentPlatformBackend|VertexAIBackend|getVertexAI)\\b|\\.(?:agentPlatform|vertexAI)\\(|\\bFirebaseVertexAI\\b)[\\s\\S]{0,600})\\b(?:getGenerativeModel|generativeModel)\\([^)]*?[\"'`]gemini-3\\.6-flash[\"'`]"
+        }
+      ],
+      "replacement": "One of the latest Gemini models, like gemini-4-argon or gemini-3.8-flash.",
+      "replacementIds": ["gemini-4-argon", "gemini-3.8-flash"],
+      "requires": [
+        "Starting with gemini-3.7-flash, frequency penalty, presence penalty and candidate count fail with a 400, and the MINIMAL thinking level fails on gemini-3.7-flash. gemini-4-argon also fails on thinkingBudget, so read a generationConfig before changing only the name."
+      ]
+    },
+    {
+      "id": "FB-7.gemini-3.7-flash-agent-platform",
+      "provider": "firebase",
+      "what": "gemini-3.7-flash shuts down on the Agent Platform Gemini API through Firebase AI Logic. On the Gemini Developer API it has no announced shutdown date and is routed to gemini-3.8-flash.",
+      "diesOn": "2027-01-28",
+      "source": {
+        "url": "https://firebase.google.com/support/releases",
+        "checkedOn": "2026-11-05",
+        "quote": "Agent Platform Gemini API (formerly Vertex AI) : gemini-3.7-flash will shut down January 28, 2027 (short-term availability model)."
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?<=(?:\\b(?:AgentPlatformBackend|VertexAIBackend|getVertexAI)\\b|\\.(?:agentPlatform|vertexAI)\\(|\\bFirebaseVertexAI\\b)[\\s\\S]{0,600})\\b(?:getGenerativeModel|generativeModel)\\([^)]*?[\"'`]gemini-3\\.7-flash[\"'`]"
+        }
+      ],
+      "replacement": "One of the latest Gemini models, like gemini-4-argon or gemini-3.8-flash.",
+      "replacementIds": ["gemini-4-argon", "gemini-3.8-flash"],
+      "requires": [
+        "Starting with gemini-3.7-flash, frequency penalty, presence penalty and candidate count fail with a 400, and the MINIMAL thinking level fails on gemini-3.7-flash. gemini-4-argon also fails on thinkingBudget, so read a generationConfig before changing only the name."
+      ]
+    },
+    {
+      "id": "FB-7.gemini-3.5-flash-agent-platform",
+      "provider": "firebase",
+      "what": "gemini-3.5-flash on the Agent Platform Gemini API through Firebase AI Logic has an earliest shutdown date. The release note names gemini-3.6-flash under the 3.5 heading, so this date is from the models page. On the Gemini Developer API it has no announced date and is routed to gemini-3.6-flash.",
+      "diesOn": "2027-05-19",
+      "earliest": true,
+      "source": {
+        "url": "https://firebase.google.com/docs/ai-logic/models",
+        "checkedOn": "2026-11-05",
+        "quote": "No earlier than 2027-05-19"
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?<=(?:\\b(?:AgentPlatformBackend|VertexAIBackend|getVertexAI)\\b|\\.(?:agentPlatform|vertexAI)\\(|\\bFirebaseVertexAI\\b)[\\s\\S]{0,600})\\b(?:getGenerativeModel|generativeModel)\\([^)]*?[\"'`]gemini-3\\.5-flash[\"'`]"
+        }
+      ],
+      "replacement": "One of the latest Gemini models, like gemini-4-argon or gemini-3.8-flash.",
+      "replacementIds": ["gemini-4-argon", "gemini-3.8-flash"],
+      "requires": [
+        "Starting with gemini-3.7-flash, frequency penalty, presence penalty and candidate count fail with a 400, and the MINIMAL thinking level fails on gemini-3.7-flash. gemini-4-argon also fails on thinkingBudget, so read a generationConfig before changing only the name."
+      ]
+    },
+    {
+      "id": "FB-8.firebase-ml",
+      "provider": "firebase",
+      "what": "Firebase ML shuts down: custom model hosting and download, the Admin SDK API that manages them, and its Cloud Vision calls. Projects that never used it already can't start.",
+      "diesOn": "2027-06-15",
+      "source": {
+        "url": "https://firebase.google.com/docs/ml",
+        "checkedOn": "2026-11-05",
+        "quote": "Firebase ML is deprecated and will be shut down on June 15, 2027."
+      },
+      "matchers": [
+        {
+          "kind": "package",
+          "value": "firebase-admin/machine-learning",
+          "ecosystem": "npm"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bgetMachineLearning\\s*\\("
+        },
+        {
+          "kind": "regex",
+          "value": "\\.machineLearning\\s*\\(\\s*\\)"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bfrom\\s+firebase_admin\\s+import\\s+[^\\n#]*\\bml\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bfirebase_admin\\.ml\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bFirebaseModelDownloader\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bFirebaseMLModelDownloader\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bfirebase-ml-modeldownloader\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bfirebase_ml_model_downloader\\b"
+        }
+      ],
+      "replacement": "Cloud Storage to host TensorFlow Lite models; Firebase AI Logic or the Cloud Vision API endpoints directly to analyze images.",
+      "requires": [
+        "Model download needs its own code on Cloud Storage: the downloader does versioning and conditions for you today."
+      ]
+    },
+    {
+      "id": "FB-9.test-lab",
+      "provider": "firebase",
+      "what": "Firebase Test Lab shuts down, so a CI step that runs a test through it fails.",
+      "diesOn": "2027-09-30",
+      "source": {
+        "url": "https://firebase.google.com/support/releases",
+        "checkedOn": "2026-11-05",
+        "quote": "Firebase Test Lab is deprecated and will be fully shut down as of September 30, 2027."
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bgcloud\\s+(?:(?:beta|alpha)\\s+)?firebase\\s+test\\s+(?:android|ios)\\s+(?:run|models|versions)\\b"
+        }
+      ],
+      "replacement": "The Developer Device Platform on Google Cloud.",
+      "requires": [
+        "Follow its migration guide: the commands and device catalog are that product's own."
+      ]
+    },
+    {
+      "id": "FB-9.test-lab-pixel2-arm",
+      "provider": "firebase",
+      "what": "Test Lab removes the Pixel2.arm virtual devices for API levels 26 to 33.",
+      "diesOn": "2026-11-15",
+      "source": {
+        "url": "https://firebase.google.com/support/releases",
+        "checkedOn": "2026-11-05",
+        "quote": "The following devices are now deprecated and will be removed on 2026-11-15: Pixel2.arm/26 , Pixel2.arm/27 , Pixel2.arm/28 , Pixel2.arm/29 , Pixel2.arm/30 , Pixel2.arm/31 , Pixel2.arm/32 , Pixel2.arm/33"
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bPixel2\\.arm(?:/|,\\s*version=)(?:2[6-9]|3[0-3])\\b"
+        }
+      ],
+      "replacement": "An Arm virtual device, for example MediumPhone.arm.",
+      "replacementIds": ["MediumPhone.arm"],
+      "requires": []
+    },
+    {
+      "id": "FB-9.test-lab-ios-16.6",
+      "provider": "firebase",
+      "what": "Test Lab removes four iOS 16.6 devices: ipad10, iphone11pro, iphone14pro and iphone8.",
+      "diesOn": "2026-11-23",
+      "source": {
+        "url": "https://firebase.google.com/support/releases",
+        "checkedOn": "2026-11-05",
+        "quote": "The following devices are now deprecated and will be removed on 2026-11-23: ipad10/16.6 iphone11pro/16.6 iphone14pro/16.6 iphone8/16.6"
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\b(?:ipad10|iphone11pro|iphone14pro|iphone8)(?:/|,\\s*version=)16\\.6\\b"
+        }
+      ],
+      "replacement": "A different device. The note names none.",
+      "requires": []
+    }
+  ]
+}

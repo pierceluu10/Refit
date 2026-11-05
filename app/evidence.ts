@@ -1,7 +1,15 @@
 import { redactSecrets } from '../harness/secrets.ts';
 import type { Finding } from '../shared/types.ts';
 import type { ConsentStore } from './consent.ts';
-import { addReverts, evidenceFor, habitsOf, instant, mergeFix, revertNames } from './fix-facts.ts';
+import {
+  addReverts,
+  evidenceFor,
+  habitsOf,
+  instant,
+  mergeFix,
+  ownedBy,
+  revertNames,
+} from './fix-facts.ts';
 import type { FactStore, FixFacts, RepoFacts, SeenRevert } from './fix-facts.ts';
 import { BOT, isPersonCommit } from './github.ts';
 import type { ChangedFile, ComparedCommit, FileComparison, PullComment } from './github.ts';
@@ -55,7 +63,7 @@ export type PullEvent = {
     merged_at: string | null;
     closed_at: string | null;
     merge_commit_sha: string | null;
-    head: { ref: string; sha: string };
+    head: { ref: string; sha: string; repo?: { full_name: string } | null };
     base: { ref: string };
   };
   sender: { login: string; type: string };
@@ -76,8 +84,29 @@ const capped = (text: string, max: number) =>
     ? text
     : `${text.slice(0, max)}\n[... ${text.length - max} more characters not shown ...]`;
 
+const KEY_EDGE = /-----(BEGIN|END) [A-Z0-9 ]*PRIVATE KEY[A-Z ]*-----/;
+// A key's body has no name or prefix to go by, only its width: 64 in PEM, 70 in OpenSSH, 76 at most.
+// Hashes match too; evidence loses nothing by that.
+const KEY_BODY_LINE = /^[ +-]?\s*[A-Za-z0-9+/]{60,76}={0,2}\s*$/;
+const HUNK_OR_FILE = /^(?:@@ |--- )/;
+
+// redactSecrets needs both ends of a key, and a diff's context often shows only a slice of one.
+// shortcut: a key's short last line, seen with no BEGIN above it, stays; a few characters of a key are no key.
+function redactKeySlices(text: string) {
+  let inKey = false;
+  return text
+    .split('\n')
+    .map((line) => {
+      const edge = KEY_EDGE.exec(line);
+      if (edge) inKey = edge[1] === 'BEGIN';
+      else if (HUNK_OR_FILE.test(line)) inKey = false;
+      return edge || inKey || KEY_BODY_LINE.test(line) ? '[redacted]' : line;
+    })
+    .join('\n');
+}
+
 // Hard limit 4: a secret never leaves in evidence. Redacted before the cap, so a cut can't hide one.
-const safeText = (text: string, max: number) => capped(redactSecrets(text), max);
+const safeText = (text: string, max: number) => capped(redactKeySlices(redactSecrets(text)), max);
 
 const changedLines = (patch: string) =>
   patch
@@ -177,15 +206,19 @@ export function createEvidence(deps: EvidenceDeps) {
     await deps.recordHabits(habitsOf(facts));
   }
 
-  const addFix = (repo: string, number: number, fresh: FixFacts) =>
-    deps.facts.update(repo, (facts) => ({
-      ...facts,
-      fixes: { ...facts.fixes, [number]: mergeFix(facts.fixes[number], fresh) },
-    }));
+  const withFix = (facts: RepoFacts, number: number, fresh: FixFacts): RepoFacts => ({
+    ...facts,
+    fixes: { ...facts.fixes, [number]: mergeFix(facts.fixes[number], fresh) },
+  });
+
+  const addFix = (installationId: number, repo: string, number: number, fresh: FixFacts) =>
+    deps.facts.update(repo, (facts) => withFix(ownedBy(facts, installationId), number, fresh));
 
   async function recordReverts(installationId: number, repo: string, seen: SeenRevert[]) {
     if (seen.length === 0) return;
-    const facts = await deps.facts.update(repo, (current) => addReverts(current, seen));
+    const facts = await deps.facts.update(repo, (current) =>
+      addReverts(ownedBy(current, installationId), seen),
+    );
     const numbers = Object.keys(facts.fixes)
       .map(Number)
       .filter((number) => {
@@ -211,7 +244,12 @@ export function createEvidence(deps: EvidenceDeps) {
     return {
       url: pr.html_url,
       ...(edited && { edited: true as const }),
-      merged: { at: instant(pr.merged_at), sha: pr.merge_commit_sha ?? pr.head.sha, ...changes },
+      merged: {
+        at: instant(pr.merged_at),
+        sha: pr.merge_commit_sha ?? pr.head.sha,
+        ...changes,
+        ...(pr.base.ref !== repository.default_branch && { offDefault: true as const }),
+      },
     };
   }
 
@@ -228,23 +266,31 @@ export function createEvidence(deps: EvidenceDeps) {
 
   return {
     // Our PR just opened: its commit is what later edits are measured from.
+    // shortcut: names no installation, so on a name that changed hands the next event drops this too.
     async opened({ repo, number, url, sha, entryIds }: OpenedFix) {
-      await addFix(repo, number, { url, opened: { sha, entryIds } });
+      await deps.facts.update(repo, (facts) =>
+        withFix(facts, number, { url, opened: { sha, entryIds } }),
+      );
     },
+
+    // The repo left this installation: what its people said goes with it.
+    forget: (repo: string) => deps.facts.forget(repo),
 
     // pull_request.closed on an Aptitude branch.
     async closed(event: PullEvent) {
       const { pull_request: pr, repository, installation } = event;
       const repo = repository.full_name;
-      const known = (await deps.facts.read(repo)).fixes[pr.number];
+      const known = ownedBy(await deps.facts.read(repo), installation.id).fixes[pr.number];
       const fresh = pr.merged ? await mergedFacts(event, known) : await closedFacts(event, known);
-      await send(installation.id, await addFix(repo, pr.number, fresh), [pr.number]);
+      await send(installation.id, await addFix(installation.id, repo, pr.number, fresh), [
+        pr.number,
+      ]);
     },
 
     // pull_request.synchronize on an Aptitude branch, where a person pushed their own commit.
     async edited({ pull_request: pr, repository, installation }: PullEvent) {
       const fresh = { url: pr.html_url, edited: true as const };
-      const facts = await addFix(repository.full_name, pr.number, fresh);
+      const facts = await addFix(installation.id, repository.full_name, pr.number, fresh);
       await send(installation.id, facts, [pr.number]);
     },
 
@@ -271,7 +317,7 @@ export function createEvidence(deps: EvidenceDeps) {
     // Whether a scan of this repo could find anything back, so other repos can skip it.
     hasFixToWatch: async (repo: string) =>
       Object.values((await deps.facts.read(repo)).fixes).some(
-        ({ merged, opened }) => merged && opened?.entryIds.length,
+        ({ merged, opened }) => merged && !merged.offDefault && opened?.entryIds.length,
       ),
 
     // Called by the scan path with a scan's findings. `at` is when the checkout was taken, so a scan of
@@ -285,22 +331,25 @@ export function createEvidence(deps: EvidenceDeps) {
           .map(Number)
           .filter((number) => {
             const { opened, merged } = fixes[number];
-            if (!merged || scannedAt <= merged.at) return false;
+            if (!merged || merged.offDefault || scannedAt <= merged.at) return false;
             return live.some((finding) => opened?.entryIds.includes(finding.entryId));
           });
-      if (returnedIn(await deps.facts.read(repo)).length === 0) return;
-      const facts = await deps.facts.update(repo, (current) => ({
-        ...current,
-        fixes: {
-          ...current.fixes,
-          ...Object.fromEntries(
-            returnedIn(current).map((number) => {
-              const fix = current.fixes[number];
-              return [number, mergeFix(fix, { url: fix.url, returnedAt: scannedAt })];
-            }),
-          ),
-        },
-      }));
+      if (returnedIn(ownedBy(await deps.facts.read(repo), installationId)).length === 0) return;
+      const facts = await deps.facts.update(repo, (stored) => {
+        const current = ownedBy(stored, installationId);
+        return {
+          ...current,
+          fixes: {
+            ...current.fixes,
+            ...Object.fromEntries(
+              returnedIn(current).map((number) => {
+                const fix = current.fixes[number];
+                return [number, mergeFix(fix, { url: fix.url, returnedAt: scannedAt })];
+              }),
+            ),
+          },
+        };
+      });
       await send(installationId, facts, returnedIn(facts));
     },
   };

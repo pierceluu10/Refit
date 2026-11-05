@@ -588,6 +588,35 @@ describe('what a merged diff may carry', () => {
     expect(diff).not.toContain(github);
   });
 
+  it("redacts the slice of a private key a diff's context shows, and only that", async () => {
+    // Made up, in a real key's shape: 64 characters a line, and the hunk stops before END.
+    const first = 'FAKEKEYBODYONE'.padEnd(64, 'A');
+    const second = 'FAKEKEYBODYTWO'.padEnd(64, 'B');
+    const middle = 'FAKEKEYBODYMID'.padEnd(64, 'C');
+    const diff = await merged(
+      withDiff(
+        [
+          '@@ -1,4 +1,4 @@',
+          '-# old',
+          '+# new',
+          ' -----BEGIN RSA PRIVATE KEY-----',
+          ` ${first}`,
+          ` ${second}`,
+          ' Proc-Type: 4,ENCRYPTED',
+          '@@ -40,2 +40,2 @@',
+          ` ${middle}`,
+          "-const retries = 'old';",
+          "+const retries = 'kept';",
+        ].join('\n'),
+      ),
+    );
+    expect(diff, diff).not.toContain('BEGIN RSA PRIVATE KEY');
+    expect(diff, diff).not.toContain('FAKEKEYBODY');
+    expect(diff, diff).not.toContain('ENCRYPTED');
+    expect(diff, "the person's edit above the key").toContain('+# new');
+    expect(diff, 'the next hunk is not key').toContain("+const retries = 'kept';");
+  });
+
   it("redacts this process's own secret values", async () => {
     vi.stubEnv('APTITUDE_TEST_SECRET', 'value-only-the-host-knows');
     try {
@@ -1127,4 +1156,88 @@ describe('shared learning consent', () => {
     logged.mockRestore();
     app.cleanup();
   });
+});
+
+describe('a repo name that changes hands', () => {
+  const NEXT_INSTALLATION = INSTALLATION + 1;
+  const REASON = 'customer-one private reason';
+  const said: PullComment[] = [
+    { body: REASON, user: { login: 'example-admin', type: 'User' }, at: CLOSED_AT },
+  ];
+  const quiet: EvidenceGitHub = {
+    listPullCommits: async () => [],
+    listPullFiles: async () => [],
+    commitFiles: async () => [],
+    compareFiles: async () => ({ status: 'identical', files: [] }),
+    listPullComments: async () => said,
+  };
+
+  it("never gives the next installation the last one's words, under its consent", async () => {
+    const app = world(quiet);
+    await app.deliver('pull_request', closedEvent());
+    expect(app.memory.habits.at(-1)?.rejections.reasons).toEqual([REASON]);
+
+    await app.consent.set(NEXT_INSTALLATION, true);
+    await app.deliver('pull_request', {
+      ...synchronizeEvent('after-sha'),
+      installation: { id: NEXT_INSTALLATION },
+    });
+    expect(app.memory.sent.at(-1)).toMatchObject({ consented: true, evidence: { edited: true } });
+    expect(app.memory.sent.at(-1)?.evidence.closed).toBeUndefined();
+    expect(app.memory.habits.at(-1)?.rejections).toEqual({ count: 0, reasons: [] });
+    app.cleanup();
+  });
+
+  it('keeps every fact while the same installation holds the repo', async () => {
+    const app = world(quiet);
+    await app.deliver('pull_request', closedEvent());
+    await app.deliver('pull_request', synchronizeEvent('after-sha'));
+    expect(app.memory.habits.at(-1)?.rejections.reasons).toEqual([REASON]);
+    app.cleanup();
+  });
+
+  it('drops the facts when the repo is forgotten', async () => {
+    const app = world(quiet);
+    await app.deliver('pull_request', closedEvent());
+    await app.evidence.forget(REPO);
+    expect(JSON.stringify(await app.facts.read(REPO))).not.toContain(REASON);
+    app.cleanup();
+  });
+});
+
+describe('a fix merged into another branch', () => {
+  const quiet: EvidenceGitHub = {
+    listPullCommits: async () => [],
+    listPullFiles: async () => [],
+    commitFiles: async () => [],
+    compareFiles: async () => ({ status: 'identical', files: [] }),
+    listPullComments: async () => [],
+  };
+  const still = [{ entryId: ENTRY, matchClass: 'live' }] as Finding[];
+
+  it.each([
+    ['develop', false, undefined],
+    ['main', true, 'rescan'],
+  ])(
+    'into %s: watched %s, and a live finding reads as reverted by %s',
+    async (base, watched, via) => {
+      const app = world(quiet);
+      await app.evidence.opened({
+        repo: REPO,
+        number: NUMBER,
+        url: PR_URL,
+        sha: 'head',
+        entryIds: [ENTRY],
+      });
+      const event = mergedEvent('head', 'squash');
+      await app.deliver('pull_request', {
+        ...event,
+        pull_request: { ...(event.pull_request as object), base: { ref: base } },
+      });
+      expect(Boolean(await app.evidence.hasFixToWatch(REPO))).toBe(watched);
+      await app.evidence.rescanFound(INSTALLATION, REPO, still, '2026-11-02T00:00:00Z');
+      expect(app.memory.sent.at(-1)?.evidence.reverted?.via).toBe(via);
+      app.cleanup();
+    },
+  );
 });

@@ -1,0 +1,2872 @@
+{
+  "provider": "azure-openai",
+  "officialHosts": ["learn.microsoft.com/en-us/azure/foundry"],
+  "entries": [
+    {
+      "id": "AZ-1.gpt-5-chat",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired every listed version of gpt-5-chat, the last on 2026-06-29. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2026-06-29",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-5-chat | 2025-08-07 | Retired | 2026-06-29 | gpt-chat-latest"
+      },
+      "lookFor": [
+        "The name gpt-5-chat as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-5-chat. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-5-chat",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-5-chat",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-5-chat(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gpt-chat-latest",
+      "replacementIds": ["gpt-chat-latest"],
+      "requires": [
+        "gpt-chat-latest has dated preview versions with their own retirement dates: check the schedule for the version you deploy."
+      ],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-1.gpt-5.1-chat",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired every listed version of gpt-5.1-chat, the last on 2026-06-29. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2026-06-29",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-5.1-chat | 2025-11-13 | Retired | 2026-06-29 | gpt-chat-latest"
+      },
+      "lookFor": [
+        "The name gpt-5.1-chat as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-5.1-chat. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-5.1-chat",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-5.1-chat",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-5\\.1-chat(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gpt-chat-latest",
+      "replacementIds": ["gpt-chat-latest"],
+      "requires": [
+        "gpt-chat-latest has dated preview versions with their own retirement dates: check the schedule for the version you deploy."
+      ],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-1.gpt-5.2-chat",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired every listed version of gpt-5.2-chat, the last on 2026-06-29. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2026-06-29",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-5.2-chat | 2026-02-10 | Retired | 2026-06-29 | gpt-chat-latest"
+      },
+      "lookFor": [
+        "The name gpt-5.2-chat as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-5.2-chat. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-5.2-chat",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-5.2-chat",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-5\\.2-chat(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gpt-chat-latest",
+      "replacementIds": ["gpt-chat-latest"],
+      "requires": [
+        "gpt-chat-latest has dated preview versions with their own retirement dates: check the schedule for the version you deploy."
+      ],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-1.gpt-5.3-chat",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired every listed version of gpt-5.3-chat, the last on 2026-06-29. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2026-06-29",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-5.3-chat | 2026-03-03 | Retired | 2026-06-29 | gpt-chat-latest"
+      },
+      "lookFor": [
+        "The name gpt-5.3-chat as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-5.3-chat. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-5.3-chat",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-5.3-chat",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-5\\.3-chat(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gpt-chat-latest",
+      "replacementIds": ["gpt-chat-latest"],
+      "requires": [
+        "gpt-chat-latest has dated preview versions with their own retirement dates: check the schedule for the version you deploy."
+      ],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-2.gpt-4o-transcribe",
+      "provider": "azure-openai",
+      "what": "The schedule gives gpt-4o-transcribe version 2025-03-20, its only listed version, a retirement date of 2026-10-15. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The schedule was last updated 2026-09-23, before this date, and the retired list does not show it yet, so the retirement taking effect is not confirmed. The row names no replacement, so the page gives no auto-upgrade target. Once retired, inference returns 410 Gone.",
+      "diedOn": "2026-10-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-4o-transcribe | 2025-03-20 | GA | 2026-10-15"
+      },
+      "lookFor": [
+        "The name gpt-4o-transcribe as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-4o-transcribe. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-4o-transcribe",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4o-transcribe",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4o-transcribe(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-2.gpt-4o-mini-transcribe-2025-03-20",
+      "provider": "azure-openai",
+      "what": "The schedule gives gpt-4o-mini-transcribe version 2025-03-20 a retirement date of 2026-10-15. Version 2025-12-15 stays until 2027-06-15, so the plain name gpt-4o-mini-transcribe is not on this entry: only a name that carries the old version. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The schedule was last updated 2026-09-23, before this date, and the retired list does not show it yet, so the retirement taking effect is not confirmed. The row names no replacement, so the page gives no auto-upgrade target. Once retired, inference returns 410 Gone.",
+      "diedOn": "2026-10-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-4o-mini-transcribe | 2025-03-20 | GA | 2026-10-15"
+      },
+      "lookFor": [
+        "The name gpt-4o-mini-transcribe-2025-03-20 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-4o-mini-transcribe-2025-03-20. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-4o-mini-transcribe-2025-03-20",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4o-mini-transcribe-2025-03-20",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4o-mini-transcribe-2025-03-20(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gpt-4o-mini-transcribe version 2025-12-15, the later row for the same model. The page lists it as a version, not a replacement.",
+      "replacementIds": ["gpt-4o-mini-transcribe"],
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-2.gpt-4o-mini-tts-2025-03-20",
+      "provider": "azure-openai",
+      "what": "The schedule gives gpt-4o-mini-tts version 2025-03-20 a retirement date of 2026-10-15. Version 2025-12-15 stays until 2027-06-15, so the plain name gpt-4o-mini-tts is not on this entry: only a name that carries the old version. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The schedule was last updated 2026-09-23, before this date, and the retired list does not show it yet, so the retirement taking effect is not confirmed. The lifecycle page calls a preview date \"not sooner than\" and says preview deployments are either upgraded or terminated, so this date may have moved. The row names no replacement, so the page gives no auto-upgrade target. Once retired, inference returns 410 Gone.",
+      "diedOn": "2026-10-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-4o-mini-tts | 2025-03-20 | Preview | 2026-10-15"
+      },
+      "lookFor": [
+        "The name gpt-4o-mini-tts-2025-03-20 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-4o-mini-tts-2025-03-20. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-4o-mini-tts-2025-03-20",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4o-mini-tts-2025-03-20",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4o-mini-tts-2025-03-20(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gpt-4o-mini-tts version 2025-12-15, the later row for the same model. The page lists it as a version, not a replacement.",
+      "replacementIds": ["gpt-4o-mini-tts"],
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-3.gpt-image-1",
+      "provider": "azure-openai",
+      "what": "The schedule gives gpt-image-1 version 2025-04-15, its only listed version, a retirement date of 2026-10-23. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The schedule was last updated 2026-09-23, before this date, and the retired list does not show it yet, so the retirement taking effect is not confirmed. The lifecycle page calls a preview date \"not sooner than\" and says preview deployments are either upgraded or terminated, so this date may have moved. The row names no replacement, so the page gives no auto-upgrade target. Once retired, inference returns 410 Gone.",
+      "diedOn": "2026-10-23",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-image-1 | 2025-04-15 | Preview | 2026-10-23"
+      },
+      "lookFor": [
+        "The name gpt-image-1 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-image-1. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-image-1",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-image-1",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-image-1(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-3.sora-2",
+      "provider": "azure-openai",
+      "what": "The schedule gives both listed versions of sora-2 past retirement dates: 2025-10-06 on 2026-07-15 and 2025-12-08 on 2026-10-15. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The schedule was last updated 2026-09-23, before this date, and the retired list does not show it yet, so the retirement taking effect is not confirmed. The lifecycle page calls a preview date \"not sooner than\" and says preview deployments are either upgraded or terminated, so this date may have moved. The row names no replacement, so the page gives no auto-upgrade target. Once retired, inference returns 410 Gone.",
+      "diedOn": "2026-10-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "sora-2 | 2025-12-08 | Preview | 2026-10-15"
+      },
+      "lookFor": [
+        "The name sora-2 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/sora-2. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "sora-2",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/sora-2",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/sora-2(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-4.o1-preview",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired o1-preview on 2025-07-28. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2025-07-28",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "o1-preview | — | — | July 28, 2025 | o1"
+      },
+      "lookFor": [
+        "The name o1-preview as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/o1-preview. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "o1-preview",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/o1-preview",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/o1-preview(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page names o1, which itself retires on 2026-11-19 with gpt-5.6-sol as its replacement. Use gpt-5.6-sol.",
+      "replacementIds": ["gpt-5.6-sol"],
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-4.gpt-4.5-preview",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired gpt-4.5-preview on 2025-07-14. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2025-07-14",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-4.5-preview | — | — | July 14, 2025 | gpt-4.1 version: 2025-04-14"
+      },
+      "lookFor": [
+        "The name gpt-4.5-preview as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-4.5-preview. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-4.5-preview",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4.5-preview",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4\\.5-preview(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page names gpt-4.1 version 2025-04-14, which itself retires on 2027-04-14 with nothing named after it.",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-4.gpt-4o-realtime-preview-2024-10-01",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired gpt-4o-realtime-preview version 2024-10-01 on 2025-03-26. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2025-03-26",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-4o-realtime-preview | 2024-10-01 | February 25, 2025 | March 26, 2025"
+      },
+      "lookFor": [
+        "The name gpt-4o-realtime-preview-2024-10-01 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-4o-realtime-preview-2024-10-01. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-4o-realtime-preview-2024-10-01",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4o-realtime-preview-2024-10-01",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4o-realtime-preview-2024-10-01(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The retired list names gpt-4o-realtime-preview version 2024-12-17 or gpt-4o-mini-realtime-preview version 2024-12-17. The retirement schedule no longer lists either, so check what your region still offers.",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-5.gpt-35-turbo-versions",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired gpt-35-turbo versions 0301 and 0613 on 2025-02-13. Version 0125 was named as the replacement, so the plain name gpt-35-turbo is not on this entry: only a name that carries an old version. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2025-02-13",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-35-turbo | 0613 | — | February 13, 2025 | gpt-35-turbo (0125) gpt-4o-mini"
+      },
+      "lookFor": [
+        "The name gpt-35-turbo-0301 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-35-turbo-0301. Not the same name sent to OpenAI itself.",
+        "The name gpt-35-turbo-0613 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-35-turbo-0613. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-35-turbo-0301",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-35-turbo-0301",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-35-turbo-0301(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "gpt-35-turbo-0613",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-35-turbo-0613",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-35-turbo-0613(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page names gpt-35-turbo (0125) or gpt-4o-mini. The retirement schedule no longer lists gpt-35-turbo, and gpt-4o-mini itself retires on 2027-04-14 with nothing named after it.",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-5.gpt-35-turbo-16k",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired gpt-35-turbo-16k version 0613, its only listed version, on 2025-04-30. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2025-04-30",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-35-turbo-16k | 0613 | — | April 30, 2025 | gpt-4.1-mini version: 2025-04-14"
+      },
+      "lookFor": [
+        "The name gpt-35-turbo-16k as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-35-turbo-16k. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-35-turbo-16k",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-35-turbo-16k",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-35-turbo-16k(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page names gpt-4.1-mini version 2025-04-14, which itself retires on 2027-04-14 with nothing named after it.",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-5.gpt-4-32k",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired gpt-4 and gpt-4-32k versions 0314 and 0613 on 2025-06-06. The page lists no other version of gpt-4-32k. The plain name gpt-4 is not on this entry, because the page does not say every version of it is gone. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2025-06-06",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "0613 | — | June 6, 2025 | gpt-4o version: 2024-11-20"
+      },
+      "lookFor": [
+        "The name gpt-4-32k as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-4-32k. Not the same name sent to OpenAI itself.",
+        "The name gpt-4-32k-0314 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-4-32k-0314. Not the same name sent to OpenAI itself.",
+        "The name gpt-4-32k-0613 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-4-32k-0613. Not the same name sent to OpenAI itself.",
+        "The name gpt-4-0314 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-4-0314. Not the same name sent to OpenAI itself.",
+        "The name gpt-4-0613 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/gpt-4-0613. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-4-32k",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4-32k",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4-32k(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "gpt-4-32k-0314",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4-32k-0314",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4-32k-0314(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "gpt-4-32k-0613",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4-32k-0613",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4-32k-0613(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "gpt-4-0314",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4-0314",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4-0314(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "gpt-4-0613",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4-0613",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4-0613(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page names gpt-4o version 2024-11-20, which itself retires on 2027-04-14 with gpt-5.1 as its replacement. Use gpt-5.1.",
+      "replacementIds": ["gpt-5.1"],
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-6.babbage-002",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired babbage-002 on 2025-01-27. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. The row names no replacement, so the page gives no auto-upgrade target. ",
+      "diedOn": "2025-01-27",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "babbage-002 | — | — | January 27, 2025 | N/A"
+      },
+      "lookFor": [
+        "The name babbage-002 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/babbage-002. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "babbage-002",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/babbage-002",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/babbage-002(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-6.davinci-002",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired davinci-002 on 2025-01-27. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. The row names no replacement, so the page gives no auto-upgrade target. ",
+      "diedOn": "2025-01-27",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "davinci-002 | — | — | January 27, 2025 | N/A"
+      },
+      "lookFor": [
+        "The name davinci-002 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/davinci-002. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "davinci-002",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/davinci-002",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/davinci-002(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-6.dall-e-2",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired dall-e-2 on 2025-01-27. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2025-01-27",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "dall-e-2 | — | — | January 27, 2025 | gpt-image-1"
+      },
+      "lookFor": [
+        "The name dall-e-2 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/dall-e-2. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "dall-e-2",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/dall-e-2",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/dall-e-2(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page names gpt-image-1, whose own retirement date of 2026-10-23 has passed with nothing named after it.",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-7.first-generation-base",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired the base models ada, babbage, curie and davinci on 2024-06-14. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. The row names no replacement, so the page gives no auto-upgrade target. ",
+      "diedOn": "2024-06-14",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "davinci | — | July 6, 2023 | June 14, 2024 | N/A"
+      },
+      "lookFor": [
+        "ada, babbage, curie or davinci as the whole value of a model, engine or deployment field, or a /deployments/ path, in code that talks to Azure OpenAI. Never the bare word."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\b(?:model|engine|deployment(?:_name|_id|Name|Id)?|azure_deployment)[\"\\']?\\s*[:=]\\s*[\"\\'](?:ada|babbage|curie|davinci)[\"\\']",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/(?:ada|babbage|curie|davinci)(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-8.text-ada-001",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired text-ada-001 on 2024-06-14. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2024-06-14",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "text-ada-001 | — | July 6, 2023 | June 14, 2024 | gpt-35-turbo-instruct"
+      },
+      "lookFor": [
+        "The name text-ada-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-ada-001. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "text-ada-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-ada-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-ada-001(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page names gpt-35-turbo-instruct. The retirement schedule no longer lists it, so check what your region still offers.",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-8.text-babbage-001",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired text-babbage-001 on 2024-06-14. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2024-06-14",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "text-babbage-001 | — | July 6, 2023 | June 14, 2024 | gpt-35-turbo-instruct"
+      },
+      "lookFor": [
+        "The name text-babbage-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-babbage-001. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "text-babbage-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-babbage-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-babbage-001(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page names gpt-35-turbo-instruct. The retirement schedule no longer lists it, so check what your region still offers.",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-8.text-curie-001",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired text-curie-001 on 2024-06-14. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2024-06-14",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "text-curie-001 | — | July 6, 2023 | June 14, 2024 | gpt-35-turbo-instruct"
+      },
+      "lookFor": [
+        "The name text-curie-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-curie-001. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "text-curie-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-curie-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-curie-001(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page names gpt-35-turbo-instruct. The retirement schedule no longer lists it, so check what your region still offers.",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-8.text-davinci-002",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired text-davinci-002 on 2024-06-14. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2024-06-14",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "text-davinci-002 | — | July 6, 2023 | June 14, 2024 | gpt-35-turbo-instruct"
+      },
+      "lookFor": [
+        "The name text-davinci-002 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-davinci-002. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "text-davinci-002",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-davinci-002",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-davinci-002(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page names gpt-35-turbo-instruct. The retirement schedule no longer lists it, so check what your region still offers.",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-8.text-davinci-003",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired text-davinci-003 on 2024-06-14. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2024-06-14",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "text-davinci-003 | — | July 6, 2023 | June 14, 2024 | gpt-35-turbo-instruct"
+      },
+      "lookFor": [
+        "The name text-davinci-003 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-davinci-003. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "text-davinci-003",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-davinci-003",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-davinci-003(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page names gpt-35-turbo-instruct. The retirement schedule no longer lists it, so check what your region still offers.",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-8.code-cushman-001",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired code-cushman-001 on 2024-06-14. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2024-06-14",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "code-cushman-001 | — | July 6, 2023 | June 14, 2024 | gpt-35-turbo-instruct"
+      },
+      "lookFor": [
+        "The name code-cushman-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/code-cushman-001. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "code-cushman-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/code-cushman-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/code-cushman-001(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page names gpt-35-turbo-instruct. The retirement schedule no longer lists it, so check what your region still offers.",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-8.code-davinci-002",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired code-davinci-002 on 2024-06-14. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2024-06-14",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "code-davinci-002 | — | July 6, 2023 | June 14, 2024 | gpt-35-turbo-instruct"
+      },
+      "lookFor": [
+        "The name code-davinci-002 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/code-davinci-002. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "code-davinci-002",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/code-davinci-002",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/code-davinci-002(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The page names gpt-35-turbo-instruct. The retirement schedule no longer lists it, so check what your region still offers.",
+      "requires": [],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-9.first-generation-embeddings",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI retired the first generation embedding models on 2024-06-14. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page says a retired model returns 410 Gone to all inference requests. A Standard, Global Standard or Data Zone Standard deployment left on auto-upgrade may have been moved to the replacement and keeps answering under its old deployment name. A Provisioned deployment or one set to NoAutoUpgrade stops working. ",
+      "diedOn": "2024-06-14",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/retired-models",
+        "checkedOn": "2026-11-05",
+        "quote": "text-similarity-ada-001 | — | July 6, 2023 | June 14, 2024 | text-embedding-3-small"
+      },
+      "lookFor": [
+        "The name text-similarity-ada-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-similarity-ada-001. Not the same name sent to OpenAI itself.",
+        "The name text-similarity-babbage-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-similarity-babbage-001. Not the same name sent to OpenAI itself.",
+        "The name text-similarity-curie-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-similarity-curie-001. Not the same name sent to OpenAI itself.",
+        "The name text-similarity-davinci-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-similarity-davinci-001. Not the same name sent to OpenAI itself.",
+        "The name text-search-ada-doc-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-search-ada-doc-001. Not the same name sent to OpenAI itself.",
+        "The name text-search-ada-query-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-search-ada-query-001. Not the same name sent to OpenAI itself.",
+        "The name text-search-babbage-doc-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-search-babbage-doc-001. Not the same name sent to OpenAI itself.",
+        "The name text-search-babbage-query-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-search-babbage-query-001. Not the same name sent to OpenAI itself.",
+        "The name text-search-curie-doc-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-search-curie-doc-001. Not the same name sent to OpenAI itself.",
+        "The name text-search-curie-query-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-search-curie-query-001. Not the same name sent to OpenAI itself.",
+        "The name text-search-davinci-doc-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-search-davinci-doc-001. Not the same name sent to OpenAI itself.",
+        "The name text-search-davinci-query-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/text-search-davinci-query-001. Not the same name sent to OpenAI itself.",
+        "The name code-search-ada-code-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/code-search-ada-code-001. Not the same name sent to OpenAI itself.",
+        "The name code-search-ada-text-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/code-search-ada-text-001. Not the same name sent to OpenAI itself.",
+        "The name code-search-babbage-code-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/code-search-babbage-code-001. Not the same name sent to OpenAI itself.",
+        "The name code-search-babbage-text-001 as an Azure OpenAI deployment or model: AzureOpenAI, an openai.azure.com URL, or azure/code-search-babbage-text-001. Not the same name sent to OpenAI itself."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "text-similarity-ada-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-similarity-ada-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-similarity-ada-001(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "text-similarity-babbage-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-similarity-babbage-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-similarity-babbage-001(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "text-similarity-curie-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-similarity-curie-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-similarity-curie-001(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "text-similarity-davinci-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-similarity-davinci-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-similarity-davinci-001(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "text-search-ada-doc-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-search-ada-doc-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-search-ada-doc-001(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "text-search-ada-query-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-search-ada-query-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-search-ada-query-001(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "text-search-babbage-doc-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-search-babbage-doc-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-search-babbage-doc-001(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "text-search-babbage-query-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-search-babbage-query-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-search-babbage-query-001(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "text-search-curie-doc-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-search-curie-doc-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-search-curie-doc-001(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "text-search-curie-query-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-search-curie-query-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-search-curie-query-001(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "text-search-davinci-doc-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-search-davinci-doc-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-search-davinci-doc-001(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "text-search-davinci-query-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/text-search-davinci-query-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/text-search-davinci-query-001(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "code-search-ada-code-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/code-search-ada-code-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/code-search-ada-code-001(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "code-search-ada-text-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/code-search-ada-text-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/code-search-ada-text-001(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "code-search-babbage-code-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/code-search-babbage-code-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/code-search-babbage-code-001(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "code-search-babbage-text-001",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/code-search-babbage-text-001",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/code-search-babbage-text-001(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "text-embedding-3-small",
+      "replacementIds": ["text-embedding-3-small"],
+      "requires": [
+        "Vectors from another embedding model are not comparable: re-embed stored documents."
+      ],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-10.assistants-api",
+      "provider": "azure-openai",
+      "what": "Azure OpenAI's Assistants API sunset on 2026-08-26. The classic how-to page calls it retired. Neither page says what a request gets, so a failing call isn't proven.",
+      "diedOn": "2026-08-26",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/how-to/navigate-from-classic",
+        "checkedOn": "2026-11-05",
+        "quote": "August 26, 2026 — Assistants API sunsets."
+      },
+      "lookFor": [
+        "A read or call of .assistants or .threads on beta, on a client in an Azure OpenAI repo",
+        "A request to /openai/assistants or /openai/threads",
+        "The header value assistants=v2 in code that talks to Azure OpenAI"
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "/openai/assistants*"
+        },
+        {
+          "kind": "url",
+          "value": "/openai/threads*"
+        },
+        {
+          "kind": "field",
+          "value": "assistants",
+          "on": ["beta"]
+        },
+        {
+          "kind": "field",
+          "value": "threads",
+          "on": ["beta"]
+        },
+        {
+          "kind": "regex",
+          "value": "\\bassistants=v2\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The Responses API, through the Microsoft Foundry Agents service.",
+      "requires": [
+        "Threads become Conversations, which store items rather than only messages.",
+        "Runs become Responses, with no polling loop.",
+        "Assistants become Agent Versions, created with create_version() and a PromptAgentDefinition.",
+        "The Responses API and Foundry Agent Service are not in every Azure region: check that yours supports them."
+      ],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-11.azure-ai-inference",
+      "provider": "azure-openai",
+      "what": "The azure-ai-inference package retired on 2026-08-26. The page doesn't say an installed copy stops working, so a failing call isn't proven.",
+      "diedOn": "2026-08-26",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/how-to/navigate-from-classic",
+        "checkedOn": "2026-11-05",
+        "quote": "azure-ai-inference retires August 26, 2026."
+      },
+      "lookFor": ["The dependency azure-ai-inference, or an import of azure.ai.inference"],
+      "matchers": [
+        {
+          "kind": "package",
+          "value": "azure-ai-inference"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bazure\\.ai\\.inference\\b"
+        }
+      ],
+      "replacement": "The openai package",
+      "replacementIds": ["openai"],
+      "requires": [
+        "The page says to use the standard OpenAI() client with base_url rather than AzureOpenAI()."
+      ],
+      "context": {
+        "packages": ["azure-ai-inference", "@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    }
+  ],
+  "future": [
+    {
+      "id": "AZ-20.codex-mini",
+      "provider": "azure-openai",
+      "what": "codex-mini version 2025-05-16 retires on 2026-11-15, with no replacement named. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. Inference returns 410 Gone once it is retired.",
+      "diesOn": "2026-11-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "codex-mini | 2025-05-16 | Deprecated | 2026-11-15"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "codex-mini",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/codex-mini",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/codex-mini(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-21.o1",
+      "provider": "azure-openai",
+      "what": "o1 version 2024-12-17 retires on 2026-11-19. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. A Provisioned deployment or one set to NoAutoUpgrade stops working on the date. A Standard, Global Standard or Data Zone Standard deployment on auto-upgrade moves to the replacement.",
+      "diesOn": "2026-11-19",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "o1 | 2024-12-17 | Deprecated | 2026-11-19 | gpt-5.6-sol"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "o1",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/o1",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/o1(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gpt-5.6-sol",
+      "replacementIds": ["gpt-5.6-sol"],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-21.o1-pro",
+      "provider": "azure-openai",
+      "what": "o1-pro version 2025-03-19 retires on 2026-11-19. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. A Provisioned deployment or one set to NoAutoUpgrade stops working on the date. A Standard, Global Standard or Data Zone Standard deployment on auto-upgrade moves to the replacement.",
+      "diesOn": "2026-11-19",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "o1-pro | 2025-03-19 | Deprecated | 2026-11-19 | gpt-5.6-sol"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "o1-pro",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/o1-pro",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/o1-pro(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gpt-5.6-sol",
+      "replacementIds": ["gpt-5.6-sol"],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-21.o3",
+      "provider": "azure-openai",
+      "what": "o3 version 2025-04-16 retires on 2026-11-19. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. A Provisioned deployment or one set to NoAutoUpgrade stops working on the date. A Standard, Global Standard or Data Zone Standard deployment on auto-upgrade moves to the replacement.",
+      "diesOn": "2026-11-19",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "o3 | 2025-04-16 | Deprecated | 2026-11-19 | gpt-5.6-sol"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "o3",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/o3",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/o3(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gpt-5.6-sol",
+      "replacementIds": ["gpt-5.6-sol"],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-21.o3-deep-research",
+      "provider": "azure-openai",
+      "what": "o3-deep-research version 2025-06-26 retires on 2026-11-19. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. A Provisioned deployment or one set to NoAutoUpgrade stops working on the date. A Standard, Global Standard or Data Zone Standard deployment on auto-upgrade moves to the replacement.",
+      "diesOn": "2026-11-19",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "o3-deep-research | 2025-06-26 | Deprecated | 2026-11-19 | gpt-5.6-sol"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "o3-deep-research",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/o3-deep-research",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/o3-deep-research(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gpt-5.6-sol",
+      "replacementIds": ["gpt-5.6-sol"],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-21.o3-mini",
+      "provider": "azure-openai",
+      "what": "o3-mini version 2025-01-31 retires on 2026-11-19. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. A Provisioned deployment or one set to NoAutoUpgrade stops working on the date. A Standard, Global Standard or Data Zone Standard deployment on auto-upgrade moves to the replacement.",
+      "diesOn": "2026-11-19",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "o3-mini | 2025-01-31 | Deprecated | 2026-11-19 | gpt-5.6-terra"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "o3-mini",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/o3-mini",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/o3-mini(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gpt-5.6-terra",
+      "replacementIds": ["gpt-5.6-terra"],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-21.o3-pro",
+      "provider": "azure-openai",
+      "what": "o3-pro version 2025-06-10 retires on 2026-11-19. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. A Provisioned deployment or one set to NoAutoUpgrade stops working on the date. A Standard, Global Standard or Data Zone Standard deployment on auto-upgrade moves to the replacement.",
+      "diesOn": "2026-11-19",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "o3-pro | 2025-06-10 | Deprecated | 2026-11-19 | gpt-5.6-sol"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "o3-pro",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/o3-pro",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/o3-pro(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gpt-5.6-sol",
+      "replacementIds": ["gpt-5.6-sol"],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-21.o4-mini",
+      "provider": "azure-openai",
+      "what": "o4-mini version 2025-04-16 retires on 2026-11-19. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. A Provisioned deployment or one set to NoAutoUpgrade stops working on the date. A Standard, Global Standard or Data Zone Standard deployment on auto-upgrade moves to the replacement.  Fine-tuned o4-mini deployments have their own later date.",
+      "diesOn": "2026-11-19",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "o4-mini | 2025-04-16 | Deprecated | 2026-11-19 | gpt-5.6-terra"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "o4-mini",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/o4-mini",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/o4-mini(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gpt-5.6-terra",
+      "replacementIds": ["gpt-5.6-terra"],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-22.tts",
+      "provider": "azure-openai",
+      "what": "tts version 001 retires on 2026-12-15. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The lifecycle page calls a preview date \"not sooner than\" and says preview deployments are either upgraded or terminated, so this date may have moved. ",
+      "diesOn": "2026-12-15",
+      "earliest": true,
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "tts | 001 | Preview | 2026-12-15"
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\b(?:model|deployment(?:_name|_id|Name|Id)?|azure_deployment)[\"\\']?\\s*[:=]\\s*[\"\\']tts[\"\\']",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/tts(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-22.tts-hd",
+      "provider": "azure-openai",
+      "what": "tts-hd version 001 retires on 2026-12-15, with no replacement named. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. ",
+      "diesOn": "2026-12-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "tts-hd | 001 | GA | 2026-12-15"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "tts-hd",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/tts-hd",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/tts-hd(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-22.whisper",
+      "provider": "azure-openai",
+      "what": "whisper version 001 retires on 2026-12-15, with no replacement named. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. ",
+      "diesOn": "2026-12-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "whisper | 001 | GA | 2026-12-15"
+      },
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\b(?:model|deployment(?:_name|_id|Name|Id)?|azure_deployment)[\"\\']?\\s*[:=]\\s*[\"\\']whisper[\"\\']",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/whisper(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-22.gpt-image-1.5",
+      "provider": "azure-openai",
+      "what": "gpt-image-1.5 version 2025-12-16 retires on 2026-12-16, with no replacement named. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. ",
+      "diesOn": "2026-12-16",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-image-1.5 | 2025-12-16 | GA | 2026-12-16"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-image-1.5",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-image-1.5",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-image-1\\.5(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-23.gpt-4o-2024-05-13",
+      "provider": "azure-openai",
+      "what": "gpt-4o version 2024-05-13 retires on 2027-01-14. Global Standard and Data Zone Standard deployments auto-upgrade to gpt-5.1 version 2025-11-13. Provisioned deployments are not upgraded, and the page says the shared date implies no auto-upgrade for Global Batch. Regional Standard deployments already retired on 2026-03-31. Only a name that carries the version is on this entry, because the plain name gpt-4o lives until 2027-04-14. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it.",
+      "diesOn": "2027-01-14",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "Provisioned deployments aren't automatically upgraded; create replacement deployments and move your traffic before retirement."
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-4o-2024-05-13",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4o-2024-05-13",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4o-2024-05-13(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gpt-5.1 version 2025-11-13",
+      "replacementIds": ["gpt-5.1"],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-24.gpt-4o",
+      "provider": "azure-openai",
+      "what": "Every base gpt-4o offer retires on 2027-04-14. Regional Standard deployments that already retired stay retired. Fine-tuned deployments have their own later date. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. A Provisioned deployment or one set to NoAutoUpgrade stops working on the date. A Standard, Global Standard or Data Zone Standard deployment on auto-upgrade moves to the replacement.",
+      "diesOn": "2027-04-14",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-4o | 2024-11-20 | Legacy | 2027-04-14"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-4o",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4o",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4o(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "gpt-4o-2024-08-06",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4o-2024-08-06",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4o-2024-08-06(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "gpt-4o-2024-11-20",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4o-2024-11-20",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4o-2024-11-20(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gpt-5.1",
+      "replacementIds": ["gpt-5.1"],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-24.gpt-4o-mini",
+      "provider": "azure-openai",
+      "what": "Every base gpt-4o-mini offer retires on 2027-04-14. Regional Standard deployments that already retired stay retired. Fine-tuned deployments have their own later date. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The row names no replacement, so the page gives no auto-upgrade target.",
+      "diesOn": "2027-04-14",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-4o-mini | 2024-07-18 | Deprecated | 2027-04-14"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-4o-mini",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4o-mini",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4o-mini(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "gpt-4o-mini-2024-07-18",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4o-mini-2024-07-18",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4o-mini-2024-07-18(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-24.gpt-4.1",
+      "provider": "azure-openai",
+      "what": "Every base gpt-4.1 offer retires on 2027-04-14. Fine-tuned deployments have their own later date. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The row names no replacement, so the page gives no auto-upgrade target.",
+      "diesOn": "2027-04-14",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-4.1 | 2025-04-14 | Deprecated | 2027-04-14"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-4.1",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4.1",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4\\.1(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "gpt-4.1-2025-04-14",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4.1-2025-04-14",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4\\.1-2025-04-14(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-24.gpt-4.1-mini",
+      "provider": "azure-openai",
+      "what": "Every base gpt-4.1-mini offer retires on 2027-04-14. Regional Standard deployments that already retired stay retired. Fine-tuned deployments have their own later date. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The row names no replacement, so the page gives no auto-upgrade target.",
+      "diesOn": "2027-04-14",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-4.1-mini | 2025-04-14 | Deprecated | 2027-04-14"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-4.1-mini",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4.1-mini",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4\\.1-mini(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "gpt-4.1-mini-2025-04-14",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4.1-mini-2025-04-14",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4\\.1-mini-2025-04-14(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    },
+    {
+      "id": "AZ-24.gpt-4.1-nano",
+      "provider": "azure-openai",
+      "what": "Every base gpt-4.1-nano offer retires on 2027-04-14. Fine-tuned deployments have their own later date. On Azure the model field holds a deployment name the customer chose, so this string alone does not prove which model sits behind it. The row names no replacement, so the page gives no auto-upgrade target.",
+      "diesOn": "2027-04-14",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/azure/foundry/openai/concepts/model-retirement-schedule",
+        "checkedOn": "2026-11-05",
+        "quote": "gpt-4.1-nano | 2025-04-14 | Deprecated | 2027-04-14"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gpt-4.1-nano",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4.1-nano",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4\\.1-nano(?![\\w.-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "gpt-4.1-nano-2025-04-14",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "azure/gpt-4.1-nano-2025-04-14",
+          "bare": true
+        },
+        {
+          "kind": "regex",
+          "value": "/deployments/gpt-4\\.1-nano-2025-04-14(?![\\w.-])",
+          "ambiguous": true
+        }
+      ],
+      "context": {
+        "packages": ["@azure/openai", "@ai-sdk/azure"],
+        "hosts": [
+          "openai.azure.com",
+          "cognitiveservices.azure.com",
+          "services.ai.azure.com",
+          "azureopenai",
+          "azurechatopenai",
+          "azureopenaiembeddings",
+          "azure_openai_endpoint",
+          "azure_openai_api_key",
+          "azure_openai_key",
+          "azure_openai_deployment",
+          "azure_openai_deployment_name",
+          "azure_openai_api_version",
+          "azure_endpoint",
+          "azure_deployment"
+        ]
+      }
+    }
+  ]
+}

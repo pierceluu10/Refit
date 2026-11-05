@@ -1,4 +1,5 @@
 import { readJsonFile, writeJsonFile } from './json-file.ts';
+import { messageOf } from './redact.ts';
 import type { AppJob, JobQueue, UnderstandJob } from './types.ts';
 
 export type FileQueue = JobQueue & {
@@ -35,12 +36,16 @@ export async function createFileQueue(
       try {
         await run(job);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.error(`job ${job.kind} ${job.repo} failed: ${message}`);
+        console.error(`job ${job.kind} ${job.repo} failed: ${messageOf(error)}`);
       }
       jobs = jobs.filter((other) => other !== job);
       running = undefined;
-      await save();
+      try {
+        await save();
+      } catch (error) {
+        // The file still lists this job, so at worst a restart reruns it. The rest still get their turn.
+        console.error(`saving the queue failed: ${messageOf(error)}`);
+      }
     }
   }
   const start = () => {

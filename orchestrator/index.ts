@@ -1,6 +1,6 @@
 // The orchestrator's entry point for the GitHub App: the whole loop on one checked-out repo.
 import type { RunRepoJob } from '../shared/types.ts';
-import { createBudget } from './budget.ts';
+import { createBudget, type Budget } from './budget.ts';
 import { PROPOSED_DIR } from '../dead-apis/proposals.ts';
 import { createDeps, deadApiScan } from './deps.ts';
 import { runOrg, type LoopDeps } from './loop.ts';
@@ -23,15 +23,17 @@ export function createRunRepoJob(
   };
 }
 
+// Jobs on one run budget, with the real rescan and list, so jobs run at once can never each spend the
+// cap. With no budget, offline stubs stand in.
+export const repoJobOn = (budget?: Budget): RunRepoJob => {
+  const scan = budget && deadApiScan(budget, { storeDir: PROPOSED_DIR });
+  return createRunRepoJob(createDeps({ budget, ...scan }), budget?.capUsd);
+};
+
 let shared: RunRepoJob | undefined;
 
-// Every job in this process shares one run budget (APTITUDE_AI_BUDGET_USD) and one queue, so jobs
-// the app runs at once can never each spend the cap. Without ANTHROPIC_API_KEY, offline stubs stand in.
+// Every job in this process shares one run budget (APTITUDE_AI_BUDGET_USD) and one queue.
 export const runRepoJob: RunRepoJob = (input) => {
-  if (!shared) {
-    const budget = process.env.ANTHROPIC_API_KEY ? createBudget() : undefined;
-    const scan = budget && deadApiScan(budget, { storeDir: PROPOSED_DIR });
-    shared = createRunRepoJob(createDeps({ budget, ...scan }), budget?.capUsd);
-  }
+  shared ??= repoJobOn(process.env.ANTHROPIC_API_KEY ? createBudget() : undefined);
   return shared(input);
 };

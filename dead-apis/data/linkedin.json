@@ -1,0 +1,1060 @@
+{
+  "provider": "linkedin",
+  "officialHosts": ["learn.microsoft.com/en-us/linkedin"],
+  "entries": [
+    {
+      "id": "LI-1.202510",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202510 passed its sunset on 2026-10-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2026-10-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202510 (October 2025) to migrate to the latest versions. | October 15, 2026 | Deprecated"
+      },
+      "lookFor": [
+        "202510 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202510 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202510\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202509",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202509 passed its sunset on 2026-09-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2026-09-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202509 (September 2025) to migrate to the latest versions. | September 15, 2026 | Deprecated"
+      },
+      "lookFor": [
+        "202509 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202509 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202509\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202508",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202508 passed its sunset on 2026-08-17. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2026-08-17",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202508 (August 2025) to migrate to the latest versions. | August 17, 2026 | Deprecated"
+      },
+      "lookFor": [
+        "202508 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202508 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202508\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202507",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202507 passed its sunset on 2026-07-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2026-07-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202507 (July 2025) to migrate to the latest versions. | July 15, 2026 | Deprecated"
+      },
+      "lookFor": [
+        "202507 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202507 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202507\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202506",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202506 passed its sunset on 2026-06-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2026-06-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202506 (June 2025) to migrate to the latest versions. | June 15, 2026 | Deprecated"
+      },
+      "lookFor": [
+        "202506 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202506 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202506\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202505",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202505 passed its sunset on 2026-05-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2026-05-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202505 (May 2025) to migrate to the latest versions. | May 15, 2026 | Deprecated"
+      },
+      "lookFor": [
+        "202505 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202505 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202505\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202504",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202504 passed its sunset on 2026-04-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2026-04-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202504 (April 2025) to migrate to the latest versions. | April 15, 2026 | Deprecated"
+      },
+      "lookFor": [
+        "202504 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202504 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202504\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202503",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202503 passed its sunset on 2026-03-16. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2026-03-16",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202503 (March 2025) to migrate to the latest versions. | March 16, 2026 | Deprecated"
+      },
+      "lookFor": [
+        "202503 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202503 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202503\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202502",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202502 passed its sunset on 2026-02-16. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2026-02-16",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202502 (February 2025) to migrate to the latest versions. | February 16, 2026 | Deprecated"
+      },
+      "lookFor": [
+        "202502 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202502 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202502\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202501",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202501 passed its sunset on 2026-01-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2026-01-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202501 (January 2025) to migrate to the latest versions. | January 15, 2026 | Deprecated"
+      },
+      "lookFor": [
+        "202501 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202501 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202501\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202411",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202411 passed its sunset on 2025-11-17. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2025-11-17",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202411 (November 2024) to migrate to the latest versions. | November 17, 2025 | Deprecated"
+      },
+      "lookFor": [
+        "202411 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202411 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202411\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202410",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202410 passed its sunset on 2025-10-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2025-10-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202410 (October 2024) to migrate to the latest versions. | October 15, 2025 | Deprecated"
+      },
+      "lookFor": [
+        "202410 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202410 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202410\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202409",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202409 passed its sunset on 2025-09-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2025-09-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202409 (September 2024) to migrate to the latest versions. | September 15, 2025 | Deprecated"
+      },
+      "lookFor": [
+        "202409 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202409 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202409\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202408",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202408 passed its sunset on 2025-08-18. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2025-08-18",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202408 (August 2024) to migrate to the latest versions. | August 18, 2025 | Deprecated"
+      },
+      "lookFor": [
+        "202408 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202408 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202408\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202407",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202407 passed its sunset on 2025-07-22. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2025-07-22",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202407 (July 2024) to migrate to the latest versions. | July 22, 2025 | Deprecated"
+      },
+      "lookFor": [
+        "202407 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202407 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202407\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202406",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202406 passed its sunset on 2025-06-16. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2025-06-16",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202406 (June 2024) to migrate to the latest versions. | June 16, 2025 | Deprecated"
+      },
+      "lookFor": [
+        "202406 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202406 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202406\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202405",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202405 passed its sunset on 2025-05-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2025-05-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202405 (May 2024) to migrate to the latest versions. | May 15, 2025 | Deprecated"
+      },
+      "lookFor": [
+        "202405 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202405 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202405\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202404",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202404 passed its sunset on 2025-04-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2025-04-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202404 (April 2024) to migrate to the latest versions. | April 15, 2025 | Deprecated"
+      },
+      "lookFor": [
+        "202404 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202404 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202404\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202403",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202403 passed its sunset on 2025-03-17. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2025-03-17",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202403 (March 2024) to migrate to the latest versions. | March 17, 2025 | Deprecated"
+      },
+      "lookFor": [
+        "202403 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202403 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202403\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202402",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202402 passed its sunset on 2025-02-18. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2025-02-18",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202402 (February 2024) to migrate to the latest versions. | February 18, 2025 | Deprecated"
+      },
+      "lookFor": [
+        "202402 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202402 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202402\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202401",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202401 passed its sunset on 2025-01-22. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2025-01-22",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202401 (January 2024) to migrate to the latest versions. | January 22, 2025 | Deprecated"
+      },
+      "lookFor": [
+        "202401 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202401 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202401\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202311",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202311 passed its sunset on 2024-11-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2024-11-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202311 (November 2023) to migrate to the latest versions. | November 15, 2024 | Deprecated"
+      },
+      "lookFor": [
+        "202311 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202311 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202311\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202310",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202310 passed its sunset on 2024-10-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2024-10-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202310 (October 2023) to migrate to the latest versions. | October 15, 2024 | Deprecated"
+      },
+      "lookFor": [
+        "202310 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202310 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202310\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202309",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202309 passed its sunset on 2024-09-16. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2024-09-16",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202309 (September 2023) to migrate to the latest versions. | September 16, 2024 | Deprecated"
+      },
+      "lookFor": [
+        "202309 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202309 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202309\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202308",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202308 passed its sunset on 2024-08-16. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2024-08-16",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202308 (August 2023) to migrate to the latest versions. | August 16, 2024 | Deprecated"
+      },
+      "lookFor": [
+        "202308 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202308 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202308\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202307",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202307 passed its sunset on 2024-12-16. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2024-12-16",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202307 (July 2023) to migrate to the latest versions. | December 16, 2024 | Deprecated"
+      },
+      "lookFor": [
+        "202307 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202307 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202307\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202306",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202306 passed its sunset on 2024-12-16. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2024-12-16",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202306 (June 2023) to migrate to the latest versions. | December 16, 2024 | Deprecated"
+      },
+      "lookFor": [
+        "202306 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202306 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202306\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202305",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202305 passed its sunset on 2024-06-17. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2024-06-17",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202305 (May 2023) to migrate to the latest versions. | June 17, 2024 | Deprecated"
+      },
+      "lookFor": [
+        "202305 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202305 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202305\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202304",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202304 passed its sunset on 2024-04-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2024-04-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202304 (April 2023) to migrate to the latest versions. | April 15, 2024 | Deprecated"
+      },
+      "lookFor": [
+        "202304 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202304 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202304\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202303",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202303 passed its sunset on 2024-03-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2024-03-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202303 (March 2023) to migrate to the latest versions. | March 15, 2024 | Deprecated"
+      },
+      "lookFor": [
+        "202303 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202303 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202303\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202302",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202302 passed its sunset on 2024-02-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2024-02-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202302 (February 2023) to migrate to the latest versions. | Feb 15, 2024 | Deprecated"
+      },
+      "lookFor": [
+        "202302 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202302 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202302\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202301",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202301 passed its sunset on 2024-01-16. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2024-01-16",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202301 (January 2023) to migrate to the latest versions. | Jan 16, 2024 | Deprecated"
+      },
+      "lookFor": [
+        "202301 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202301 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202301\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202212",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202212 passed its sunset on 2024-01-16. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2024-01-16",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202212 (December 2022) to migrate to the latest versions. | Jan 16, 2024 | Deprecated"
+      },
+      "lookFor": [
+        "202212 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202212 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202212\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202211",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202211 passed its sunset on 2024-01-16. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2024-01-16",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202211 (November 2022) to migrate to the latest versions. | Jan 16, 2024 | Deprecated"
+      },
+      "lookFor": [
+        "202211 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202211 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202211\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202210",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202210 passed its sunset on 2024-01-16. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2024-01-16",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202210 (October 2022) to migrate to the latest versions. | Jan 16, 2024 | Deprecated"
+      },
+      "lookFor": [
+        "202210 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202210 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202210\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202209",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202209 passed its sunset on 2023-09-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2023-09-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202209 (September 2022) to migrate to the latest versions. | September 15, 2023 | Deprecated"
+      },
+      "lookFor": [
+        "202209 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202209 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202209\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202208",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202208 passed its sunset on 2023-08-16. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2023-08-16",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202208 (August 2022) to migrate to the latest versions. | August 16, 2023 | Deprecated"
+      },
+      "lookFor": [
+        "202208 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202208 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202208\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202207",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202207 passed its sunset on 2023-07-25. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2023-07-25",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202207 (July 2022) to migrate to the latest versions. | July 25, 2023 | Deprecated"
+      },
+      "lookFor": [
+        "202207 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202207 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202207\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    },
+    {
+      "id": "LI-1.202206",
+      "provider": "linkedin",
+      "what": "LinkedIn Marketing API version 202206 passed its sunset on 2023-06-15. The versioning page says a request with a deprecated version header gets an error response. Not tested live.",
+      "diedOn": "2023-06-15",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/linkedin/marketing/integrations/migrations",
+        "checkedOn": "2026-11-05",
+        "quote": "Developers using LinkedIn Marketing APIs version 202206 (June 2022) to migrate to the latest versions. | June 15, 2023 | Deprecated"
+      },
+      "lookFor": [
+        "202206 as the value of a Linkedin-Version header, or of a setting named for it such as LINKEDIN_API_VERSION. A bare 202206 anywhere else is not this."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?:[Ll]inked[Ii]n[-_A-Za-z]*[Vv]ersion|LINKEDIN[A-Z_]*VERSION)[\\\"'\\]]*\\s*(?:[:=,]|\\|\\||\\?\\?)\\s*[\\\"'`]?202206\\b"
+        }
+      ],
+      "replacement": "A version that has not been sunset. The migrations page lists 202610 as active, with a sunset of October 15, 2027.",
+      "requires": [
+        "Read the calls against the docs for the new version: the docs are versioned, and fields can differ between versions."
+      ],
+      "context": {
+        "hosts": ["api.linkedin.com"]
+      }
+    }
+  ],
+  "future": []
+}

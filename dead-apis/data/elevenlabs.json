@@ -1,0 +1,136 @@
+{
+  "provider": "elevenlabs",
+  "officialHosts": ["elevenlabs.io/docs"],
+  "entries": [
+    {
+      "id": "EL-1.api_integration_mcp",
+      "provider": "elevenlabs",
+      "what": "The agent tool type api_integration_mcp is removed from the tool type enum.",
+      "diedOn": "2026-10-26",
+      "source": {
+        "url": "https://elevenlabs.io/docs/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "Tool type enum removes api_integration_mcp."
+      },
+      "lookFor": [
+        "The tool type api_integration_mcp in an agent's tool config, or compared against one"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "api_integration_mcp"
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["elevenlabs", "@elevenlabs/elevenlabs-js"],
+        "hosts": ["api.elevenlabs.io"]
+      }
+    },
+    {
+      "id": "EL-2.data-collection-missing",
+      "provider": "elevenlabs",
+      "what": "The missing operator is no longer accepted in data_collection_params on List conversations and Resolve conversation reference. The parameter itself stays live.",
+      "diedOn": "2026-09-21",
+      "source": {
+        "url": "https://elevenlabs.io/docs/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "data_collection_params no longer accepts the missing operator. Use an empty value to match conversations where the field was not collected."
+      },
+      "lookFor": [
+        "A data_collection_params filter of the form id:missing, on the same line as the parameter"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\b(?:data_collection_params|dataCollectionParams)\\b[^\\n]*:missing\\b"
+        }
+      ],
+      "replacement": "An empty value: id:eq: matches conversations where the field was not collected, and id:neq: where it was.",
+      "requires": [],
+      "context": {
+        "packages": ["elevenlabs", "@elevenlabs/elevenlabs-js"],
+        "hosts": ["api.elevenlabs.io"]
+      }
+    },
+    {
+      "id": "EL-3.auto_discover",
+      "provider": "elevenlabs",
+      "what": "Knowledge base document responses no longer carry auto_discover in auto_sync_info.",
+      "diedOn": "2026-10-26",
+      "source": {
+        "url": "https://elevenlabs.io/docs/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "Knowledge base document responses - auto_sync_info removes the deprecated auto_discover field."
+      },
+      "lookFor": ["auto_discover read off auto_sync_info"],
+      "matchers": [
+        {
+          "kind": "field",
+          "value": "auto_discover",
+          "on": ["auto_sync_info", "autoSyncInfo"]
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["elevenlabs", "@elevenlabs/elevenlabs-js"],
+        "hosts": ["api.elevenlabs.io"]
+      }
+    },
+    {
+      "id": "EL-4.crawl-job-max_depth",
+      "provider": "elevenlabs",
+      "what": "Get crawl job responses no longer carry max_depth. Create crawl job still takes it as a no-op, so only a read of the response is dead.",
+      "diedOn": "2026-10-05",
+      "source": {
+        "url": "https://elevenlabs.io/docs/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "Get crawl job - Removed the deprecated max_depth response field."
+      },
+      "lookFor": ["max_depth read off a crawl job"],
+      "matchers": [
+        {
+          "kind": "field",
+          "value": "max_depth",
+          "on": ["crawl_job", "crawlJob"]
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["elevenlabs", "@elevenlabs/elevenlabs-js"],
+        "hosts": ["api.elevenlabs.io"]
+      }
+    }
+  ],
+  "future": [
+    {
+      "id": "EL-5.eleven_text_to_sound_v2",
+      "provider": "elevenlabs",
+      "what": "The sound effects model eleven_text_to_sound_v2 will be removed.",
+      "diesOn": "2027-03-01",
+      "source": {
+        "url": "https://elevenlabs.io/docs/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "eleven_text_to_sound_v2 is deprecated and will be removed on March 1, 2027."
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "eleven_text_to_sound_v2"
+        }
+      ],
+      "replacement": "eleven_text_to_sound_v3",
+      "replacementIds": ["eleven_text_to_sound_v3"],
+      "requires": [
+        "It is the default model today: a request that doesn't set model_id needs to set it explicitly, and no matcher finds those."
+      ],
+      "context": {
+        "packages": ["elevenlabs", "@elevenlabs/elevenlabs-js"],
+        "hosts": ["api.elevenlabs.io"]
+      }
+    }
+  ]
+}

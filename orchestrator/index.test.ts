@@ -203,4 +203,25 @@ describe('runRepoJob', () => {
       vi.doUnmock('./deps.ts');
     }
   });
+
+  it('gives jobs on a budget the real rescan and list, so a fix gets its proof', async () => {
+    vi.resetModules();
+    const scanners = { scan: 'scan', rescan: 'rescan', list: 'list' };
+    const budget = { capUsd: 3 };
+    let given: unknown;
+    vi.doMock('./deps.ts', () => ({
+      deadApiScan: () => scanners,
+      createDeps: (deps: unknown) => {
+        given = deps;
+        return fakeDeps().deps;
+      },
+    }));
+    try {
+      const { repoJobOn } = await import('./index.ts');
+      repoJobOn(budget as never);
+      expect(given).toEqual({ budget, ...scanners });
+    } finally {
+      vi.doUnmock('./deps.ts');
+    }
+  });
 });

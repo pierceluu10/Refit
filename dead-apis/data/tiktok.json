@@ -1,0 +1,98 @@
+{
+  "provider": "tiktok",
+  "officialHosts": ["developers.tiktok.com", "business-api.tiktok.com"],
+  "entries": [
+    {
+      "id": "TT-1.oauth-v1-web",
+      "provider": "tiktok",
+      "what": "TikTok's v1 OAuth endpoints are switched off for web apps, and calls are rejected. The same page tells mobile apps to stay on v1 until further notice, so read which one this is.",
+      "diedOn": "2024-02-29",
+      "source": {
+        "url": "https://developers.tiktok.com/bulletin/migration-guidance-oauth-v1",
+        "checkedOn": "2026-11-05",
+        "quote": "End of life for v1 OAuth API, for web apps only . API calls to old endpoints will be rejected."
+      },
+      "lookFor": [
+        "www.tiktok.com/auth/authorize/, or open-api.tiktok.com/oauth/ access_token, refresh_token or revoke, in a web app's code. Not the same endpoints behind a mobile app, and not /v2/auth/authorize/."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bwww\\.tiktok\\.com/auth/authorize\\b",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\bopen-api\\.tiktok\\.com/oauth/(?:access_token|refresh_token|revoke)\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "https://www.tiktok.com/v2/auth/authorize/ to start, https://open.tiktokapis.com/v2/oauth/token/ for tokens and refreshes, and https://open.tiktokapis.com/v2/oauth/revoke/ to revoke.",
+      "replacementIds": [
+        "www.tiktok.com/v2/auth/authorize",
+        "open.tiktokapis.com/v2/oauth/token",
+        "open.tiktokapis.com/v2/oauth/revoke"
+      ],
+      "requires": [
+        "Register static https redirect URIs in Login Kit; query parameters aren't allowed, so carry those in state.",
+        "Token calls use grant_type and Content-Type application/x-www-form-urlencoded, and error handling differs. Don't mix v1 and v2 tokens."
+      ],
+      "context": {
+        "hosts": ["tiktok.com"]
+      }
+    },
+    {
+      "id": "TT-2.qrcode-v1",
+      "provider": "tiktok",
+      "what": "TikTok's v1 QR code authorization APIs are gone: only v2 is supported after 2024-02-29.",
+      "diedOn": "2024-02-29",
+      "source": {
+        "url": "https://developers.tiktok.com/bulletin/migration-guidance-qr-code-authorization-v2",
+        "checkedOn": "2026-11-05",
+        "quote": "After 02/29/2024 , only v2 QR code authorization will be supported."
+      },
+      "lookFor": ["A request to open-api.tiktok.com/v0/oauth/get_qrcode or check_qrcode"],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "open-api.tiktok.com/v0/oauth/get_qrcode"
+        },
+        {
+          "kind": "url",
+          "value": "open-api.tiktok.com/v0/oauth/check_qrcode"
+        }
+      ],
+      "replacement": "POST https://open.tiktokapis.com/v2/oauth/get_qrcode/ and POST https://open.tiktokapis.com/v2/oauth/check_qrcode/",
+      "replacementIds": [
+        "open.tiktokapis.com/v2/oauth/get_qrcode",
+        "open.tiktokapis.com/v2/oauth/check_qrcode"
+      ],
+      "requires": ["GET becomes POST, and the parameters change: see the v2 QR code guide."]
+    },
+    {
+      "id": "TT-3.share-video",
+      "provider": "tiktok",
+      "what": "TikTok's Share Video API (Video Kit for Web) is at end of life, and all calls are rejected.",
+      "diedOn": "2023-09-10",
+      "source": {
+        "url": "https://developers.tiktok.com/bulletin/migration-notice-share-video-api/",
+        "checkedOn": "2026-11-05",
+        "quote": "End of life for Share Video API. All API calls will be rejected."
+      },
+      "lookFor": ["A request to open-api.tiktok.com/share/video/upload/"],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "open-api.tiktok.com/share/video/upload*"
+        }
+      ],
+      "replacement": "The Content Posting API: https://open.tiktokapis.com/v2/post/publish/inbox/video/init/",
+      "replacementIds": ["open.tiktokapis.com/v2/post/publish/inbox/video/init"],
+      "requires": [
+        "Upload is two steps: init with a Bearer token and source FILE_UPLOAD, then PUT the file to the upload_url it returns.",
+        "Webhooks change: video.upload.failed is post.publish.failed, video.publish.complete is post.publish.complete, and share_id is publish_id."
+      ]
+    }
+  ],
+  "future": []
+}

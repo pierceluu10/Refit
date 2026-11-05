@@ -1,0 +1,146 @@
+{
+  "provider": "telegram",
+  "officialHosts": ["core.telegram.org"],
+  "entries": [
+    {
+      "id": "TG-1.send-ephemeral-params",
+      "provider": "telegram",
+      "what": "receiver_user_id and callback_query_id are no longer top-level parameters of sendMessage and the other send methods, as of Bot API 10.3. Both names live on inside EphemeralMessageParameters, and callback_query_id is still a parameter of answerCallbackQuery.",
+      "diedOn": "2026-08-24",
+      "source": {
+        "url": "https://core.telegram.org/bots/api-changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "Added the class EphemeralMessageParameters and replaced the parameters receiver_user_id and callback_query_id in the methods sendMessage, sendAnimation, sendAudio, sendDocument, sendLivePhoto, sendPhoto, sendSticker, sendVideo, sendVideoNote, sendVoice, sendContact, sendLocation and sendVenue with the parameter ephemeral_message_parameters."
+      },
+      "lookFor": [
+        "receiver_user_id or callback_query_id passed directly to a send method, with no ephemeral_message_parameters around it"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bsend_?(?:[Mm]essage|[Aa]nimation|[Aa]udio|[Dd]ocument|[Ll]ive_?[Pp]hoto|[Pp]hoto|[Ss]ticker|[Vv]ideo_?[Nn]ote|[Vv]ideo|[Vv]oice|[Cc]ontact|[Ll]ocation|[Vv]enue)\\b\\s*[(?](?:(?!ephemeral_message_parameters)[^)])*\\b(?:receiver_user_id|callback_query_id)\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The parameter ephemeral_message_parameters, an EphemeralMessageParameters object.",
+      "replacementIds": ["ephemeral_message_parameters"],
+      "requires": [
+        "Not a rename: both values move inside the new object, as ephemeral_message_parameters: { receiver_user_id, callback_query_id }."
+      ],
+      "context": {
+        "packages": [
+          "telegraf",
+          "node-telegram-bot-api",
+          "grammy",
+          "python-telegram-bot",
+          "telegram",
+          "aiogram"
+        ],
+        "hosts": ["api.telegram.org"]
+      }
+    },
+    {
+      "id": "TG-2.correct_option_id",
+      "provider": "telegram",
+      "what": "correct_option_id is gone from the Poll class and from the sendPoll method, as of Bot API 9.6. The changelog dates the replacement and doesn't say whether the server still tolerates the old name, but the API reference no longer lists it.",
+      "diedOn": "2026-04-03",
+      "source": {
+        "url": "https://core.telegram.org/bots/api-changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "Replaced the field correct_option_id with the field correct_option_ids in the class Poll."
+      },
+      "lookFor": ["correct_option_id on a Poll or passed to sendPoll"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bcorrect_option_id\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "correct_option_ids, on both the Poll class and sendPoll.",
+      "replacementIds": ["correct_option_ids"],
+      "requires": [
+        "The value is now a list of option indexes, since a quiz can have several correct answers."
+      ],
+      "context": {
+        "packages": [
+          "telegraf",
+          "node-telegram-bot-api",
+          "grammy",
+          "python-telegram-bot",
+          "telegram",
+          "aiogram"
+        ],
+        "hosts": ["api.telegram.org"]
+      }
+    },
+    {
+      "id": "TG-3.last_resale_star_count",
+      "provider": "telegram",
+      "what": "last_resale_star_count is gone from the UniqueGiftInfo class, as of Bot API 9.3.",
+      "diedOn": "2025-12-31",
+      "source": {
+        "url": "https://core.telegram.org/bots/api-changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "Replaced the field last_resale_star_count with the fields last_resale_currency and last_resale_amount in the class UniqueGiftInfo."
+      },
+      "lookFor": ["last_resale_star_count read off a UniqueGiftInfo"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\blast_resale_star_count\\b"
+        }
+      ],
+      "replacement": "last_resale_currency and last_resale_amount.",
+      "replacementIds": ["last_resale_currency", "last_resale_amount"],
+      "requires": [
+        "The amount is no longer always in Telegram Stars: read the currency beside it."
+      ],
+      "context": {
+        "packages": [
+          "telegraf",
+          "node-telegram-bot-api",
+          "grammy",
+          "python-telegram-bot",
+          "telegram",
+          "aiogram"
+        ],
+        "hosts": ["api.telegram.org"]
+      }
+    },
+    {
+      "id": "TG-4.exclude_limited",
+      "provider": "telegram",
+      "what": "exclude_limited is gone from getBusinessAccountGifts, as of Bot API 9.3.",
+      "diedOn": "2025-12-31",
+      "source": {
+        "url": "https://core.telegram.org/bots/api-changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "Replaced the parameter exclude_limited with the parameters exclude_limited_upgradable and exclude_limited_non_upgradable in the method getBusinessAccountGifts."
+      },
+      "lookFor": ["exclude_limited passed to getBusinessAccountGifts"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bexclude_limited\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "exclude_limited_upgradable and exclude_limited_non_upgradable.",
+      "replacementIds": ["exclude_limited_upgradable", "exclude_limited_non_upgradable"],
+      "requires": ["Set both to keep excluding every limited gift."],
+      "context": {
+        "packages": [
+          "telegraf",
+          "node-telegram-bot-api",
+          "grammy",
+          "python-telegram-bot",
+          "telegram",
+          "aiogram"
+        ],
+        "hosts": ["api.telegram.org"]
+      }
+    }
+  ],
+  "future": []
+}

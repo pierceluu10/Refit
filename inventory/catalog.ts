@@ -366,7 +366,10 @@ export const CATALOG: CatalogEntry[] = [
     python: { packages: ['langsmith'], modules: ['langsmith'] },
     hosts: ['api.smith.langchain.com'],
   },
-  { provider: 'azure-openai', hosts: ['openai.azure.com'] },
+  { provider: 'azure-openai', hosts: ['openai.azure.com'], models: true },
+  { provider: 'aws-bedrock', models: true },
+  { provider: 'xai', hosts: ['x.ai'], models: true },
+  { provider: 'cerebras', hosts: ['cerebras.ai'], models: true },
   {
     provider: 'tableau',
     python: { packages: ['tableauserverclient'], modules: ['tableauserverclient'] },

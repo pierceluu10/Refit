@@ -7,9 +7,11 @@ import { REPO_PATTERN } from './types.ts';
 import type { FileChange } from './types.ts';
 
 const DELETED = 'D';
+// A stalled clone must end as a failed job, not hold the one queue for every customer.
+const GIT_TIMEOUT_MS = 15 * 60 * 1000;
 
 export class GitError extends Error {
-  constructor(args: string[], code: number | null, stderr: string) {
+  constructor(args: string[], code: number | string | null, stderr: string) {
     super(`git ${args[0]} exited with ${code}: ${stderr.trim()}`);
     this.name = 'GitError';
   }
@@ -22,20 +24,31 @@ export class InvalidRepoError extends Error {
   }
 }
 
-type GitOptions = { cwd?: string; env?: NodeJS.ProcessEnv; input?: string };
+type GitOptions = { cwd?: string; env?: NodeJS.ProcessEnv; input?: string; timeoutMs?: number };
 
 // Only git itself runs here, never the repo's code: no hooks run on clone, read-tree, apply or show.
-function git(args: string[], { cwd, env, input }: GitOptions = {}): Promise<string> {
+function git(
+  args: string[],
+  { cwd, env, input, timeoutMs = GIT_TIMEOUT_MS }: GitOptions = {},
+): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn('git', args, {
       cwd,
       env: { ...process.env, GIT_TERMINAL_PROMPT: '0', ...env },
+      timeout: timeoutMs,
     });
     const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];
     child.stdout.on('data', (chunk: Buffer) => stdout.push(chunk));
     child.stderr.on('data', (chunk: Buffer) => stderr.push(chunk));
     child.on('error', reject);
+    child.on('exit', (_code, signal) => {
+      if (!signal) return;
+      // A helper git started can outlive it and hold the pipes open, so 'close' may never come.
+      child.stdout.destroy();
+      child.stderr.destroy();
+      reject(new GitError(args, signal, Buffer.concat(stderr).toString('utf8')));
+    });
     child.on('close', (code) =>
       code === 0
         ? resolve(Buffer.concat(stdout).toString('utf8'))
@@ -46,12 +59,18 @@ function git(args: string[], { cwd, env, input }: GitOptions = {}): Promise<stri
 }
 
 // The token goes in through the environment, so it never lands in argv, .git/config or an error message.
-export async function cloneRepo(token: string, repo: string, dir: string): Promise<void> {
+export async function cloneRepo(
+  token: string,
+  repo: string,
+  dir: string,
+  timeoutMs = GIT_TIMEOUT_MS,
+): Promise<void> {
   if (!REPO_PATTERN.test(repo)) throw new InvalidRepoError(repo);
   const basic = Buffer.from(`x-access-token:${token}`).toString('base64');
   await git(
     ['clone', '--quiet', '--depth', '1', '--no-tags', `https://github.com/${repo}.git`, dir],
     {
+      timeoutMs,
       env: {
         GIT_CONFIG_COUNT: '1',
         GIT_CONFIG_KEY_0: 'http.https://github.com/.extraHeader',
