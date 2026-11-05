@@ -616,7 +616,16 @@ export async function runTask(
       ...(provenEntries.length ? { provenFixes: provenEntries } : {}),
       ...(finalReport ? { report: finalReport } : {}),
       // Clean as this fix reads it: a match the first scan's check ruled out is unclear again here.
-      ...(rescan ? { rescan: { ...rescan, clean: leftOf(named, rescan).length === 0 } } : {}),
+      // Only the contract's fields: the scan's report quotes repo lines, which a record needn't keep.
+      ...(rescan
+        ? {
+            rescan: {
+              findings: rescan.findings,
+              unlistedProviders: rescan.unlistedProviders,
+              clean: leftOf(named, rescan).length === 0,
+            },
+          }
+        : {}),
       ...(smoke?.length ? { smoke } : {}),
       cache: ledger.cache,
       timing,
