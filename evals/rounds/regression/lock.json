@@ -1,0 +1,173 @@
+[
+  {
+    "repo": "mantou132/Spotify-Lyrics",
+    "commit": "1380002c0830fc672f2a00ed497013056851f31b",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "GA-1.measurement-protocol",
+        "file": "src/common/ga.ts",
+        "dead": "google-analytics\\.com/collect",
+        "alive": ["mp/collect", "gtag\\("],
+        "proof": {
+          "from": "https://www.google-analytics.com/collect",
+          "to": "https://www.google-analytics.com/mp/collect"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "GA-1.ua-property-id",
+        "file": "src/common/ga.ts",
+        "dead": "UA-\\d+-\\d",
+        "alive": ["[Mm]easurement_?[Ii]d", "MEASUREMENT_ID"],
+        "proof": {
+          "from": "tid: isProd ? 'UA-163443161-1' : 'UA-88601817-2', // measurement id",
+          "to": "measurement_id: process.env.GA_MEASUREMENT_ID,"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "MuhammadTanveerAbbas/Clario-ai",
+    "commit": "1cb1754244fcec19b23e8ce809606a20a24920a9",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "ST-1.current_period_end",
+        "file": "src/app/api/stripe/webhook/route.ts",
+        "dead": "new Date\\(\\((sub|subscription|updatedSub) as any\\)\\.current_period_end \\* 1000\\)",
+        "alive": ["items"],
+        "proof": [
+          {
+            "from": "new Date((subscription as any).current_period_end * 1000)",
+            "to": "new Date(subscription.items.data[0].current_period_end * 1000)"
+          },
+          {
+            "from": "new Date((sub as any).current_period_end * 1000)",
+            "to": "new Date(sub.items.data[0].current_period_end * 1000)"
+          },
+          {
+            "from": "new Date((updatedSub as any).current_period_end * 1000)",
+            "to": "new Date(updatedSub.items.data[0].current_period_end * 1000)"
+          }
+        ]
+      },
+      {
+        "id": "R2",
+        "entryId": "ST-1.current_period_start",
+        "file": "src/app/api/stripe/webhook/route.ts",
+        "dead": "new Date\\(\\(sub as any\\)\\.current_period_start \\* 1000\\)",
+        "alive": ["items"],
+        "proof": {
+          "from": "new Date((sub as any).current_period_start * 1000)",
+          "to": "new Date(sub.items.data[0].current_period_start * 1000)"
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "ST-2.subscription",
+        "file": "src/app/api/stripe/webhook/route.ts",
+        "dead": "= invoice\\.subscription as string",
+        "alive": ["parent"],
+        "proof": {
+          "from": "= invoice.subscription as string",
+          "to": "= invoice.parent?.subscription_details?.subscription as string"
+        }
+      },
+      {
+        "id": "R4",
+        "entryId": "ST-2.subscription",
+        "file": "src/app/api/stripe/webhook/route.ts",
+        "dead": "= failedInvoice\\.subscription as string",
+        "alive": ["parent"],
+        "proof": {
+          "from": "= failedInvoice.subscription as string",
+          "to": "= failedInvoice.parent?.subscription_details?.subscription as string"
+        }
+      },
+      {
+        "id": "R5",
+        "entryId": "GR-1.llama-3.3-70b-versatile",
+        "file": "src/lib/ai-fallback.ts",
+        "dead": "DEFAULT_MODEL = 'llama-3\\.3-70b-versatile'",
+        "alive": ["gpt-oss-120b"],
+        "proof": {
+          "from": "DEFAULT_MODEL = 'llama-3.3-70b-versatile'",
+          "to": "DEFAULT_MODEL = 'openai/gpt-oss-120b'"
+        }
+      },
+      {
+        "id": "R6",
+        "entryId": "GR-1.llama-3.3-70b-versatile",
+        "file": "src/app/api/chat/route.ts",
+        "dead": "model: 'llama-3\\.3-70b-versatile'",
+        "alive": ["gpt-oss-120b", "DEFAULT_MODEL"],
+        "proof": {
+          "from": "model: 'llama-3.3-70b-versatile'",
+          "to": "model: 'openai/gpt-oss-120b'"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "MFaizanali2/Code-Review-Agent",
+    "commit": "32fd5bb17d89cf9678d3f88802a074d08798e0ae",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "AN-1.claude-sonnet-4-20250514",
+        "file": "backend/llm/llm_types.py",
+        "dead": "\"default_model\": \"claude-sonnet-4-20250514\"",
+        "alive": ["claude-sonnet-5-5"],
+        "proof": {
+          "from": "\"default_model\": \"claude-sonnet-4-20250514\"",
+          "to": "\"default_model\": \"claude-sonnet-5-5\""
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "GE-1.gemini-2.0-flash",
+        "file": "config/settings.py",
+        "dead": "\"GEMINI_MODEL\", \"gemini-2\\.0-flash\"",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "\"GEMINI_MODEL\", \"gemini-2.0-flash\"",
+          "to": "\"GEMINI_MODEL\", \"gemini-3.6-flash\""
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "GR-1.llama-3.3-70b-versatile",
+        "file": "backend/llm/llm_types.py",
+        "dead": "\"default_model\": \"llama-3\\.3-70b-versatile\"",
+        "alive": ["gpt-oss-120b"],
+        "proof": {
+          "from": "\"default_model\": \"llama-3.3-70b-versatile\"",
+          "to": "\"default_model\": \"openai/gpt-oss-120b\""
+        }
+      },
+      {
+        "id": "R4",
+        "entryId": "GE-1.gemini-2.0-flash",
+        "file": "frontend/streamlit_app.py",
+        "dead": "\"gemini-2\\.0-flash\", \"gemini-1\\.5-pro\"",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "[\"gemini-2.0-flash\", \"gemini-1.5-pro\", \"gpt-4o\", \"claude-3-5-sonnet\"]",
+          "to": "[\"gemini-3.6-flash\", \"gpt-4o\", \"claude-sonnet-5-5\"]"
+        }
+      },
+      {
+        "id": "R5",
+        "entryId": "GE-1.gemini-2.0-flash",
+        "file": ".env.example",
+        "dead": "GEMINI_MODEL=gemini-2\\.0-flash",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": {
+          "from": "GEMINI_MODEL=gemini-2.0-flash",
+          "to": "GEMINI_MODEL=gemini-3.6-flash"
+        }
+      }
+    ]
+  }
+]
