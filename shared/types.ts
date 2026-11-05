@@ -119,3 +119,62 @@ export type RunView = {
   summary: string; // one line: what changed, or why nothing did
   finishedAt: string;
 };
+
+// Rebuild contracts (2026-11-05). Additive only. The list and scanner live in dead-apis/ and inventory/.
+
+// What the scanner matches for one entry. `string` is a literal or model id, `url` a host and path,
+// `field` a property read on an object from that provider, `package` a dependency name.
+export type DeadApiMatcher =
+  | { kind: 'string'; value: string; caseSensitive?: boolean }
+  | { kind: 'url'; value: string }
+  | { kind: 'field'; value: string; on?: string[] }
+  | { kind: 'package'; value: string; ecosystem?: 'npm' | 'python' };
+
+// A version gate. An entry with none applies to every version. A pin never clears an entry alone:
+// the scanner compares the version the code runs at against `since`.
+export type DeadApiVersions = {
+  describe: string;
+  apiVersionSince?: string; // the provider's dated API version that removed it, e.g. 2025-03-31.basil
+  sdkSince?: { package: string; version: string; ecosystem?: 'npm' | 'python' }[];
+};
+
+export type DeadApiEntry = {
+  id: string;
+  provider: string;
+  what: string; // what died
+  diedOn: string; // ISO date
+  source: { url: string; checkedOn: string; quote?: string };
+  lookFor: string[]; // the same as `matchers`, in words a fix session can read
+  matchers: DeadApiMatcher[];
+  versions?: string; // `appliesTo.describe`, kept flat for prompts
+  appliesTo?: DeadApiVersions;
+  replacement: string; // must appear on the provider's own page, or say what the page says instead
+  requires: string[]; // what else moving to the replacement requires
+};
+
+// Announced but still working. Never flagged as a break.
+export type FutureShutdown = {
+  id: string;
+  provider: string;
+  what: string;
+  diesOn: string; // ISO date
+  source: { url: string; checkedOn: string };
+  matchers: DeadApiMatcher[];
+  replacement?: string;
+};
+
+export type MatchClass = 'live' | 'catalog' | 'test' | 'comment' | 'unclear';
+
+export type Finding = {
+  entryId: string;
+  file: string;
+  line: number;
+  matchClass: MatchClass;
+  version?: string; // the version the code runs at, when an entry has a version gate
+};
+
+// `clean` means nothing on the list needs a fix. Unlisted providers are not "clean" evidence:
+// they go to the queue, so an unknown provider never reads as nothing to do.
+export type ScanResult = { findings: Finding[]; unlistedProviders: string[]; clean: boolean };
+
+export type ScanRepo = (repoDir: string, repo: string) => Promise<ScanResult>;
