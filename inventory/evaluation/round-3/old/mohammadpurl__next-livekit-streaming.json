@@ -1,0 +1,276 @@
+{
+  "commit": "9f2253c00ed7bcdd9f3017f7f6fb1676753d981f",
+  "repo": "mohammadpurl/next-livekit-streaming",
+  "promptVersion": "inventory-v3",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "mohammadpurl/next-livekit-streaming",
+      "provider": "heygen",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/api/heygen-token/route.ts",
+          "line": 7,
+          "operation": "POST /v1/streaming.create_token",
+          "fields": ["x-api-key header"],
+          "notes": "Reads data.token and returns it to the client; key from HEYGEN_API_KEY"
+        }
+      ],
+      "hints": {
+        "hosts": ["api.heygen.com"]
+      }
+    },
+    {
+      "repo": "mohammadpurl/next-livekit-streaming",
+      "provider": "heygen",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/components/AvatarChat.tsx",
+          "line": 153,
+          "operation": "stopAvatar"
+        },
+        {
+          "file": "app/components/AvatarChat.tsx",
+          "line": 195,
+          "operation": "speak",
+          "notes": "speaks the response from askQuestion"
+        },
+        {
+          "file": "app/components/logic/useAudioFilter.ts",
+          "line": 87,
+          "operation": "muteInputAudio"
+        },
+        {
+          "file": "app/components/logic/useAudioFilter.ts",
+          "line": 91,
+          "operation": "unmuteInputAudio"
+        },
+        {
+          "file": "app/components/logic/useAudioFilter.ts",
+          "line": 128,
+          "operation": "unmuteInputAudio"
+        },
+        {
+          "file": "app/components/logic/useConversationState.ts",
+          "line": 11,
+          "operation": "startListening"
+        },
+        {
+          "file": "app/components/logic/useConversationState.ts",
+          "line": 16,
+          "operation": "stopListening"
+        },
+        {
+          "file": "app/components/logic/useInterrupt.ts",
+          "line": 10,
+          "operation": "interrupt"
+        },
+        {
+          "file": "app/components/logic/useSpeechFilter.ts",
+          "line": 22,
+          "operation": "stopListening"
+        },
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 65,
+          "operation": "stopAvatar"
+        },
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 130,
+          "operation": "createStartAvatar",
+          "notes": "Client constructed at line 38 with token and basePath; event listeners registered lines 97-128"
+        },
+        {
+          "file": "app/components/logic/useTextChat.ts",
+          "line": 12,
+          "operation": "speak"
+        },
+        {
+          "file": "app/components/logic/useTextChat.ts",
+          "line": 25,
+          "operation": "speak"
+        },
+        {
+          "file": "app/components/logic/useTextChat.ts",
+          "line": 38,
+          "operation": "speak"
+        },
+        {
+          "file": "app/components/logic/useTextChat.ts",
+          "line": 51,
+          "operation": "speak"
+        },
+        {
+          "file": "app/components/logic/useVoiceChat.ts",
+          "line": 20,
+          "operation": "startVoiceChat"
+        },
+        {
+          "file": "app/components/logic/useVoiceChat.ts",
+          "line": 32,
+          "operation": "closeVoiceChat"
+        },
+        {
+          "file": "app/components/logic/useVoiceChat.ts",
+          "line": 39,
+          "operation": "muteInputAudio"
+        },
+        {
+          "file": "app/components/logic/useVoiceChat.ts",
+          "line": 45,
+          "operation": "unmuteInputAudio"
+        }
+      ],
+      "hints": {
+        "packages": ["@heygen/streaming-avatar"]
+      },
+      "sdk": {
+        "name": "@heygen/streaming-avatar",
+        "version": "2.0.16",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mohammadpurl/next-livekit-streaming",
+      "provider": "openai",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/api/transcribe/route.ts",
+          "line": 7,
+          "operation": "POST /v1/audio/transcriptions",
+          "fields": ["formData passthrough"],
+          "notes": "Forwards client form data; returns JSON. Called from app/audio-handler.ts:127 via /api/transcribe"
+        }
+      ],
+      "hints": {
+        "hosts": ["api.openai.com"]
+      }
+    },
+    {
+      "repo": "mohammadpurl/next-livekit-streaming",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 12,
+          "operation": "beta.assistants.create",
+          "fields": ["name", "instructions", "tools", "model"]
+        },
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 24,
+          "operation": "beta.threads.create"
+        },
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 26,
+          "operation": "beta.threads.messages.create",
+          "fields": ["role", "content"]
+        },
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 31,
+          "operation": "beta.threads.runs.createAndPoll",
+          "notes": "Assistants API (deprecated by OpenAI)"
+        },
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 37,
+          "operation": "beta.threads.messages.list",
+          "notes": "returns first assistant text"
+        },
+        {
+          "file": "app/openai-assistant.ts",
+          "line": 22,
+          "operation": "beta.assistants.create",
+          "notes": "client-side class, dangerouslyAllowBrowser, model gpt-4-turbo-preview line 26"
+        },
+        {
+          "file": "app/openai-assistant.ts",
+          "line": 30,
+          "operation": "beta.threads.create"
+        },
+        {
+          "file": "app/openai-assistant.ts",
+          "line": 39,
+          "operation": "beta.threads.messages.create"
+        },
+        {
+          "file": "app/openai-assistant.ts",
+          "line": 45,
+          "operation": "beta.threads.runs.createAndPoll"
+        },
+        {
+          "file": "app/openai-assistant.ts",
+          "line": 52,
+          "operation": "beta.threads.messages.list"
+        }
+      ],
+      "pinnedVersion": {
+        "value": "gpt-4-turbo-preview",
+        "file": "app/api/chat/route.ts",
+        "line": 21
+      },
+      "hints": {
+        "packages": ["openai"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "5.0.1",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mohammadpurl/next-livekit-streaming",
+      "provider": "livekit",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/livekit/token/route.ts",
+          "line": 20,
+          "operation": "AccessToken.toJwt",
+          "fields": ["identity", "roomJoin", "room", "canPublish", "canSubscribe"],
+          "notes": "Local JWT signing, no network call; keys from app/config/livekit. livekit-client is a dependency but unused in code."
+        }
+      ],
+      "hints": {
+        "packages": ["livekit-server-sdk", "livekit-client"]
+      },
+      "sdk": {
+        "name": "livekit-server-sdk",
+        "version": "2.13.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mohammadpurl/next-livekit-streaming",
+      "provider": "custom-backend",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/services/api.ts",
+          "line": 4,
+          "operation": "POST {NEXT_PUBLIC_API_URL}/api/v1/ask",
+          "fields": ["question (query)"],
+          "notes": "Unknown backend host from env NEXT_PUBLIC_API_URL; likely the author's own; returns JSON used to make avatar speak"
+        }
+      ]
+    }
+  ],
+  "purposes": {},
+  "summary": "mohammadpurl/next-livekit-streaming uses heygen through @heygen/streaming-avatar 2.0.16 in 19 places; openai through openai 5.0.1, pinned to gpt-4-turbo-preview in 10 places; heygen through raw HTTP in 1 place; openai through raw HTTP in 1 place; livekit through livekit-server-sdk 2.13.0 in 1 place; custom-backend through raw HTTP in 1 place.",
+  "agentSummary": "I've recorded all the usages. This is the summary.\n\n- **HeyGen (raw HTTP):** `app/api/heygen-token/route.ts:7` sends `POST https://api.heygen.com/v1/streaming.create_token`. The key comes from `HEYGEN_API_KEY`, and the route returns `data.token` to the client.\n- **HeyGen (`@heygen/streaming-avatar` 2.0.16):** the client is constructed in `useStreamingAvatarSession.ts`. I recorded 19 call sites across the `logic/` hooks and `AvatarChat.tsx`: `createStartAvatar`, `speak`, `startVoiceChat`, `stopAvatar`, mute/unmute, listening and `interrupt`.\n- **OpenAI (raw HTTP):** `app/api/transcribe/route.ts:7` sends `POST /v1/audio/transcriptions`. It passes the client's form data straight through.\n- **OpenAI (`openai` 5.0.1):** the Assistants API (`beta.assistants`, `beta.threads`) is called in `app/api/chat/route.ts` and `app/openai-assistant.ts`. The model is pinned to `gpt-4-turbo-preview`. The class in `app/openai-assistant.ts` runs in the browser with `dangerouslyAllowBrowser`.\n- **LiveKit (`livekit-server-sdk` 2.13.0):** `app/api/livekit/token/route.ts` signs an `AccessToken` JWT locally, so there is no network call. `livekit-client` is in the manifest, but I found no code that uses it.\n- **Unknown backend:** `app/services/api.ts:4` sends `POST ${NEXT_PUBLIC_API_URL}/api/v1/ask`. I recorded it as `custom-backend`. It is probably the author's own service, but I couldn't tell from the repo.\n\nThe Pico CSS file loaded from `cdn.jsdelivr.net` in `app/layout.tsx` is a static asset, so I left it out. I didn't open the LiveKit config file `app/config/livekit`. I also didn't confirm that `audio-handler.ts:127` or `AvatarChat.tsx:38` call only the repo's own `/api/*` routes, though the grep output points that way.",
+  "outcome": "success",
+  "costUsd": 0.11160710000000001,
+  "costByModel": {
+    "claude-haiku-5-5": 0.00013330000000000001,
+    "claude-sonnet-5-5": 0.11147380000000001
+  },
+  "turns": 23,
+  "durationMs": 30961
+}

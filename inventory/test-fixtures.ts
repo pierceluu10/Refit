@@ -4,7 +4,13 @@ import os from 'node:os';
 import path from 'node:path';
 import type { SDKMessage, SDKResultMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { AgentRequest, AgentRunner } from './agent.ts';
+import { emptyScanResult, type ScanResult } from './scan.ts';
 import { runTool } from './tools.ts';
+
+// A code scan that finds nothing, for tests of the agent's own tools and records.
+export async function noScan(): Promise<ScanResult> {
+  return emptyScanResult();
+}
 
 export async function makeRepo(files: Record<string, string>): Promise<string> {
   const repoDir = await mkdtemp(path.join(os.tmpdir(), 'inventory-test-'));

@@ -1,0 +1,248 @@
+{
+  "commit": "c0f1ca77014de1669ebce0b45a3f1810cd5b6228",
+  "repo": "guixincui/LobeChat",
+  "promptVersion": "inventory-v3",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/openai/chat/createChatCompletion.ts",
+          "line": 22,
+          "operation": "chat.completions.create",
+          "fields": ["messages", "model", "stream:true"],
+          "notes": "Streams via ai OpenAIStream. Client built by createBizOpenAI (createOpenai.ts:16 new OpenAI({apiKey, baseURL}) or createAzureOpenai.ts:32 with api-version query and api-key header, default 2023-08-01-preview)."
+        },
+        {
+          "file": "src/app/api/openai/images/createImageGeneration.ts",
+          "line": 12,
+          "operation": "images.generate",
+          "fields": ["payload", "response_format"],
+          "notes": "returns image URLs"
+        },
+        {
+          "file": "src/app/api/openai/models/route.ts",
+          "line": 12,
+          "operation": "models.list",
+          "notes": "returns list of model ids"
+        },
+        {
+          "file": "src/app/api/openai/stt/route.ts",
+          "line": 24,
+          "operation": "audio.transcriptions via @lobehub/tts createOpenaiAudioTranscriptions",
+          "notes": "passes OpenAI client to @lobehub/tts/server"
+        },
+        {
+          "file": "src/app/api/openai/tts/route.ts",
+          "line": 18,
+          "operation": "audio.speech via @lobehub/tts createOpenaiAudioSpeech",
+          "notes": "passes OpenAI client to @lobehub/tts/server"
+        }
+      ],
+      "hints": {
+        "packages": ["openai", "ai", "@lobehub/tts"],
+        "hosts": ["api.openai.com", "openai.azure.com"],
+        "docsUrls": [
+          "https://platform.openai.com/docs",
+          "https://learn.microsoft.com/en-us/azure/ai-services/openai/reference"
+        ]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.17.3"
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "imgur",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/app/api/files/image/imgur.ts",
+          "line": 54,
+          "operation": "POST /3/upload",
+          "fields": ["image"],
+          "notes": "Client-ID auth from IMGUR_CLIENT_ID; reads data.success and link"
+        }
+      ],
+      "pinnedVersion": {
+        "value": "/3",
+        "file": "src/app/api/files/image/imgur.ts",
+        "line": 43
+      },
+      "hints": {
+        "hosts": ["api.imgur.com"],
+        "docsUrls": ["https://apidocs.imgur.com/"]
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "lobehub-agents-index",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/app/api/market/[id]/route.ts",
+          "line": 16,
+          "operation": "GET {AGENTS_INDEX_URL}/{id}.{locale}.json"
+        },
+        {
+          "file": "src/app/api/market/[id]/route.ts",
+          "line": 18,
+          "operation": "GET {AGENTS_INDEX_URL}/{id}.json (fallback)"
+        },
+        {
+          "file": "src/app/api/market/route.ts",
+          "line": 14,
+          "operation": "GET {AGENTS_INDEX_URL}/index.{locale}.json"
+        },
+        {
+          "file": "src/app/api/market/route.ts",
+          "line": 17,
+          "operation": "GET {AGENTS_INDEX_URL}/index.json (fallback)"
+        }
+      ],
+      "hints": {
+        "hosts": ["chat-agents.lobehub.com"]
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "lobehub-plugins-index",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/app/api/plugin/gateway/route.ts",
+          "line": 10,
+          "operation": "createGatewayOnEdgeRuntime (@lobehub/chat-plugins-gateway)",
+          "notes": "Gateway calls third-party plugin endpoints; uses pluginsIndexUrl"
+        },
+        {
+          "file": "src/app/api/plugin/store/route.ts",
+          "line": 14,
+          "operation": "GET {PLUGINS_INDEX_URL}/index.{locale}.json"
+        },
+        {
+          "file": "src/app/api/plugin/store/route.ts",
+          "line": 17,
+          "operation": "GET {PLUGINS_INDEX_URL}/index.json (fallback)"
+        }
+      ],
+      "hints": {
+        "packages": ["@lobehub/chat-plugins-gateway", "@lobehub/chat-plugin-sdk"],
+        "hosts": ["chat-plugins.lobehub.com"]
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "npmmirror",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/services/global.ts",
+          "line": 11,
+          "operation": "GET /@lobehub/chat",
+          "notes": "reads dist-tags.latest"
+        }
+      ],
+      "hints": {
+        "hosts": ["registry.npmmirror.com"]
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "sharegpt",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/services/share.ts",
+          "line": 17,
+          "operation": "POST /api/conversations",
+          "fields": ["items", "from", "value"],
+          "notes": "reads id, builds https://shareg.pt/{id}"
+        }
+      ],
+      "hints": {
+        "hosts": ["sharegpt.com", "shareg.pt"]
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "posthog",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/components/Analytics/Posthog.tsx",
+          "line": 14,
+          "operation": "posthog.init",
+          "notes": "api_host from POSTHOG_HOST default app.posthog.com"
+        }
+      ],
+      "hints": {
+        "packages": ["posthog-js"],
+        "hosts": ["app.posthog.com"]
+      },
+      "sdk": {
+        "name": "posthog-js",
+        "version": "^1"
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "vercel",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/components/Analytics/Vercel.tsx",
+          "line": 10,
+          "operation": "<Analytics/> component"
+        }
+      ],
+      "hints": {
+        "packages": ["@vercel/analytics"]
+      },
+      "sdk": {
+        "name": "@vercel/analytics",
+        "version": "^1"
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "plausible",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/components/Analytics/Plausible.tsx",
+          "line": 13,
+          "operation": "load script {PLAUSIBLE_SCRIPT_BASE_URL}/js/script.js"
+        }
+      ],
+      "hints": {
+        "hosts": ["plausible.io"]
+      }
+    }
+  ],
+  "purposes": {
+    "openai": "Chat completions, image generation, model list, TTS/STT (also Azure OpenAI and custom proxy endpoints)",
+    "imgur": "Upload images",
+    "lobehub-agents-index": "Agent market index (AGENTS_INDEX_URL, default chat-agents.lobehub.com)",
+    "lobehub-plugins-index": "Plugin store index (PLUGINS_INDEX_URL) and plugin gateway",
+    "npmmirror": "Latest version check of @lobehub/chat",
+    "sharegpt": "Share conversation",
+    "posthog": "Product analytics",
+    "vercel": "Vercel Analytics",
+    "plausible": "Analytics script"
+  },
+  "summary": "guixincui/LobeChat uses openai for Chat completions, image generation, model list, TTS/STT (also Azure OpenAI and custom proxy endpoints) through openai ^4.17.3 in 5 places; lobehub-agents-index for Agent market index (AGENTS_INDEX_URL, default chat-agents.lobehub.com) through raw HTTP in 4 places; lobehub-plugins-index for Plugin store index (PLUGINS_INDEX_URL) and plugin gateway through raw HTTP in 3 places; imgur for Upload images through raw HTTP, pinned to /3 in 1 place; npmmirror for Latest version check of @lobehub/chat through raw HTTP in 1 place; sharegpt for Share conversation through raw HTTP in 1 place; posthog for Product analytics through posthog-js ^1 in 1 place; vercel for Vercel Analytics through @vercel/analytics ^1 in 1 place; plausible for Analytics script through raw HTTP in 1 place.",
+  "agentSummary": "I found nine external APIs and recorded each one. I didn't open every fetch site by hand, so the recorded call sites may be incomplete. There is no lockfile, so every SDK version is the manifest range, not a resolved version.\n\n- **OpenAI** (via the `openai` SDK): Chat completions, image generation, model list, text-to-speech and speech-to-text. The same client also serves Azure OpenAI (default api-version `2023-08-01-preview`) and any custom proxy endpoint. Speech-to-text and text-to-speech go through `@lobehub/tts`.\n- **Imgur** (raw HTTP): `POST /3/upload`, authenticated with an Imgur client ID from server config.\n- **LobeHub agent index** (`chat-agents.lobehub.com`, or `AGENTS_INDEX_URL`): the market routes fetch the agent index and individual agent files by locale.\n- **LobeHub plugin index** (`chat-plugins.lobehub.com`, or `PLUGINS_INDEX_URL`): the plugin store route fetches the index. The plugin gateway route (`@lobehub/chat-plugins-gateway`) is recorded under the same provider, and it calls third-party plugin endpoints.\n- **npmmirror registry** (raw HTTP): a check for the latest `@lobehub/chat` version.\n- **ShareGPT** (raw HTTP): `POST /api/conversations` to share a conversation.\n- **PostHog** (`posthog-js`): analytics.\n- **Vercel Analytics** (`@vercel/analytics`).\n- **Plausible**: an analytics script loaded from `plausible.io`.\n\nI did not record these because they are runtime user input or internal:\n- **Plugin manifests and OpenAPI specs:** `src/services/plugin.ts` fetches plugin manifest and OpenAPI URLs that users supply, directly or through the `/api/proxy` route.\n- **Image proxy routes:** `/api/files/image` and `/api/proxy` fetch arbitrary user-supplied URLs.\n- **The app's own routes:** the frontend calls its own `/api/*` routes, which is internal.\n- **GitHub issue link:** the GitHub bug-report URL is only opened in a browser window.\n- **Scripts:** the README sync scripts fetch the agent and plugin indexes, but I didn't record them as call sites.",
+  "outcome": "success",
+  "costUsd": 0.22358539999999996,
+  "costByModel": {
+    "claude-haiku-5-5": 0.0001306,
+    "claude-sonnet-5-5": 0.22345479999999998
+  },
+  "turns": 27,
+  "durationMs": 35295
+}

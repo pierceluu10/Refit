@@ -1,0 +1,73 @@
+{
+  "commit": "5121b3eca9cc48cbcbed94e52130e08e8a62d22c",
+  "repo": "ravi-aman/pureFeedback",
+  "promptVersion": "inventory-v3",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "ravi-aman/pureFeedback",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/suggestMessages/route.ts",
+          "line": 17,
+          "operation": "completions.create",
+          "fields": ["model", "max_tokens", "stream", "prompt"],
+          "notes": "Streaming; wrapped with ai OpenAIStream and returned as StreamingTextResponse. Client built line 6 with OPENAI_API_KEY. Called from the browser via useCompletion in src/app/u/[username]/page.tsx:47."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "gpt-3.5-turbo-instruct",
+        "file": "src/app/api/suggestMessages/route.ts",
+        "line": 18
+      },
+      "hints": {
+        "packages": ["openai", "ai"],
+        "docsUrls": ["https://github.com/openai/openai-node"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "4.78.1",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "ravi-aman/pureFeedback",
+      "provider": "resend",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/helpers/sendVerificationEmail.ts",
+          "line": 11,
+          "operation": "emails.send",
+          "fields": ["from", "to", "subject", "react"],
+          "notes": "Client in src/lib/resend.ts:3 using RESEND_API_KEY. Errors caught and turned into ApiResponse; response ignored."
+        }
+      ],
+      "hints": {
+        "packages": ["resend", "react-email", "@react-email/components"],
+        "docsUrls": ["https://github.com/resend/resend-node"]
+      },
+      "sdk": {
+        "name": "resend",
+        "version": "3.5.0",
+        "lockfile": "package-lock.json"
+      }
+    }
+  ],
+  "purposes": {
+    "openai": "Generate suggested anonymous-message questions",
+    "resend": "Send verification code emails"
+  },
+  "summary": "ravi-aman/pureFeedback uses openai for Generate suggested anonymous-message questions through openai 4.78.1, pinned to gpt-3.5-turbo-instruct in 1 place; resend for Send verification code emails through resend 3.5.0 in 1 place.",
+  "agentSummary": "The repo uses two external APIs, and I recorded both. I read the call sites directly and didn't dispatch any subagents.\n\n- **OpenAI** (SDK `openai` 4.78.1, with the `ai` package for streaming):\n  - **Call:** `src/app/api/suggestMessages/route.ts:17` calls `completions.create` with the pinned model `gpt-3.5-turbo-instruct`. It streams the result back to the browser.\n  - **Use:** The browser reaches it through `useCompletion` in `src/app/u/[username]/page.tsx`, which posts to `/api/suggestMessages`. It generates suggested questions for anonymous messages.\n- **Resend** (SDK `resend` 3.5.0, with `react-email`):\n  - **Call:** `src/helpers/sendVerificationEmail.ts:11` calls `emails.send` to send verification codes.\n  - **Response handling:** Errors are caught and turned into an `ApiResponse`. The send result itself is ignored.\n\nAll the `axios` calls in the frontend go to the repo's own `/api/*` routes, so I didn't record them. Mongoose and NextAuth are in the manifest. I didn't inspect them, and I treated Mongoose as an ordinary database driver, which is out of scope.\n\nThe only other hosts in the code are `fonts.gstatic.com` (a font URL in the email template) and `localhost` (the verification link in the template). Neither is an API.",
+  "outcome": "success",
+  "costUsd": 0.049846600000000005,
+  "costByModel": {
+    "claude-haiku-5-5": 0.0001349,
+    "claude-sonnet-5-5": 0.0497117
+  },
+  "turns": 14,
+  "durationMs": 15091
+}
