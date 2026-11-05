@@ -1,0 +1,38 @@
+{
+  "provider": "bing-search",
+  "officialHosts": ["learn.microsoft.com"],
+  "entries": [
+    {
+      "id": "BS-1.bing-search-apis",
+      "provider": "bing-search",
+      "what": "The Bing Search APIs are retired and existing instances decommissioned.",
+      "diedOn": "2025-08-11",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/lifecycle/announcements/bing-search-api-retirement",
+        "checkedOn": "2026-11-05",
+        "quote": "Bing Search APIs will be retired on August 11, 2025. Any existing instances of Bing Search APIs will be decommissioned completely"
+      },
+      "lookFor": [
+        "A request to api.bing.microsoft.com, or to the older api.cognitive.microsoft.com/bing"
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "api.bing.microsoft.com*"
+        },
+        {
+          "kind": "url",
+          "value": "api.cognitive.microsoft.com/bing*"
+        }
+      ],
+      "replacement": "The page encourages migrating to Grounding with Bing Search as part of Azure AI Agents.",
+      "requires": [
+        "Grounding with Bing Search works through an Azure AI agent, not a plain search request, so the result shape and the setup both change."
+      ],
+      "context": {
+        "hosts": ["api.bing.microsoft.com", "api.cognitive.microsoft.com"]
+      }
+    }
+  ],
+  "future": []
+}

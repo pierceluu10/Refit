@@ -1380,18 +1380,25 @@
     {
       "id": "GH-6.toolkit-cache",
       "provider": "github",
-      "what": "@actions/cache on npm before 4.0.0, for actions that call the cache service directly.",
+      "what": "@actions/cache on npm before 4.0.0, for actions that call the cache service directly. It also reaches workflows through an action that bundles it: at their v2 and v3 tags setup-python declares ^1.0.8 and ^2.0.2, and at v2 setup-node and setup-java declare ^1.0.8, so `cache:` on those steps calls the old service. How such a job fails was not observed: on a runner that no longer sets the cache URL, a bundle may skip caching with a warning.",
       "diedOn": "2025-03-01",
       "source": {
         "url": "https://github.blog/changelog/2024-12-05-notice-of-upcoming-releases-and-breaking-changes-for-github-actions/",
         "checkedOn": "2026-11-05",
         "quote": "prior to 4.0.0"
       },
-      "lookFor": ["A package.json dependency on @actions/cache at a 0, 1, 2 or 3 version"],
+      "lookFor": [
+        "A package.json dependency on @actions/cache at a 0, 1, 2 or 3 version",
+        "A step using actions/setup-python@v2 or @v3, or setup-node@v2 or setup-java@v2, with a cache: input"
+      ],
       "matchers": [
         {
           "kind": "regex",
           "value": "\\\"@actions/cache\\\":\\s*\\\"[\\^~]?[0-3]\\."
+        },
+        {
+          "kind": "regex",
+          "value": "actions/setup-(?:python@v[23]|node@v2|java@v2)(?:\\.\\d+)*[ \\t]*\\r?\\n(?:[ \\t]+(?![ \\t]|- )[^\\n]*\\n){0,8}?[ \\t]+cache:[ \\t]*\\S"
         }
       ],
       "versions": "github.com only.",

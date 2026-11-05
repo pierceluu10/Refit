@@ -38,6 +38,7 @@ import {
   type FileBindings,
 } from './dead-scan-fields.ts';
 import {
+  innerText,
   lineIndexAt,
   modeOf,
   reportedLine,
@@ -47,7 +48,18 @@ import {
   type Source,
   type Span,
 } from './dead-scan-lex.ts';
-import { holdsOptionTag, isProse, stringPlace, textPlace, type Place } from './dead-scan-place.ts';
+import { calledProviders, namedProviders } from './dead-scan-hosts.ts';
+import {
+  closeOf,
+  enclosing,
+  holdsOptionTag,
+  isGraphqlText,
+  isProse,
+  stringPlace,
+  textPlace,
+  type Place,
+} from './dead-scan-place.ts';
+import { holderReads, reachOf, type Readers } from './dead-scan-reach.ts';
 import { gateFor, loadVersionFacts, type VersionFacts } from './dead-scan-version.ts';
 import { OutsideRepoError, readText, walkFiles } from './repo-files.ts';
 import { isSecretEnvFile, scanRepo } from './scan.ts';
@@ -64,6 +76,8 @@ export type FindingDetail = Finding & {
   vendored?: boolean;
   /** The AI check said this isn't the provider's: it stays out of a fix. */
   ruledOut?: boolean;
+  /** Where the code reads what holds this value, so the AI check can see where it goes. */
+  reads?: string[];
 };
 
 export type SkippedFile = { file: string; reason: string };
@@ -116,16 +130,26 @@ type Hit = {
   read?: FieldRead & { binding?: Binding };
 };
 
-type Classed = { matchClass: MatchClass; reason: string; version?: string; vendored?: boolean };
+type Classed = {
+  matchClass: MatchClass;
+  reason: string;
+  version?: string;
+  vendored?: boolean;
+  reads?: string[];
+};
 type Verdict = Classed | { quiet: true; reason: string; version?: string };
 
 type Repo = {
   sources: Source[];
+  entries: DeadApiEntry[];
+  readers: Readers;
   manifests: Manifest[];
   versions: VersionFacts;
   presence: Map<string, boolean>;
   fileNames: Map<string, boolean>;
   bindings: Map<string, FileBindings>;
+  /** Folders a deploy config serves as the site, so a docs/ page there runs. */
+  published: string[];
 };
 
 // Dot folders that hold an installed agent tool or a tool's output. Any other dot folder is the repo's
@@ -164,11 +188,21 @@ const SAMPLE_PATH = /(?:^|\/)(?:stories|examples?|samples?|docs?|documentation)\
 const SOURCE_FOLDER = /(?:^|\/)src\//;
 // An API route is deployed, whatever its name: app/api/test/route.ts.
 const API_ROUTE = /(?:^|\/)(?:app|pages)\/(?:.*\/)?api\//;
+// What a host serves as the site. docs/ and examples/ are samples, unless one of these says it's the app.
+const PUBLISH_SETTINGS: { name: RegExp; setting: RegExp }[] = [
+  { name: /^vercel\.json$/, setting: /"outputDirectory"\s*:\s*"([^"]+)"/ },
+  { name: /^netlify\.toml$/, setting: /\bpublish\s*=\s*"([^"]+)"/ },
+  { name: /^firebase\.json$/, setting: /"public"\s*:\s*"([^"]+)"/ },
+];
 const MINIFIED_NAME = /[.-]min\.\w+$|[.-]bundle\.\w+$|\.map$/;
 const TYPE_DECLARATIONS = /\.d\.[cm]?ts$/;
 const GENERATED_HEAD = /@generated\b|\bDO NOT EDIT\b|__commonJS\b|__create = Object\.create\b/;
 const GENERATED_TAIL = /[#@] sourceMappingURL=/;
 const GENERATED_HEAD_CHARS = 2_000;
+// A whole repo packed into one file for an AI tool: a copy of code that lives elsewhere, and never runs.
+const PACKED_HEAD = /\b(?:merged|packed) representation of\b/i;
+const PACKED_FILE_TAG = /<file path="/g;
+const MIN_PACKED_FILES = 3;
 const GENERATED_TAIL_CHARS = 500;
 const MINIFIED_MIN_BYTES = 5_000;
 const MINIFIED_MEDIAN_LINE = 500;
@@ -217,6 +251,16 @@ const isTestPath = (file: string) =>
   !API_ROUTE.test(file) &&
   (TEST_PATH.test(file) || (SAMPLE_PATH.test(file) && !SOURCE_FOLDER.test(file)));
 
+function publishedFolders(sources: Source[]): string[] {
+  return sources.flatMap((source) => {
+    const name = path.posix.basename(source.file);
+    const folder = PUBLISH_SETTINGS.find((one) => one.name.test(name))?.setting.exec(
+      source.text,
+    )?.[1];
+    return folder ? [path.posix.join(path.posix.dirname(source.file), folder)] : [];
+  });
+}
+
 /** Paths whose versions and manifests don't speak for the app: tests and vendored tools. */
 const isIgnoredForFacts = (file: string) => isTestPath(file) || dotFolderOf(file) !== undefined;
 
@@ -261,9 +305,14 @@ function isMinified(text: string): boolean {
   return lengths[(lengths.length - 1) >> 1] > MINIFIED_MEDIAN_LINE;
 }
 
+const isPackedDump = (file: string, text: string) =>
+  PACKED_HEAD.test(text.slice(0, GENERATED_HEAD_CHARS)) ||
+  (file.endsWith(XML_EXTENSION) && (text.match(PACKED_FILE_TAG)?.length ?? 0) >= MIN_PACKED_FILES);
+
 const isGenerated = (file: string, text: string, files: Set<string>) =>
   TYPE_DECLARATIONS.test(file) ||
   files.has(`${file}.map`) ||
+  isPackedDump(file, text) ||
   GENERATED_HEAD.test(text.slice(0, GENERATED_HEAD_CHARS)) ||
   GENERATED_TAIL.test(text.slice(-GENERATED_TAIL_CHARS));
 
@@ -561,7 +610,7 @@ function hitsIn(repo: Repo, source: Source, entries: DeadApiEntry[]): Hit[] {
 
 // ---- Judging ----
 
-function placeOf(hit: Hit, span: Span | undefined): Classed | Place | undefined {
+function placeOf(hit: Hit, span: Span | undefined, repo: Repo): Classed | Place | undefined {
   const { source, entry, name, offset } = hit;
   const dotFolder = dotFolderOf(source.file);
   if (dotFolder) {
@@ -575,13 +624,16 @@ function placeOf(hit: Hit, span: Span | undefined): Classed | Place | undefined 
     return {
       matchClass: 'catalog',
       vendored: true,
-      reason: 'build output or type declarations, which a fix never edits',
+      reason:
+        'build output, type declarations or a packed copy of the repo, which a fix never edits',
     };
   }
   if (source.mode === 'prose') return { matchClass: 'comment', reason: 'prose, not code' };
   if (span?.kind === 'comment') return { matchClass: 'comment', reason: 'in a comment' };
-  if (isTestPath(source.file))
+  const served = repo.published.some((folder) => source.file.startsWith(`${folder}/`));
+  if (isTestPath(source.file) && !served) {
     return { matchClass: 'test', reason: 'a test, fixture, example or docs path' };
+  }
   if (hit.matcher.kind === 'field' || hit.matcher.kind === 'package') return undefined;
   if (span?.kind === 'string' && offset + name.length <= span.end) {
     if (isProse(source, span, name, offset)) {
@@ -622,6 +674,8 @@ function otherHostsOf(source: Source): OtherHosts {
 function otherHostReason(hit: Hit, repo: Repo, line: string): string | undefined {
   const { context } = hit.entry;
   if (!context) return undefined;
+  // azure-keyvault's own lines say azure, and that isn't another host to it.
+  if (OTHER_HOSTS.some((host) => host.pattern.test(hit.entry.provider))) return undefined;
   const hosts = context.hosts ?? [];
   const lineHost = OTHER_HOSTS.find((host) => host.pattern.test(line));
   if (lineHost && !hosts.some((host) => line.toLowerCase().includes(host))) {
@@ -659,7 +713,37 @@ function hostOnLineOrBaseUrl(hit: Hit, line: string): boolean {
   );
 }
 
-function judge(hit: Hit, repo: Repo): Verdict {
+// Every name a guarded list holds is dead, so whatever gets past the guard is too.
+function onlyDeadNames(hit: Hit, repo: Repo): boolean {
+  const { source, entry, offset } = hit;
+  const list = enclosing(source.code, offset);
+  if (!list) return false;
+  const close = closeOf(source.code, list.open);
+  const dead = repo.entries
+    .filter((one) => one.provider === entry.provider)
+    .flatMap((one) => one.matchers)
+    .filter((matcher) => matcher.kind === 'string');
+  const names = source.spans
+    .filter((span) => span.kind === 'string' && span.start > list.open && span.end <= close)
+    .map((span) => innerText(source, span));
+  return names.length > 0 && names.every((name) => dead.some((one) => tokenMatches(one, name)));
+}
+
+// `'claude-sonnet-4': {...}` beside a request that sends 'claude-sonnet-4-20250514': the key is the app's
+// own, and the name sent is reported on its own line. Another key doesn't count: neither is shown sent.
+function translatedTo(hit: Hit): string | undefined {
+  const { source, entry, name } = hit;
+  const names = entry.matchers.filter((matcher) => matcher.kind === 'string');
+  return source.spans
+    .filter((span) => span.kind === 'string' && source.code[span.end] !== ':')
+    .map((span) => innerText(source, span))
+    .find(
+      (text) =>
+        text !== name && tokensOf(text).some((one) => names.some((m) => tokenMatches(m, one))),
+    );
+}
+
+function classify(hit: Hit, repo: Repo): Verdict {
   const { entry, matcher, source, offset } = hit;
   const lineIndex = lineIndexAt(source, offset);
   const line = source.lines[lineIndex];
@@ -668,10 +752,26 @@ function judge(hit: Hit, repo: Repo): Verdict {
   const version = gate.state === 'at-or-after' || gate.state === 'below' ? gate.version : undefined;
   if (gate.state === 'below') return { quiet: true, reason: gate.reason, version };
 
-  const place = placeOf(hit, span);
+  const place = placeOf(hit, span, repo);
   if (place && 'matchClass' in place) return { ...place, version };
   if (place && (place.kind === 'comment' || place.kind === 'catalog')) {
+    if (
+      place.guardedBy &&
+      entry.context &&
+      fileNamesProvider(repo, source, entry.context) &&
+      onlyDeadNames(hit, repo)
+    ) {
+      const reason = `${place.guardedBy} only accepts names that are dead, and the code stops on anything else`;
+      return { matchClass: 'live', reason, version };
+    }
     return { matchClass: place.kind, reason: place.reason, version };
+  }
+  if (place?.tableKey) {
+    const sent = translatedTo(hit);
+    if (sent) {
+      const reason = `a key of the app's own: the code sends ${sent}, reported where it does`;
+      return { matchClass: 'catalog', reason, version };
+    }
   }
   const picker = place?.kind === 'picker' ? place.reason : undefined;
   const table = place?.kind === 'unclear' ? place.reason : undefined;
@@ -689,7 +789,10 @@ function judge(hit: Hit, repo: Repo): Verdict {
     const foreign = foreignUrlHost(hit, source.lineStarts[lineIndex], line);
     if (foreign) return { quiet: true, reason: `a URL on another host: ${foreign}` };
     // A common word in a file with no sign of the provider is the app's own, as with no provider at all.
-    if (matcher.kind !== 'url' && !fileNamesProvider(repo, source, context)) {
+    // A picker's option isn't a common word, and what's picked often reaches the provider in another file.
+    // Nor is a field a GraphQL query asks for, and the client it goes through is often in another file.
+    const asked = span !== undefined && isGraphqlText(source, span);
+    if (matcher.kind !== 'url' && !picker && !asked && !fileNamesProvider(repo, source, context)) {
       return { quiet: true, reason: `a common word in a file that never names ${entry.provider}` };
     }
   }
@@ -726,6 +829,36 @@ function judge(hit: Hit, repo: Repo): Verdict {
     reason: `${picker ?? `${matcher.kind} match in code`}${passed}`,
     version,
   };
+}
+
+/** The verdict from where a match sits, then whether the value can reach the API from there at all. */
+function judge(hit: Hit, repo: Repo): Verdict {
+  const verdict = classify(hit, repo);
+  if ('quiet' in verdict || (verdict.matchClass !== 'live' && verdict.matchClass !== 'unclear')) {
+    return verdict;
+  }
+  const { source, offset, entry } = hit;
+  const span = spanAt(source.spans, offset);
+  const place = placeOf(hit, span, repo);
+  const reach = reachOf(repo.readers, {
+    source,
+    offset,
+    span,
+    picker: place !== undefined && 'kind' in place && place.kind === 'picker',
+    fileNamesProvider: !entry.context || fileNamesProvider(repo, source, entry.context),
+    packages: entry.context?.packages ?? [],
+  });
+  if (reach) {
+    return {
+      ...verdict,
+      matchClass: reach.kind,
+      reason: `${reach.reason} (scan: ${verdict.reason})`,
+      ...(reach.reads ? { reads: reach.reads } : {}),
+    };
+  }
+  if (verdict.matchClass !== 'unclear') return verdict;
+  const reads = holderReads(repo.readers, source, offset);
+  return reads.length > 0 ? { ...verdict, reads } : verdict;
 }
 
 // Redacted before the cut, since a key cut short no longer looks like a key.
@@ -804,12 +937,15 @@ function catalogHints(provider: string): ProviderHints {
   };
 }
 
+type Unlisted = { providers: string[]; hostsOf: Map<string, string[]> };
+
 async function unlistedProviders(
   repoDir: string,
   repo: string,
   manifests: Manifest[],
+  sources: Source[],
   dataDir: string,
-): Promise<string[]> {
+): Promise<Unlisted> {
   const { usages } = await scanRepo(repoDir, repo);
   const dependencies = manifests.flatMap((manifest) =>
     manifest.dependencies.flatMap((one) => {
@@ -817,12 +953,25 @@ async function unlistedProviders(
       return provider ? [provider] : [];
     }),
   );
-  const listed = new Set(readProviderFiles(dataDir).map((file) => providerId(file.provider)));
+  const files = readProviderFiles(dataDir);
+  const listed = new Set(files.map((file) => providerId(file.provider)));
+  const callers = sources.filter(
+    (source) =>
+      !source.generated &&
+      !isIgnoredForFacts(source.file) &&
+      (CODE_MODES.has(source.mode) || source.mode === 'notebook'),
+  );
+  const hostsOf = calledProviders(callers, files, listed);
   const found = new Set([
     ...usages.map((usage) => providerId(usage.provider)),
     ...dependencies.map(providerId),
+    ...hostsOf.keys(),
+    ...namedProviders(sources.filter((source) => !isIgnoredForFacts(source.file))),
   ]);
-  return [...found].filter((provider) => provider && !listed.has(provider)).sort();
+  return {
+    providers: [...found].filter((provider) => provider && !listed.has(provider)).sort(),
+    hostsOf,
+  };
 }
 
 /**
@@ -847,11 +996,21 @@ export async function scanDeadApis(
   const versions = await loadVersionFacts(repoDir, written, manifests, entries, isIgnoredForFacts);
   const facts: Repo = {
     sources,
+    entries,
+    readers: {
+      sources: written.filter(
+        (source) => source.mode !== 'prose' && !isIgnoredForFacts(source.file),
+      ),
+      manifests,
+      reads: new Map(),
+      uses: new Map(),
+    },
     manifests,
     versions,
     presence: new Map(),
     fileNames: new Map(),
     bindings: new Map(),
+    published: publishedFolders(sources),
   };
 
   const best = new Map<string, FindingDetail>();
@@ -888,6 +1047,7 @@ export async function scanDeadApis(
           withFix: false,
           ...(verdict.version ? { version: verdict.version } : {}),
           ...(verdict.vendored ? { vendored: true } : {}),
+          ...(verdict.reads ? { reads: verdict.reads } : {}),
         });
       }
     }
@@ -897,10 +1057,19 @@ export async function scanDeadApis(
   const details = [...best.values()].sort(
     (a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.entryId.localeCompare(b.entryId),
   );
-  const unlisted = await unlistedProviders(repoDir, repo, manifests, dataDir);
+  const { providers: unlisted, hostsOf } = await unlistedProviders(
+    repoDir,
+    repo,
+    manifests,
+    written,
+    dataDir,
+  );
   if (options.storeDir && unlisted.length > 0) {
     const hints = Object.fromEntries(
-      unlisted.map((provider) => [provider, catalogHints(provider)]),
+      unlisted.map((provider) => {
+        const hosts = catalogHints(provider).hosts ?? hostsOf.get(provider);
+        return [provider, { ...catalogHints(provider), ...(hosts ? { hosts } : {}) }];
+      }),
     );
     await enqueueUnlisted(options.storeDir, repo, unlisted, hints);
   }

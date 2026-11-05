@@ -16,6 +16,8 @@ export type CatalogEntry = {
   ruby?: string[];
   hosts?: string[];
   docsUrls?: string[];
+  /** CI actions that only exist to reach this provider, as a workflow's `uses:` names them. */
+  ciActions?: string[];
   /** LLM APIs: the model a call names is the version it pins. */
   models?: boolean;
 };
@@ -89,6 +91,20 @@ export const CATALOG: CatalogEntry[] = [
     models: true,
   },
   {
+    provider: 'deepseek',
+    npm: ['@ai-sdk/deepseek'],
+    hosts: ['api.deepseek.com'],
+    docsUrls: ['https://api-docs.deepseek.com/updates'],
+    models: true,
+  },
+  { provider: 'muapi', hosts: ['api.muapi.ai'], docsUrls: ['https://muapi.ai/docs'], models: true },
+  {
+    provider: 'langchain',
+    npm: ['langchain'],
+    python: { packages: ['langchain'], modules: ['langchain'] },
+    docsUrls: ['https://docs.langchain.com/oss/python/migrate/langchain-v1'],
+  },
+  {
     provider: 'together',
     npm: ['together-ai'],
     python: { packages: ['together'], modules: ['together'] },
@@ -105,7 +121,10 @@ export const CATALOG: CatalogEntry[] = [
   {
     provider: 'huggingface',
     npm: ['@huggingface/inference'],
-    python: { packages: ['huggingface_hub', 'huggingface-hub'], modules: ['huggingface_hub'] },
+    python: {
+      packages: ['huggingface_hub', 'huggingface-hub', 'transformers'],
+      modules: ['huggingface_hub', 'transformers'],
+    },
     hosts: ['api-inference.huggingface.co', 'huggingface.co'],
   },
   { provider: 'ollama', npm: ['ollama'], python: { packages: ['ollama'], modules: ['ollama'] } },
@@ -227,8 +246,8 @@ export const CATALOG: CatalogEntry[] = [
     provider: 'slack',
     npm: ['@slack/'],
     python: {
-      packages: ['slack-sdk', 'slack_sdk', 'slack-bolt'],
-      modules: ['slack_sdk', 'slack_bolt'],
+      packages: ['slack-sdk', 'slack_sdk', 'slack-bolt', 'slackclient'],
+      modules: ['slack_sdk', 'slack_bolt', 'slack'],
     },
     hosts: ['slack.com', 'hooks.slack.com'],
   },
@@ -283,6 +302,65 @@ export const CATALOG: CatalogEntry[] = [
   { provider: 'intercom', npm: ['@intercom/messenger-js-sdk', 'react-use-intercom'] },
   { provider: 'hotjar', npm: ['react-hotjar', '@hotjar/browser'] },
   { provider: 'crisp', npm: ['crisp-sdk-web'] },
+  { provider: 'moonshot', hosts: ['moonshot.cn', 'moonshot.ai'], models: true },
+  { provider: 'coinbase', hosts: ['coinbase.com'] },
+  {
+    provider: 'openrouter',
+    npm: ['@openrouter/ai-sdk-provider', '@openrouter/sdk'],
+    hosts: ['openrouter.ai'],
+    docsUrls: ['https://openrouter.ai/api/v1/models'],
+    models: true,
+  },
+  {
+    provider: 'whop',
+    npm: ['@whop/api', '@whop/sdk'],
+    python: { packages: ['whop-sdk'], modules: ['whop_sdk'] },
+    hosts: ['api.whop.com'],
+    docsUrls: ['https://docs.whop.com/developer/api/migrate-from-previous-versions'],
+  },
+  { provider: 'convex', npm: ['convex'], hosts: ['convex.cloud'] },
+  { provider: 'kakao', hosts: ['kapi.kakao.com', 'kauth.kakao.com', 'dapi.kakao.com'] },
+  { provider: 'strapi', npm: ['@strapi/strapi', '@strapi/client'] },
+  { provider: 'neon', npm: ['@neondatabase/serverless'], hosts: ['neon.tech'] },
+  {
+    provider: 'mongodb',
+    npm: ['mongodb', 'mongoose'],
+    python: { packages: ['pymongo', 'motor'], modules: ['pymongo', 'motor'] },
+  },
+  {
+    provider: 'langsmith',
+    npm: ['langsmith'],
+    python: { packages: ['langsmith'], modules: ['langsmith'] },
+    hosts: ['api.smith.langchain.com'],
+  },
+  { provider: 'azure-openai', hosts: ['openai.azure.com'] },
+  {
+    provider: 'tableau',
+    python: { packages: ['tableauserverclient'], modules: ['tableauserverclient'] },
+    hosts: ['online.tableau.com'],
+  },
+  {
+    provider: 'azure-keyvault',
+    python: { packages: ['azure-keyvault'], modules: ['azure.keyvault'] },
+    hosts: ['vault.azure.net'],
+  },
+  { provider: 'azure-ad-graph', hosts: ['graph.windows.net'] },
+  {
+    provider: 'inngest',
+    npm: ['inngest'],
+    python: { packages: ['inngest'], modules: ['inngest'] },
+  },
+  {
+    provider: 'google-identity',
+    npm: ['google-auth-library'],
+    hosts: ['accounts.google.com'],
+  },
+  {
+    provider: 'google-web-speech',
+    python: { packages: ['SpeechRecognition'], modules: ['speech_recognition'] },
+  },
+  { provider: 'google-translate-tts', python: { packages: ['gTTS'], modules: ['gtts'] } },
+  { provider: 'fly', hosts: ['api.fly.io'], ciActions: ['superfly/flyctl-actions'] },
   {
     provider: 'aws',
     npm: ['aws-sdk'],

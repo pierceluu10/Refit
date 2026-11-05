@@ -1,0 +1,5 @@
+{
+  "name": "whop-ai-chat",
+  "description": "Excerpt of Jeffansah/whop-ai-chat, package.json, seen in P5.",
+  "dependencies": { "@whop/api": "^0.0.50", "@whop/sdk": "^0.0.20", "convex": "^1.27.0" }
+}

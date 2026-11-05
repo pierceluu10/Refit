@@ -1,0 +1,2 @@
+# Excerpt of leedtan/chattutorial at c6122c20bb73, requirements.txt, seen in P5.
+openai

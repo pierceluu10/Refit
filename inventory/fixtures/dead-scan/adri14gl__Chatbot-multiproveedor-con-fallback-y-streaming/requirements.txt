@@ -1,0 +1,3 @@
+# Excerpt of adri14gl/Chatbot-multiproveedor-con-fallback-y-streaming, requirements.txt, seen in P5.
+anthropic
+openai

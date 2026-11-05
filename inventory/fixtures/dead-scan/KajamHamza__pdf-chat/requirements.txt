@@ -1,0 +1,4 @@
+# Excerpt of KajamHamza/pdf-chat at 73a8cf464e43, requirements.txt, seen in P5.
+streamlit
+langchain
+langchain-community

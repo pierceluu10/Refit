@@ -3,7 +3,14 @@
 import { catalogEntry } from './catalog.ts';
 import { innerText, lineIndexAt, type Source, type Span } from './dead-scan-lex.ts';
 
-export type Place = { kind: 'comment' | 'catalog' | 'picker' | 'unclear'; reason: string };
+export type Place = {
+  kind: 'comment' | 'catalog' | 'picker' | 'unclear';
+  reason: string;
+  /** A list a value must be in before the code goes on: what it holds is all that can be sent. */
+  guardedBy?: string;
+  /** A key in a table the code walks: what's sent may be the key, or what the code turns it into. */
+  tableKey?: boolean;
+};
 
 // The registry's model-id shapes, to count a list of models that mixes providers.
 const MODEL_SHAPES = [
@@ -11,6 +18,7 @@ const MODEL_SHAPES = [
   /^(?:anthropic\/)?claude-/,
   /^(?:google\/|models\/)?gemini-/,
   /^(?:meta\/|groq\/)?(?:llama|mixtral|gemma|deepseek|qwen)/i,
+  /^(?:moonshotai\/)?(?:moonshot-v1-|kimi-)/,
 ];
 const isModelName = (text: string) => MODEL_SHAPES.some((shape) => shape.test(text.trim()));
 
@@ -24,7 +32,7 @@ const TOKENIZER_CALL = /\b(?:encoding_for_model|encodingForModel)\s*\(\s*$/;
 const TOKENIZER_LINE = /\btiktoken\b/i;
 const PRICE_CALL = /\b\w*(?:cost|price|pricing)\w*\s*\(\s*$/i;
 const DISPLAY_KEY =
-  /(?:^|[\s{,])["']?(?:placeholder|title|alt|aria-label|tooltip|helperText)["']?\s*[:=]\s*\{?\s*$/i;
+  /(?:^|[\s{,])["']?(?:placeholder|title|alt|label|aria-label|tooltip|helperText)["']?\s*[:=]\s*\{?\s*$/i;
 const CHECK_CALL =
   /\.(?:startsWith|endsWith|startswith|endswith|includes|indexOf|has|match|test)\s*\(\s*$/;
 const COMPARE_BEFORE = /[=!]==?\s*$/;
@@ -34,6 +42,21 @@ const IN_AFTER = /^\s*(?:not\s+)?in\b/;
 const IN_BEFORE = /\b(?:not\s+)?in\s*$/;
 // `for m in [...]` walks the list, and may send each one. Only `m in [...]` checks a value against it.
 const FOR_IN_BEFORE = /\bfor\s+[\w\s,()]*\bin\s*$/;
+// `any(x in name for x in ("a", "b"))`: what the walk does with each one, when that's the whole of it.
+const WALK_OPEN = /^([\s\S]*)\bfor\s+(\w+)\s+in\s*$/;
+const WALK_TEST = (word: string) =>
+  new RegExp(
+    `^\\s*\\(?\\s*(?:${word}\\s+(?:not\\s+)?in\\s+[\\w$.\\[\\]]+|[\\w$.\\[\\]]+\\.(?:startswith|endswith)\\(\\s*${word}\\s*\\)|[\\w$.\\[\\]]+\\s*[=!]=\\s*${word}|${word}\\s*[=!]=\\s*[\\w$.\\[\\]]+)\\s*\\)?\\s*$`,
+  );
+// `["a", "b"].some((x) => name.includes(x))`, the same in JS.
+const SOME_TEST_AFTER =
+  /^\s*\.(?:some|every)\s*\(\s*\(?\s*(\w+)\s*\)?\s*=>\s*[\w$.\[\]?]*(?:\.(?:includes|startsWith|endsWith|indexOf)\(\s*\1\s*\)|\s*[=!]==?\s*\1\b|\1\s*[=!]==?)/;
+const WALK_LOOK_CHARS = 200;
+// `assert x in NAME`, or a rejection when it isn't: the code stops unless the value is on the list.
+const GUARDED_BY = (name: string) =>
+  new RegExp(
+    `\\bassert\\s+[\\w$.\\[\\]"']+\\s+in\\s+${name}\\b|\\bif\\s+[\\w$.\\[\\]"']+\\s+not\\s+in\\s+${name}\\b|\\bif\\s*\\(\\s*!\\s*${name}\\.(?:includes|has)\\(`,
+  );
 const LIST_CHECK_AFTER = /^\s*\.(?:includes|indexOf|has)\s*\(/;
 const MEMBER_CHECK_AFTER = /^\s*\??\.(?:includes|indexOf|has|contains)\s*\(/;
 const DEFINITION_AFTER = /^\s*(?::[^=\n]*)?=(?!=)/;
@@ -78,6 +101,10 @@ const BARE_VALUE = /^[\x21-\x7e]*$/;
 // A string that opens like GraphQL or a request is what gets sent, whatever it says.
 const REQUEST_TEXT =
   /^\s*(?:(?:query|mutation|subscription|fragment)\b|(?:GET|POST|PUT|PATCH|DELETE|curl)\s)/;
+// A query held in a template that opens on a field: `... on Commit {`, `nodes {` or `commit {oid url}`.
+// Two fields at least, since `Model {name}` is how a Python f-string fills in one value.
+const GRAPHQL_SELECTION =
+  /\.\.\.\s*on\s+[A-Z]\w*\s*\{|\b(?:nodes|edges|pageInfo)\s*\{|\b[a-zA-Z_]\w*(?:\([^()\n]*\))?\s*\{\s*[a-zA-Z_]\w*(?:\s+[a-zA-Z_]\w*)+\s*\}/;
 const WHOLE_JSON = /^\s*[{[][\s\S]*[}\]]\s*$/;
 // The value of a quoted key on its own line, as in "model": "gpt-4".
 const QUOTED_KEY_VALUE = /["'][\w.-]+["']\s*:\s*["']?$/;
@@ -138,6 +165,10 @@ function isJsxText(source: Source, span: Span): boolean {
   return JSX_TEXT.test(source.code.slice(lineStart, span.start));
 }
 
+/** Whether a string holds a GraphQL selection, so what it names is asked for, not mentioned. */
+export const isGraphqlText = (source: Source, span: Span) =>
+  span.kind === 'string' && GRAPHQL_SELECTION.test(innerText(source, span));
+
 /** Whether a name in a longer string is prose, such as an error message, and not what the code sends. */
 export function isProse(source: Source, span: Span, name: string, offset: number): boolean {
   if (span.kind !== 'string') return false;
@@ -145,12 +176,23 @@ export function isProse(source: Source, span: Span, name: string, offset: number
   const inner = innerText(source, span);
   if (inner.trim() === name || BARE_VALUE.test(inner)) return false;
   if (isDocstring(source, span)) return true;
-  if (REQUEST_TEXT.test(inner)) return false;
+  if (REQUEST_TEXT.test(inner) || GRAPHQL_SELECTION.test(inner)) return false;
   const lineStart = source.lineStarts[lineIndexAt(source, offset)];
   const start = Math.max(span.innerStart, lineStart, offset - MODEL_KEY_LOOK_BACK_CHARS);
   const ahead = source.text.slice(start, offset);
   if (MODEL_KEYS.some((key) => key.test(ahead)) || QUOTED_KEY_VALUE.test(ahead)) return false;
   return !(WHOLE_JSON.test(inner) && /["']$/.test(ahead));
+}
+
+// Every name a loop or `.some` takes from the list is only tested, so none of them is sent.
+function onlyTested(source: Source, list: Enclosure): boolean {
+  const { code } = source;
+  const close = closeOf(code, list.open);
+  if (SOME_TEST_AFTER.test(code.slice(close + 1, close + 1 + WALK_LOOK_CHARS))) return true;
+  const parent = enclosing(code, list.open);
+  if (!parent) return false;
+  const walk = WALK_OPEN.exec(code.slice(parent.open + 1, list.open));
+  return walk !== null && WALK_TEST(walk[2]).test(walk[1]);
 }
 
 function checkPlace(source: Source, span: Span): Place | undefined {
@@ -177,6 +219,9 @@ function checkPlace(source: Source, span: Span): Place | undefined {
   if (inList || CHECK_CALL.test(beforeList)) {
     return { kind: 'catalog', reason: 'a list a value is checked against' };
   }
+  if (onlyTested(source, list)) {
+    return { kind: 'catalog', reason: 'each name is only tested against a value, never sent' };
+  }
   if (LIST_CHECK_AFTER.test(after(code, closeOf(code, list.open) + 1))) {
     return { kind: 'catalog', reason: 'a list a value is checked against' };
   }
@@ -195,7 +240,7 @@ function countModels(source: Source, open: number, close: number): number {
 }
 
 // The name a list goes by: its assignment or key, the call it's passed to, or the function returning it.
-function listName(source: Source, list: Enclosure): string {
+export function listName(source: Source, list: Enclosure): string {
   const ahead = before(source.text, list.open);
   const assigned = ASSIGNED_NAME.exec(ahead)?.[1];
   if (assigned) return assigned;
@@ -212,7 +257,7 @@ function listName(source: Source, list: Enclosure): string {
 type TableUse = { checked: boolean; read: boolean; exported: boolean };
 
 // What the rest of the file does with a table or list's name. A check sends nothing; anything else may.
-const wordPattern = (word: string) =>
+export const wordPattern = (word: string) =>
   new RegExp(`(?<![\\w$])${word.replace(/\$/g, '\\$')}(?![\\w$])`, 'g');
 
 function tableUse(source: Source, name: string): TableUse {
@@ -274,7 +319,11 @@ function pickerPlace(source: Source, list: Enclosure): Place | undefined {
   if (!PICKER_NAME.test(name)) return undefined;
   const use = tableUse(source, name);
   if (DENY_NAME.test(name) || (use.checked && !use.read)) {
-    return { kind: 'catalog', reason: `a list a value is checked against, named ${name}` };
+    return {
+      kind: 'catalog',
+      reason: `a list a value is checked against, named ${name}`,
+      ...(GUARDED_BY(name).test(source.code) && !DENY_NAME.test(name) ? { guardedBy: name } : {}),
+    };
   }
   return { kind: 'picker', reason: `a list a dead model can be picked from, named ${name}` };
 }
@@ -319,7 +368,11 @@ function tableKeyPlace(source: Source, span: Span): Place {
         KEY_READ_AFTER.test(after(source.code, match.index + word.length)),
     );
   return keysRead
-    ? { kind: 'unclear', reason: `a key in a table, and the code walks the keys of ${name}` }
+    ? {
+        kind: 'unclear',
+        tableKey: true,
+        reason: `a key in a table, and the code walks the keys of ${name}`,
+      }
     : { kind: 'catalog', reason: 'a key in a table, such as prices or context windows' };
 }
 

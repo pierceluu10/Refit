@@ -1,0 +1,33 @@
+{
+  "provider": "zoom",
+  "officialHosts": ["developers.zoom.us"],
+  "entries": [
+    {
+      "id": "ZO-1.webhook-verification-token",
+      "provider": "zoom",
+      "what": "The webhook verification token is sunset. The page says June 2025 without a day, so diedOn is that month's last day. A webhook checked only against it rejects genuine events, or accepts them unsigned. The scan finds the setting's name, since the check itself is a plain header comparison.",
+      "diedOn": "2025-06-30",
+      "source": {
+        "url": "https://developers.zoom.us/changelog/platform/verification-changes-webhook",
+        "checkedOn": "2026-11-05",
+        "quote": "The Webhook verification token is deprecated and will sunset in June 2025."
+      },
+      "lookFor": [
+        "A setting named for the Zoom verification token, such as ZOOM_VERIFICATION_TOKEN or zoomVerificationToken"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "[zZ][oO][oO][mM]_?[vV](?:ERIFICATION|erification)_?[tT](?:OKEN|oken)"
+        }
+      ],
+      "replacement": "A secret token and the x-zm-signature header.",
+      "replacementIds": ["x-zm-signature"],
+      "requires": [
+        "Verify the HMAC signature in x-zm-signature with the app secret token.",
+        "Answer the endpoint.url_validation event: Zoom revalidates every 72 hours and stops sending after repeated failures."
+      ]
+    }
+  ],
+  "future": []
+}

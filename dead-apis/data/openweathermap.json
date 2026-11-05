@@ -1,0 +1,33 @@
+{
+  "provider": "openweathermap",
+  "officialHosts": ["openweathermap.org"],
+  "entries": [
+    {
+      "id": "OW-1.one-call-2.5",
+      "provider": "openweathermap",
+      "what": "One Call API 2.5 at /data/2.5/onecall is closed. The page gives June 2024 with no day, so diedOn is that month's last day. It names neither the URL nor an error code. Other /2.5/ APIs are not affected.",
+      "diedOn": "2024-06-30",
+      "source": {
+        "url": "https://openweathermap.org/api/one-call-transfer.md",
+        "checkedOn": "2026-11-05",
+        "quote": "access to One Call API 2.5 has been finally closed in June 2024"
+      },
+      "lookFor": ["A request to api.openweathermap.org/data/2.5/onecall, including /timemachine"],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "api.openweathermap.org/data/2.5/onecall*"
+        }
+      ],
+      "replacement": "One Call API 3.0.",
+      "replacementIds": ["api.openweathermap.org/data/3.0/onecall"],
+      "requires": [
+        "One Call API 3.0 has its own subscription, which requires card details, and API keys can take several minutes to activate."
+      ],
+      "context": {
+        "hosts": ["openweathermap.org"]
+      }
+    }
+  ],
+  "future": []
+}

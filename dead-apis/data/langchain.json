@@ -1,0 +1,47 @@
+{
+  "provider": "langchain",
+  "officialHosts": ["docs.langchain.com"],
+  "entries": [
+    {
+      "id": "LC-1.legacy-namespace",
+      "provider": "langchain",
+      "what": "LangChain v1 cut the langchain namespace to agents, messages, tools, chat_models and embeddings. The guide names chains, retrievers, indexing and hub as moved to langchain-classic; the other modules here rest on the 1.x wheel having no such folder. An environment built before v1 still imports them. The guide isn't dated, so diedOn is the day it was read.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://docs.langchain.com/oss/python/migrate/langchain-v1",
+        "checkedOn": "2026-11-05",
+        "quote": "The langchain package namespace has been significantly reduced in v1 to focus on essential building blocks for agents."
+      },
+      "lookFor": [
+        "from langchain.chains, .retrievers, .indexes, .hub, .memory, .vectorstores, .document_loaders, .text_splitter, .prompts, .llms or .schema, in Python"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?<=(?:^|\\n)[ \\t]*(?:from|import)[ \\t]+)langchain\\.(?:chains|retrievers|indexes|hub|memory|vectorstores|document_loaders|text_splitter|prompts|llms|schema)\\b"
+        }
+      ],
+      "versions": "langchain 1.0.0 and later, in Python.",
+      "appliesTo": {
+        "describe": "langchain 1.0.0 and later, in Python.",
+        "sdkSince": [
+          {
+            "package": "langchain",
+            "version": "1.0.0",
+            "ecosystem": "python"
+          }
+        ]
+      },
+      "replacement": "The langchain_classic package for chains, retrievers, indexing and hub; langchain_core, langchain_community and langchain_text_splitters for the rest.",
+      "replacementIds": ["langchain_classic"],
+      "requires": [
+        "Install langchain-classic and change the import path, or rewrite on create_agent.",
+        "Pin the version in requirements: an unpinned langchain takes the newest on every fresh install."
+      ],
+      "context": {
+        "packages": ["langchain"]
+      }
+    }
+  ],
+  "future": []
+}

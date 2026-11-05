@@ -28,6 +28,8 @@ const SKIPPED_DIRECTORIES = new Set([
   '__pycache__',
   '.venv',
   'venv',
+  'site-packages',
+  'dist-packages',
   'target',
   '.gradle',
   '.idea',
