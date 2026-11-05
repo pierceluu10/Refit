@@ -1,12 +1,13 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { ComparedCommit } from './github.ts';
 import { BRANCH_PREFIX } from './types.ts';
-import type { AppJob, InstallationTokens, JobQueue, RecordVerdict } from './types.ts';
+import type { AppJob, ForgetJob, InstallationTokens, JobQueue, RecordVerdict } from './types.ts';
 
 const SIGNATURE_PREFIX = 'sha256=';
 
 export type WebhookDeps = {
   queue: JobQueue;
+  forgetRepo: (job: ForgetJob) => Promise<void>;
   recordVerdict: RecordVerdict;
   tokens: InstallationTokens;
   listRepos: (token: string) => Promise<string[]>;
@@ -144,6 +145,9 @@ export async function handleWebhook(
     return [];
   }
   const jobs = await jobsFor(event, payload, deps);
-  for (const job of jobs) await deps.queue.enqueue(job);
+  for (const job of jobs) {
+    await deps.queue.enqueue(job);
+    if (job.kind === 'forget') await deps.forgetRepo(job);
+  }
   return jobs;
 }
