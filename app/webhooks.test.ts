@@ -33,8 +33,10 @@ function fakeDeps(compared: ComparedCommit[] = []) {
   const verdicts: [string, HumanVerdict][] = [];
   const tokenRequests: number[] = [];
   const listedWith: string[] = [];
+  const consent: string[] = [];
   const deps: WebhookDeps = {
     queue: { enqueue: async (job) => void jobs.push(job) },
+    forgetRepo: async () => {},
     recordVerdict: async (pr, verdict) => void verdicts.push([pr, verdict]),
     tokens: {
       token: async (id) => {
@@ -50,8 +52,18 @@ function fakeDeps(compared: ComparedCommit[] = []) {
       comparisons.push([token, repo, base, head]);
       return compared;
     },
+    evidence: {
+      closed: async () => {},
+      edited: async () => {},
+      revertMerged: async () => {},
+      pushed: async () => {},
+    },
+    consent: {
+      recordInstall: async (id) => void consent.push(`install ${id}`),
+      forget: async (id) => void consent.push(`forget ${id}`),
+    },
   };
-  return { deps, jobs, verdicts, tokenRequests, listedWith, comparisons };
+  return { deps, jobs, verdicts, tokenRequests, listedWith, comparisons, consent };
 }
 
 describe('verifySignature', () => {
@@ -99,6 +111,23 @@ describe('handleWebhook', () => {
     expect(fake.listedWith).toEqual([INSTALL_TOKEN]);
     expect(fake.jobs).toEqual(expected);
     expect(jobs).toEqual(expected);
+  });
+
+  it('installation.created records the default consent even when listing repos fails', async () => {
+    const fake = fakeDeps();
+    fake.deps.listRepos = async () => {
+      throw new Error('GitHub is down');
+    };
+    await expect(
+      handleWebhook('installation', fixture('installation.created'), fake.deps),
+    ).rejects.toThrow('GitHub is down');
+    expect(fake.consent).toEqual([`install ${INSTALLATION_ID}`]);
+  });
+
+  it('installation.deleted forgets the consent', async () => {
+    const fake = fakeDeps();
+    await handleWebhook('installation', fixture('installation.deleted'), fake.deps);
+    expect(fake.consent).toEqual([`forget ${INSTALLATION_ID}`]);
   });
 
   it('installation.deleted forgets the payload repos without calling the API', async () => {
@@ -190,6 +219,61 @@ describe('handleWebhook', () => {
       ['https://github.com/aptitude-example-org/billing-api/pull/42', 'closed'],
     ]);
   });
+
+  describe('an aptitude/ branch from a fork', () => {
+    const forked = (repo: { full_name: string } | null) => {
+      const base = fixture('pull_request.closed.unmerged') as { pull_request: { head: object } };
+      return {
+        ...base,
+        pull_request: {
+          ...base.pull_request,
+          head: { ...base.pull_request.head, ref: 'aptitude/anything', repo },
+        },
+      };
+    };
+
+    it.each([[{ full_name: 'stranger/fork' }], [null]])(
+      'head repo %j records nothing',
+      async (repo) => {
+        const fake = fakeDeps();
+        const closed: string[] = [];
+        fake.deps.evidence.closed = async () => void closed.push('closed');
+        await handleWebhook('pull_request', forked(repo), fake.deps);
+        expect(fake.verdicts).toEqual([]);
+        expect(closed).toEqual([]);
+      },
+    );
+
+    it('head repo the same as the base is ours', async () => {
+      const fake = fakeDeps();
+      await handleWebhook(
+        'pull_request',
+        forked({ full_name: 'aptitude-example-org/billing-api' }),
+        fake.deps,
+      );
+      expect(fake.verdicts).toHaveLength(1);
+    });
+  });
+
+  it.each([
+    ['closed', 'pull_request.closed.merged', {}],
+    ['edited', 'pull_request.closed.merged', { action: 'synchronize', before: 'a', after: 'b' }],
+  ] as const)(
+    "a verdict that fails doesn't cost the %s evidence, and still fails the delivery",
+    async (step, name, extra) => {
+      const fake = fakeDeps([commit(PERSON)]);
+      const sent: string[] = [];
+      fake.deps.recordVerdict = async () => {
+        throw new Error('memory store write failed');
+      };
+      fake.deps.evidence[step] = async () => void sent.push(step);
+      const event = { ...(fixture(name) as object), sender: PERSON, ...extra };
+      await expect(handleWebhook('pull_request', event, fake.deps)).rejects.toThrow(
+        'memory store write failed',
+      );
+      expect(sent).toEqual([step]);
+    },
+  );
 
   it("a human branch's PR records nothing", async () => {
     const fake = fakeDeps();

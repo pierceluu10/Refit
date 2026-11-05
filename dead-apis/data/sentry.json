@@ -1,0 +1,235 @@
+{
+  "provider": "sentry",
+  "officialHosts": [
+    "docs.sentry.io",
+    "github.com/getsentry",
+    "raw.githubusercontent.com/getsentry"
+  ],
+  "entries": [
+    {
+      "id": "SN-1.sendDefaultPii",
+      "provider": "sentry",
+      "what": "The sendDefaultPii option is gone from the Sentry JavaScript SDK, replaced by dataCollection.",
+      "diedOn": "2026-09-23",
+      "source": {
+        "url": "https://raw.githubusercontent.com/getsentry/sentry-javascript/HEAD/CHANGELOG.md",
+        "checkedOn": "2026-11-05",
+        "quote": "feat(core)!: Remove `sendDefaultPii` in favor of `dataCollection`"
+      },
+      "lookFor": [
+        "sendDefaultPii set or read in code that runs the JavaScript SDK at 11.0.0 or later."
+      ],
+      "matchers": [
+        {
+          "kind": "field",
+          "value": "sendDefaultPii",
+          "on": ["Sentry.init"]
+        },
+        {
+          "kind": "regex",
+          "value": "\\bsendDefaultPii\\b",
+          "ambiguous": true
+        }
+      ],
+      "versions": "A break only at 11.0.0 or later of the JavaScript SDK (@sentry/node, @sentry/nextjs, @sentry/react and the rest of that repo). @sentry/react-native and @sentry/electron have version numbers of their own and are not gated here, and Python's send_default_pii is another SDK.",
+      "appliesTo": {
+        "describe": "A break only at 11.0.0 or later of the JavaScript SDK (@sentry/node, @sentry/nextjs, @sentry/react and the rest of that repo). @sentry/react-native and @sentry/electron have version numbers of their own and are not gated here, and Python's send_default_pii is another SDK.",
+        "sdkSince": [
+          {
+            "package": "@sentry/angular",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/astro",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/aws-serverless",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/browser",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/bun",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/cloudflare",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/core",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/deno",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/effect",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/elysia",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/ember",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/gatsby",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/google-cloud-serverless",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/hono",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/nestjs",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/nextjs",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/nitro",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/node",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/nuxt",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/react",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/react-router",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/remix",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/solid",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/solidstart",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/svelte",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/sveltekit",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/tanstackstart-react",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/vercel-edge",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/vue",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          },
+          {
+            "package": "@sentry/wasm",
+            "version": "11.0.0",
+            "ecosystem": "npm"
+          }
+        ]
+      },
+      "replacement": "dataCollection",
+      "replacementIds": ["dataCollection"],
+      "requires": [
+        "Remove sendDefaultPii. If it was true, the migration guide says the v11 default already matches and nothing else is needed.",
+        "If it was false or unset, set dataCollection explicitly to the baseline in the migration guide. Left unset, v11 starts collecting cookies, HTTP bodies, database query data, queues and GenAI inputs and outputs, so this is a privacy change and not only a rename: say so in the PR.",
+        "An empty dataCollection doesn't restore the old behaviour. Each category has to be turned off by name.",
+        "On Astro, pass trackClientIp: false to keep client IPs out: it now follows dataCollection.userInfo, which defaults to true."
+      ],
+      "context": {
+        "packages": [
+          "@sentry/angular",
+          "@sentry/astro",
+          "@sentry/aws-serverless",
+          "@sentry/browser",
+          "@sentry/bun",
+          "@sentry/cloudflare",
+          "@sentry/core",
+          "@sentry/deno",
+          "@sentry/effect",
+          "@sentry/elysia",
+          "@sentry/ember",
+          "@sentry/gatsby",
+          "@sentry/google-cloud-serverless",
+          "@sentry/hono",
+          "@sentry/nestjs",
+          "@sentry/nextjs",
+          "@sentry/nitro",
+          "@sentry/node",
+          "@sentry/nuxt",
+          "@sentry/react",
+          "@sentry/react-router",
+          "@sentry/remix",
+          "@sentry/solid",
+          "@sentry/solidstart",
+          "@sentry/svelte",
+          "@sentry/sveltekit",
+          "@sentry/tanstackstart-react",
+          "@sentry/vercel-edge",
+          "@sentry/vue",
+          "@sentry/wasm"
+        ]
+      }
+    }
+  ],
+  "future": []
+}

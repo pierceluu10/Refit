@@ -1,0 +1,574 @@
+{
+  "provider": "cerebras",
+  "officialHosts": ["inference-docs.cerebras.ai"],
+  "entries": [
+    {
+      "id": "CE-1.llama-3.3-70b",
+      "provider": "cerebras",
+      "what": "Cerebras lists llama-3.3-70b as deprecated on 2026-02-16. Its public model list had no llama-3.3-70b on 2026-11-05. The page doesn't say what a request gets, so a failing call isn't proven.",
+      "diedOn": "2026-02-16",
+      "source": {
+        "url": "https://inference-docs.cerebras.ai/support/deprecation",
+        "checkedOn": "2026-11-05",
+        "quote": "Deprecated qwen-3-32b and llama-3.3-70b"
+      },
+      "lookFor": [
+        "The model ID llama-3.3-70b sent to Cerebras (api.cerebras.ai, its SDK, or a client pointed at it). Not a gateway's vendor/name form such as meta-llama/llama-3.3-70b."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3.3-70b",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "cerebras/llama-3.3-70b",
+          "bare": true
+        }
+      ],
+      "replacement": "gpt-oss-120b",
+      "replacementIds": ["gpt-oss-120b"],
+      "requires": [
+        "Requests using tools or response_format in strict mode: the page says legacy strict mode on llama-3.3-70b differs slightly from current models."
+      ],
+      "context": {
+        "packages": [
+          "@cerebras/cerebras_cloud_sdk",
+          "cerebras-cloud-sdk",
+          "cerebras.cloud.sdk",
+          "@ai-sdk/cerebras",
+          "@langchain/cerebras",
+          "langchain-cerebras"
+        ],
+        "hosts": ["api.cerebras.ai"]
+      }
+    },
+    {
+      "id": "CE-2.qwen-3-32b",
+      "provider": "cerebras",
+      "what": "Cerebras lists qwen-3-32b as deprecated on 2026-02-16. Its public model list had no qwen-3-32b on 2026-11-05. The page doesn't say what a request gets, so a failing call isn't proven.",
+      "diedOn": "2026-02-16",
+      "source": {
+        "url": "https://inference-docs.cerebras.ai/support/deprecation",
+        "checkedOn": "2026-11-05",
+        "quote": "Deprecated qwen-3-32b and llama-3.3-70b"
+      },
+      "lookFor": [
+        "The model ID qwen-3-32b sent to Cerebras (api.cerebras.ai, its SDK, or a client pointed at it). Not a gateway's vendor/name form such as meta-llama/qwen-3-32b."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "qwen-3-32b",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "cerebras/qwen-3-32b",
+          "bare": true
+        }
+      ],
+      "replacement": "gpt-oss-120b",
+      "replacementIds": ["gpt-oss-120b"],
+      "requires": [
+        "Qwen 3 32B had reasoning enabled by default. GPT OSS takes reasoning_effort, so set it to keep the behaviour."
+      ],
+      "context": {
+        "packages": [
+          "@cerebras/cerebras_cloud_sdk",
+          "cerebras-cloud-sdk",
+          "cerebras.cloud.sdk",
+          "@ai-sdk/cerebras",
+          "@langchain/cerebras",
+          "langchain-cerebras"
+        ],
+        "hosts": ["api.cerebras.ai"]
+      }
+    },
+    {
+      "id": "CE-3.llama3.1-8b",
+      "provider": "cerebras",
+      "what": "Cerebras lists llama3.1-8b as deprecated on 2026-05-27. Its public model list had no llama3.1-8b on 2026-11-05. The page doesn't say what a request gets, so a failing call isn't proven.",
+      "diedOn": "2026-05-27",
+      "source": {
+        "url": "https://inference-docs.cerebras.ai/support/deprecation",
+        "checkedOn": "2026-11-05",
+        "quote": "Deprecated llama3.1-8b and qwen-3-235b-a22b-instruct-2507"
+      },
+      "lookFor": [
+        "The model ID llama3.1-8b sent to Cerebras (api.cerebras.ai, its SDK, or a client pointed at it). Not a gateway's vendor/name form such as meta-llama/llama3.1-8b."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama3.1-8b",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "cerebras/llama3.1-8b",
+          "bare": true
+        }
+      ],
+      "replacement": "gpt-oss-120b",
+      "replacementIds": ["gpt-oss-120b"],
+      "requires": [],
+      "context": {
+        "packages": [
+          "@cerebras/cerebras_cloud_sdk",
+          "cerebras-cloud-sdk",
+          "cerebras.cloud.sdk",
+          "@ai-sdk/cerebras",
+          "@langchain/cerebras",
+          "langchain-cerebras"
+        ],
+        "hosts": ["api.cerebras.ai"]
+      }
+    },
+    {
+      "id": "CE-4.qwen-3-235b-a22b-instruct-2507",
+      "provider": "cerebras",
+      "what": "Cerebras lists qwen-3-235b-a22b-instruct-2507 as deprecated on 2026-05-27. Its public model list had no qwen-3-235b-a22b-instruct-2507 on 2026-11-05. The page doesn't say what a request gets, so a failing call isn't proven.",
+      "diedOn": "2026-05-27",
+      "source": {
+        "url": "https://inference-docs.cerebras.ai/support/deprecation",
+        "checkedOn": "2026-11-05",
+        "quote": "Deprecated llama3.1-8b and qwen-3-235b-a22b-instruct-2507"
+      },
+      "lookFor": [
+        "The model ID qwen-3-235b-a22b-instruct-2507 sent to Cerebras (api.cerebras.ai, its SDK, or a client pointed at it). Not a gateway's vendor/name form such as meta-llama/qwen-3-235b-a22b-instruct-2507."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "qwen-3-235b-a22b-instruct-2507",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "cerebras/qwen-3-235b-a22b-instruct-2507",
+          "bare": true
+        }
+      ],
+      "replacement": "gpt-oss-120b",
+      "replacementIds": ["gpt-oss-120b"],
+      "requires": [],
+      "context": {
+        "packages": [
+          "@cerebras/cerebras_cloud_sdk",
+          "cerebras-cloud-sdk",
+          "cerebras.cloud.sdk",
+          "@ai-sdk/cerebras",
+          "@langchain/cerebras",
+          "langchain-cerebras"
+        ],
+        "hosts": ["api.cerebras.ai"]
+      }
+    },
+    {
+      "id": "CE-5.zai-glm-4.7",
+      "provider": "cerebras",
+      "what": "Cerebras lists zai-glm-4.7 as deprecated on 2026-08-17. Its public model list had no zai-glm-4.7 on 2026-11-05. The page doesn't say what a request gets, so a failing call isn't proven.",
+      "diedOn": "2026-08-17",
+      "source": {
+        "url": "https://inference-docs.cerebras.ai/support/deprecation",
+        "checkedOn": "2026-11-05",
+        "quote": "Deprecated zai-glm-4.7"
+      },
+      "lookFor": [
+        "The model ID zai-glm-4.7 sent to Cerebras (api.cerebras.ai, its SDK, or a client pointed at it). Not a gateway's vendor/name form such as meta-llama/zai-glm-4.7."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "zai-glm-4.7",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "cerebras/zai-glm-4.7",
+          "bare": true
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@cerebras/cerebras_cloud_sdk",
+          "cerebras-cloud-sdk",
+          "cerebras.cloud.sdk",
+          "@ai-sdk/cerebras",
+          "@langchain/cerebras",
+          "langchain-cerebras"
+        ],
+        "hosts": ["api.cerebras.ai"]
+      }
+    },
+    {
+      "id": "CE-6.zai-glm-4.6",
+      "provider": "cerebras",
+      "what": "Cerebras lists zai-glm-4.6 as deprecated on 2026-01-20. Its public model list had no zai-glm-4.6 on 2026-11-05. The page doesn't say what a request gets, so a failing call isn't proven.",
+      "diedOn": "2026-01-20",
+      "source": {
+        "url": "https://inference-docs.cerebras.ai/support/deprecation",
+        "checkedOn": "2026-11-05",
+        "quote": "Deprecated zai-glm-4.6"
+      },
+      "lookFor": [
+        "The model ID zai-glm-4.6 sent to Cerebras (api.cerebras.ai, its SDK, or a client pointed at it). Not a gateway's vendor/name form such as meta-llama/zai-glm-4.6."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "zai-glm-4.6",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "cerebras/zai-glm-4.6",
+          "bare": true
+        }
+      ],
+      "replacement": "The page names zai-glm-4.7, which it has since deprecated with nothing named after it.",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@cerebras/cerebras_cloud_sdk",
+          "cerebras-cloud-sdk",
+          "cerebras.cloud.sdk",
+          "@ai-sdk/cerebras",
+          "@langchain/cerebras",
+          "langchain-cerebras"
+        ],
+        "hosts": ["api.cerebras.ai"]
+      }
+    },
+    {
+      "id": "CE-7.qwen-3-235b-a22b-thinking-2507",
+      "provider": "cerebras",
+      "what": "Cerebras lists qwen-3-235b-a22b-thinking-2507 as deprecated on 2025-11-14. Its public model list had no qwen-3-235b-a22b-thinking-2507 on 2026-11-05. The page doesn't say what a request gets, so a failing call isn't proven.",
+      "diedOn": "2025-11-14",
+      "source": {
+        "url": "https://inference-docs.cerebras.ai/support/deprecation",
+        "checkedOn": "2026-11-05",
+        "quote": "Deprecated qwen-3-235b-a22b-thinking-2507"
+      },
+      "lookFor": [
+        "The model ID qwen-3-235b-a22b-thinking-2507 sent to Cerebras (api.cerebras.ai, its SDK, or a client pointed at it). Not a gateway's vendor/name form such as meta-llama/qwen-3-235b-a22b-thinking-2507."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "qwen-3-235b-a22b-thinking-2507",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "cerebras/qwen-3-235b-a22b-thinking-2507",
+          "bare": true
+        }
+      ],
+      "replacement": "gpt-oss-120b",
+      "replacementIds": ["gpt-oss-120b"],
+      "requires": [],
+      "context": {
+        "packages": [
+          "@cerebras/cerebras_cloud_sdk",
+          "cerebras-cloud-sdk",
+          "cerebras.cloud.sdk",
+          "@ai-sdk/cerebras",
+          "@langchain/cerebras",
+          "langchain-cerebras"
+        ],
+        "hosts": ["api.cerebras.ai"]
+      }
+    },
+    {
+      "id": "CE-8.qwen-3-coder-480b",
+      "provider": "cerebras",
+      "what": "Cerebras lists qwen-3-coder-480b as deprecated on 2025-11-05. Its public model list had no qwen-3-coder-480b on 2026-11-05. The page doesn't say what a request gets, so a failing call isn't proven.",
+      "diedOn": "2025-11-05",
+      "source": {
+        "url": "https://inference-docs.cerebras.ai/support/deprecation",
+        "checkedOn": "2026-11-05",
+        "quote": "Deprecated qwen-3-coder-480b"
+      },
+      "lookFor": [
+        "The model ID qwen-3-coder-480b sent to Cerebras (api.cerebras.ai, its SDK, or a client pointed at it). Not a gateway's vendor/name form such as meta-llama/qwen-3-coder-480b."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "qwen-3-coder-480b",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "cerebras/qwen-3-coder-480b",
+          "bare": true
+        }
+      ],
+      "replacement": "The page names zai-glm-4.7, which it has since deprecated with nothing named after it.",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@cerebras/cerebras_cloud_sdk",
+          "cerebras-cloud-sdk",
+          "cerebras.cloud.sdk",
+          "@ai-sdk/cerebras",
+          "@langchain/cerebras",
+          "langchain-cerebras"
+        ],
+        "hosts": ["api.cerebras.ai"]
+      }
+    },
+    {
+      "id": "CE-9.llama-4-scout-17b-16e-instruct",
+      "provider": "cerebras",
+      "what": "Cerebras lists llama-4-scout-17b-16e-instruct as deprecated on 2025-11-03. Its public model list had no llama-4-scout-17b-16e-instruct on 2026-11-05. The page doesn't say what a request gets, so a failing call isn't proven.",
+      "diedOn": "2025-11-03",
+      "source": {
+        "url": "https://inference-docs.cerebras.ai/support/deprecation",
+        "checkedOn": "2026-11-05",
+        "quote": "Deprecated llama-4-scout-17b-16e-instruct"
+      },
+      "lookFor": [
+        "The model ID llama-4-scout-17b-16e-instruct sent to Cerebras (api.cerebras.ai, its SDK, or a client pointed at it). Not a gateway's vendor/name form such as meta-llama/llama-4-scout-17b-16e-instruct."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-4-scout-17b-16e-instruct",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "cerebras/llama-4-scout-17b-16e-instruct",
+          "bare": true
+        }
+      ],
+      "replacement": "gpt-oss-120b. The page also names llama-3.3-70b, which it has since deprecated.",
+      "replacementIds": ["gpt-oss-120b"],
+      "requires": [],
+      "context": {
+        "packages": [
+          "@cerebras/cerebras_cloud_sdk",
+          "cerebras-cloud-sdk",
+          "cerebras.cloud.sdk",
+          "@ai-sdk/cerebras",
+          "@langchain/cerebras",
+          "langchain-cerebras"
+        ],
+        "hosts": ["api.cerebras.ai"]
+      }
+    },
+    {
+      "id": "CE-10.llama-4-maverick-17b-128e-instruct",
+      "provider": "cerebras",
+      "what": "Cerebras lists llama-4-maverick-17b-128e-instruct as deprecated on 2025-10-15. Its public model list had no llama-4-maverick-17b-128e-instruct on 2026-11-05. The page doesn't say what a request gets, so a failing call isn't proven.",
+      "diedOn": "2025-10-15",
+      "source": {
+        "url": "https://inference-docs.cerebras.ai/support/deprecation",
+        "checkedOn": "2026-11-05",
+        "quote": "Deprecated llama-4-maverick-17b-128e-instruct"
+      },
+      "lookFor": [
+        "The model ID llama-4-maverick-17b-128e-instruct sent to Cerebras (api.cerebras.ai, its SDK, or a client pointed at it). Not a gateway's vendor/name form such as meta-llama/llama-4-maverick-17b-128e-instruct."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-4-maverick-17b-128e-instruct",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "cerebras/llama-4-maverick-17b-128e-instruct",
+          "bare": true
+        }
+      ],
+      "replacement": "gpt-oss-120b. The page also names llama-3.3-70b, which it has since deprecated.",
+      "replacementIds": ["gpt-oss-120b"],
+      "requires": [],
+      "context": {
+        "packages": [
+          "@cerebras/cerebras_cloud_sdk",
+          "cerebras-cloud-sdk",
+          "cerebras.cloud.sdk",
+          "@ai-sdk/cerebras",
+          "@langchain/cerebras",
+          "langchain-cerebras"
+        ],
+        "hosts": ["api.cerebras.ai"]
+      }
+    },
+    {
+      "id": "CE-11.deepseek-r1-distill-llama-70b",
+      "provider": "cerebras",
+      "what": "Cerebras lists deepseek-r1-distill-llama-70b as deprecated on 2025-08-12. Its public model list had no deepseek-r1-distill-llama-70b on 2026-11-05. The page doesn't say what a request gets, so a failing call isn't proven.",
+      "diedOn": "2025-08-12",
+      "source": {
+        "url": "https://inference-docs.cerebras.ai/support/deprecation",
+        "checkedOn": "2026-11-05",
+        "quote": "Deprecated deepseek-r1-distill-llama-70b"
+      },
+      "lookFor": [
+        "The model ID deepseek-r1-distill-llama-70b sent to Cerebras (api.cerebras.ai, its SDK, or a client pointed at it). Not a gateway's vendor/name form such as meta-llama/deepseek-r1-distill-llama-70b."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "deepseek-r1-distill-llama-70b",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "cerebras/deepseek-r1-distill-llama-70b",
+          "bare": true,
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gpt-oss-120b. The page named qwen-3-32b here, then deprecated that in favour of gpt-oss-120b.",
+      "replacementIds": ["gpt-oss-120b"],
+      "requires": [],
+      "context": {
+        "packages": [
+          "@cerebras/cerebras_cloud_sdk",
+          "cerebras-cloud-sdk",
+          "cerebras.cloud.sdk",
+          "@ai-sdk/cerebras",
+          "@langchain/cerebras",
+          "langchain-cerebras"
+        ],
+        "hosts": ["api.cerebras.ai"]
+      }
+    },
+    {
+      "id": "CE-12.qwen-3-235b-a22b",
+      "provider": "cerebras",
+      "what": "Cerebras lists qwen-3-235b-a22b as deprecated on 2025-07-29. Its public model list had no qwen-3-235b-a22b on 2026-11-05. The page doesn't say what a request gets, so a failing call isn't proven.",
+      "diedOn": "2025-07-29",
+      "source": {
+        "url": "https://inference-docs.cerebras.ai/support/deprecation",
+        "checkedOn": "2026-11-05",
+        "quote": "Deprecated qwen-3-235b-a22b"
+      },
+      "lookFor": [
+        "The model ID qwen-3-235b-a22b sent to Cerebras (api.cerebras.ai, its SDK, or a client pointed at it). Not a gateway's vendor/name form such as meta-llama/qwen-3-235b-a22b."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "qwen-3-235b-a22b",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "cerebras/qwen-3-235b-a22b",
+          "bare": true
+        }
+      ],
+      "replacement": "gpt-oss-120b. The page named the Qwen 3 235B Instruct and Thinking models here, then deprecated both in favour of gpt-oss-120b.",
+      "replacementIds": ["gpt-oss-120b"],
+      "requires": [],
+      "context": {
+        "packages": [
+          "@cerebras/cerebras_cloud_sdk",
+          "cerebras-cloud-sdk",
+          "cerebras.cloud.sdk",
+          "@ai-sdk/cerebras",
+          "@langchain/cerebras",
+          "langchain-cerebras"
+        ],
+        "hosts": ["api.cerebras.ai"]
+      }
+    },
+    {
+      "id": "CE-13.llama3.1-70b",
+      "provider": "cerebras",
+      "what": "Cerebras lists llama3.1-70b as deprecated on 2025-01-17. Its public model list had no llama3.1-70b on 2026-11-05. The page doesn't say what a request gets, so a failing call isn't proven.",
+      "diedOn": "2025-01-17",
+      "source": {
+        "url": "https://inference-docs.cerebras.ai/support/deprecation",
+        "checkedOn": "2026-11-05",
+        "quote": "The llama3.1-70b model has been deprecated."
+      },
+      "lookFor": [
+        "The model ID llama3.1-70b sent to Cerebras (api.cerebras.ai, its SDK, or a client pointed at it). Not a gateway's vendor/name form such as meta-llama/llama3.1-70b."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama3.1-70b",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "cerebras/llama3.1-70b",
+          "bare": true
+        }
+      ],
+      "replacement": "gpt-oss-120b. The page named llama-3.3-70b here, then deprecated that in favour of gpt-oss-120b.",
+      "replacementIds": ["gpt-oss-120b"],
+      "requires": [],
+      "context": {
+        "packages": [
+          "@cerebras/cerebras_cloud_sdk",
+          "cerebras-cloud-sdk",
+          "cerebras.cloud.sdk",
+          "@ai-sdk/cerebras",
+          "@langchain/cerebras",
+          "langchain-cerebras"
+        ],
+        "hosts": ["api.cerebras.ai"]
+      }
+    },
+    {
+      "id": "CE-14.gemma-4-31b",
+      "provider": "cerebras",
+      "what": "Cerebras took gemma-4-31b off Shared Inference on 2026-09-03. Its public model list had no gemma-4-31b on 2026-11-05. The page doesn't say what a request gets, so a failing call isn't proven.",
+      "diedOn": "2026-09-03",
+      "source": {
+        "url": "https://inference-docs.cerebras.ai/support/deprecation",
+        "checkedOn": "2026-11-05",
+        "quote": "gemma-4-31b is no longer available with Cerebras Shared Inference"
+      },
+      "lookFor": [
+        "The model ID gemma-4-31b sent to Cerebras (api.cerebras.ai, its SDK, or a client pointed at it). Not a gateway's vendor/name form such as meta-llama/gemma-4-31b."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gemma-4-31b",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "cerebras/gemma-4-31b",
+          "bare": true,
+          "ambiguous": true
+        }
+      ],
+      "replacement": "qwen-3.8-27b for Shared Inference.",
+      "replacementIds": ["qwen-3.8-27b"],
+      "requires": [
+        "Dedicated Inference keeps this model, so a Dedicated customer's call is fine as it stands."
+      ],
+      "context": {
+        "packages": [
+          "@cerebras/cerebras_cloud_sdk",
+          "cerebras-cloud-sdk",
+          "cerebras.cloud.sdk",
+          "@ai-sdk/cerebras",
+          "@langchain/cerebras",
+          "langchain-cerebras"
+        ],
+        "hosts": ["api.cerebras.ai"]
+      }
+    }
+  ],
+  "future": []
+}

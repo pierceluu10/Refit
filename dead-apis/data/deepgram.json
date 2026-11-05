@@ -1,0 +1,141 @@
+{
+  "provider": "deepgram",
+  "officialHosts": ["developers.deepgram.com"],
+  "entries": [
+    {
+      "id": "DG-1.analyze_sentiment",
+      "provider": "deepgram",
+      "what": "The legacy analyze_sentiment parameter returns HTTP 400.",
+      "diedOn": "2025-11-05",
+      "source": {
+        "url": "https://developers.deepgram.com/changelog/2025/11/5.md",
+        "checkedOn": "2026-11-05",
+        "quote": "As of today, requests using these legacy parameters will return HTTP 400 errors."
+      },
+      "lookFor": ["analyze_sentiment=true in a Deepgram request, as a query string or an option"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\banalyze_sentiment[\"']?\\s*[=:]\\s*[\"']?[Tt]rue\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "sentiment=true",
+      "replacementIds": ["sentiment"],
+      "requires": [],
+      "context": {
+        "packages": ["@deepgram/sdk", "deepgram-sdk", "deepgram"],
+        "hosts": ["api.deepgram.com"]
+      }
+    },
+    {
+      "id": "DG-2.detect_topics",
+      "provider": "deepgram",
+      "what": "The legacy detect_topics parameter returns HTTP 400.",
+      "diedOn": "2025-11-05",
+      "source": {
+        "url": "https://developers.deepgram.com/changelog/2025/11/5.md",
+        "checkedOn": "2026-11-05",
+        "quote": "As of today, requests using these legacy parameters will return HTTP 400 errors."
+      },
+      "lookFor": ["detect_topics=true in a Deepgram request, as a query string or an option"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bdetect_topics[\"']?\\s*[=:]\\s*[\"']?[Tt]rue\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "topics=true",
+      "replacementIds": ["topics"],
+      "requires": [],
+      "context": {
+        "packages": ["@deepgram/sdk", "deepgram-sdk", "deepgram"],
+        "hosts": ["api.deepgram.com"]
+      }
+    },
+    {
+      "id": "DG-3.summarize-v1",
+      "provider": "deepgram",
+      "what": "summarize=v1 returns HTTP 400, and the V1 response structure is gone. summarize=true stays live and returns the V2 structure.",
+      "diedOn": "2025-11-05",
+      "source": {
+        "url": "https://developers.deepgram.com/changelog/2025/11/5.md",
+        "checkedOn": "2026-11-05",
+        "quote": "As of today, requests using these legacy parameters will return HTTP 400 errors."
+      },
+      "lookFor": ["summarize=v1 in a Deepgram request, as a query string or an option"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bsummarize[\"']?\\s*[=:]\\s*[\"']?v1\\b",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "summarize=true or summarize=v2, which both return the V2 structure.",
+      "requires": [
+        "Response parsing changes too: V2 returns a single summary object across all channels with result and short, where V1 returned a summaries array with summary, start_word and end_word per channel. Code that sends summarize=true and reads the V1 shape needs this as well, and no matcher finds it."
+      ],
+      "context": {
+        "packages": ["@deepgram/sdk", "deepgram-sdk", "deepgram"],
+        "hosts": ["api.deepgram.com"]
+      }
+    },
+    {
+      "id": "DG-4.gemini-3.1-flash-lite-preview",
+      "provider": "deepgram",
+      "what": "The Voice Agent model gemini-3.1-flash-lite-preview is removed. The page prints May 26, 2025 in a changelog entry dated May 19, 2026, so this reads the year as 2026.",
+      "diedOn": "2026-05-26",
+      "source": {
+        "url": "https://developers.deepgram.com/changelog/2026/5/19.md",
+        "checkedOn": "2026-11-05",
+        "quote": "gemini-3.1-flash-lite-preview is deprecated and will be removed on May 26, 2025. Migrate to gemini-3.1-flash-lite."
+      },
+      "lookFor": [
+        "The model id gemini-3.1-flash-lite-preview in a Deepgram Voice Agent think provider"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gemini-3.1-flash-lite-preview",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "gemini-3.1-flash-lite",
+      "replacementIds": ["gemini-3.1-flash-lite"],
+      "requires": [],
+      "context": {
+        "packages": ["@deepgram/sdk", "deepgram-sdk", "deepgram"],
+        "hosts": ["api.deepgram.com", "agent.deepgram.com"]
+      }
+    },
+    {
+      "id": "DG-5.dg-token",
+      "provider": "deepgram",
+      "what": "The dg-token header no longer verifies that a callback came from Deepgram. A callback server that requires it can start rejecting real callbacks.",
+      "diedOn": "2026-10-27",
+      "source": {
+        "url": "https://developers.deepgram.com/changelog/2026/10/27.md",
+        "checkedOn": "2026-11-05",
+        "quote": "The dg-token header is no longer a supported method to verify that callback requests come from Deepgram. If your callback server checks for dg-token, switch to Basic Auth."
+      },
+      "lookFor": ["A callback handler that reads the dg-token header"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "dg-token",
+          "caseSensitive": false
+        }
+      ],
+      "replacement": "Basic Auth, with credentials in the callback URL. Speech-to-Text can also use a secret passed with Extra Metadata.",
+      "requires": [
+        "Both sides change: the callback URL sent to Deepgram gains credentials, and the callback server checks them instead of the header."
+      ],
+      "context": {
+        "packages": ["@deepgram/sdk", "deepgram-sdk", "deepgram"],
+        "hosts": ["api.deepgram.com"]
+      }
+    }
+  ],
+  "future": []
+}

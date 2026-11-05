@@ -1,0 +1,40 @@
+{
+  "provider": "pinecone",
+  "officialHosts": ["docs.pinecone.io"],
+  "entries": [
+    {
+      "id": "PI-1.assistant-mcp-sse",
+      "provider": "pinecone",
+      "what": "Pinecone Assistant's SSE MCP endpoint, /mcp/assistants/<name>/sse, stopped working.",
+      "diedOn": "2025-08-31",
+      "source": {
+        "url": "https://docs.pinecone.io/release-notes/2025",
+        "checkedOn": "2026-11-05",
+        "quote": "After August 31, 2025 at 11:59:59 PM UTC, the SSE-based MCP endpoint for assistants (/mcp/assistants/<YOUR_ASSISTANT_NAME>/sse) will no longer work."
+      },
+      "lookFor": [
+        "A Pinecone Assistant MCP URL ending in /sse. The same URL without /sse is the live one."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "pinecone\\.io/mcp/assistants/[^/\\s'\"`]+/sse(?![\\w-])"
+        },
+        {
+          "kind": "regex",
+          "value": "/mcp/assistants/[^/\\s'\"`]+/sse(?![\\w-])",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "The streamable HTTP transport MCP endpoint, /mcp/assistants/<YOUR_ASSISTANT_NAME>.",
+      "requires": [
+        "Move the client to the streamable HTTP MCP transport as well as the URL: an SSE client class does not speak to the new endpoint."
+      ],
+      "context": {
+        "packages": ["@pinecone-database/pinecone", "pinecone", "pinecone-client"],
+        "hosts": ["pinecone.io"]
+      }
+    }
+  ],
+  "future": []
+}

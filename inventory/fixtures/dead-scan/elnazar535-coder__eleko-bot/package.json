@@ -1,0 +1,4 @@
+{
+  "name": "excerpt-of-elnazar535-coder-eleko-bot-seen-in-p5",
+  "dependencies": { "twilio": "^5.0.0", "express": "^4.0.0", "@anthropic-ai/sdk": "^0.30.0" }
+}

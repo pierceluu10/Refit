@@ -1,0 +1,8 @@
+{
+  "//": "Excerpt of MuhammadTanveerAbbas/Clario-ai at 1cb1754244fc, package.json.",
+  "name": "clario",
+  "dependencies": {
+    "groq-sdk": "^0.37.0",
+    "stripe": "^20.4.1"
+  }
+}

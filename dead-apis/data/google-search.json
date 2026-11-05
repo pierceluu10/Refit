@@ -1,0 +1,29 @@
+{
+  "provider": "google-search",
+  "officialHosts": ["developers.google.com/search"],
+  "entries": [
+    {
+      "id": "GS-1.sitemap-ping",
+      "provider": "google-search",
+      "what": "Google's sitemaps ping endpoint is gone, and pings get a 404. The post of 2023-06-26 gave it 6 months and now says the deprecation is complete. It names no day, so this date is that post plus 6 months. The post also says a leftover ping does no harm to Google Search: it just does nothing.",
+      "diedOn": "2023-12-26",
+      "source": {
+        "url": "https://developers.google.com/search/blog/2023/06/sitemaps-lastmod-ping",
+        "checkedOn": "2026-11-05",
+        "quote": "The sitemaps ping endpoint deprecation is complete."
+      },
+      "lookFor": ["A request to google.com/ping?sitemap=..."],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "google.com/ping?sitemap*"
+        }
+      ],
+      "replacement": "Submit sitemaps through robots.txt and Search Console, as the post says.",
+      "requires": [
+        "There is no request to swap in. Remove the ping, and list the sitemap in robots.txt or submit it in Search Console."
+      ]
+    }
+  ],
+  "future": []
+}

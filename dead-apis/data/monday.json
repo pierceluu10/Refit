@@ -1,0 +1,67 @@
+{
+  "provider": "monday",
+  "officialHosts": ["developer.monday.com"],
+  "entries": [
+    {
+      "id": "MO-1.items-by-column-values",
+      "provider": "monday",
+      "what": "The items_by_column_values and items_by_multiple_column_values queries are removed, in API version 2023-10. The notes date the version and not the removal, so diedOn is the first day of that version.",
+      "diedOn": "2023-10-01",
+      "source": {
+        "url": "https://developer.monday.com/api-reference/docs/release-notes",
+        "checkedOn": "2026-11-05",
+        "quote": "Removed the deprecated items_by_column_values and items_by_multiple_column_values objects, replaced them with items_page_by_column_values"
+      },
+      "lookFor": [
+        "A GraphQL query naming items_by_column_values or items_by_multiple_column_values"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "items_by_column_values"
+        },
+        {
+          "kind": "string",
+          "value": "items_by_multiple_column_values"
+        }
+      ],
+      "replacement": "items_page_by_column_values.",
+      "replacementIds": ["items_page_by_column_values"],
+      "requires": [
+        "A request with no API-Version header runs at the Current version, and only recent versions are served, so no pin brings these back.",
+        "Results come back as a page with a cursor, under items_page_by_column_values.items."
+      ],
+      "context": {
+        "hosts": ["api.monday.com"]
+      }
+    },
+    {
+      "id": "MO-2.boards-items",
+      "provider": "monday",
+      "what": "The items field on boards and groups queries is removed, in API version 2023-10. The notes date the version and not the removal, so diedOn is the first day of that version.",
+      "diedOn": "2023-10-01",
+      "source": {
+        "url": "https://developer.monday.com/api-reference/docs/release-notes",
+        "checkedOn": "2026-11-05",
+        "quote": "Removed the deprecated items field on boards queries, replaced it with items_page"
+      },
+      "lookFor": ["A GraphQL query with items directly under boards { ... } or groups { ... }"],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "(?<=\\b(?:boards|groups)\\b[^{}]{0,200}\\{\\s{0,200})items\\b(?=\\s*[({$#%\"'`])"
+        }
+      ],
+      "replacement": "items_page.",
+      "replacementIds": ["items_page"],
+      "requires": [
+        "A request with no API-Version header runs at the Current version, and only recent versions are served, so no pin brings these back.",
+        "items_page returns { cursor, items } and takes a limit, so the read path changes as well as the query."
+      ],
+      "context": {
+        "hosts": ["api.monday.com"]
+      }
+    }
+  ],
+  "future": []
+}

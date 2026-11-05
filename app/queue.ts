@@ -1,5 +1,5 @@
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { readJsonFile, writeJsonFile } from './json-file.ts';
+import { messageOf } from './redact.ts';
 import type { AppJob, JobQueue, UnderstandJob } from './types.ts';
 
 export type FileQueue = JobQueue & {
@@ -10,35 +10,21 @@ export type FileQueue = JobQueue & {
 const sameRepo = (a: AppJob, b: AppJob) =>
   a.installationId === b.installationId && a.repo === b.repo;
 
-async function load(file: string): Promise<UnderstandJob[]> {
-  try {
-    return JSON.parse(await readFile(file, 'utf8')) as UnderstandJob[];
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
-    throw error; // a corrupt queue file must not silently drop jobs
-  }
-}
-
 // Pending jobs live in one JSON file, rewritten atomically on every change, and run one at a time.
 // A job leaves the file only when it ends, so a restart reruns the job it interrupted.
 // shortcut: one process owns the file (as memory/ owns its store); move to a database for several workers.
 export async function createFileQueue(
   file: string,
   run: (job: UnderstandJob) => Promise<void>,
+  onMerged?: (job: UnderstandJob) => Promise<void>,
 ): Promise<FileQueue> {
-  let jobs = await load(file);
+  let jobs = (await readJsonFile<UnderstandJob[]>(file)) ?? [];
   let running: UnderstandJob | undefined;
   let working: Promise<void> | undefined;
   let saving: Promise<void> = Promise.resolve();
 
-  const write = async () => {
-    await mkdir(dirname(file), { recursive: true });
-    const temporary = `${file}.${process.pid}.tmp`;
-    await writeFile(temporary, JSON.stringify(jobs));
-    await rename(temporary, file);
-  };
   const save = () => {
-    const next = saving.then(write);
+    const next = saving.then(() => writeJsonFile(file, jobs));
     saving = next.catch(() => undefined);
     return next;
   };
@@ -50,12 +36,16 @@ export async function createFileQueue(
       try {
         await run(job);
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        console.error(`job ${job.kind} ${job.repo} failed: ${message}`);
+        console.error(`job ${job.kind} ${job.repo} failed: ${messageOf(error)}`);
       }
       jobs = jobs.filter((other) => other !== job);
       running = undefined;
-      await save();
+      try {
+        await save();
+      } catch (error) {
+        // The file still lists this job, so at worst a restart reruns it. The rest still get their turn.
+        console.error(`saving the queue failed: ${messageOf(error)}`);
+      }
     }
   }
   const start = () => {
@@ -70,7 +60,9 @@ export async function createFileQueue(
         // memory/ has no forget yet; a removed repo just stops waiting to be read.
         jobs = jobs.filter((other) => !waiting(other));
       } else if (jobs.some(waiting)) {
-        return; // a read of this repo is already waiting and will see the newest code
+        // A read of this repo is already waiting and will see the newest code.
+        await onMerged?.(job);
+        return;
       } else {
         jobs.push(job);
       }

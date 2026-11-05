@@ -1,9 +1,9 @@
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { GitError, InvalidRepoError, cloneRepo, filesFromDiff } from './git.ts';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { GitError, InvalidRepoError, cloneRepo, filesFromDiff, treeOfCheckout } from './git.ts';
 
 let repo: string;
 const git = (...args: string[]) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
@@ -58,4 +58,31 @@ describe('cloneRepo', () => {
       await expect(cloneRepo('token', name, repo)).rejects.toThrow(InvalidRepoError);
     },
   );
+});
+
+describe('a git that never finishes', () => {
+  it('ends as a GitError, even with a child still holding its pipes open', async () => {
+    const bin = mkdtempSync(join(tmpdir(), 'aptitude-fake-git-'));
+    writeFileSync(join(bin, 'git'), '#!/bin/sh\nsleep 5\n');
+    chmodSync(join(bin, 'git'), 0o755);
+    vi.stubEnv('PATH', `${bin}:${process.env.PATH}`);
+    try {
+      await expect(cloneRepo('token', 'org/name', repo, 100)).rejects.toThrow(GitError);
+    } finally {
+      vi.unstubAllEnvs();
+      rmSync(bin, { recursive: true, force: true });
+    }
+  });
+});
+
+describe('treeOfCheckout', () => {
+  it("reads the checkout's tree, which an empty commit doesn't change", async () => {
+    const tree = await treeOfCheckout(repo);
+    expect(tree).toBe(git('rev-parse', 'HEAD^{tree}').trim());
+    git('commit', '-q', '--allow-empty', '-m', 'nothing');
+    expect(await treeOfCheckout(repo)).toBe(tree);
+    writeFileSync(join(repo, 'billing.ts'), 'changed\n');
+    git('commit', '-q', '-am', 'something');
+    expect(await treeOfCheckout(repo)).not.toBe(tree);
+  });
 });

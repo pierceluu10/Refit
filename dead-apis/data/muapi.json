@@ -1,0 +1,100 @@
+{
+  "provider": "muapi",
+  "officialHosts": ["muapi.ai"],
+  "entries": [
+    {
+      "id": "MU-1.social-on-api-host",
+      "provider": "muapi",
+      "what": "The /api/social/... paths aren't on the api.muapi.ai host: it returned 404 when probed on 2026-11-05 and its OpenAPI file doesn't hold them, while the docs give them on muapi.ai. No notice says when this changed, so diedOn is the day it was probed.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://muapi.ai/docs/social-publishing",
+        "checkedOn": "2026-11-05",
+        "quote": "curl --location 'https://muapi.ai/api/social/accounts'"
+      },
+      "lookFor": ["A request to api.muapi.ai/api/social/..."],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "api.muapi.ai/api/social*"
+        }
+      ],
+      "replacement": "The same path on muapi.ai, as the docs show it.",
+      "requires": [],
+      "context": {
+        "hosts": ["api.muapi.ai", "muapi.ai"]
+      }
+    },
+    {
+      "id": "MU-2.endpoint-not-served",
+      "provider": "muapi",
+      "what": "These model endpoints aren't in MuAPI's OpenAPI file, and a GET returned 404 on 2026-11-05 where a real POST-only route returned 405. No notice says when they went, so diedOn is the day they were probed, and a POST was not tried.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://api.muapi.ai/openapi.json",
+        "checkedOn": "2026-11-05",
+        "quote": "POST https://api.muapi.ai/api/v1/{model-endpoint}"
+      },
+      "lookFor": [
+        "An endpoint named minimax-image-01 or image-passthrough, in a repo that calls MuAPI"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "minimax-image-01",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "image-passthrough",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added. The OpenAPI file lists what is served today.",
+      "requires": [],
+      "context": {
+        "hosts": ["api.muapi.ai", "muapi.ai"]
+      }
+    },
+    {
+      "id": "MU-3.model-not-accepted",
+      "provider": "muapi",
+      "what": "These ids aren't in the model enum of MuAPI's any-llm or OpenRouter vision requests, so a request naming one should be rejected. This is read from the schema, and no request was sent: the quote is AnyLlmModelRequest's whole enum, and that the ids are missing is read from it. No notice says when they went, so diedOn is the day the schema was read.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://api.muapi.ai/openapi.json",
+        "checkedOn": "2026-11-05",
+        "quote": "\"enum\":[\"anthropic/claude-3.7-sonnet\",\"anthropic/claude-3.5-sonnet\",\"anthropic/claude-3-haiku\",\"google/gemini-2.5-flash\",\"google/gemini-2.0-flash-001\",\"google/gemini-2.0-flash-lite-001\",\"google/gemini-2.5-flash-preview-09-2025\",\"google/gemini-2.0-flash-exp:free\",\"google/gemini-2.5-pro\",\"openai/gpt-4o\",\"openai/gpt-4.1\",\"openai/gpt-5-chat\",\"meta-llama/llama-3.2-90b-vision-instruct\",\"meta-llama/llama-4-maverick\",\"meta-llama/llama-4-scout\"]"
+      },
+      "lookFor": [
+        "The model ids anthropic/claude-3-5-sonnet, meta-llama/llama-3.1-70b-instruct and deepseek/deepseek-r1, in a repo that calls MuAPI"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "anthropic/claude-3-5-sonnet",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "meta-llama/llama-3.1-70b-instruct",
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "deepseek/deepseek-r1",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "An id from the enum, such as anthropic/claude-3.5-sonnet or meta-llama/llama-4-maverick.",
+      "replacementIds": ["anthropic/claude-3.5-sonnet", "meta-llama/llama-4-maverick"],
+      "requires": [
+        "The enum differs by endpoint, so read the schema of the endpoint the code posts to."
+      ],
+      "context": {
+        "hosts": ["api.muapi.ai", "muapi.ai"]
+      }
+    }
+  ],
+  "future": []
+}

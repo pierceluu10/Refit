@@ -1,0 +1,60 @@
+{
+  "provider": "bing-search",
+  "officialHosts": ["learn.microsoft.com", "blogs.bing.com/webmaster"],
+  "entries": [
+    {
+      "id": "BS-1.bing-search-apis",
+      "provider": "bing-search",
+      "what": "The Bing Search APIs are retired and existing instances decommissioned.",
+      "diedOn": "2025-08-11",
+      "source": {
+        "url": "https://learn.microsoft.com/en-us/lifecycle/announcements/bing-search-api-retirement",
+        "checkedOn": "2026-11-05",
+        "quote": "Bing Search APIs will be retired on August 11, 2025. Any existing instances of Bing Search APIs will be decommissioned completely"
+      },
+      "lookFor": [
+        "A request to api.bing.microsoft.com, or to the older api.cognitive.microsoft.com/bing"
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "api.bing.microsoft.com*"
+        },
+        {
+          "kind": "url",
+          "value": "api.cognitive.microsoft.com/bing*"
+        }
+      ],
+      "replacement": "The page encourages migrating to Grounding with Bing Search as part of Azure AI Agents.",
+      "requires": [
+        "Grounding with Bing Search works through an Azure AI agent, not a plain search request, so the result shape and the setup both change."
+      ],
+      "context": {
+        "hosts": ["api.bing.microsoft.com", "api.cognitive.microsoft.com"]
+      }
+    },
+    {
+      "id": "BS-2.sitemap-ping",
+      "provider": "bing-search",
+      "what": "Bing removed anonymous sitemap submission, the unauthenticated bing.com/ping request. The post is headed as removed and says it stops from its publication date. It doesn't say what a ping gets now, and that was not tested.",
+      "diedOn": "2022-05-13",
+      "source": {
+        "url": "https://blogs.bing.com/webmaster/2022/5/Spring-cleaning-Removed-Bing-anonymous-sitemap-submission/",
+        "checkedOn": "2026-11-05",
+        "quote": "we will be deprecating the ability for anonymous sitemap submissions starting today"
+      },
+      "lookFor": ["A request to bing.com/ping?sitemap=..."],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "bing.com/ping?sitemap*"
+        }
+      ],
+      "replacement": "List the sitemap in robots.txt or submit it in Bing Webmaster Tools. The post also encourages IndexNow for real-time changes.",
+      "requires": [
+        "There is no request to swap in for the ping itself. IndexNow is a different request with its own key, and Webmaster Tools needs an account."
+      ]
+    }
+  ],
+  "future": []
+}

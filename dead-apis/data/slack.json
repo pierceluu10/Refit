@@ -1,0 +1,43 @@
+{
+  "provider": "slack",
+  "officialHosts": ["docs.slack.dev"],
+  "entries": [
+    {
+      "id": "SL-1.files-upload",
+      "provider": "slack",
+      "what": "Slack's files.upload method, including the SDK's files_upload call.",
+      "diedOn": "2025-11-12",
+      "source": {
+        "url": "https://docs.slack.dev/reference/methods/files.upload",
+        "checkedOn": "2026-11-05",
+        "quote": "It will stop functioning and be officially sunset on November 12, 2025."
+      },
+      "lookFor": [
+        "files_upload( or files.upload( on a Slack client",
+        "A request to slack.com/api/files.upload"
+      ],
+      "matchers": [
+        { "kind": "regex", "value": "\\bfiles_upload\\s*\\(" },
+        { "kind": "regex", "value": "\\.files\\.upload\\s*\\(", "ambiguous": true },
+        { "kind": "url", "value": "slack.com/api/files.upload*" }
+      ],
+      "replacement": "files.getUploadURLExternal, then files.completeUploadExternal.",
+      "replacementIds": ["files.getUploadURLExternal", "files.completeUploadExternal"],
+      "requires": [
+        "One call becomes an upload in steps, so read what the caller takes from the old response."
+      ],
+      "context": {
+        "packages": [
+          "slack-sdk",
+          "slack_sdk",
+          "slack-bolt",
+          "slackclient",
+          "@slack/web-api",
+          "@slack/bolt"
+        ],
+        "hosts": ["slack.com"]
+      }
+    }
+  ],
+  "future": []
+}

@@ -1,0 +1,69 @@
+{
+  "provider": "huggingface",
+  "officialHosts": ["huggingface.co"],
+  "entries": [
+    {
+      "id": "HF-1.api-inference-host",
+      "provider": "huggingface",
+      "what": "The api-inference.huggingface.co host is gone. The host no longer has an address when probed on 2026-11-05. No docs page states the retirement, so the source is the error as quoted in Hugging Face's forum, and diedOn is that post's date.",
+      "diedOn": "2025-11-03",
+      "source": {
+        "url": "https://discuss.huggingface.co/t/error-https-api-inference-huggingface-co-is-no-longer-supported-please-use-https-router-huggingface-co-hf-inference-instead/169870",
+        "checkedOn": "2026-11-05",
+        "quote": "https://api-inference.huggingface.co is no longer supported. Please use https://router.huggingface.co/hf-inference instead."
+      },
+      "lookFor": ["A request to api-inference.huggingface.co"],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "api-inference.huggingface.co*"
+        }
+      ],
+      "replacement": "https://router.huggingface.co/hf-inference",
+      "requires": [
+        "The HF Inference provider serves fewer tasks than the old host, so a model or task may have to move to another provider. This is a reading of the Inference Providers docs."
+      ],
+      "context": {
+        "hosts": ["api-inference.huggingface.co"]
+      }
+    },
+    {
+      "id": "HF-1.sdk-default-host",
+      "provider": "huggingface",
+      "what": "@huggingface/inference before 3.1.4 sends every call to api-inference.huggingface.co, so an old version fails with no host in the repo's text. The first version without that host was read from the package on unpkg. The host no longer has an address when probed on 2026-11-05. No docs page states the retirement, so the source is the error as quoted in Hugging Face's forum, and diedOn is that post's date.",
+      "diedOn": "2025-11-03",
+      "source": {
+        "url": "https://discuss.huggingface.co/t/error-https-api-inference-huggingface-co-is-no-longer-supported-please-use-https-router-huggingface-co-hf-inference-instead/169870",
+        "checkedOn": "2026-11-05",
+        "quote": "https://api-inference.huggingface.co is no longer supported. Please use https://router.huggingface.co/hf-inference instead."
+      },
+      "lookFor": [
+        "A task call such as textGeneration or textGenerationStream on a Hugging Face client, at @huggingface/inference below 3.1.4"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\b\\w*(?:[hH][fF]|[hH]ugging[fF]ace|[iI]nference)\\w*\\.(?:textGeneration|textGenerationStream|chatCompletion|chatCompletionStream|featureExtraction|sentenceSimilarity|summarization|translation|textClassification|tokenClassification|fillMask|questionAnswering|tableQuestionAnswering|zeroShotClassification|imageClassification|imageSegmentation|imageToText|imageToImage|objectDetection|textToImage|textToSpeech|automaticSpeechRecognition|audioClassification|audioToAudio)\\s*\\("
+        }
+      ],
+      "appliesTo": {
+        "describe": "@huggingface/inference below 3.1.4.",
+        "sdkUntil": [
+          {
+            "package": "@huggingface/inference",
+            "version": "3.1.4",
+            "ecosystem": "npm"
+          }
+        ]
+      },
+      "replacement": "A current @huggingface/inference, whose InferenceClient routes through Inference Providers.",
+      "requires": [
+        "HF Inference lists no plain text-generation task on the Inference Providers page, so textGeneration calls may have to become chatCompletion. This is a reading of that page."
+      ],
+      "context": {
+        "packages": ["@huggingface/inference"]
+      }
+    }
+  ],
+  "future": []
+}

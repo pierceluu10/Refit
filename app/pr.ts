@@ -1,10 +1,12 @@
-import type { OpenPullRequest, RunRecord } from '../shared/types.ts';
+import type { MigrationTask, OpenPullRequest, RunRecord, ScanResult } from '../shared/types.ts';
 import { filesFromDiff } from './git.ts';
 import { githubRequest } from './github.ts';
+import { messageOf } from './redact.ts';
 import { BRANCH_PREFIX } from './types.ts';
 import type {
   FileChange,
   InstallationTokens,
+  OpenedFix,
   OpenPullRequestInput,
   OpenedPullRequest,
 } from './types.ts';
@@ -12,6 +14,7 @@ import type {
 const FILE_MODE = '100644';
 const BLOB = 'blob';
 const MAX_SLUG_CHARS = 80;
+const LIVE = 'live';
 
 export class UnsafeBranchError extends Error {
   constructor(branch: string, reason: string) {
@@ -93,8 +96,21 @@ export const branchFor = (taskId: string) =>
     .slice(0, MAX_SLUG_CHARS)
     .replace(/^-+|-+$/g, '');
 
-// The harness writes prBody beside RunRecord's own fields (HarnessRunRecord).
-type WrittenRecord = RunRecord & { prBody?: string };
+// The harness writes prBody and its last rescan beside RunRecord's own fields (HarnessRunRecord).
+type WrittenRecord = RunRecord & { prBody?: string; rescan?: Pick<ScanResult, 'findings'> };
+// A repo session's task names the list entries it set out to fix (harness/findings.ts, RepoTask).
+type ListTask = MigrationTask & { entries?: { id: string }[] };
+
+// An entry the last rescan still found live wasn't fixed, so finding it later isn't a return.
+const fixedEntries = (task: ListTask, record: WrittenRecord) =>
+  (task.entries ?? [])
+    .map((entry) => entry.id)
+    .filter(
+      (id) =>
+        !record.rescan?.findings.some(
+          (finding) => finding.entryId === id && finding.matchClass === LIVE,
+        ),
+    );
 
 // The shared OpenPullRequest for one installation: the record's diff on aptitude/<task-slug>, as a draft.
 // A task that already has an open PR (the same change seen on a later push) gets that PR back.
@@ -102,8 +118,9 @@ export function createOpenPullRequest(
   tokens: InstallationTokens,
   installationId: number,
   fetchImpl: typeof fetch = fetch,
+  remember: (fix: OpenedFix) => Promise<void> = async () => {},
 ): OpenPullRequest {
-  return async (task, record: WrittenRecord, repoDir) => {
+  return async (task: ListTask, record: WrittenRecord, repoDir) => {
     const branch = branchFor(task.id);
     const owner = task.repo.split('/')[0];
     const open = await githubRequest<{ html_url: string }[]>(
@@ -129,6 +146,19 @@ export function createOpenPullRequest(
       },
       fetchImpl,
     );
+    try {
+      await remember({
+        repo: task.repo,
+        number: pull.number,
+        url: pull.url,
+        sha: pull.sha,
+        entryIds: fixedEntries(task, record),
+      });
+    } catch (error) {
+      // The PR exists. Failing here would lose its URL from the run record, which costs more than
+      // this PR's humanDiff.
+      console.error(`could not remember ${pull.url}: ${messageOf(error)}`);
+    }
     return pull.url;
   };
 }

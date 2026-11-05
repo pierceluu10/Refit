@@ -1,0 +1,5 @@
+{
+  "name": "lamp-bot",
+  "description": "Excerpt of liamstamper/lamp-bot, package.json, seen in P5.",
+  "dependencies": { "groq-sdk": "^0.15.0", "next": "^15.0.0" }
+}

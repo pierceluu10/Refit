@@ -1,0 +1,6 @@
+{
+  "name": "free-ai-social-media-scheduler",
+  "dependencies": {
+    "next": "^15.0.0"
+  }
+}

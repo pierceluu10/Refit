@@ -20,11 +20,13 @@
     "vite.config.ts",
     "app",
     "inventory",
+    "dead-apis",
     "harness",
     "memory",
     "providers",
     "evals",
     "shared",
     "orchestrator"
-  ]
+  ],
+  "exclude": ["inventory/fixtures"]
 }

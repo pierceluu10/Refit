@@ -1,0 +1,92 @@
+{
+  "provider": "vercel",
+  "officialHosts": ["vercel.com"],
+  "entries": [
+    {
+      "id": "VE-1.legacy-domains",
+      "provider": "vercel",
+      "what": "The legacy domains API operations are sunset: purchase, price check, availability check and transfer info.",
+      "diedOn": "2025-11-09",
+      "source": {
+        "url": "https://vercel.com/changelog/new-domains-registrar-api-for-domain-search-pricing-purchase-and-management",
+        "checkedOn": "2026-11-05",
+        "quote": "The Legacy Domains API is now deprecated. If you use the Vercel CLI for domain purchases, pricing, or availability, upgrade to v48.2.8. Sunset date: 2025-11-09."
+      },
+      "lookFor": [
+        "A request to /v4/domains/price, /v4/domains/status, /v5/domains/buy or /v1/domains/<name>/registry on api.vercel.com, or domains.buyDomain, checkDomainPrice, checkDomainStatus or getDomainTransfer on @vercel/sdk. Other /v5/domains paths, which list and inspect domains, are live."
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "/v4/domains/price",
+          "ambiguous": true
+        },
+        {
+          "kind": "url",
+          "value": "/v4/domains/status",
+          "ambiguous": true
+        },
+        {
+          "kind": "url",
+          "value": "/v5/domains/buy",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "/v1/domains/[^/\\s'\"`]+/registry(?![\\w-])",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\.domains\\.(?:buyDomain|checkDomainPrice|checkDomainStatus|getDomainTransfer)\\(|\\bdomains(?:BuyDomain|CheckDomainPrice|CheckDomainStatus|GetDomainTransfer)\\("
+        }
+      ],
+      "replacement": "The Domains Registrar API: GET /v1/registrar/domains/{domain}/price, GET /v1/registrar/domains/{domain}/availability, POST /v1/registrar/domains/{domain}/buy and GET /v1/registrar/domains/{domain}/transfer.",
+      "replacementIds": [
+        "/v1/registrar/domains/{domain}/price",
+        "/v1/registrar/domains/{domain}/availability",
+        "/v1/registrar/domains/{domain}/buy",
+        "/v1/registrar/domains/{domain}/transfer"
+      ],
+      "requires": [
+        "The buy call requires autoRenew, years, expectedPrice and contactInformation in its body, so fetch the price and contact details first.",
+        "On @vercel/sdk these are on domainsRegistrar: getDomainPrice, getDomainAvailability, buySingleDomain and getDomainTransferIn.",
+        "A repo that runs the Vercel CLI for domain purchases, pricing or availability needs v48.2.8 or later."
+      ],
+      "context": {
+        "packages": ["@vercel/sdk"],
+        "hosts": ["api.vercel.com"]
+      }
+    },
+    {
+      "id": "VE-2.cli-login-methods",
+      "provider": "vercel",
+      "what": "vercel login no longer takes an email address or the --github, --gitlab, --bitbucket and --oob flags. It uses the OAuth 2.0 device flow.",
+      "diedOn": "2026-02-26",
+      "source": {
+        "url": "https://vercel.com/changelog/new-vercel-cli-login-flow",
+        "checkedOn": "2026-11-05",
+        "quote": "These methods will no longer be supported beginning February 26, 2026, except for the team method (SAML-based login), which remains supported until June 1, 2026."
+      },
+      "lookFor": [
+        "vercel login with --github, --gitlab, --bitbucket or --oob, or with an email address, in a script, a workflow or a Dockerfile. Plain vercel login is live."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bvercel\\s+login\\s+(?:[^\\s'\"`&|;]+\\s+)*?--(?:github|gitlab|bitbucket|oob)\\b"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bvercel\\s+login\\s+[\\w.+-]+@[\\w-]+(?:\\.[\\w-]+)+"
+        }
+      ],
+      "replacement": "vercel login with no method, which is the OAuth 2.0 device flow.",
+      "requires": [
+        "Remove --github, --gitlab, --bitbucket and --oob, and any email address, from the command.",
+        "The device flow needs a person to approve it in a browser, so a script that ran unattended needs another way in. Reading, not on the page: the CLI takes an access token."
+      ]
+    }
+  ],
+  "future": []
+}

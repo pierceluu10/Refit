@@ -1,0 +1,296 @@
+{
+  "commit": "9f2253c00ed7bcdd9f3017f7f6fb1676753d981f",
+  "repo": "mohammadpurl/next-livekit-streaming",
+  "promptVersion": "inventory-v8",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "mohammadpurl/next-livekit-streaming",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 12,
+          "operation": "beta.assistants.create",
+          "fields": ["name", "instructions", "tools", "model"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read. Model \"gpt-4-turbo-preview\"."
+        },
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 24,
+          "operation": "beta.threads.create",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 26,
+          "operation": "beta.threads.messages.create",
+          "fields": ["role", "content", "message"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 31,
+          "operation": "beta.threads.runs.createAndPoll",
+          "fields": ["assistant_id"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/api/chat/route.ts",
+          "line": 37,
+          "operation": "beta.threads.messages.list",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/openai-assistant.ts",
+          "line": 22,
+          "operation": "beta.assistants.create",
+          "fields": ["name", "instructions", "tools", "model"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read. Model \"gpt-4-turbo-preview\"."
+        },
+        {
+          "file": "app/openai-assistant.ts",
+          "line": 30,
+          "operation": "beta.threads.create",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/openai-assistant.ts",
+          "line": 39,
+          "operation": "beta.threads.messages.create",
+          "fields": ["role", "content", "userMessage"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/openai-assistant.ts",
+          "line": 45,
+          "operation": "beta.threads.runs.createAndPoll",
+          "fields": ["assistant_id"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/openai-assistant.ts",
+          "line": 52,
+          "operation": "beta.threads.messages.list",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "gpt-4-turbo-preview",
+        "file": "app/api/chat/route.ts",
+        "line": 21
+      },
+      "hints": {
+        "packages": ["openai"],
+        "hosts": ["api.openai.com"],
+        "docsUrls": ["https://platform.openai.com/docs/deprecations"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "5.0.1",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mohammadpurl/next-livekit-streaming",
+      "provider": "livekit",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/api/livekit/token/route.ts",
+          "line": 13,
+          "operation": "addGrant",
+          "fields": ["roomJoin", "true", "room", "roomName", "canPublish", "canSubscribe"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/api/livekit/token/route.ts",
+          "line": 20,
+          "operation": "toJwt",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["livekit-client", "livekit-server-sdk"]
+      },
+      "sdk": {
+        "name": "livekit-server-sdk",
+        "version": "2.13.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mohammadpurl/next-livekit-streaming",
+      "provider": "heygen",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 57,
+          "operation": "off",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 58,
+          "operation": "off",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 65,
+          "operation": "stopAvatar",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 97,
+          "operation": "on",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 98,
+          "operation": "on",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 99,
+          "operation": "on",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 104,
+          "operation": "on",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 107,
+          "operation": "on",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 110,
+          "operation": "on",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 113,
+          "operation": "on",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 116,
+          "operation": "on",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 120,
+          "operation": "on",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 124,
+          "operation": "on",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 125,
+          "operation": "on",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        },
+        {
+          "file": "app/components/logic/useStreamingAvatarSession.ts",
+          "line": 130,
+          "operation": "createStartAvatar",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["@heygen/streaming-avatar"],
+        "hosts": ["api.heygen.com"]
+      },
+      "sdk": {
+        "name": "@heygen/streaming-avatar",
+        "version": "2.0.16",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "mohammadpurl/next-livekit-streaming",
+      "provider": "heygen",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/api/heygen-token/route.ts",
+          "line": 7,
+          "operation": "POST (URL built at runtime)",
+          "notes": "Raw HTTP with a URL built at runtime; this file names only api.heygen.com (code scan)."
+        }
+      ],
+      "hints": {
+        "packages": ["@heygen/streaming-avatar"],
+        "hosts": ["api.heygen.com"]
+      }
+    },
+    {
+      "repo": "mohammadpurl/next-livekit-streaming",
+      "provider": "openai",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/api/transcribe/route.ts",
+          "line": 7,
+          "operation": "POST /v1/audio/transcriptions",
+          "notes": "Raw HTTP to api.openai.com (code scan); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["openai"],
+        "hosts": ["api.openai.com"],
+        "docsUrls": ["https://platform.openai.com/docs/deprecations"]
+      }
+    },
+    {
+      "repo": "mohammadpurl/next-livekit-streaming",
+      "provider": "NEXT_PUBLIC_API_URL backend",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "app/services/api.ts",
+          "line": 4,
+          "operation": "POST /api/v1/ask",
+          "fields": ["question"],
+          "notes": "Host from env NEXT_PUBLIC_API_URL, unknown separate backend (possibly the author's own). Returns JSON data."
+        }
+      ]
+    }
+  ],
+  "purposes": {},
+  "summary": "mohammadpurl/next-livekit-streaming uses heygen through @heygen/streaming-avatar 2.0.16 in 15 places; openai through openai 5.0.1, pinned to gpt-4-turbo-preview in 10 places; livekit through livekit-server-sdk 2.13.0 in 2 places; heygen through raw HTTP in 1 place; openai through raw HTTP in 1 place; NEXT_PUBLIC_API_URL backend through raw HTTP in 1 place.",
+  "agentSummary": "I found seven external API usages. Five were already recorded by the scan, and I added one more, a backend whose host comes from an env var. I did not re-read the scan's files, and I did not open the four HeyGen files that were flagged as having no call found.\n\n- **OpenAI** (SDK `openai`, pinned model `gpt-4-turbo-preview`): chat and assistant calls in `app/api/chat/route.ts` and `app/openai-assistant.ts`. The scan also recorded raw HTTP for transcription in `app/api/transcribe/route.ts`.\n- **LiveKit** (SDK `livekit-server-sdk`): token generation in `app/api/livekit/token/route.ts`. `NEXT_PUBLIC_LIVEKIT_URL` in `app/config/livekit.ts` is only a URL constant that defaults to `ws://localhost:7880`.\n- **HeyGen** (SDK `@heygen/streaming-avatar`): the streaming avatar session in `app/components/logic/useStreamingAvatarSession.ts`. The scan also recorded raw HTTP for token creation in `app/api/heygen-token/route.ts`.\n- **Unnamed backend at `NEXT_PUBLIC_API_URL`** (raw HTTP, new): `POST /api/v1/ask?question=…` in `app/services/api.ts:4`. It returns JSON. I recorded it under a placeholder provider name because the host is only an env var, so I can't tell whether it is the author's own server or a third party's.\n\nLeads that turned out not to be external APIs:\n- **`livekit-client`:** it is declared in `package.json` but nothing imports it. Only `livekit-server-sdk` is used.\n- **UI and runtime packages:** `@radix-ui/react-select`, `@radix-ui/react-toggle-group`, `ahooks`, `next`, `react` and `react-dom` make no network calls.\n- **`cdn.jsdelivr.net`:** this is a Pico CSS stylesheet link in `app/layout.tsx`, not an API.\n- **Own routes:** `fetch('/api/transcribe')` and `fetch('/api/heygen-token')` call the repo's own routes. The upstream calls are in the route files recorded above.\n\nI took the four HeyGen files (`AvatarConfig/index.tsx`, `AvatarVideo.tsx`, `ExtendedTypes.ts`, `useTextChat.ts`) to be UI or type-only code. I did not confirm that by reading them, so a call there could have been missed.",
+  "outcome": "success",
+  "costUsd": 0.024388899999999998,
+  "costByModel": {
+    "claude-sonnet-5-5": 0.0241417,
+    "claude-haiku-5-5": 0.0002472
+  },
+  "turns": 4,
+  "durationMs": 10348,
+  "scan": {
+    "version": "scan-v7",
+    "usages": 5,
+    "callSites": 29,
+    "leads": 11
+  }
+}

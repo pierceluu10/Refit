@@ -1,0 +1,1378 @@
+{
+  "provider": "groq",
+  "officialHosts": ["console.groq.com"],
+  "entries": [
+    {
+      "id": "GR-1.llama-3.3-70b-versatile",
+      "provider": "groq",
+      "what": "Llama 3.3 70B Versatile on Groq. Free and developer-tier requests return errors after the shutdown date.",
+      "diedOn": "2026-08-16",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "August 16, 2026: llama-3.1-8b-instant and llama-3.3-70b-versatile"
+      },
+      "lookFor": [
+        "The model ID llama-3.3-70b-versatile in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3.3-70b-versatile"
+        }
+      ],
+      "versions": "Free and developer-tier usage only, per the page: enterprise customers with a committed-spend contract are not affected. Check the account's tier before treating a live call as broken. The models page still lists this ID under Production Models with an Enterprise badge.",
+      "appliesTo": {
+        "describe": "Free and developer-tier usage only, per the page: enterprise customers with a committed-spend contract are not affected. Check the account's tier before treating a live call as broken. The models page still lists this ID under Production Models with an Enterprise badge."
+      },
+      "replacement": "The page lists openai/gpt-oss-120b or qwen/qwen3.6-27b. qwen/qwen3.6-27b shut down 2026-09-14, so use openai/gpt-oss-120b.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-2.llama-3.1-8b-instant",
+      "provider": "groq",
+      "what": "Llama 3.1 8B Instant on Groq. Free and developer-tier requests return errors after the shutdown date.",
+      "diedOn": "2026-08-16",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "August 16, 2026: llama-3.1-8b-instant and llama-3.3-70b-versatile"
+      },
+      "lookFor": [
+        "The model ID llama-3.1-8b-instant in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3.1-8b-instant"
+        }
+      ],
+      "versions": "Free and developer-tier usage only, per the page: enterprise customers with a committed-spend contract are not affected. Check the account's tier before treating a live call as broken. The models page still lists this ID under Production Models with an Enterprise badge.",
+      "appliesTo": {
+        "describe": "Free and developer-tier usage only, per the page: enterprise customers with a committed-spend contract are not affected. Check the account's tier before treating a live call as broken. The models page still lists this ID under Production Models with an Enterprise badge."
+      },
+      "replacement": "openai/gpt-oss-20b, as the page lists it.",
+      "replacementIds": ["openai/gpt-oss-20b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low.",
+        "Max output is 65,536 tokens, down from 131,072 on llama-3.1-8b-instant: lower any larger max_completion_tokens."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-3.llama-3.1-70b-versatile",
+      "provider": "groq",
+      "what": "Llama 3.1 70B Versatile. Requests auto-upgraded to Llama 3.3 from 2024-12-20, then returned errors from the shutdown date.",
+      "diedOn": "2025-01-24",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "January 24, 2025: Llama 3.1 70B and Llama 3.1 70B (Speculative Decoding)"
+      },
+      "lookFor": [
+        "The model ID llama-3.1-70b-versatile in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3.1-70b-versatile"
+        }
+      ],
+      "replacement": "The page lists llama-3.3-70b-versatile, which shut down 2026-08-16. Its own replacement is openai/gpt-oss-120b.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-3.llama-3.1-70b-specdec",
+      "provider": "groq",
+      "what": "Llama 3.1 70B Speculative Decoding. Requests auto-upgraded to Llama 3.3 from 2024-12-20, then returned errors from the shutdown date.",
+      "diedOn": "2025-01-24",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "January 24, 2025: Llama 3.1 70B and Llama 3.1 70B (Speculative Decoding)"
+      },
+      "lookFor": [
+        "The model ID llama-3.1-70b-specdec in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3.1-70b-specdec"
+        }
+      ],
+      "replacement": "The page lists llama-3.3-70b-specdec, which shut down 2025-04-14 in favour of llama-3.3-70b-versatile, itself shut down 2026-08-16. The chain ends on openai/gpt-oss-120b.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-4.llama3-70b-8192",
+      "provider": "groq",
+      "what": "Llama 3 70B on Groq.",
+      "diedOn": "2025-08-30",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "August 30, 2025: llama3-70b-8192 and llama3-8b-8192"
+      },
+      "lookFor": [
+        "The model ID llama3-70b-8192 in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama3-70b-8192"
+        }
+      ],
+      "replacement": "The page lists llama-3.3-70b-versatile, which shut down 2026-08-16. Its own replacement is openai/gpt-oss-120b.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-5.llama3-8b-8192",
+      "provider": "groq",
+      "what": "Llama 3 8B on Groq.",
+      "diedOn": "2025-08-30",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "August 30, 2025: llama3-70b-8192 and llama3-8b-8192"
+      },
+      "lookFor": [
+        "The model ID llama3-8b-8192 in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama3-8b-8192"
+        }
+      ],
+      "replacement": "The page lists llama-3.1-8b-instant, which shut down 2026-08-16. Its own replacement is openai/gpt-oss-20b.",
+      "replacementIds": ["openai/gpt-oss-20b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-6.llama3-groq-70b-8192-tool-use-preview",
+      "provider": "groq",
+      "what": "Preview of Llama 3 70B fine-tuned for tool use.",
+      "diedOn": "2025-01-06",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "January 6, 2025: Llama 3 Groq Tool Use Models"
+      },
+      "lookFor": [
+        "The model ID llama3-groq-70b-8192-tool-use-preview in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama3-groq-70b-8192-tool-use-preview"
+        }
+      ],
+      "replacement": "The page lists llama-3.3-70b-versatile, which shut down 2026-08-16. Its own replacement is openai/gpt-oss-120b.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-6.llama3-groq-8b-8192-tool-use-preview",
+      "provider": "groq",
+      "what": "Preview of Llama 3 8B fine-tuned for tool use.",
+      "diedOn": "2025-01-06",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "January 6, 2025: Llama 3 Groq Tool Use Models"
+      },
+      "lookFor": [
+        "The model ID llama3-groq-8b-8192-tool-use-preview in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama3-groq-8b-8192-tool-use-preview"
+        }
+      ],
+      "replacement": "The page lists llama-3.3-70b-versatile, which shut down 2026-08-16. Its own replacement is openai/gpt-oss-120b.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-7.mixtral-8x7b-32768",
+      "provider": "groq",
+      "what": "Mixtral 8x7B on Groq.",
+      "diedOn": "2025-03-20",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "March 20, 2025: Mixtral 8x7B"
+      },
+      "lookFor": [
+        "The model ID mixtral-8x7b-32768 in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mixtral-8x7b-32768"
+        }
+      ],
+      "replacement": "The page lists mistral-saba-24b (shut down 2025-07-30) or llama-3.3-70b-versatile (shut down 2026-08-16). Both chains end on openai/gpt-oss-120b.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-8.gemma2-9b-it",
+      "provider": "groq",
+      "what": "Gemma 2 9B on Groq.",
+      "diedOn": "2025-10-08",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "October 8, 2025: gemma2-9b-it"
+      },
+      "lookFor": [
+        "The model ID gemma2-9b-it in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gemma2-9b-it"
+        }
+      ],
+      "replacement": "The page lists llama-3.1-8b-instant, which shut down 2026-08-16. Its own replacement is openai/gpt-oss-20b.",
+      "replacementIds": ["openai/gpt-oss-20b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-9.gemma-7b-it",
+      "provider": "groq",
+      "what": "Gemma 7B on Groq.",
+      "diedOn": "2024-12-18",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "December 18, 2024: Gemma 7B"
+      },
+      "lookFor": [
+        "The model ID gemma-7b-it in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "gemma-7b-it"
+        }
+      ],
+      "replacement": "The page lists gemma2-9b-it (shut down 2025-10-08), then llama-3.1-8b-instant (shut down 2026-08-16). The chain ends on openai/gpt-oss-20b.",
+      "replacementIds": ["openai/gpt-oss-20b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-10.deepseek-r1-distill-llama-70b",
+      "provider": "groq",
+      "what": "DeepSeek R1 Distill Llama 70B on Groq.",
+      "diedOn": "2025-10-02",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "October 2, 2025: deepseek-r1-distill-llama-70b"
+      },
+      "lookFor": [
+        "The model ID deepseek-r1-distill-llama-70b in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "deepseek-r1-distill-llama-70b"
+        }
+      ],
+      "replacement": "The page lists llama-3.3-70b-versatile (shut down 2026-08-16) or openai/gpt-oss-120b. Use openai/gpt-oss-120b.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low.",
+        "Reasoning no longer arrives as <think> tags in message.content, so remove any code that parses them."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-10.deepseek-r1-distill-qwen-32b",
+      "provider": "groq",
+      "what": "DeepSeek R1 Distill Qwen 32B on Groq.",
+      "diedOn": "2025-04-14",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "April 14, 2025: Multiple Model Deprecations"
+      },
+      "lookFor": [
+        "The model ID deepseek-r1-distill-qwen-32b in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "deepseek-r1-distill-qwen-32b"
+        }
+      ],
+      "replacement": "The page lists qwen-qwq-32b (shut down 2025-07-14), then qwen/qwen3-32b (shut down 2026-07-17). The chain ends on openai/gpt-oss-120b.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low.",
+        "Reasoning no longer arrives as <think> tags in message.content, so remove any code that parses them."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-10.qwen-qwq-32b",
+      "provider": "groq",
+      "what": "Qwen QwQ 32B on Groq.",
+      "diedOn": "2025-07-14",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "July 14, 2025: Qwen QwQ 32B"
+      },
+      "lookFor": [
+        "The model ID qwen-qwq-32b in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "qwen-qwq-32b"
+        }
+      ],
+      "replacement": "The page lists qwen/qwen3-32b, which shut down 2026-07-17. Its own replacement is openai/gpt-oss-120b.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low.",
+        "Reasoning no longer arrives as <think> tags in message.content, so remove any code that parses them."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-10.qwen-2.5-32b",
+      "provider": "groq",
+      "what": "Qwen 2.5 32B on Groq.",
+      "diedOn": "2025-04-14",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "April 14, 2025: Multiple Model Deprecations"
+      },
+      "lookFor": [
+        "The model ID qwen-2.5-32b in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "qwen-2.5-32b"
+        }
+      ],
+      "replacement": "The page lists qwen-qwq-32b or meta-llama/llama-4-scout-17b-16e-instruct, both now shut down. Both chains end on openai/gpt-oss-120b.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-10.qwen-2.5-coder-32b",
+      "provider": "groq",
+      "what": "Qwen 2.5 Coder 32B on Groq.",
+      "diedOn": "2025-04-14",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "April 14, 2025: Multiple Model Deprecations"
+      },
+      "lookFor": [
+        "The model ID qwen-2.5-coder-32b in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "qwen-2.5-coder-32b"
+        }
+      ],
+      "replacement": "The page lists qwen-qwq-32b (shut down 2025-07-14) or openai/gpt-oss-120b. Use openai/gpt-oss-120b.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-10.mistral-saba-24b",
+      "provider": "groq",
+      "what": "Mistral Saba 24B on Groq.",
+      "diedOn": "2025-07-30",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "July 30, 2025: Mistral Saba 24B"
+      },
+      "lookFor": [
+        "The model ID mistral-saba-24b in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-saba-24b"
+        }
+      ],
+      "replacement": "The page lists qwen/qwen3-32b, which shut down 2026-07-17. Its own replacement is openai/gpt-oss-120b.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-10.qwen-qwen3-32b",
+      "provider": "groq",
+      "what": "Qwen 3 32B on Groq.",
+      "diedOn": "2026-07-17",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "July 17, 2026: qwen/qwen3-32b and meta-llama/llama-4-scout-17b-16e-instruct"
+      },
+      "lookFor": [
+        "The model ID qwen/qwen3-32b in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)",
+        "Through LiteLLM, which prefixes the model ID: groq/qwen/qwen3-32b"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "qwen/qwen3-32b"
+        },
+        {
+          "kind": "string",
+          "value": "groq/qwen/qwen3-32b"
+        }
+      ],
+      "versions": "Free and developer-tier usage only, per the page: enterprise customers with a committed-spend contract are not affected. Check the account's tier before treating a live call as broken.",
+      "appliesTo": {
+        "describe": "Free and developer-tier usage only, per the page: enterprise customers with a committed-spend contract are not affected. Check the account's tier before treating a live call as broken."
+      },
+      "replacement": "openai/gpt-oss-120b, as the page lists it.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low.",
+        "Reasoning no longer arrives as <think> tags in message.content, so remove any code that parses them."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-11.moonshotai-kimi-k2-instruct",
+      "provider": "groq",
+      "what": "Kimi K2 Instruct on Groq.",
+      "diedOn": "2025-10-10",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "October 10, 2025: moonshotai/kimi-k2-instruct"
+      },
+      "lookFor": [
+        "The model ID moonshotai/kimi-k2-instruct in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)",
+        "Through LiteLLM, which prefixes the model ID: groq/moonshotai/kimi-k2-instruct"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "moonshotai/kimi-k2-instruct"
+        },
+        {
+          "kind": "string",
+          "value": "groq/moonshotai/kimi-k2-instruct"
+        }
+      ],
+      "replacement": "openai/gpt-oss-120b in the page's table. Its prose names moonshotai/kimi-k2-instruct-0905, which shut down 2026-04-15 in favour of openai/gpt-oss-120b too.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-11.moonshotai-kimi-k2-instruct-0905",
+      "provider": "groq",
+      "what": "Kimi K2 Instruct 0905 on Groq.",
+      "diedOn": "2026-04-15",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "April 15, 2026: moonshotai/kimi-k2-instruct-0905"
+      },
+      "lookFor": [
+        "The model ID moonshotai/kimi-k2-instruct-0905 in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)",
+        "Through LiteLLM, which prefixes the model ID: groq/moonshotai/kimi-k2-instruct-0905"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "moonshotai/kimi-k2-instruct-0905"
+        },
+        {
+          "kind": "string",
+          "value": "groq/moonshotai/kimi-k2-instruct-0905"
+        }
+      ],
+      "replacement": "openai/gpt-oss-120b, as the page lists it.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low.",
+        "Context window drops from 256K to 131,072 tokens: trim prompts that relied on the larger window."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-12.meta-llama-llama-4-scout-17b-16e-instruct",
+      "provider": "groq",
+      "what": "Llama 4 Scout on Groq.",
+      "diedOn": "2026-07-17",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "July 17, 2026: qwen/qwen3-32b and meta-llama/llama-4-scout-17b-16e-instruct"
+      },
+      "lookFor": [
+        "The model ID meta-llama/llama-4-scout-17b-16e-instruct in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)",
+        "Through LiteLLM, which prefixes the model ID: groq/meta-llama/llama-4-scout-17b-16e-instruct"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "meta-llama/llama-4-scout-17b-16e-instruct"
+        },
+        {
+          "kind": "string",
+          "value": "groq/meta-llama/llama-4-scout-17b-16e-instruct"
+        }
+      ],
+      "versions": "Free and developer-tier usage only, per the page: enterprise customers with a committed-spend contract are not affected. Check the account's tier before treating a live call as broken.",
+      "appliesTo": {
+        "describe": "Free and developer-tier usage only, per the page: enterprise customers with a committed-spend contract are not affected. Check the account's tier before treating a live call as broken."
+      },
+      "replacement": "The page lists openai/gpt-oss-120b or qwen/qwen3.6-27b. qwen/qwen3.6-27b shut down 2026-09-14 in favour of qwen/qwen3.8-27b. Use openai/gpt-oss-120b for text, and qwen/qwen3.8-27b if the call sends images.",
+      "replacementIds": ["openai/gpt-oss-120b", "qwen/qwen3.8-27b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low.",
+        "Input is text only: image content is not accepted. A caller that sends images needs qwen/qwen3.8-27b instead."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-12.meta-llama-llama-4-maverick-17b-128e-instruct",
+      "provider": "groq",
+      "what": "Llama 4 Maverick on Groq.",
+      "diedOn": "2026-03-09",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "March 9, 2026: meta-llama/llama-4-maverick-17b-128e-instruct"
+      },
+      "lookFor": [
+        "The model ID meta-llama/llama-4-maverick-17b-128e-instruct in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)",
+        "Through LiteLLM, which prefixes the model ID: groq/meta-llama/llama-4-maverick-17b-128e-instruct"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "meta-llama/llama-4-maverick-17b-128e-instruct"
+        },
+        {
+          "kind": "string",
+          "value": "groq/meta-llama/llama-4-maverick-17b-128e-instruct"
+        }
+      ],
+      "replacement": "openai/gpt-oss-120b, as the page lists it.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low.",
+        "Input is text only: image content is not accepted. A caller that sends images needs qwen/qwen3.8-27b instead."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-13.llama-3.2-1b-preview",
+      "provider": "groq",
+      "what": "Llama 3.2 1B preview.",
+      "diedOn": "2025-04-14",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "April 14, 2025: Multiple Model Deprecations"
+      },
+      "lookFor": [
+        "The model ID llama-3.2-1b-preview in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3.2-1b-preview"
+        }
+      ],
+      "replacement": "The page lists llama-3.1-8b-instant, which shut down 2026-08-16. Its own replacement is openai/gpt-oss-20b.",
+      "replacementIds": ["openai/gpt-oss-20b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-13.llama-3.2-3b-preview",
+      "provider": "groq",
+      "what": "Llama 3.2 3B preview.",
+      "diedOn": "2025-04-14",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "April 14, 2025: Multiple Model Deprecations"
+      },
+      "lookFor": [
+        "The model ID llama-3.2-3b-preview in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3.2-3b-preview"
+        }
+      ],
+      "replacement": "The page lists llama-3.1-8b-instant, which shut down 2026-08-16. Its own replacement is openai/gpt-oss-20b.",
+      "replacementIds": ["openai/gpt-oss-20b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-13.llama-3.2-11b-vision-preview",
+      "provider": "groq",
+      "what": "Llama 3.2 11B Vision preview.",
+      "diedOn": "2025-04-14",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "April 14, 2025: Multiple Model Deprecations"
+      },
+      "lookFor": [
+        "The model ID llama-3.2-11b-vision-preview in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3.2-11b-vision-preview"
+        }
+      ],
+      "replacement": "The page lists meta-llama/llama-4-scout-17b-16e-instruct, which shut down 2026-07-17 in favour of openai/gpt-oss-120b or qwen/qwen3.6-27b, and qwen/qwen3.6-27b shut down 2026-09-14 in favour of qwen/qwen3.8-27b. qwen/qwen3.8-27b is the live end of the chain that takes images. openai/gpt-oss-120b is text only.",
+      "replacementIds": ["qwen/qwen3.8-27b"],
+      "requires": [
+        "Preview model: Groq says preview models are for evaluation only and may be discontinued at short notice.",
+        "Max output is 16,384 tokens: lower any larger max_completion_tokens.",
+        "reasoning_effort defaults to none, so no reasoning tokens come back unless you ask for low, medium or high.",
+        "reasoning_format raw with JSON mode or tool use returns a 400: use parsed or hidden there.",
+        "In multi-turn history, send back only final outputs, without thinking content.",
+        "Built-in tools (browser search, code execution) aren't supported on this model.",
+        "At most 3 images per request; a request with an image URL over 20 MB returns a 400; each image counts as 2048 input tokens."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-13.llama-3.2-90b-vision-preview",
+      "provider": "groq",
+      "what": "Llama 3.2 90B Vision preview.",
+      "diedOn": "2025-04-14",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "April 14, 2025: Multiple Model Deprecations"
+      },
+      "lookFor": [
+        "The model ID llama-3.2-90b-vision-preview in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3.2-90b-vision-preview"
+        }
+      ],
+      "replacement": "The page lists meta-llama/llama-4-scout-17b-16e-instruct, which shut down 2026-07-17 in favour of openai/gpt-oss-120b or qwen/qwen3.6-27b, and qwen/qwen3.6-27b shut down 2026-09-14 in favour of qwen/qwen3.8-27b. qwen/qwen3.8-27b is the live end of the chain that takes images. openai/gpt-oss-120b is text only.",
+      "replacementIds": ["qwen/qwen3.8-27b"],
+      "requires": [
+        "Preview model: Groq says preview models are for evaluation only and may be discontinued at short notice.",
+        "Max output is 16,384 tokens: lower any larger max_completion_tokens.",
+        "reasoning_effort defaults to none, so no reasoning tokens come back unless you ask for low, medium or high.",
+        "reasoning_format raw with JSON mode or tool use returns a 400: use parsed or hidden there.",
+        "In multi-turn history, send back only final outputs, without thinking content.",
+        "Built-in tools (browser search, code execution) aren't supported on this model.",
+        "At most 3 images per request; a request with an image URL over 20 MB returns a 400; each image counts as 2048 input tokens."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-13.llama-3.2-90b-text-preview",
+      "provider": "groq",
+      "what": "Llama 3.2 90B Text preview.",
+      "diedOn": "2024-11-25",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "November 25, 2024: Llama 3.2 90B Text Preview"
+      },
+      "lookFor": [
+        "The model ID llama-3.2-90b-text-preview in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3.2-90b-text-preview"
+        }
+      ],
+      "replacement": "The page lists llama-3.2-90b-vision-preview, or llama-3.1-70b-versatile for text-only workloads. Both are shut down. For text the chain ends on openai/gpt-oss-120b; for images on qwen/qwen3.8-27b.",
+      "replacementIds": ["openai/gpt-oss-120b", "qwen/qwen3.8-27b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low.",
+        "Input is text only: image content is not accepted. A caller that sends images needs qwen/qwen3.8-27b instead."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-13.llama-3.2-11b-text-preview",
+      "provider": "groq",
+      "what": "Llama 3.2 11B Text preview. The page's heading is dated 2024-10-18; its table gives the shutdown as 10/28/24.",
+      "diedOn": "2024-10-28",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "October 18, 2024: LLaVA 1.5 7B and Llama 3.2 11B Text Preview"
+      },
+      "lookFor": [
+        "The model ID llama-3.2-11b-text-preview in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3.2-11b-text-preview"
+        }
+      ],
+      "replacement": "The page lists llama-3.2-11b-vision-preview, or llama-3.1-8b-instant for text-only workloads. Both are shut down. For text the chain ends on openai/gpt-oss-20b; for images on qwen/qwen3.8-27b.",
+      "replacementIds": ["openai/gpt-oss-20b", "qwen/qwen3.8-27b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low.",
+        "Input is text only: image content is not accepted. A caller that sends images needs qwen/qwen3.8-27b instead."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-14.llama-guard-3-8b",
+      "provider": "groq",
+      "what": "Llama Guard 3 on Groq.",
+      "diedOn": "2025-06-06",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "June 6, 2025: Llama Guard 3"
+      },
+      "lookFor": [
+        "The model ID llama-guard-3-8b in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-guard-3-8b"
+        }
+      ],
+      "replacement": "The page lists meta-llama/llama-guard-4-12b, which shut down 2026-03-05. Its own replacement is openai/gpt-oss-safeguard-20b.",
+      "replacementIds": ["openai/gpt-oss-safeguard-20b"],
+      "requires": [
+        "Preview model: Groq says preview models are for evaluation only and may be discontinued at short notice.",
+        "It has no fixed taxonomy: write your policy in the system message and state the output format you want, then change any code that reads fixed safety category codes.",
+        "Input is text only, so images can't be classified.",
+        "Parallel tool use isn't supported on this model."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-14.meta-llama-llama-guard-4-12b",
+      "provider": "groq",
+      "what": "Llama Guard 4 on Groq.",
+      "diedOn": "2026-03-05",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "March 5, 2026: meta-llama/llama-guard-4-12b"
+      },
+      "lookFor": [
+        "The model ID meta-llama/llama-guard-4-12b in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)",
+        "Through LiteLLM, which prefixes the model ID: groq/meta-llama/llama-guard-4-12b"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "meta-llama/llama-guard-4-12b"
+        },
+        {
+          "kind": "string",
+          "value": "groq/meta-llama/llama-guard-4-12b"
+        }
+      ],
+      "replacement": "openai/gpt-oss-safeguard-20b, as the page lists it.",
+      "replacementIds": ["openai/gpt-oss-safeguard-20b"],
+      "requires": [
+        "Preview model: Groq says preview models are for evaluation only and may be discontinued at short notice.",
+        "It has no fixed taxonomy: write your policy in the system message and state the output format you want, then change any code that reads fixed safety category codes.",
+        "Input is text only, so images can't be classified.",
+        "Parallel tool use isn't supported on this model."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-15.distil-whisper-large-v3-en",
+      "provider": "groq",
+      "what": "Distil Whisper Large V3 (English).",
+      "diedOn": "2025-08-23",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "August 23, 2025: Distil Whisper Large V3 (English)"
+      },
+      "lookFor": [
+        "The model ID distil-whisper-large-v3-en in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "distil-whisper-large-v3-en"
+        }
+      ],
+      "replacement": "whisper-large-v3-turbo, as the page lists it.",
+      "replacementIds": ["whisper-large-v3-turbo"],
+      "requires": [
+        "The model is multilingual: pass language: 'en' for English audio, which Groq says improves accuracy and latency.",
+        "whisper-large-v3-turbo has no translation support: calls to /audio/translations need whisper-large-v3."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-16.playai-tts",
+      "provider": "groq",
+      "what": "PlayAI text to speech, English.",
+      "diedOn": "2025-12-31",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "December 31, 2025: playai-tts and playai-tts-arabic"
+      },
+      "lookFor": [
+        "The model ID playai-tts in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "playai-tts"
+        }
+      ],
+      "replacement": "canopylabs/orpheus-v1-english, as the page lists it.",
+      "replacementIds": ["canopylabs/orpheus-v1-english"],
+      "requires": [
+        "input is limited to 200 characters per request: split longer text.",
+        "response_format supports only wav.",
+        "Preview model: Groq says preview models are for evaluation only and may be discontinued at short notice.",
+        "voice must be an Orpheus English voice ID: autumn, diana, hannah, austin, daniel or troy. Old PlayAI voice IDs aren't on that list."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-16.playai-tts-arabic",
+      "provider": "groq",
+      "what": "PlayAI text to speech, Arabic.",
+      "diedOn": "2025-12-31",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "December 31, 2025: playai-tts and playai-tts-arabic"
+      },
+      "lookFor": [
+        "The model ID playai-tts-arabic in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "playai-tts-arabic"
+        }
+      ],
+      "replacement": "canopylabs/orpheus-arabic-saudi, as the page lists it.",
+      "replacementIds": ["canopylabs/orpheus-arabic-saudi"],
+      "requires": [
+        "input is limited to 200 characters per request: split longer text.",
+        "response_format supports only wav.",
+        "Preview model: Groq says preview models are for evaluation only and may be discontinued at short notice.",
+        "voice must be an Orpheus Arabic voice ID: abdullah, fahad, sultan, lulwa, noura or aisha. Old PlayAI voice IDs aren't on that list.",
+        "This model doesn't support vocal directions in [brackets]."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-17.qwen-qwen3.6-27b",
+      "provider": "groq",
+      "what": "Qwen 3.6 27B on Groq.",
+      "diedOn": "2026-09-14",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "September 14, 2026: qwen/qwen3.6-27b"
+      },
+      "lookFor": [
+        "The model ID qwen/qwen3.6-27b in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)",
+        "Through LiteLLM, which prefixes the model ID: groq/qwen/qwen3.6-27b"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "qwen/qwen3.6-27b"
+        },
+        {
+          "kind": "string",
+          "value": "groq/qwen/qwen3.6-27b"
+        }
+      ],
+      "versions": "Free and developer-tier usage only, per the page: enterprise customers with a committed-spend contract are not affected. Check the account's tier before treating a live call as broken.",
+      "appliesTo": {
+        "describe": "Free and developer-tier usage only, per the page: enterprise customers with a committed-spend contract are not affected. Check the account's tier before treating a live call as broken."
+      },
+      "replacement": "qwen/qwen3.8-27b, as the page lists it, which it calls the direct successor.",
+      "replacementIds": ["qwen/qwen3.8-27b"],
+      "requires": [
+        "Preview model: Groq says preview models are for evaluation only and may be discontinued at short notice.",
+        "Max output is 16,384 tokens: lower any larger max_completion_tokens.",
+        "reasoning_effort defaults to none, so no reasoning tokens come back unless you ask for low, medium or high.",
+        "reasoning_format raw with JSON mode or tool use returns a 400: use parsed or hidden there.",
+        "In multi-turn history, send back only final outputs, without thinking content.",
+        "Built-in tools (browser search, code execution) aren't supported on this model.",
+        "At most 3 images per request; a request with an image URL over 20 MB returns a 400; each image counts as 2048 input tokens."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-18.groq-compound",
+      "provider": "groq",
+      "what": "Groq's Compound agentic system. The changelog's older names compound-beta and compound-beta-mini are not on the deprecations page, so they have no matcher here.",
+      "diedOn": "2026-09-21",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "Both systems will be decommissioned on September 21, 2026."
+      },
+      "lookFor": [
+        "The model ID groq/compound in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)",
+        "Through LiteLLM, which prefixes the model ID: groq/groq/compound"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "groq/compound"
+        },
+        {
+          "kind": "string",
+          "value": "groq/groq/compound"
+        }
+      ],
+      "replacement": "None listed: the page's table shows a dash. Reading, not on the page: the closest live option is openai/gpt-oss-120b or openai/gpt-oss-20b with Groq's built-in browser_search and code_interpreter tools.",
+      "replacementIds": ["openai/gpt-oss-120b", "openai/gpt-oss-20b"],
+      "requires": [
+        "Tools are no longer automatic: pass tools: [{type: 'browser_search'}] or [{type: 'code_interpreter'}] explicitly, with tool_choice: 'required' as Groq's examples do.",
+        "Remove compound_custom: it configures Compound only.",
+        "Tool runs appear in message.executed_tools and reasoning in message.reasoning.",
+        "Wolfram Alpha, Visit Website and Browser Automation were Compound tools; Groq's built-in tool docs list only browser search and code execution.",
+        "Browser search isn't available on regional or sovereign endpoints.",
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-18.groq-compound-mini",
+      "provider": "groq",
+      "what": "Groq's Compound Mini agentic system. The changelog's older names compound-beta and compound-beta-mini are not on the deprecations page, so they have no matcher here.",
+      "diedOn": "2026-09-21",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "Both systems will be decommissioned on September 21, 2026."
+      },
+      "lookFor": [
+        "The model ID groq/compound-mini in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)",
+        "Through LiteLLM, which prefixes the model ID: groq/groq/compound-mini"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "groq/compound-mini"
+        },
+        {
+          "kind": "string",
+          "value": "groq/groq/compound-mini"
+        }
+      ],
+      "replacement": "None listed: the page's table shows a dash. Reading, not on the page: the closest live option is openai/gpt-oss-120b or openai/gpt-oss-20b with Groq's built-in browser_search and code_interpreter tools.",
+      "replacementIds": ["openai/gpt-oss-120b", "openai/gpt-oss-20b"],
+      "requires": [
+        "Tools are no longer automatic: pass tools: [{type: 'browser_search'}] or [{type: 'code_interpreter'}] explicitly, with tool_choice: 'required' as Groq's examples do.",
+        "Remove compound_custom: it configures Compound only.",
+        "Tool runs appear in message.executed_tools and reasoning in message.reasoning.",
+        "Wolfram Alpha, Visit Website and Browser Automation were Compound tools; Groq's built-in tool docs list only browser search and code execution.",
+        "Browser search isn't available on regional or sovereign endpoints.",
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-19.llama-3.3-70b-specdec",
+      "provider": "groq",
+      "what": "Llama 3.3 70B Speculative Decoding. Listed on the page, missing from DEAD-APIS.md.",
+      "diedOn": "2025-04-14",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "April 14, 2025: Multiple Model Deprecations"
+      },
+      "lookFor": [
+        "The model ID llama-3.3-70b-specdec in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3.3-70b-specdec"
+        }
+      ],
+      "replacement": "The page lists meta-llama/llama-4-scout-17b-16e-instruct or llama-3.3-70b-versatile, both now shut down. Both chains end on openai/gpt-oss-120b.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-20.deepseek-r1-distill-llama-70b-specdec",
+      "provider": "groq",
+      "what": "DeepSeek R1 Distill Llama 70B Speculative Decoding. Its own section gives 03/24/25 and the April 2025 table repeats it at 04/14/25; the earlier date is used. Listed on the page, missing from DEAD-APIS.md.",
+      "diedOn": "2025-03-24",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "March 24, 2025: DeepSeek R1 Distill Llama 70B (Speculative Decoding)"
+      },
+      "lookFor": [
+        "The model ID deepseek-r1-distill-llama-70b-specdec in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "deepseek-r1-distill-llama-70b-specdec"
+        }
+      ],
+      "replacement": "The page lists deepseek-r1-distill-llama-70b or deepseek-r1-distill-qwen-32b, both now shut down. Both chains end on openai/gpt-oss-120b.",
+      "replacementIds": ["openai/gpt-oss-120b"],
+      "requires": [
+        "Reasoning is on by default and comes back in message.reasoning; set include_reasoning: false to leave it out.",
+        "Remove reasoning_format: it isn't supported on this model, and it can't be combined with include_reasoning.",
+        "reasoning_effort takes only low, medium or high (default medium); any other value, such as none, returns a 400.",
+        "Parallel tool use isn't supported: code that expects several tool calls in one reply has to handle them one at a time.",
+        "Raise max_completion_tokens if it was tuned for a non-reasoning model: the reasoning page says the 1024 default may be too low.",
+        "Reasoning no longer arrives as <think> tags in message.content, so remove any code that parses them."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    },
+    {
+      "id": "GR-21.llava-v1.5-7b-4096-preview",
+      "provider": "groq",
+      "what": "LLaVA 1.5 7B preview. The page's heading is dated 2024-10-18; its table gives the shutdown as 10/28/24. Listed on the page, missing from DEAD-APIS.md.",
+      "diedOn": "2024-10-28",
+      "source": {
+        "url": "https://console.groq.com/docs/deprecations",
+        "checkedOn": "2026-11-05",
+        "quote": "October 18, 2024: LLaVA 1.5 7B and Llama 3.2 11B Text Preview"
+      },
+      "lookFor": [
+        "The model ID llava-v1.5-7b-4096-preview in a call to Groq's API (groq-sdk, groq, langchain-groq, @langchain/groq, @ai-sdk/groq, or an OpenAI client pointed at https://api.groq.com/openai/v1)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llava-v1.5-7b-4096-preview"
+        }
+      ],
+      "replacement": "The page lists llama-3.2-11b-vision-preview, which shut down 2025-04-14. Following that chain, qwen/qwen3.8-27b is the live model that takes images.",
+      "replacementIds": ["qwen/qwen3.8-27b"],
+      "requires": [
+        "Preview model: Groq says preview models are for evaluation only and may be discontinued at short notice.",
+        "Max output is 16,384 tokens: lower any larger max_completion_tokens.",
+        "reasoning_effort defaults to none, so no reasoning tokens come back unless you ask for low, medium or high.",
+        "reasoning_format raw with JSON mode or tool use returns a 400: use parsed or hidden there.",
+        "In multi-turn history, send back only final outputs, without thinking content.",
+        "Built-in tools (browser search, code execution) aren't supported on this model.",
+        "At most 3 images per request; a request with an image URL over 20 MB returns a 400; each image counts as 2048 input tokens."
+      ],
+      "context": {
+        "packages": ["groq-sdk", "groq", "langchain-groq", "@ai-sdk/groq", "@langchain/groq"],
+        "hosts": ["api.groq.com"]
+      }
+    }
+  ],
+  "future": []
+}

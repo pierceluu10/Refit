@@ -1,0 +1,5 @@
+# Excerpt of LazerTechnologies/shopify-app-development-course at 93cb55752c30, extensions/raffle-discount-function/shopify.extension.toml.
+api_version = "2025-04"
+[[extensions]]
+handle = "raffle-discount-function"
+type = "function"

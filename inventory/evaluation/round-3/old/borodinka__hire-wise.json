@@ -1,0 +1,251 @@
+{
+  "commit": "b5ba583fa9dd9ba695a6a27b171bf4991945bfb6",
+  "repo": "borodinka/hire-wise",
+  "promptVersion": "inventory-v3",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "borodinka/hire-wise",
+      "provider": "firebase-firestore",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 20,
+          "operation": "setDoc applicants"
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 34,
+          "operation": "getDocs applicants where userUid"
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 52,
+          "operation": "getDocs applicants where jobId,userUid"
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 65,
+          "operation": "getDoc applicants/{id}"
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 81,
+          "operation": "updateDoc applicants/{id}"
+        },
+        {
+          "file": "src/app/services/api/applicant.ts",
+          "line": 90,
+          "operation": "deleteDoc applicants/{id}"
+        },
+        {
+          "file": "src/app/services/api/event.ts",
+          "line": 19,
+          "operation": "setDoc events"
+        },
+        {
+          "file": "src/app/services/api/event.ts",
+          "line": 33,
+          "operation": "getDocs events where userUid"
+        },
+        {
+          "file": "src/app/services/api/event.ts",
+          "line": 42,
+          "operation": "updateDoc events/{id}"
+        },
+        {
+          "file": "src/app/services/api/event.ts",
+          "line": 51,
+          "operation": "deleteDoc events/{id}"
+        },
+        {
+          "file": "src/app/services/api/job.ts",
+          "line": 20,
+          "operation": "setDoc jobs"
+        },
+        {
+          "file": "src/app/services/api/job.ts",
+          "line": 34,
+          "operation": "getDocs jobs where userUid"
+        },
+        {
+          "file": "src/app/services/api/job.ts",
+          "line": 47,
+          "operation": "getDoc jobs/{id}"
+        },
+        {
+          "file": "src/app/services/api/job.ts",
+          "line": 60,
+          "operation": "updateDoc jobs/{id}"
+        },
+        {
+          "file": "src/app/services/api/job.ts",
+          "line": 69,
+          "operation": "deleteDoc jobs/{id}"
+        }
+      ],
+      "hints": {
+        "packages": ["firebase"],
+        "docsUrls": [
+          "https://github.com/firebase/firebase-js-sdk",
+          "https://firebase.google.com/docs/firestore"
+        ]
+      },
+      "sdk": {
+        "name": "firebase",
+        "version": "^11.0.2"
+      }
+    },
+    {
+      "repo": "borodinka/hire-wise",
+      "provider": "firebase-auth",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/services/api/auth.ts",
+          "line": 12,
+          "operation": "signInWithEmailAndPassword"
+        },
+        {
+          "file": "src/app/services/api/auth.ts",
+          "line": 18,
+          "operation": "createUserWithEmailAndPassword"
+        },
+        {
+          "file": "src/app/services/api/auth.ts",
+          "line": 20,
+          "operation": "updateProfile",
+          "fields": ["displayName"]
+        },
+        {
+          "file": "src/app/services/firebase/hooks/useAuthStateSubscription.ts",
+          "line": 11,
+          "operation": "auth.onAuthStateChanged"
+        }
+      ],
+      "hints": {
+        "packages": ["firebase"],
+        "docsUrls": ["https://firebase.google.com/docs/auth"]
+      },
+      "sdk": {
+        "name": "firebase",
+        "version": "^11.0.2"
+      }
+    },
+    {
+      "repo": "borodinka/hire-wise",
+      "provider": "firebase-storage",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/services/firebase/helpers/getDownloadURL.ts",
+          "line": 14,
+          "operation": "getDownloadURL"
+        },
+        {
+          "file": "src/app/services/firebase/helpers/removeFileFromStorage.ts",
+          "line": 12,
+          "operation": "deleteObject"
+        },
+        {
+          "file": "src/features/job/details/components/applicants/utils.ts",
+          "line": 42,
+          "operation": "uploadBytesResumable"
+        }
+      ],
+      "hints": {
+        "packages": ["firebase"],
+        "docsUrls": ["https://firebase.google.com/docs/storage"]
+      },
+      "sdk": {
+        "name": "firebase",
+        "version": "^11.0.2"
+      }
+    },
+    {
+      "repo": "borodinka/hire-wise",
+      "provider": "firebase-functions",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/features/job/details/components/applicants/utils.ts",
+          "line": 101,
+          "operation": "httpsCallable extractStructuredData",
+          "fields": ["text"],
+          "notes": "returns result.data.data (resume extraction)"
+        }
+      ],
+      "hints": {
+        "packages": ["firebase", "firebase-functions", "firebase-admin"],
+        "docsUrls": ["https://firebase.google.com/docs/functions"]
+      },
+      "sdk": {
+        "name": "firebase",
+        "version": "^11.0.2"
+      }
+    },
+    {
+      "repo": "borodinka/hire-wise",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "functions/src/index.ts",
+          "line": 50,
+          "operation": "beta.chat.completions.parse",
+          "fields": ["model", "messages", "response_format"],
+          "notes": "Client built line 39 with OPENAI_API_KEY secret; returns choices[0].message.parsed"
+        }
+      ],
+      "pinnedVersion": {
+        "value": "gpt-4o-2024-08-06",
+        "file": "functions/src/index.ts",
+        "line": 51
+      },
+      "hints": {
+        "packages": ["openai"],
+        "hosts": ["api.openai.com"],
+        "docsUrls": ["https://github.com/openai/openai-node"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.77.3"
+      }
+    },
+    {
+      "repo": "borodinka/hire-wise",
+      "provider": "cdnjs.cloudflare.com",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/features/job/details/components/applicants/utils.ts",
+          "line": 77,
+          "operation": "GET pdf.worker.min.mjs 4.9.155"
+        }
+      ],
+      "hints": {
+        "packages": ["pdfjs-dist"],
+        "hosts": ["cdnjs.cloudflare.com"]
+      }
+    }
+  ],
+  "purposes": {
+    "firebase-firestore": "Firestore CRUD for jobs, applicants, events",
+    "firebase-auth": "Email/password auth",
+    "firebase-storage": "Resume file upload/download/delete",
+    "firebase-functions": "Callable function extractStructuredData from client; function defined in functions/",
+    "openai": "Resume structured extraction in Firebase function",
+    "cdnjs.cloudflare.com": "pdf.js worker script loaded in browser"
+  },
+  "summary": "borodinka/hire-wise uses firebase-firestore for Firestore CRUD for jobs, applicants, events through firebase ^11.0.2 in 15 places; firebase-auth for Email/password auth through firebase ^11.0.2 in 4 places; firebase-storage for Resume file upload/download/delete through firebase ^11.0.2 in 3 places; firebase-functions for Callable function extractStructuredData from client; function defined in functions/ through firebase ^11.0.2 in 1 place; openai for Resume structured extraction in Firebase function through openai ^4.77.3, pinned to gpt-4o-2024-08-06 in 1 place; cdnjs.cloudflare.com for pdf.js worker script loaded in browser through raw HTTP in 1 place.",
+  "agentSummary": "I've recorded all the usages. I'm wrapping up with the summary now.\n\n**Providers recorded**\n- **Firebase Firestore** (SDK `firebase` ^11.0.2): CRUD on the `jobs`, `applicants` and `events` collections, in `src/app/services/api/{job,applicant,event}.ts`. 15 call sites.\n- **Firebase Auth** (SDK): email/password sign-in, sign-up, `updateProfile`, and the auth state listener. 4 call sites.\n- **Firebase Storage** (SDK): resume upload, download URL and delete. 3 call sites.\n- **Firebase Cloud Functions**: the client calls the callable `extractStructuredData` through `httpsCallable` in `src/features/job/details/components/applicants/utils.ts`. The function itself is in `functions/src/index.ts` and uses `firebase-functions` and `firebase-admin`.\n- **OpenAI** (SDK `openai` ^4.77.3): one call, `beta.chat.completions.parse` with model `gpt-4o-2024-08-06`, in `functions/src/index.ts`. It extracts structured resume data, and the key comes from the `OPENAI_API_KEY` secret.\n- **cdnjs.cloudflare.com** (HTTP): the browser loads the pdf.js worker script from there.\n\n**Uncertain or not verified**\n- **OpenAI host:** I recorded `api.openai.com` as a hint, but the code never names that host. It is the SDK's default, so treat it as inferred.\n- **SDK versions:** I recorded the manifest ranges, not the versions resolved in the lockfiles. I did not run `locked_versions`. The `functions/yarn.lock` shows `firebase-admin` 12.7.0 and `firebase-functions` 6.2.0.\n- **Root `openai` dependency:** the root `package.json` lists `openai` ^4.77.0, but I found no frontend code that imports it.\n- **Auth and Storage coverage:** I did not exhaustively check for other Auth calls such as `signOut` or password reset. A grep found none.\n- **CI workflows:** I did not read the two GitHub workflows. They are Firebase Hosting deploys, so they would count as deploy tooling, not runtime API calls.\n- **RTK Query:** `applicantsApi`, `eventsApi` and `jobsApi` appear to wrap the Firestore functions above. I did not open them.",
+  "outcome": "success",
+  "costUsd": 0.10636720000000001,
+  "costByModel": {
+    "claude-haiku-5-5": 0.0001306,
+    "claude-sonnet-5-5": 0.1062366
+  },
+  "turns": 22,
+  "durationMs": 30414
+}

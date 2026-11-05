@@ -1,0 +1,295 @@
+{
+  "commit": "c0f1ca77014de1669ebce0b45a3f1810cd5b6228",
+  "repo": "guixincui/LobeChat",
+  "promptVersion": "inventory-v8",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "posthog",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/components/Analytics/Posthog.tsx",
+          "line": 14,
+          "operation": "init",
+          "fields": ["api_host", "debug", "POSTHOG_DEBUG"],
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["posthog-js"],
+        "hosts": ["app.posthog.com", "us.i.posthog.com", "eu.i.posthog.com"]
+      },
+      "sdk": {
+        "name": "posthog-js",
+        "version": "^1"
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/openai/chat/createChatCompletion.ts",
+          "line": 22,
+          "operation": "chat.completions.create",
+          "fields": ["messages", "model", "stream"],
+          "notes": "Streaming; wrapped by OpenAIStream from 'ai'. Client built in createBizOpenAI/createOpenai.ts (apiKey, baseURL from OPENAI_PROXY_URL) or createAzureOpenai.ts."
+        },
+        {
+          "file": "src/app/api/openai/images/createImageGeneration.ts",
+          "line": 12,
+          "operation": "images.generate",
+          "fields": ["payload", "response_format"],
+          "notes": "Returns image URLs as JSON."
+        },
+        {
+          "file": "src/app/api/openai/models/route.ts",
+          "line": 12,
+          "operation": "models.list",
+          "notes": "Found by the code scan (import, client, member call); response handling not read."
+        }
+      ],
+      "hints": {
+        "packages": ["openai", "ai"],
+        "hosts": ["api.openai.com"],
+        "docsUrls": [
+          "https://platform.openai.com/docs/deprecations",
+          "https://github.com/openai/openai-node"
+        ]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.17.3"
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "vercel",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/components/Analytics/Vercel.tsx",
+          "line": 10,
+          "operation": "<Analytics />",
+          "fields": ["debug"],
+          "notes": "Rendered SDK component (code scan); it calls the vendor from the browser."
+        }
+      ],
+      "hints": {
+        "packages": ["@vercel/analytics"]
+      },
+      "sdk": {
+        "name": "@vercel/analytics",
+        "version": "^1"
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "azure-openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/openai/createBizOpenAI/createAzureOpenai.ts",
+          "line": 32,
+          "operation": "new OpenAI (Azure client; calls made in createChatCompletion)",
+          "fields": ["api-key header", "api-version query"],
+          "notes": "Client construction only; requests go via chat.completions.create."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "2023-08-01-preview",
+        "file": "src/app/api/openai/createBizOpenAI/createAzureOpenai.ts",
+        "line": 19
+      },
+      "hints": {
+        "packages": ["openai"],
+        "hosts": ["openai.azure.com"],
+        "docsUrls": ["https://learn.microsoft.com/azure/ai-services/openai/reference"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.17.3"
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/openai/stt/route.ts",
+          "line": 24,
+          "operation": "createOpenaiAudioTranscriptions"
+        },
+        {
+          "file": "src/app/api/openai/tts/route.ts",
+          "line": 18,
+          "operation": "createOpenaiAudioSpeech"
+        }
+      ],
+      "hints": {
+        "packages": ["@lobehub/tts"]
+      },
+      "sdk": {
+        "name": "@lobehub/tts",
+        "version": "manifest"
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "microsoft-speech",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/tts/edge-speech/route.ts",
+          "line": 8,
+          "operation": "EdgeSpeechTTS.createRequest"
+        },
+        {
+          "file": "src/app/api/tts/microsoft-speech/route.ts",
+          "line": 8,
+          "operation": "MicrosoftSpeechTTS.createRequest"
+        }
+      ],
+      "hints": {
+        "packages": ["@lobehub/tts"]
+      },
+      "sdk": {
+        "name": "@lobehub/tts",
+        "version": "manifest"
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "imgur",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/app/api/files/image/imgur.ts",
+          "line": 54,
+          "operation": "POST /3/upload",
+          "fields": ["image"],
+          "notes": "Auth Client-ID from IMGUR_CLIENT_ID; returns data.link."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "3",
+        "file": "src/app/api/files/image/imgur.ts",
+        "line": 43
+      },
+      "hints": {
+        "hosts": ["api.imgur.com"]
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "npmmirror",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/services/global.ts",
+          "line": 11,
+          "operation": "GET /@lobehub/chat",
+          "notes": "Reads dist-tags.latest."
+        }
+      ],
+      "hints": {
+        "hosts": ["registry.npmmirror.com"]
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "sharegpt",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/services/share.ts",
+          "line": 17,
+          "operation": "POST /api/conversations",
+          "fields": ["items"],
+          "notes": "Reads id; returns https://shareg.pt/{id}."
+        }
+      ],
+      "hints": {
+        "hosts": ["sharegpt.com", "shareg.pt"]
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "lobehub-market",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/app/api/market/[id]/route.ts",
+          "line": 16,
+          "operation": "GET agent {id}.json"
+        },
+        {
+          "file": "src/app/api/market/route.ts",
+          "line": 14,
+          "operation": "GET agent index.json"
+        },
+        {
+          "file": "src/app/api/plugin/gateway/route.ts",
+          "line": 10,
+          "operation": "createGatewayOnEdgeRuntime",
+          "notes": "Gateway calls third-party plugin APIs; uses pluginsIndexUrl."
+        },
+        {
+          "file": "src/app/api/plugin/store/route.ts",
+          "line": 14,
+          "operation": "GET plugin index.json"
+        }
+      ],
+      "hints": {
+        "packages": ["@lobehub/chat-plugin-sdk", "@lobehub/chat-plugins-gateway"],
+        "hosts": ["chat-agents.lobehub.com", "chat-plugins.lobehub.com"]
+      }
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "provider": "plausible",
+      "via": "http",
+      "callSites": [
+        {
+          "file": "src/components/Analytics/Plausible.tsx",
+          "line": 13,
+          "operation": "load /js/script.js",
+          "notes": "Base URL from NEXT_PUBLIC_PLAUSIBLE_SCRIPT_BASE_URL."
+        }
+      ],
+      "hints": {
+        "hosts": ["plausible.io"]
+      }
+    }
+  ],
+  "purposes": {
+    "openai": "TTS/STT through @lobehub/tts server helpers",
+    "azure-openai": "Azure OpenAI via openai SDK with deployments baseURL",
+    "microsoft-speech": "Edge / Microsoft speech TTS",
+    "imgur": "Image upload",
+    "npmmirror": "Latest @lobehub/chat version check",
+    "sharegpt": "Create shared conversation",
+    "lobehub-market": "Agent market and plugin store indexes (configurable via AGENTS_INDEX_URL / PLUGINS_INDEX_URL)",
+    "plausible": "Analytics script"
+  },
+  "summary": "guixincui/LobeChat uses lobehub-market for Agent market and plugin store indexes (configurable via AGENTS_INDEX_URL / PLUGINS_INDEX_URL) through raw HTTP in 4 places; openai for Chat completions, image generation (also Azure OpenAI / custom proxy base URL) through openai ^4.17.3 in 3 places; openai for TTS/STT through @lobehub/tts server helpers through @lobehub/tts manifest in 2 places; microsoft-speech for Edge / Microsoft speech TTS through @lobehub/tts manifest in 2 places; posthog through posthog-js ^1 in 1 place; vercel through @vercel/analytics ^1 in 1 place; azure-openai for Azure OpenAI via openai SDK with deployments baseURL through openai ^4.17.3, pinned to 2023-08-01-preview in 1 place; imgur for Image upload through raw HTTP, pinned to 3 in 1 place; npmmirror for Latest @lobehub/chat version check through raw HTTP in 1 place; sharegpt for Create shared conversation through raw HTTP in 1 place; plausible for Analytics script through raw HTTP in 1 place.",
+  "agentSummary": "I recorded the providers below. Some call sites were not read in full or recorded. The ones that were skipped are listed after the providers.\n\n**Providers recorded**\n- **OpenAI** (SDK `openai`): streaming chat completions and image generation. The scan had already recorded `models.list`.\n  - The client is built in `createBizOpenAI`, with `baseURL` taken from `OPENAI_PROXY_URL`.\n  - TTS and speech-to-text go through `@lobehub/tts` server helpers, recorded as a separate usage.\n- **Azure OpenAI** (SDK `openai` with a deployments `baseURL`): the default API version is pinned to `2023-08-01-preview` in `createAzureOpenai.ts`. I recorded only the client construction line. The requests themselves are the OpenAI chat calls above.\n- **Microsoft speech / Edge TTS** (`@lobehub/tts`): `EdgeSpeechTTS.createRequest` and `MicrosoftSpeechTTS.createRequest`. I did not read the library, so I don't know which hosts it calls.\n- **Imgur** (HTTP): `POST api.imgur.com/3/upload`, with the client ID from `IMGUR_CLIENT_ID`.\n- **registry.npmmirror.com** (HTTP): latest-version check for `@lobehub/chat`.\n- **ShareGPT** (HTTP): `POST sharegpt.com/api/conversations`.\n- **LobeHub agent market and plugin store** (HTTP): the index and manifest fetches in the `market` and `plugin/store` routes, plus the `@lobehub/chat-plugins-gateway` handler. The index URLs are configurable through `AGENTS_INDEX_URL` and `PLUGINS_INDEX_URL`.\n- **Plausible** (script tag): the base URL comes from `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_BASE_URL`, defaulting to `plausible.io`.\n- **PostHog, Vercel Analytics, OpenAI `models.list`**: already recorded by the scan, which I did not re-check.\n\n**Not external or not recorded**\n- **Own backend:** the calls in `src/services/chat.ts`, `file.ts`, `imageGeneration.ts`, `modelList.ts` and `market.ts` go to the repo's own `/api` routes.\n- **Plugin calls:**\n  - The plugin gateway call in `chat.ts` uses the plugin manifest's `gateway` URL when it has one, otherwise the repo's own gateway route.\n  - `plugin.ts` fetches user-supplied manifest URLs. It optionally goes through the repo's own `/api/proxy` route. These are arbitrary user URLs, so I did not record them as a provider.\n- **Not read:** `src/app/api/files/image/route.ts`, `src/app/api/proxy/route.ts` and `scripts/readmeWorkflow/utlis.ts`. The first two fetch a URL passed in by the caller. The scripts one also fetches a URL I did not trace, and it probably hits the LobeHub index.\n- **Libraries with no network calls, or unchecked:**\n  - UI and utility packages: `antd`, `lucide-react`, `dexie` and the rest.\n  - `@lobehub/chat-plugin-sdk`: used for types and for the plugin client. I did not check whether its OpenAPI conversion fetches anything.\n  - `src/services/_url.ts`: I did not find its URL definitions, so the route paths behind `URLS` are unconfirmed.\n- **Webhooks:** none. The scan's \"webhook\" hits are the lucide `Webhook` icon.\n- **Other hosts:** the remaining scan hosts are links or test fixtures.\n\n**Unsure**\n- **PostHog:** I did not check its host configuration (`NEXT_PUBLIC_POSTHOG_HOST`).\n- **Azure and OpenAI separation:** both use the same `openai` package. Which one applies depends on a runtime choice I did not trace.",
+  "outcome": "success",
+  "costUsd": 0.14007139999999998,
+  "costByModel": {
+    "claude-haiku-5-5": 0.0006883,
+    "claude-sonnet-5-5": 0.1393831
+  },
+  "turns": 29,
+  "durationMs": 38349,
+  "scan": {
+    "version": "scan-v5",
+    "usages": 3,
+    "callSites": 3,
+    "leads": 96
+  }
+}

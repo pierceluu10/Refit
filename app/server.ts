@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
+import { messageOf } from './redact.ts';
 import { runsFor } from './runs.ts';
 import type { RunsDeps } from './runs.ts';
 import { handleWebhook, verifySignature } from './webhooks.ts';
@@ -64,8 +65,7 @@ async function receiveWebhook(
   } catch (error) {
     // Already answered, so log the delivery id: it can be redelivered from the App's Advanced page.
     const delivery = header(request, 'x-github-delivery');
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(`webhook ${event} ${delivery} failed: ${message}`);
+    console.error(`webhook ${event} ${delivery} failed: ${messageOf(error)}`);
   }
 }
 
@@ -89,8 +89,8 @@ export function createWebhookServer(deps: WebhookServerDeps): Server {
   return createServer((request, response) => {
     const path = new URL(request.url ?? '/', 'http://localhost').pathname;
     if (request.method === 'POST' && path === WEBHOOK_PATH) {
-      receiveWebhook(request, response, deps).catch((error: Error) => {
-        console.error(`webhook request failed: ${error.message}`);
+      receiveWebhook(request, response, deps).catch((error: unknown) => {
+        console.error(`webhook request failed: ${messageOf(error)}`);
         if (!response.headersSent) response.writeHead(SERVER_ERROR);
         response.end();
       });
@@ -99,8 +99,8 @@ export function createWebhookServer(deps: WebhookServerDeps): Server {
     if (request.method === 'GET' && path === HEALTH_PATH) return response.writeHead(OK).end();
     // Same-origin only: the dashboard is served beside the app, so no CORS headers.
     if (request.method === 'GET' && path === RUNS_PATH) {
-      serveRuns(request, response, deps).catch((error: Error) => {
-        console.error(`runs request failed: ${error.message}`);
+      serveRuns(request, response, deps).catch((error: unknown) => {
+        console.error(`runs request failed: ${messageOf(error)}`);
         if (!response.headersSent) response.writeHead(SERVER_ERROR);
         response.end();
       });
