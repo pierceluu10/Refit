@@ -1,0 +1,6 @@
+{
+  "name": "text2question",
+  "dependencies": {
+    "@ai-sdk/deepseek": "^0.2.14"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "provider": "deepseek",
+  "officialHosts": ["api-docs.deepseek.com"],
+  "entries": [
+    {
+      "id": "DS-1.deepseek-chat",
+      "provider": "deepseek",
+      "what": "Model deepseek-chat is retired. The announcement was written before the date, and no later page confirms it took effect.",
+      "diedOn": "2026-07-24",
+      "source": {
+        "url": "https://api-docs.deepseek.com/news/news260424",
+        "checkedOn": "2026-11-05",
+        "quote": "deepseek-chat & deepseek-reasoner will be fully retired and inaccessible after Jul 24th, 2026, 15:59 (UTC Time)."
+      },
+      "lookFor": ["The model id deepseek-chat"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "deepseek-chat"
+        }
+      ],
+      "replacement": "deepseek-v4-flash, or deepseek-v4-pro.",
+      "replacementIds": ["deepseek-v4-flash", "deepseek-v4-pro"],
+      "requires": [
+        "Both support thinking and non-thinking modes, so check which mode the old model name stood for."
+      ],
+      "context": {
+        "packages": ["@ai-sdk/deepseek"],
+        "hosts": ["api.deepseek.com"]
+      }
+    },
+    {
+      "id": "DS-1.deepseek-reasoner",
+      "provider": "deepseek",
+      "what": "Model deepseek-reasoner is retired. The announcement was written before the date, and no later page confirms it took effect.",
+      "diedOn": "2026-07-24",
+      "source": {
+        "url": "https://api-docs.deepseek.com/news/news260424",
+        "checkedOn": "2026-11-05",
+        "quote": "deepseek-chat & deepseek-reasoner will be fully retired and inaccessible after Jul 24th, 2026, 15:59 (UTC Time)."
+      },
+      "lookFor": ["The model id deepseek-reasoner"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "deepseek-reasoner"
+        }
+      ],
+      "replacement": "deepseek-v4-flash, or deepseek-v4-pro, in thinking mode.",
+      "replacementIds": ["deepseek-v4-flash", "deepseek-v4-pro"],
+      "requires": [
+        "Thinking is now a mode of the model rather than a model of its own: see the Thinking Mode guide."
+      ],
+      "context": {
+        "packages": ["@ai-sdk/deepseek"],
+        "hosts": ["api.deepseek.com"]
+      }
+    }
+  ],
+  "future": []
+}

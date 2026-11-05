@@ -1,0 +1,33 @@
+{
+  "provider": "toggl",
+  "officialHosts": ["engineering.toggl.com"],
+  "entries": [
+    {
+      "id": "TO-1.api-v8",
+      "provider": "toggl",
+      "what": "Toggl Track API v8 is switched off.",
+      "diedOn": "2023-04-01",
+      "source": {
+        "url": "https://engineering.toggl.com/changes/2022/10/01/api-v8-deprecation",
+        "checkedOn": "2026-11-05",
+        "quote": "The deprecated /api/v8/* endpoints will be disabled starting on April 1 2023."
+      },
+      "lookFor": ["A request to toggl.com/api/v8/... on any subdomain"],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "toggl.com/api/v8*"
+        }
+      ],
+      "replacement": "The /api/v9/* counterparts.",
+      "replacementIds": ["/api/v9"],
+      "requires": [
+        "Paths differ: for example /api/v8/time_entries/current is /api/v9/me/time_entries/current, and it returns the entry itself rather than { data }."
+      ],
+      "context": {
+        "hosts": ["toggl.com"]
+      }
+    }
+  ],
+  "future": []
+}

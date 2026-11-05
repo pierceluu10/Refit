@@ -1995,3 +1995,450 @@ describe('reviewed cases: the lexer and the regex prefilter', () => {
     expect(requiredLiterals('(?:foo|barbaz)')).toBeUndefined();
   });
 });
+
+describe('seen in P5, round 1: the provider has no entry and is called over plain HTTP', () => {
+  it('flags Riot by-name at a template host, and the fields behind it for reading', async () => {
+    const report = await scanFixture('bricefrisco__NamesLoL');
+    expect(
+      classesOf(report, 'RI-1.summoner-by-name', 'src/libs/riotApi.ts'),
+      explain(report),
+    ).toEqual(['live']);
+    expect(classesOf(report, 'RI-2.summoner-name-fields', 'src/libs/mapper.ts')).toEqual([
+      'unclear',
+      'unclear',
+    ]);
+    expect(report.unlistedProviders).toEqual([]);
+  });
+
+  it("flags Twitch's removed endpoint, leaves channel.follow to read, and names numbersapi.com", async () => {
+    const report = await scanFixture('MitchellHarrison__python-twitch-chatbot');
+    expect(classesOf(report, 'TW-1.users-follows'), explain(report)).toEqual(['live']);
+    expect(classesOf(report, 'TW-2.channel-follow-v1')).toEqual(['unclear']);
+    expect(report.unlistedProviders).toEqual(['numbersapi.com']);
+    expect(report.clean).toBe(false);
+  });
+
+  it('flags the retired Bing Search host', async () => {
+    const report = await scanFixture('goodreasonai__nichey');
+    expect(classesOf(report, 'BS-1.bing-search-apis'), explain(report)).toEqual(['live']);
+  });
+
+  it('flags monday.com GraphQL fields, and names the host with no entry', async () => {
+    const report = await scanFixture('b1f6c1c4__c');
+    expect(classesOf(report, 'MO-1.items-by-column-values'), explain(report)).toEqual(['live']);
+    expect(classesOf(report, 'MO-2.boards-items')).toEqual(['live']);
+    expect(report.unlistedProviders).toEqual(['recipepuppy.com']);
+  });
+
+  it('flags Toggl v8 and the Zoom verification token', async () => {
+    const report = await scanFixture('kognise__stalker');
+    expect(classesOf(report, 'TO-1.api-v8'), explain(report)).toEqual(['live']);
+    expect(classesOf(report, 'ZO-1.webhook-verification-token', 'src/index.ts')).toEqual(['live']);
+  });
+
+  it('flags DeepSeek models in a table and a picker, and not in a type', async () => {
+    const report = await scanFixture('Miguel07Alm__text2question');
+    const entry = 'DS-1.deepseek-chat';
+    expect(classesOf(report, entry, 'src/types/types.ts'), explain(report)).toEqual([
+      'catalog',
+      'live',
+    ]);
+    expect(classesOf(report, entry, 'src/app/[lang]/page.tsx')).toEqual(['live']);
+  });
+
+  it('reads MuAPI paths and picker ids, in any file of a repo that calls it', async () => {
+    const report = await scanFixture('benlamiro__ShipGenAI');
+    const scheduler = 'platforms/Free-AI-Social-Media-Scheduler/src/app';
+    expect(
+      classesOf(report, 'MU-1.social-on-api-host', `${scheduler}/api/social/accounts/route.js`),
+      explain(report),
+    ).toEqual(['live']);
+    expect(
+      classesOf(report, 'MU-1.social-on-api-host', `${scheduler}/integrations/page.js`),
+    ).toEqual(['live']);
+    const knowledge = 'ai_agents/ai-knowledge-base/src/app/page.js';
+    expect(classesOf(report, 'MU-3.model-not-accepted', knowledge)).toEqual(['unclear', 'unclear']);
+    expect(
+      classesOf(
+        report,
+        'MU-3.model-not-accepted',
+        'portrait_avatar/open-character-ai/src/app/[character_name]/[id]/page.js',
+      ),
+    ).toEqual(['unclear']);
+    expect(classesOf(report, 'MU-2.endpoint-not-served')).toEqual(['unclear', 'unclear']);
+  });
+
+  it('calls removed langchain imports unclear on an unversioned dependency, and says why', async () => {
+    const report = await scanFixture('KajamHamza__pdf-chat');
+    const hits = report.details.filter((one) => one.entryId === 'LC-1.legacy-namespace');
+    expect(hits.length, explain(report)).toBeGreaterThan(0);
+    expect(hits.every((one) => one.matchClass === 'unclear')).toBe(true);
+    expect(hits[0].reason).toMatch(/declared with no version.*fresh install/);
+  });
+
+  it('keeps langchain imports quiet below 1.0 and leaves a live module alone', async () => {
+    const pinned = await scan({
+      'requirements.txt': 'langchain==0.2.0\n',
+      'a.py': 'from langchain.chains import LLMChain\n',
+    });
+    expect(classesOf(pinned, 'LC-1.legacy-namespace'), explain(pinned)).toEqual([]);
+    const modern = await scan({
+      'requirements.txt': 'langchain==1.4.9\n',
+      'a.py': 'from langchain.agents import create_agent\nfrom langchain.chains import X\n',
+    });
+    expect(modern.details.filter((one) => one.entryId === 'LC-1.legacy-namespace')).toHaveLength(1);
+  });
+});
+
+describe('seen in P5, round 1: naming hosts nobody listed', () => {
+  const NODE = { 'package.json': manifest({ express: '^4.0.0' }) };
+
+  it('names a host a call takes, or an address holder, and queues it with the host seen', async () => {
+    const repoDir = await makeRepo({
+      ...NODE,
+      'a.js': [
+        "fetch('https://data.acme.io/report');",
+        "const API_URL = 'https://svc.other.dev/x';",
+        'const url =\n  "https://oauth2.far.net/token?" + q;',
+        'fetch(`https://${region}.api.game.gg/v4/x/${id}`);',
+      ].join('\n'),
+    });
+    repos.push(repoDir);
+    const store = await mkdtemp(path.join(os.tmpdir(), 'dead-scan-store-'));
+    const report = await scanDeadApis(repoDir, 'test/repo', { today: TODAY, storeDir: store });
+    expect(report.unlistedProviders).toEqual(['acme.io', 'far.net', 'game.gg', 'other.dev']);
+    expect(report.clean).toBe(true);
+    const queue = await readQueue(store);
+    expect(queue.find((one) => one.provider === 'game.gg')?.hints.hosts).toEqual(['api.game.gg']);
+    await rm(store, { recursive: true, force: true });
+  });
+
+  it("doesn't name links, prose, pictures, examples, the app's own deploy, tests or installed code", async () => {
+    const report = await scan({
+      ...NODE,
+      'a.jsx': [
+        '<a href="https://blog.acme.io/post">x</a>;',
+        "const logoUrl = 'https://images.acme.io/a.png';",
+        "throw new Error('see https://help.acme.io/x for more');",
+        "fetch('https://example.com/x');",
+        "fetch('https://my-app.vercel.app/api/x');",
+        "// fetch('https://commented.io/x')",
+      ].join('\n'),
+      'a.test.js': "fetch('https://only-in-test.io/x');",
+      'venv/Lib/site-packages/lib.py': 'requests.get("https://pypi.org/simple")',
+    });
+    expect(report.unlistedProviders).toEqual([]);
+  });
+
+  it("doesn't name a listed provider, by its entry's host or its own domain", async () => {
+    const report = await scan({
+      ...NODE,
+      'a.js': "fetch('https://api.stripe.com/v1/x');\nfetch('https://files.stripe.com/x');",
+      'b.js': "fetch('https://api.twitch.tv/helix/streams');",
+    });
+    expect(report.unlistedProviders).toEqual([]);
+  });
+
+  it('names another service on a shared domain that a listed provider also uses', async () => {
+    const report = await scan({
+      ...NODE,
+      'a.js': "fetch('https://oauth2.googleapis.com/token');",
+    });
+    expect(report.unlistedProviders).toEqual(['googleapis.com']);
+  });
+});
+
+describe('seen in P5, round 1: a packed copy of the repo', () => {
+  it('keeps a Repomix dump out of a fix', async () => {
+    const report = await scanFixture('rainmana__cursorify');
+    const dump = report.details.filter((one) => one.file === 'repomix-output.xml');
+    expect(dump.length, explain(report)).toBeGreaterThan(0);
+    expect(dump.every((one) => one.matchClass === 'catalog' && one.vendored && !one.withFix)).toBe(
+      true,
+    );
+  });
+
+  it('still reads a settings XML file, which does hold what the code sends', async () => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      'config.xml': '<settings>\n  <model>gpt-4-32k</model>\n</settings>\n',
+    });
+    expect(classesOf(report, 'OA-1.gpt-4-32k', 'config.xml'), explain(report)).toEqual(['live']);
+  });
+});
+
+describe('seen in P5, round 1: a value that goes nowhere', () => {
+  it("settles a list that's only printed, across two hops and three files", async () => {
+    const report = await scanFixture('rainmana__cursorify');
+    const anthropic = 'src/providers/anthropic-provider.ts';
+    const list = report.details.filter(
+      (one) => one.file === anthropic && /only shown or logged/.test(one.reason),
+    );
+    expect(list, explain(report)).toHaveLength(5);
+    expect(list.every((one) => one.matchClass === 'catalog')).toBe(true);
+    expect(classesOf(report, 'AN-1.claude-3-5-sonnet-20241022', anthropic)).toContain('live');
+    expect(new Set(classesOf(report, 'OA-1.gpt-4', 'src/providers/openai-provider.ts'))).toEqual(
+      new Set(['catalog']),
+    );
+  });
+
+  it('keeps a list live when any one read could send it', async () => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      'a.ts': [
+        "import OpenAI from 'openai';",
+        "export function getOptions() {\n  return ['gpt-4-32k', 'gpt-4-0314', 'gpt-3.5-turbo-0301'];\n}",
+        'const names = getOptions();\nconsole.log(names);\nclient.chat.completions.create({ model: names[0] });',
+      ].join('\n'),
+    });
+    expect(classesOf(report, 'OA-1.gpt-4-32k'), explain(report)).not.toEqual(['catalog']);
+    expect(report.clean).toBe(false);
+  });
+
+  it("settles a model name only shown in a template, and keeps the app's real call", async () => {
+    const report = await scanFixture('leedtan__chattutorial');
+    expect(classesOf(report, 'OA-1.gpt-3.5-turbo', 'app.py'), explain(report)).toEqual([
+      'live',
+      'catalog',
+    ]);
+  });
+
+  it('keeps a name live when it is both logged and sent', async () => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      'a.py': [
+        'import openai',
+        'def go():',
+        '    model_name = "gpt-4-32k"',
+        '    print(model_name)',
+        '    return openai.chat.completions.create(model=model_name)',
+      ].join('\n'),
+    });
+    expect(classesOf(report, 'OA-1.gpt-4-32k'), explain(report)).toEqual(['live']);
+  });
+
+  it('settles a name that only labels a path, only where the file never names the provider', async () => {
+    const report = await scanFixture('konan-ny__MAF2024');
+    expect(
+      classesOf(report, 'OA-1.gpt-4o-2024-05-13', 'metric/latte/get_bias_score.py'),
+      explain(report),
+    ).toEqual(['catalog']);
+    const named = await scan({
+      ...OPENAI_PACKAGE,
+      'a.py': 'import openai\nmodel_name = "gpt-4-32k"\nout = data_dir + "/" + model_name\n',
+    });
+    expect(classesOf(named, 'OA-1.gpt-4-32k'), explain(named)).toEqual(['live']);
+  });
+
+  it('asks about an argument to a call the file never defines, and not about an imported one', async () => {
+    const report = await scanFixture('konan-ny__MAF2024');
+    expect(
+      classesOf(report, 'OA-1.gpt-4-1106-preview', 'benchmark/crehate/crehate_demo.py'),
+      explain(report),
+    ).toEqual(['unclear']);
+    const imported = await scan({
+      ...OPENAI_PACKAGE,
+      'a.py': 'from runner import run\nimport openai\nrun(model_name="gpt-4-1106-preview")\n',
+    });
+    expect(classesOf(imported, 'OA-1.gpt-4-1106-preview'), explain(imported)).toEqual(['live']);
+  });
+
+  it('settles a client only a same-named parameter reads, and not one the file uses', async () => {
+    const report = await scanFixture('BahadirKarsli__Chatbot-Assistant');
+    expect(
+      classesOf(report, 'OA-2.assistants-api', 'custom_functions.py'),
+      explain(report),
+    ).toEqual(['catalog']);
+    expect(classesOf(report, 'OA-2.assistants-api', 'main.py')).toEqual(['live']);
+    const used = await scan({
+      ...OPENAI_PACKAGE,
+      'a.py': [
+        'from openai import OpenAI',
+        'client = OpenAI(default_headers={"OpenAI-Beta": "assistants=v2"})',
+        'def go(client2):',
+        '    return client.beta.threads.create()',
+      ].join('\n'),
+    });
+    expect(classesOf(used, 'OA-2.assistants-api'), explain(used)).toContain('live');
+  });
+
+  it('settles picker options under a key nothing reads, and not one the app reads', async () => {
+    const report = await scanFixture('benlamiro__ShipGenAI');
+    expect(
+      classesOf(
+        report,
+        'GE-2.gemini-1.5-*',
+        'portrait_avatar/ai-character-studio/src/lib/registry.js',
+      ),
+      explain(report),
+    ).toEqual(['catalog']);
+    const read = await scan({
+      'package.json': manifest({ '@google/genai': '^1.0.0' }),
+      'lib/registry.js':
+        'export const R = { a: { configFields: [{ name: "m", options: ["gemini-1.5-pro"] }] } };',
+      'lib/form.js': 'import { R } from "./registry";\nconst fields = R.a.configFields;',
+    });
+    expect(classesOf(read, 'GE-2.gemini-1.5-*'), explain(read)).toEqual(['live']);
+  });
+});
+
+describe('seen in P5, round 1: a module nothing imports', () => {
+  const GRAPH = {
+    ...ANTHROPIC_PACKAGE,
+    'src/index.ts': "import { a } from './a.js';\nimport { b } from './b.js';\na(b);",
+    'src/a.ts': "import { b } from './b.js';\nexport const a = (x) => b(x);",
+    'src/b.ts': "import { c } from './c.js';\nexport const b = (x) => c(x);",
+    'src/c.ts': 'export const c = (x) => x;',
+  };
+
+  it('asks about it, and never calls it clean or fine', async () => {
+    const report = await scanFixture('rainmana__cursorify');
+    const hits = classesOf(report, 'AN-1.claude-3-7-sonnet-20250219', 'src/llmGenerator.ts');
+    expect(hits, explain(report)).toEqual(['unclear']);
+    expect(report.clean).toBe(false);
+  });
+
+  it('leaves a module someone imports, a framework entry and a lone script alone', async () => {
+    const report = await scan({
+      ...GRAPH,
+      'src/used.ts': "export const m = 'claude-3-7-sonnet-20250219';",
+      'src/d.ts': "import { m } from './used.js';\nexport const d = m;",
+      'src/app/api/x/route.ts': "export const m = 'claude-3-7-sonnet-20250219';",
+      'src/server.ts': "export const m = 'claude-3-7-sonnet-20250219';",
+    });
+    expect(new Set(classesOf(report, 'AN-1.claude-3-7-sonnet-20250219')), explain(report)).toEqual(
+      new Set(['live']),
+    );
+    const lone = await scan({
+      ...ANTHROPIC_PACKAGE,
+      'src/lone.ts': "export const m = 'claude-3-7-sonnet-20250219';",
+    });
+    expect(classesOf(lone, 'AN-1.claude-3-7-sonnet-20250219'), explain(lone)).toEqual(['live']);
+  });
+
+  it('reads the module an import names, with the graph present', async () => {
+    const report = await scan({
+      ...GRAPH,
+      'src/left-over.ts': "export const m = 'claude-3-7-sonnet-20250219';",
+    });
+    expect(classesOf(report, 'AN-1.claude-3-7-sonnet-20250219'), explain(report)).toEqual([
+      'unclear',
+    ]);
+  });
+});
+
+describe('seen in P5, round 1: a list a value has to be in', () => {
+  it('flags an allowlist that only holds dead names, since nothing else gets past it', async () => {
+    const report = await scanFixture('konan-ny__MAF2024');
+    const file = 'benchmark/kobbq/util.py';
+    expect(classesOf(report, 'AN-1.claude-2.0', file), explain(report)).toEqual(['live']);
+    expect(classesOf(report, 'AN-1.claude-instant-1.*', file)).toEqual(['live']);
+  });
+
+  it('leaves it a catalog when one live name is on it, on a deny list, or with no guard', async () => {
+    const guard = 'import anthropic\ndef go(m):\n    assert m in CLAUDE_MODEL\n';
+    const mixed = await scan({
+      ...ANTHROPIC_PACKAGE,
+      'a.py': `CLAUDE_MODEL = ["claude-2.0", "claude-opus-4-7"]\n${guard}`,
+    });
+    expect(classesOf(mixed, 'AN-1.claude-2.0'), explain(mixed)).toEqual(['catalog']);
+    const deny = await scan({
+      ...ANTHROPIC_PACKAGE,
+      'a.py': `DEPRECATED_MODELS = ["claude-2.0"]\nimport anthropic\ndef go(m):\n    if m not in DEPRECATED_MODELS:\n        send(m)\n`,
+    });
+    expect(classesOf(deny, 'AN-1.claude-2.0'), explain(deny)).toEqual(['catalog']);
+    const branch = await scan({
+      ...ANTHROPIC_PACKAGE,
+      'a.py': `CLAUDE_MODEL = ["claude-2.0"]\nimport anthropic\ndef go(m):\n    if m in CLAUDE_MODEL:\n        old(m)\n`,
+    });
+    expect(classesOf(branch, 'AN-1.claude-2.0'), explain(branch)).toEqual(['catalog']);
+  });
+});
+
+describe('seen in P5, round 1: the rest', () => {
+  it("asks about a tuned model read from a job, and not an app's own setting of that name", async () => {
+    const report = await scanFixture('leedtan__chattutorial');
+    expect(classesOf(report, 'OA-1.fine-tuned-2026-10-23'), explain(report)).toEqual(['unclear']);
+    const own = await scan({
+      ...OPENAI_PACKAGE,
+      'a.py': 'import openai\nagent = Agent(fine_tuned_model=args.fine_tuned_model)\n',
+    });
+    expect(classesOf(own, 'OA-1.fine-tuned-2026-10-23'), explain(own)).toEqual([]);
+  });
+
+  it('keeps a Stripe read quiet when every pin predates the removal', async () => {
+    const report = await scanFixture('benlamiro__ShipGenAI');
+    const billing = 'portrait_avatar/open-character-ai/src/lib/services/billing.js';
+    expect(classesOf(report, 'ST-20.payment_method_types', billing), explain(report)).toEqual([]);
+    expect(
+      report.quiet.find((one) => one.entryId === 'ST-20.payment_method_types')?.reason,
+    ).toMatch(/every pin predates/);
+  });
+
+  it('stays unclear when one of the pins is at or past the removal', async () => {
+    const report = await scan({
+      ...STRIPE_AT('^14.0.0'),
+      'a.ts': `${STRIPE_IMPORT}const s = new Stripe(k, { apiVersion: '2023-10-16' });\ns.checkout.sessions.create({ payment_method_types: ['card'] });`,
+      'b.ts': `${STRIPE_IMPORT}const t = new Stripe(k, { apiVersion: '2026-10-28' });`,
+      'c.ts': `${STRIPE_IMPORT}import { s } from './a';\ns.checkout.sessions.create({ payment_method_types: ['card'] });`,
+    });
+    const hit = report.details.find(
+      (one) => one.entryId === 'ST-20.payment_method_types' && one.file === 'c.ts',
+    );
+    expect(hit?.matchClass, explain(report)).toBe('unclear');
+    expect(hit?.reason).toMatch(/conflicting/);
+  });
+});
+
+describe('seen in P5, round 1: what the AI check is told', () => {
+  const noCall = async (repoDir: string, report: DeadScanReport) => {
+    let request: ModelRequest | undefined;
+    const client: ModelClient = {
+      model: CHECK_MODEL,
+      complete: async (one: ModelRequest) => {
+        request = one;
+        return {
+          stopReason: 'end_turn',
+          content: [{ type: 'text', text: '[]' }],
+          usage: { inputTokens: 1, outputTokens: 1 },
+        };
+      },
+    } as unknown as ModelClient;
+    const openLedger = async () =>
+      ({
+        assertCanSpend: () => undefined,
+        record: async () => undefined,
+      }) as unknown as BudgetLedger;
+    await checkUnclear(report, repoDir, { client, openLedger });
+    return request;
+  };
+
+  it('asks where the value goes, not whether the name is dead, and backs a picked option', async () => {
+    const dir = path.join(FIXTURES, 'benlamiro__ShipGenAI');
+    const report = await scanFixture('benlamiro__ShipGenAI');
+    const request = await noCall(dir, report);
+    expect(request?.system).toMatch(/whether it reaches the API/);
+    expect(request?.system).toMatch(/already known to be dead/);
+    expect(request?.system).toMatch(/option a user can pick is a value the code sends/);
+    expect(request?.system).toMatch(/aggregator/);
+  });
+
+  it('shows where a picked option goes and who reads a list', async () => {
+    const repoDir = await makeRepo({
+      ...OPENAI_PACKAGE,
+      'src/App.jsx': [
+        'const send = () => fetch("/api/chat", { body: JSON.stringify({ model: picked }) });',
+        '<select value={picked} onChange={(e) => setPicked(e.target.value)}>',
+        '  <option value="azure/gpt-4-32k">x</option>',
+        '</select>',
+      ].join('\n'),
+    });
+    repos.push(repoDir);
+    const report = await scanDeadApis(repoDir, 'test/repo', { today: TODAY });
+    const hit = report.details.find((one) => one.reads?.length);
+    expect(hit?.reads?.join('\n'), explain(report)).toMatch(/model: picked/);
+    const request = await noCall(repoDir, report);
+    const text = request?.messages[0].content[0];
+    expect(text && 'text' in text ? text.text : '').toMatch(/Where the code reads what holds it/);
+  });
+});

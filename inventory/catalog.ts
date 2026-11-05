@@ -89,6 +89,20 @@ export const CATALOG: CatalogEntry[] = [
     models: true,
   },
   {
+    provider: 'deepseek',
+    npm: ['@ai-sdk/deepseek'],
+    hosts: ['api.deepseek.com'],
+    docsUrls: ['https://api-docs.deepseek.com/updates'],
+    models: true,
+  },
+  { provider: 'muapi', hosts: ['api.muapi.ai'], docsUrls: ['https://muapi.ai/docs'], models: true },
+  {
+    provider: 'langchain',
+    npm: ['langchain'],
+    python: { packages: ['langchain'], modules: ['langchain'] },
+    docsUrls: ['https://docs.langchain.com/oss/python/migrate/langchain-v1'],
+  },
+  {
     provider: 'together',
     npm: ['together-ai'],
     python: { packages: ['together'], modules: ['together'] },
@@ -105,7 +119,10 @@ export const CATALOG: CatalogEntry[] = [
   {
     provider: 'huggingface',
     npm: ['@huggingface/inference'],
-    python: { packages: ['huggingface_hub', 'huggingface-hub'], modules: ['huggingface_hub'] },
+    python: {
+      packages: ['huggingface_hub', 'huggingface-hub', 'transformers'],
+      modules: ['huggingface_hub', 'transformers'],
+    },
     hosts: ['api-inference.huggingface.co', 'huggingface.co'],
   },
   { provider: 'ollama', npm: ['ollama'], python: { packages: ['ollama'], modules: ['ollama'] } },

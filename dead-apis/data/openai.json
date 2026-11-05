@@ -762,7 +762,8 @@
         "The model id or literal string ft:gpt-4-0613*",
         "The model id or literal string ft:gpt-4.1-nano-2025-04-14*",
         "The model id or literal string ft:gpt-4o-2024-05-13*",
-        "The model id or literal string ft:o4-mini-2025-04-16*"
+        "The model id or literal string ft:o4-mini-2025-04-16*",
+        "A tuned model id read at runtime from a fine-tuning job (.fine_tuned_model): the literal never appears in the repo, so check which base the job was built on"
       ],
       "matchers": [
         {
@@ -784,6 +785,11 @@
         {
           "kind": "string",
           "value": "ft:o4-mini-2025-04-16*"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bjobs?\\w*(?:\\[[^\\]]*\\])?\\.fine_tuned_model\\b|\\.fine_tuning\\.jobs\\.\\w+\\([^)]*\\)\\.fine_tuned_model\\b",
+          "ambiguous": true
         }
       ],
       "replacement": "The substitute for the base model: gpt-5.6-terra for gpt-3.5-turbo and o4-mini, gpt-5.6-sol for gpt-4 and gpt-4o-2024-05-13, gpt-5.6-luna for gpt-4.1-nano. None can be fine-tuned.",

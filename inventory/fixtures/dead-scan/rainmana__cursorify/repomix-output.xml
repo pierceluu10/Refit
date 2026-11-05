@@ -1,0 +1,17 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+<!-- Excerpt of rainmana/cursorify at 464d61f74e76, repomix-output.xml, seen in P5. -->
+/**
+ * Anthropic Claude provider implementation
+ */
+export class AnthropicProvider extends BaseLLMProvider {
+  readonly name = 'anthropic';
+  readonly displayName = 'Anthropic Claude';
+  readonly requiresApiKey = true;
+  readonly defaultModel = 'claude-3-5-sonnet-20241022';
+
+  private client: Anthropic | null = null;
+<file path="a.ts"></file>
+<file path="b.ts"></file>
+<file path="c.ts"></file>

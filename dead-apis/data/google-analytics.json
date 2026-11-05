@@ -51,7 +51,7 @@
       "requires": [
         "Read the GA4 measurement ID and API secret from config, and say in the PR what a person must set: nobody has these yet, and they can't be derived from the UA- ID.",
         "A person creates the secret in Google Analytics under Admin > Data collection and modification > Data streams > the stream > Measurement Protocol API secrets, and copies the measurement ID (usually starting G-) from Stream details.",
-        "The api_secret is private: Google says not to expose it in client-side code, so never put it in browser code; a hit sent from a web page moves to gtag.js or through the app's own server.",
+        "The api_secret is private: Google says not to expose it in client-side code, so never put it in browser code, an Electron renderer included; a hit sent from a web page moves to gtag.js or through the app's own server.",
         "Manifest V3 Chrome extensions can't load gtag.js, so Google recommends the Measurement Protocol there even though the secret ships inside the extension: say this exposure in the PR.",
         "Only HTTP POST with a JSON body works: a GET, an image pixel or a form-encoded v=1 body has to be rewritten.",
         "client_id is required in the body and should match the ID the Google tag generated; an extension keeps its own in browser.storage.local, which needs the storage permission. UA's cid carrying this value is a reading, not on a live Google page.",

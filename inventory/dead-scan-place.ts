@@ -3,7 +3,12 @@
 import { catalogEntry } from './catalog.ts';
 import { innerText, lineIndexAt, type Source, type Span } from './dead-scan-lex.ts';
 
-export type Place = { kind: 'comment' | 'catalog' | 'picker' | 'unclear'; reason: string };
+export type Place = {
+  kind: 'comment' | 'catalog' | 'picker' | 'unclear';
+  reason: string;
+  /** A list a value must be in before the code goes on: what it holds is all that can be sent. */
+  guardedBy?: string;
+};
 
 // The registry's model-id shapes, to count a list of models that mixes providers.
 const MODEL_SHAPES = [
@@ -34,6 +39,11 @@ const IN_AFTER = /^\s*(?:not\s+)?in\b/;
 const IN_BEFORE = /\b(?:not\s+)?in\s*$/;
 // `for m in [...]` walks the list, and may send each one. Only `m in [...]` checks a value against it.
 const FOR_IN_BEFORE = /\bfor\s+[\w\s,()]*\bin\s*$/;
+// `assert x in NAME`, or a rejection when it isn't: the code stops unless the value is on the list.
+const GUARDED_BY = (name: string) =>
+  new RegExp(
+    `\\bassert\\s+[\\w$.\\[\\]"']+\\s+in\\s+${name}\\b|\\bif\\s+[\\w$.\\[\\]"']+\\s+not\\s+in\\s+${name}\\b|\\bif\\s*\\(\\s*!\\s*${name}\\.(?:includes|has)\\(`,
+  );
 const LIST_CHECK_AFTER = /^\s*\.(?:includes|indexOf|has)\s*\(/;
 const MEMBER_CHECK_AFTER = /^\s*\??\.(?:includes|indexOf|has|contains)\s*\(/;
 const DEFINITION_AFTER = /^\s*(?::[^=\n]*)?=(?!=)/;
@@ -195,7 +205,7 @@ function countModels(source: Source, open: number, close: number): number {
 }
 
 // The name a list goes by: its assignment or key, the call it's passed to, or the function returning it.
-function listName(source: Source, list: Enclosure): string {
+export function listName(source: Source, list: Enclosure): string {
   const ahead = before(source.text, list.open);
   const assigned = ASSIGNED_NAME.exec(ahead)?.[1];
   if (assigned) return assigned;
@@ -212,7 +222,7 @@ function listName(source: Source, list: Enclosure): string {
 type TableUse = { checked: boolean; read: boolean; exported: boolean };
 
 // What the rest of the file does with a table or list's name. A check sends nothing; anything else may.
-const wordPattern = (word: string) =>
+export const wordPattern = (word: string) =>
   new RegExp(`(?<![\\w$])${word.replace(/\$/g, '\\$')}(?![\\w$])`, 'g');
 
 function tableUse(source: Source, name: string): TableUse {
@@ -274,7 +284,11 @@ function pickerPlace(source: Source, list: Enclosure): Place | undefined {
   if (!PICKER_NAME.test(name)) return undefined;
   const use = tableUse(source, name);
   if (DENY_NAME.test(name) || (use.checked && !use.read)) {
-    return { kind: 'catalog', reason: `a list a value is checked against, named ${name}` };
+    return {
+      kind: 'catalog',
+      reason: `a list a value is checked against, named ${name}`,
+      ...(GUARDED_BY(name).test(source.code) && !DENY_NAME.test(name) ? { guardedBy: name } : {}),
+    };
   }
   return { kind: 'picker', reason: `a list a dead model can be picked from, named ${name}` };
 }

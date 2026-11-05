@@ -1,0 +1,62 @@
+{
+  "provider": "twitch",
+  "officialHosts": ["dev.twitch.tv"],
+  "entries": [
+    {
+      "id": "TW-1.users-follows",
+      "provider": "twitch",
+      "what": "The Get Users Follows endpoint, GET /helix/users/follows, is removed.",
+      "diedOn": "2023-09-06",
+      "source": {
+        "url": "https://dev.twitch.tv/docs/change-log/",
+        "checkedOn": "2026-11-05",
+        "quote": "The Get Users Follows API endpoint has been removed."
+      },
+      "lookFor": ["A request to api.twitch.tv/helix/users/follows"],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "api.twitch.tv/helix/users/follows"
+        }
+      ],
+      "replacement": "Get Channel Followers, GET /helix/channels/followers.",
+      "replacementIds": ["/helix/channels/followers"],
+      "requires": [
+        "Get Channel Followers needs a user access token with the moderator:read:followers scope, and the user must be the broadcaster or a moderator of it, to return who follows. An app access token no longer works for this.",
+        "Its response has total and data with user_id and followed_at, not the old from_id and to_id."
+      ],
+      "context": {
+        "hosts": ["api.twitch.tv", "id.twitch.tv"],
+        "packages": ["twitchAPI", "twitchio", "@twurple/api"]
+      }
+    },
+    {
+      "id": "TW-2.channel-follow-v1",
+      "provider": "twitch",
+      "what": "Version 1 of the channel.follow EventSub subscription type is removed. Only version 2 is listed. The version is a separate value, often set on another line, so a hit on the type name needs reading: version 2 of the same name is live.",
+      "diedOn": "2023-09-06",
+      "source": {
+        "url": "https://dev.twitch.tv/docs/change-log/",
+        "checkedOn": "2026-11-05",
+        "quote": "V1 of channel.follow has been removed."
+      },
+      "lookFor": ["An EventSub subscription of type channel.follow whose version is 1"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "channel.follow",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "channel.follow version 2.",
+      "requires": [
+        "Version 2 requires the moderator:read:followers scope and a moderator_user_id in the condition, as well as broadcaster_user_id."
+      ],
+      "context": {
+        "hosts": ["api.twitch.tv", "id.twitch.tv"],
+        "packages": ["twitchAPI", "twitchio", "@twurple/api"]
+      }
+    }
+  ],
+  "future": []
+}
