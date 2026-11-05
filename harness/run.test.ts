@@ -700,6 +700,41 @@ describe('a repo session', () => {
     expect(commands.filter((command) => command.includes('run test'))).toHaveLength(2);
   });
 
+  describe('a rework', () => {
+    // Replaces the file with enough new lines to count as a rework, keeping its export.
+    const rewrite: ScriptedTurn = async (call) => {
+      const lines = Array.from({ length: 25 }, (_, i) => `const line${i} = ${i};`).join('\n');
+      await call('write_file', {
+        path: 'src/pay.js',
+        content: `${lines}\nexport function createPayment(stripe, amount) {\n  return stripe.paymentIntents.create({ amount, currency: 'usd' });\n}\n`,
+      });
+    };
+    const withProof =
+      (command: string): ScriptedTurn =>
+      async (call, input) => {
+        await rewrite(call, input);
+        await call('run_checks', { add: [{ name: 'proof', command }] });
+        await finish({ proofTest: 'proof', noProofTestReason: '' })(call, input);
+      };
+
+    it('stays needs a look when its proof only reads the source as text', async () => {
+      const record = await runTask(repoTaskFor([live('src/pay.js')]), fixtureRepo(), {
+        ...deps([withProof(`node -e "require('fs').readFileSync('src/pay.js')"`)]),
+        rescan,
+      });
+      expect(record.outcome).toBe('needs-review');
+      expect(record.note).toContain('no test runs the new code');
+    });
+
+    it('is fixed when a check imports the code that changed', async () => {
+      const record = await runTask(repoTaskFor([live('src/pay.js')]), fixtureRepo(), {
+        ...deps([withProof(`node -e "import('./src/pay.js')"`)]),
+        rescan,
+      });
+      expect(record.outcome).toBe('verified');
+    });
+  });
+
   describe('with a proven fix', () => {
     const swap = {
       entryId: entry.id,

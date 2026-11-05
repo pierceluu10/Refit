@@ -250,3 +250,5 @@ One session gives one PR per repo by construction. The PR body lists each entry,
 **Top cause of the misses: time.** Baselines took 12 to 14 minutes and the suite ran several times. O10's changes target that, and round 3 reruns `hyperion` to measure it.
 
 **The label rules, replayed:** the tighter rules came after round 1. Replayed over rounds 1 and 2 with no spend, 5 of 10 repos stay Fixed, and the hand-check agrees with all 5. It's a replay, so round 3 is the real test.
+
+**Quiet repos, round 2:** $0.42 for 2 repos that already read both Stripe shapes. The scan flagged them, and neither session left them alone. `gridster` reordered its reads to prefer the new field and removed two debug reads, which is harmless, and landed on Needs a look. `actors-copilot` made the same small change plus Gemini test renames, then failed a check it had added itself, so it ended as Couldn't fix with no PR. Nothing bad would ship, but false alarms cost about $0.20 each. It's mostly a scanner cause: a field read behind a `??` fallback isn't dead. Sent to Pierce.

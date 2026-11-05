@@ -104,8 +104,12 @@ async function checksRunCode(
       ),
     );
     for (const text of [check.command, ...texts]) {
-      const imports = text.split('\n').filter((line) => /\b(import|require|from)\b/.test(line));
-      if (names.some((name) => imports.some((line) => line.includes(name)))) return true;
+      const modules = text.matchAll(
+        /(?:\bfrom\s+|\bimport\s*\(?\s*|\brequire\(\s*)["'`]([^"'`]+)/g,
+      );
+      if ([...modules].some(([, module]) => names.some((name) => module?.includes(name)))) {
+        return true;
+      }
     }
   }
   return false;
