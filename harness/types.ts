@@ -79,6 +79,7 @@ export type ToolContext = {
   retrieveRecipes: RetrieveRecipes;
   checks: CheckCommand[];
   onFinish: (report: FinishReport) => void;
+  requirements?: () => string[]; // a repo session's numbered "requires" lines
   onToolPackCall?: (run: ValidatorRun) => void;
   // What the session's own check run found, so the harness needn't repeat a pass on the same code.
   onChecksRun?: (runs: CheckRun[]) => Promise<void>;

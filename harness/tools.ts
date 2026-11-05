@@ -613,11 +613,10 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
           description:
             'What a person must set or decide for the fix to work, such as a new env var. Leave it empty when there is nothing.',
         },
-        requirementsLeft: {
-          type: 'array',
-          items: { type: 'string' },
+        requirements: {
+          type: 'object',
           description:
-            'Requirements in an entry\'s "requires" lines that apply to this code and that you did not do. Anything here puts the PR under Needs a look.',
+            'A repo session: every numbered requirement from the kickoff, by id, such as {"r1": "done", "r2": "not-applicable", "r3": "left"}. "left" means it applies to this code and you did not do it, which puts the PR under Needs a look.',
         },
         falseAlarms: {
           type: 'array',
@@ -653,9 +652,6 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
             ? { noProofTestReason: text(args.noProofTestReason) }
             : {}),
           ...(Array.isArray(args.personMustDo) ? { personMustDo: strings(args.personMustDo) } : {}),
-          ...(Array.isArray(args.requirementsLeft)
-            ? { requirementsLeft: strings(args.requirementsLeft) }
-            : {}),
           ...(Array.isArray(args.falseAlarms)
             ? {
                 falseAlarms: args.falseAlarms.map((item) => {
@@ -669,10 +665,28 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
               }
             : {}),
         };
+        const requirements = report.verdict === 'migrated' ? (ctx.requirements?.() ?? []) : [];
+        const answers = (args.requirements ?? {}) as Args;
+        const answerOf = (index: number) => answers[`r${index + 1}`];
+        const unanswered = requirements.flatMap((_, index) =>
+          ['done', 'not-applicable', 'left'].includes(String(answerOf(index)))
+            ? []
+            : [`r${index + 1}`],
+        );
+        // An answer it never gave counts as left: nobody said that line was done.
+        const left = requirements.filter(
+          (_, index) => !['done', 'not-applicable'].includes(String(answerOf(index))),
+        );
+        if (left.length) report.requirementsLeft = left;
         // Two refusals at most, so an agent that can't satisfy them still ends with a report.
         const problems =
           report.verdict === 'migrated' && refusals < 2
             ? [
+                ...(unanswered.length
+                  ? [
+                      `Answer every requirement in \`requirements\`. Missing: ${unanswered.join(', ')}.`,
+                    ]
+                  : []),
                 ...finishProblems(report, ctx.checks, runs),
                 ...gitignoreProblems(await sandbox.diff().catch(() => '')),
               ]

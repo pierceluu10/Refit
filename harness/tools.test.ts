@@ -313,6 +313,47 @@ describe('web, memory, tool pack and finish', () => {
     expect(finished).toHaveLength(1);
   });
 
+  it('finish wants an answer for every requirement, and treats none as left', async () => {
+    const lines = ['Handle refusal.', 'Drop temperature.', 'Pass thinking blocks back.'];
+    const { call, finished } = setup({ requirements: () => lines });
+    const report = {
+      verdict: 'migrated',
+      summary: 'Moved the model',
+      why: 'Retired',
+      validators: [],
+      noProofTestReason: 'No test setup.',
+      requirements: { r1: 'left', r2: 'done' },
+    };
+    expect(await call('finish', report)).toContain('Missing: r3.');
+    expect(finished).toEqual([]);
+    await call('finish', {
+      ...report,
+      requirements: { r1: 'left', r2: 'done', r3: 'not-applicable' },
+    });
+    expect(finished[0].requirementsLeft).toEqual(['Handle refusal.']);
+  });
+
+  it('finish lists an unanswered requirement as left once it stops refusing', async () => {
+    const { call, finished } = setup({ requirements: () => ['Handle refusal.'] });
+    const report = {
+      verdict: 'migrated',
+      summary: 'Moved the model',
+      why: 'Retired',
+      validators: [],
+      noProofTestReason: 'No test setup.',
+    };
+    await call('finish', report);
+    await call('finish', report);
+    await call('finish', report);
+    expect(finished[0].requirementsLeft).toEqual(['Handle refusal.']);
+  });
+
+  it('finish asks nothing of a not-affected report', async () => {
+    const { call, finished } = setup({ requirements: () => ['Handle refusal.'] });
+    await call('finish', { verdict: 'not-affected', summary: 'Nothing', why: 'Unused' });
+    expect(finished[0].requirementsLeft).toBeUndefined();
+  });
+
   it('finishProblems names a checker whose latest call failed, and clears once it is re-run', () => {
     const report = {
       verdict: 'migrated' as const,

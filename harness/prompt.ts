@@ -6,7 +6,7 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-05.rebuild-4';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-05.rebuild-5';
 
 // The day the run happens, so the agent can tell a change in effect from a later one.
 const today = () => new Date().toISOString().slice(0, 10);
@@ -145,7 +145,7 @@ const LIST_RULES = [
     '- An entry\'s "requires" line is part of the fix: for example, moving to a newer Claude model means dropping `temperature` on that path.',
     "- Don't edit an existing test just to make it pass. If a test hard-codes the dead name, change only that name, to the entry's replacement, and say so. A test that asserts old behaviour stays failing until you can say why in `unproven`.",
     "- A version can live in more than one layer. After moving one, look for what still carries the old one: generated clients, resource classes, import paths with the version in them. A pin tied to a package's own release, such as a UI extension's `api_version` and its SDK, moves with that package: if the package can't move, leave the pin and say so in `unproven`.",
-    "- Moving a version changes what every call in the repo may use, not only the lines the list names. If you have a provider tool that checks a document against a version, run it at the new version on every document the repo sends to the API it covers, including ones you didn't edit. A name it says no longer exists is part of this fix, whether or not the scan found it: take the replacement from the tool or the provider's docs.",
+    "- Moving a version changes what every call in the repo may use, not only the lines the list names. The kickoff message names any GraphQL the provider's validator rejects at the latest version. Each is part of this fix, whether or not the scan found it: take the replacement from the provider tools or docs, and run the validator on what you change.",
     '- Other problems you notice go in your finish summary. Fix only what is on the list.',
   ].join('\n'),
 ].join('\n\n');
@@ -158,7 +158,7 @@ const LIST_WORKFLOW = [
     '3. Edit the code.',
     "4. Write one small test that proves the live path now uses the replacement, inside the repo's test setup, and register it with `run_checks` `add`. When the repo has no test setup, put a plain node or python script under `.refit-proof/`: the harness runs it but keeps it out of the PR. Mock the provider; the sandbox has no credentials.",
     '5. Run the checks. Iterate until they are no worse than the baseline.',
-    '6. Go through each entry\'s "requires" lines one by one against this code. Do every one that applies. One that applies and stays undone goes in `requirementsLeft`, which puts the PR under Needs a look.',
+    '6. Go through the numbered requirements one by one against this code, and do every one that applies. In `finish`, answer each by id in `requirements`: `done`, `not-applicable` or `left`. `left` puts the PR under Needs a look, so say `left` rather than leaving it to `unproven`.',
     '7. Call `finish`. The harness then re-scans the repo with the same plain code. An entry still found comes back to you.',
   ].join('\n'),
 ].join('\n\n');
@@ -293,6 +293,7 @@ export function buildKickoffMessage(
   packageManager?: string,
   prepared: string[] = [],
   task?: RepoTask,
+  documents: string[] = [],
 ): string {
   const parts = task
     ? [
@@ -300,6 +301,14 @@ export function buildKickoffMessage(
         renderList(task),
       ]
     : ['Start the migration described in the system prompt.'];
+  if (documents.length) {
+    parts.push(
+      [
+        "The provider's validator rejects these names in the repo's GraphQL at the latest version. Each is part of this fix:",
+        ...documents.map((line) => `- ${line}`),
+      ].join('\n'),
+    );
+  }
   if (packageManager) parts.push(packageManager);
   if (prepared.length) {
     parts.push(
@@ -337,6 +346,7 @@ export function buildRetryMessage(input: {
   escalated: boolean;
   left?: string[]; // what the rescan still finds
   majors?: string[]; // major upgrades no list entry asks for
+  documents?: string[]; // what the provider's validator still rejects
 }): string {
   const parts = ['The harness re-ran the checks after your changes.'];
   if (input.left?.length) {
@@ -344,6 +354,14 @@ export function buildRetryMessage(input: {
       [
         'The rescan still finds these. Fix each one, or list it in `falseAlarms` with your evidence, then call `finish` again:',
         ...input.left.map((line) => `- ${line}`),
+      ].join('\n'),
+    );
+  }
+  if (input.documents?.length) {
+    parts.push(
+      [
+        "The provider's validator still rejects these names in the repo's GraphQL. Fix each one, then call `finish` again:",
+        ...input.documents.map((line) => `- ${line}`),
       ].join('\n'),
     );
   }

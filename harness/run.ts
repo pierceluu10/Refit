@@ -17,6 +17,7 @@ import {
 import {
   checksTouchChange,
   isRepoTask,
+  requirementLines,
   isRework,
   labelFix,
   leftOf,
@@ -27,6 +28,7 @@ import {
   type RepoTask,
   type ScanResult,
 } from './findings.ts';
+import { deadDocuments } from './documents.ts';
 import { installWithLayer } from './install-layers.ts';
 import { BudgetLedger, budgetFromEnv } from './ledger.ts';
 import { filesFromDiff, writePrBody } from './pr.ts';
@@ -343,6 +345,7 @@ export async function runTask(
         report = finished;
         finishedThisIteration = true;
       },
+      requirements: () => (sessionTask ? requirementLines(sessionTask) : []),
       addCheck,
       removeCheck,
       onChecksRun: async (runs) => {
@@ -408,6 +411,8 @@ export async function runTask(
             entries: task.entries.filter((e) => left.some((f) => f.entryId === e.id)),
           }
         : task;
+    const documentsLeft = async () =>
+      isRepoTask(task) ? deadDocuments(sandbox, toolPack).catch(() => []) : [];
     const session = deps.session ?? claudeAgentSession;
     let model = deps.model ?? MODEL;
     let prompt = buildKickoffMessage(
@@ -416,12 +421,14 @@ export async function runTask(
       packageManagerNote(pm, pmVersion),
       [...preparationNotes(preparation), ...(deps.habitNotes ?? [])],
       sessionTask,
+      await documentsLeft(),
     );
     let sessionId: string | undefined;
     let previousNewFailures = Infinity;
     let silentErrors = 0;
     let rescanRetries = 0;
     let majorsTold = false;
+    let documentsTold = false;
     if (provenDone) {
       report = {
         verdict: 'migrated',
@@ -497,7 +504,8 @@ export async function runTask(
       // One chance to undo a major upgrade nobody asked for. One it keeps gets Needs a look.
       const majors: string[] =
         isRepoTask(task) && !majorsTold ? unneededMajors(await sandbox.diff(), task.entries) : [];
-      const retryFix = retryRescan || majors.length > 0;
+      const documents: string[] = documentsTold ? [] : await documentsLeft();
+      const retryFix = retryRescan || majors.length > 0 || documents.length > 0;
       if (newFailures === 0 && report && !retryFix) break;
       const finished = report as FinishReport | undefined;
       // Plain code feeds a failure back at least once: a session rarely runs the checks itself.
@@ -520,6 +528,7 @@ export async function runTask(
       if (retryRescan) rescanRetries += 1;
       if (retryFix) report = undefined;
       majorsTold ||= majors.length > 0;
+      documentsTold ||= documents.length > 0;
       prompt = buildRetryMessage({
         comparisons,
         after,
@@ -529,6 +538,7 @@ export async function runTask(
           ? left.map(({ entryId, file, line }) => `${entryId} at ${file}:${line}`)
           : [],
         majors,
+        documents,
       });
     }
 
@@ -539,6 +549,7 @@ export async function runTask(
         ? finalReport.proofTest
         : undefined;
     const changedFiles = filesFromDiff(diff);
+    const rejected = await documentsLeft();
     const fixLabel =
       rescan && isRepoTask(task) && !(finalReport?.verdict === 'not-affected' && !diff.trim())
         ? labelFix({
@@ -557,6 +568,7 @@ export async function runTask(
             majors: unneededMajors(diff, task.entries),
             noSuccessor: withoutSuccessor(task.entries),
             requirementsLeft: finalReport?.requirementsLeft,
+            documents: rejected,
           })
         : undefined;
     const smoke =
@@ -574,10 +586,12 @@ export async function runTask(
     const outcome =
       label?.outcome ??
       decideOutcome({ diff, report: finalReport, comparisons, after, validatorRuns });
-    const notes =
-      ledger.remainingUsd <= reserveUsd
+    const notes = [
+      ...(ledger.remainingUsd <= reserveUsd
         ? [`The run hit its AI budget of $${ledger.capUsd.toFixed(2)} before the agent finished.`]
-        : [];
+        : []),
+      ...rejected.map((line) => `The provider's validator still rejects ${line}`),
+    ];
     const prBody = writePrBody({
       task,
       outcome,

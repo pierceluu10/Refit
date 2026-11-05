@@ -775,6 +775,19 @@ describe('a repo session', () => {
     });
   });
 
+  it('calls a clean rescan needs a look when the validator still rejects a name', () => {
+    const label = labelFix({
+      findings: [live('a.js')],
+      rescan: scanOf([]),
+      newFailures: 0,
+      changed: true,
+      touched: true,
+      documents: ['app/a.tsx: Field "productVariantUpdate" does not exist on type Mutation.'],
+    });
+    expect(label.outcome).toBe('needs-review');
+    expect(label.reason).toContain("validator still rejects 1 name in the repo's GraphQL");
+  });
+
   it("calls new failures couldn't fix, even with a clean rescan", () => {
     const label = labelFix({
       findings: [live('a.js')],
