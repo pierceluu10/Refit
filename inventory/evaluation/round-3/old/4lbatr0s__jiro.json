@@ -1,0 +1,274 @@
+{
+  "commit": "313dbd324b09519252ab0791c8a5a2654be31ada",
+  "repo": "4lbatr0s/jiro",
+  "promptVersion": "inventory-v3",
+  "model": "claude-sonnet-5-5",
+  "usages": [
+    {
+      "repo": "4lbatr0s/jiro",
+      "provider": "openai",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/message/route.ts",
+          "line": 56,
+          "operation": "OpenAIEmbeddings (via PineconeStore.similaritySearch)",
+          "notes": "@langchain/openai embeddings of the query (not in package.json; imported)."
+        },
+        {
+          "file": "src/app/api/message/route.ts",
+          "line": 74,
+          "operation": "chat.completions.create",
+          "fields": ["model", "temperature", "stream", "messages"],
+          "notes": "Streamed; wrapped by Vercel ai OpenAIStream, saved to DB on completion. Client in src/app/lib/openai.ts."
+        },
+        {
+          "file": "src/app/api/uploadthing/core.ts",
+          "line": 105,
+          "operation": "OpenAIEmbeddings via PineconeStore.fromDocuments",
+          "notes": "Embeds PDF pages and indexes them in Pinecone."
+        }
+      ],
+      "pinnedVersion": {
+        "value": "gpt-3.5-turbo",
+        "file": "src/app/api/message/route.ts",
+        "line": 75
+      },
+      "hints": {
+        "packages": ["openai", "ai", "@langchain/openai", "langchain"],
+        "hosts": ["api.openai.com"],
+        "docsUrls": ["https://github.com/openai/openai-node"]
+      },
+      "sdk": {
+        "name": "openai",
+        "version": "^4.24.3",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "4lbatr0s/jiro",
+      "provider": "pinecone",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/message/route.ts",
+          "line": 50,
+          "operation": "PineconeStore.fromExistingIndex",
+          "fields": ["namespace"],
+          "notes": "Client from getPineconeClient (src/app/lib/pinecode.ts:7, env-configured). Similarity search at line 56."
+        },
+        {
+          "file": "src/app/api/uploadthing/core.ts",
+          "line": 105,
+          "operation": "PineconeStore.fromDocuments (upsert)",
+          "fields": ["namespace", "maxConcurrency"]
+        }
+      ],
+      "hints": {
+        "packages": ["@pinecone-database/pinecone", "@langchain/community"],
+        "hosts": ["app.pinecone.io"],
+        "docsUrls": ["https://github.com/pinecone-io/pinecone-ts-client"]
+      },
+      "sdk": {
+        "name": "@pinecone-database/pinecone",
+        "version": "^1.1.2",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "4lbatr0s/jiro",
+      "provider": "stripe",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "line": 34,
+          "operation": "subscriptions.retrieve",
+          "notes": "Stores subscription fields in DB"
+        },
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "line": 55,
+          "operation": "subscriptions.retrieve"
+        },
+        {
+          "file": "src/lib/stripe.ts",
+          "line": 50,
+          "operation": "subscriptions.retrieve",
+          "notes": "reads cancel_at_period_end"
+        },
+        {
+          "file": "src/trpc/controller/index.ts",
+          "line": 93,
+          "operation": "billingPortal.sessions.create",
+          "fields": ["customer", "return_url"],
+          "notes": "Returns url. Client in src/lib/stripe.ts:6, no apiVersion pinned."
+        },
+        {
+          "file": "src/trpc/controller/index.ts",
+          "line": 102,
+          "operation": "checkout.sessions.create",
+          "fields": ["mode", "line_items", "metadata", "success_url"],
+          "notes": "Returns url."
+        }
+      ],
+      "hints": {
+        "packages": ["stripe"],
+        "hosts": ["api.stripe.com"],
+        "docsUrls": ["https://github.com/stripe/stripe-node"]
+      },
+      "sdk": {
+        "name": "stripe",
+        "version": "^14.13.0",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "4lbatr0s/jiro",
+      "provider": "stripe",
+      "via": "webhook",
+      "callSites": [
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "line": 13,
+          "operation": "webhooks.constructEvent (signature verify)",
+          "notes": "Uses STRIPE_WEBHOOK_SECRET"
+        },
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "line": 33,
+          "operation": "checkout.session.completed handler"
+        },
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "line": 53,
+          "operation": "invoice.payment_succeeded handler"
+        }
+      ]
+    },
+    {
+      "repo": "4lbatr0s/jiro",
+      "provider": "kinde",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/auth/[kindeAuth]/route.ts",
+          "line": 10,
+          "operation": "handleAuth"
+        },
+        {
+          "file": "src/app/api/message/route.ts",
+          "line": 15,
+          "operation": "getUser"
+        },
+        {
+          "file": "src/app/api/uploadthing/core.ts",
+          "line": 24,
+          "operation": "getUser"
+        },
+        {
+          "file": "src/app/dashboard/[fileId]/page.tsx",
+          "line": 20,
+          "operation": "getUser"
+        },
+        {
+          "file": "src/app/dashboard/page.tsx",
+          "line": 11,
+          "operation": "getUser"
+        },
+        {
+          "file": "src/app/pricing/page.tsx",
+          "line": 71,
+          "operation": "getUser"
+        },
+        {
+          "file": "src/components/Navbar.tsx",
+          "line": 11,
+          "operation": "getUser"
+        },
+        {
+          "file": "src/lib/stripe.ts",
+          "line": 12,
+          "operation": "getUser"
+        },
+        {
+          "file": "src/middleware.ts",
+          "line": 6,
+          "operation": "withAuth middleware"
+        },
+        {
+          "file": "src/trpc/service/index.ts",
+          "line": 10,
+          "operation": "getUser"
+        },
+        {
+          "file": "src/trpc/trpc.ts",
+          "line": 14,
+          "operation": "getUser"
+        }
+      ],
+      "hints": {
+        "packages": ["@kinde-oss/kinde-auth-nextjs"],
+        "hosts": ["jiro.kinde.com"],
+        "docsUrls": ["https://github.com/kinde-oss/kinde-auth-nextjs"]
+      },
+      "sdk": {
+        "name": "@kinde-oss/kinde-auth-nextjs",
+        "version": "^2.0.13",
+        "lockfile": "package-lock.json"
+      }
+    },
+    {
+      "repo": "4lbatr0s/jiro",
+      "provider": "uploadthing",
+      "via": "sdk",
+      "callSites": [
+        {
+          "file": "src/app/api/uploadthing/core.ts",
+          "line": 65,
+          "operation": "GET uploadthing-prod.s3.us-west-2.amazonaws.com/{file.key}",
+          "notes": "Plain fetch of the uploaded PDF from UploadThing's S3 bucket, parsed by PDFLoader"
+        },
+        {
+          "file": "src/app/api/uploadthing/route.ts",
+          "line": 6,
+          "operation": "createNextRouteHandler",
+          "notes": "Router in core.ts; onUploadComplete callback is called by uploadthing"
+        },
+        {
+          "file": "src/components/UploadDropzone.tsx",
+          "line": 56,
+          "operation": "startUpload",
+          "notes": "Reads fileResponse key"
+        }
+      ],
+      "hints": {
+        "packages": ["uploadthing", "@uploadthing/react"],
+        "hosts": ["uploadthing-prod.s3.us-west-2.amazonaws.com"],
+        "docsUrls": ["https://github.com/pingdotgg/uploadthing"]
+      },
+      "sdk": {
+        "name": "uploadthing",
+        "version": "^6.1.0",
+        "lockfile": "package-lock.json"
+      }
+    }
+  ],
+  "purposes": {
+    "openai": "Chat completions and embeddings for PDF Q&A",
+    "pinecone": "Vector store for PDF chunks",
+    "stripe": "Subscription lifecycle events",
+    "kinde": "Authentication (OAuth/OIDC)",
+    "uploadthing": "PDF file upload and storage"
+  },
+  "summary": "4lbatr0s/jiro uses kinde for Authentication (OAuth/OIDC) through @kinde-oss/kinde-auth-nextjs ^2.0.13 in 11 places; stripe for Subscriptions billing through stripe ^14.13.0 in 5 places; openai for Chat completions and embeddings for PDF Q&A through openai ^4.24.3, pinned to gpt-3.5-turbo in 3 places; stripe for Subscription lifecycle events through webhooks in 3 places; uploadthing for PDF file upload and storage through uploadthing ^6.1.0 in 3 places; pinecone for Vector store for PDF chunks through @pinecone-database/pinecone ^1.1.2 in 2 places.",
+  "agentSummary": "I recorded six usages across five providers. I read the repo myself and did not use area readers. It's a small Next.js app, with about 66 source files.\n\n- **OpenAI (SDK):** Chat completions and embeddings for the PDF question-and-answer feature. The chat call is `chat.completions.create` with `gpt-3.5-turbo`, streamed through the Vercel `ai` package. Embeddings go through `OpenAIEmbeddings` from `@langchain/openai`. That package is imported in the code but isn't in `package.json`.\n- **Pinecone (SDK):** The vector store for PDF chunks. It is used for indexing at upload (`PineconeStore.fromDocuments`) and for retrieval in the chat route (`fromExistingIndex` plus `similaritySearch`). The client in `src/app/lib/pinecode.ts` reads its settings from environment variables.\n- **Stripe (SDK):** Checkout and billing-portal session creation, plus `subscriptions.retrieve` in three places. The client in `src/lib/stripe.ts` pins no `apiVersion`.\n- **Stripe (webhook):** The receiver verifies the signature with `constructEvent`. It handles `checkout.session.completed` and `invoice.payment_succeeded`.\n- **Kinde (SDK):** Authentication. I recorded `handleAuth`, the `withAuth` middleware and every `getUser` call, 11 sites in all.\n- **UploadThing (SDK):** The upload route handler, the client-side `startUpload`, and a plain `fetch` of the uploaded PDF from UploadThing's S3 bucket.\n\n**Unsure or not recorded:**\n- **Pinned versions:** For the SDKs I recorded the `package.json` ranges and did not look up lockfile versions. Only OpenAI has a pinned value, which is the model name.\n- **Google Generative AI:** `@google/generative-ai` and `@langchain/google-genai` are installed. `GoogleGenerativeAIEmbeddings` is imported in `src/app/api/uploadthing/core.ts` but I didn't find it used. I did not record it.\n- **Hugging Face transformers:** The local embeddings option is commented out in `core.ts`, so I did not record it.\n- **Secrets in logs:** `src/app/api/uploadthing/core.ts` logs `OPENAI_API_KEY` and `PINECONE_API_KEY` to the console.\n\nThe database is Prisma on MySQL through a driver, so it is out of scope. `/api/message` is called from the repo's own frontend, so it is not external.",
+  "outcome": "success",
+  "costUsd": 0.13812159999999998,
+  "costByModel": {
+    "claude-haiku-5-5": 0.0001298,
+    "claude-sonnet-5-5": 0.1379918
+  },
+  "turns": 18,
+  "durationMs": 37641
+}

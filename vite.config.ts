@@ -4,6 +4,7 @@ import { defineConfig } from 'vitest/config';
 const backend = [
   'app',
   'inventory',
+  'dead-apis',
   'harness',
   'memory',
   'providers',

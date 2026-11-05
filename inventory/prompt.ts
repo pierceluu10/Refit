@@ -1,5 +1,5 @@
 // Prompts for the inventory agent and its area readers. Guidance lives here, not in code.
-export const PROMPT_VERSION = 'inventory-v3';
+export const PROMPT_VERSION = 'inventory-v8';
 
 export const AREA_READER = 'area-reader';
 
@@ -39,11 +39,12 @@ ${HOW_TO_FIND}
 ${HOW_TO_RECORD}
 
 Workflow:
-1. Map the repository with repo_map and list_manifests. Run the helper scanners to collect leads.
-2. Decide how to read. Read a small repository (under about 150 source files, with no client used in more than about 20 places) yourself. Otherwise you must fan out: split it into areas (services, packages, or top-level source directories) and dispatch one ${AREA_READER} subagent per area, all in the same turn so they run in parallel. Give each one its directories, the leads that fall in them (dependencies, hosts, env names, files to start from) and what you already know about shared clients defined elsewhere. Area readers record their findings directly with record_usage. Keep areas few and meaningful (at most 6). Also give a heavily used client (for example 100 database-client calls) to its own ${AREA_READER} with the grep patterns that find its calls. Fanning out is cheaper than reading everything yourself, because area readers run on a smaller model.
-3. Read the code. Follow imports, wrappers and shared clients across files. Record as you confirm.
-4. Review with list_recorded_usages: merge duplicates (remove_usage), fill in sdk versions, pinned versions and hints, and check the leads nobody followed up. Check scripts, tasks, build and infrastructure files too, and grep once more for each heavily used client to confirm every call is recorded.
-5. Finish with a short plain-text summary: each provider, what it is used for, through what, and anything you were unsure about or could not read. Do not restate every call site.
+1. Start from the code scan in the task message. Ordinary code has already read the manifests, lockfiles, imports and API hosts. It recorded every usage it could prove from a known SDK's import, client and calls, or a fetch to a known API host, and it listed every lead it could not settle. Its usages are already recorded (list_recorded_usages shows them). Do not re-read their files or record them again unless a lead points there or you find one wrong.
+2. Settle every lead. Read the code a lead points to and record each external API you confirm. When you can record several usages, send them in one reply with several record_usage calls: every reply re-reads the whole conversation, so fewer replies cost less. Leads that turn out not to be external APIs (the repo's own backend, a library with no network calls, a link in the UI) need no record: name them briefly in your summary. Unknown dependencies are names only: judge from the name which could talk to a service, and check those in the code. Browser-side services count too: analytics, captcha, scheduling and chat widgets, maps and embeds that a package renders or a script tag loads (record a package's component via sdk, a script or URL via http). Each base URL set in code is its own provider when it points an SDK or client at another vendor's host: record one usage per host, with the SDK that calls it.
+3. Then hunt for what no scanner sees, as described above: wrappers, clients passed between files, generated clients, URLs built from env or config, scripts, tasks, infrastructure and CI files. A scanned usage only has the calls the scan could see; when a lead says a file imports an SDK or a client with no call found, find its calls. Use repo_map and the helper scanners when you need more than the scan gave.
+4. When the scan suggests areas, you must fan out: in your first reply, dispatch one ${AREA_READER} subagent per suggested area (at most 6), all in the same turn so they run in parallel. Give each one its directories, its exact leads (file:line) and what you know about shared clients defined elsewhere. Area readers record their findings directly with record_usage and run on a smaller model, so recording many usages through them costs a fraction of recording them yourself. Then review what they recorded. When the scan suggests no areas, read the leads yourself.
+5. Review with list_recorded_usages: merge duplicates (remove_usage), fill in sdk versions, pinned versions and hints, and check the leads nobody followed up. A scanned usage can be wrong or incomplete: fix it with remove_usage and record_usage.
+6. Finish with a short plain-text summary: each provider, what it is used for, through what, the leads that were not external APIs, and anything you were unsure about or could not read. Do not restate every call site.
 
 Your tools are read-only and confined to the repository. Do not run, install or build anything.`;
 
@@ -60,6 +61,7 @@ Stay in the area you were given, but follow an import out of it when you need to
 export const AREA_READER_DESCRIPTION =
   'Reads one area of the repository (a service, package or directory) and records every external API call site in it with record_usage. Dispatch several in parallel for large repositories.';
 
-export function taskPrompt(repo: string): string {
-  return `Inventory every external API used by the repository ${repo}. The repository is your working directory; all paths are relative to its root.`;
+export function taskPrompt(repo: string, scanEvidence?: string): string {
+  const task = `Inventory every external API used by the repository ${repo}. The repository is your working directory; all paths are relative to its root.`;
+  return scanEvidence ? `${task}\n\n${scanEvidence}` : task;
 }

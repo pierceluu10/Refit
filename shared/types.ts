@@ -122,12 +122,16 @@ export type RunView = {
 
 // Rebuild contracts (2026-11-05). Additive only. The list and scanner live in dead-apis/ and inventory/.
 
-// What the scanner matches for one entry. `string` is a literal or model id, `url` a host and path,
-// `field` a property read on an object from that provider, `package` a dependency name.
+// What the scanner matches for one entry, as defined in dead-apis/match.ts. `string` is a whole token,
+// so gpt-4 doesn't hit gpt-4o and embedding-001 doesn't hit gemini-embedding-001; `*` is a wildcard
+// within the token. `regex` is for shapes a token can't say, `url` a host and path, `field` a property
+// read on an object from that provider, `package` a dependency name. `ambiguous` means a hit is common
+// words or the same shape as the app's own code, so it goes to the small AI check and never to a fix.
 export type DeadApiMatcher =
-  | { kind: 'string'; value: string; caseSensitive?: boolean }
-  | { kind: 'url'; value: string }
-  | { kind: 'field'; value: string; on?: string[] }
+  | { kind: 'string'; value: string; caseSensitive?: boolean; ambiguous?: boolean }
+  | { kind: 'regex'; value: string; ambiguous?: boolean }
+  | { kind: 'url'; value: string; ambiguous?: boolean }
+  | { kind: 'field'; value: string; on?: string[]; ambiguous?: boolean }
   | { kind: 'package'; value: string; ecosystem?: 'npm' | 'python' };
 
 // A version gate. An entry with none applies to every version. A pin never clears an entry alone:
@@ -149,7 +153,10 @@ export type DeadApiEntry = {
   versions?: string; // `appliesTo.describe`, kept flat for prompts
   appliesTo?: DeadApiVersions;
   replacement: string; // must appear on the provider's own page, or say what the page says instead
+  replacementIds?: string[]; // model ids or paths named in `replacement`, so a chain can be checked
   requires: string[]; // what else moving to the replacement requires
+  // Where the entry counts: the same model name on another host isn't this provider's model.
+  context?: { packages?: string[]; hosts?: string[] };
 };
 
 // Announced but still working. Never flagged as a break.
@@ -158,9 +165,14 @@ export type FutureShutdown = {
   provider: string;
   what: string;
   diesOn: string; // ISO date
+  earliest?: boolean; // the provider calls the date "earliest possible", so it doesn't turn on by itself
   source: { url: string; checkedOn: string };
   matchers: DeadApiMatcher[];
+  appliesTo?: DeadApiVersions;
   replacement?: string;
+  replacementIds?: string[];
+  requires?: string[];
+  context?: DeadApiEntry['context'];
 };
 
 export type MatchClass = 'live' | 'catalog' | 'test' | 'comment' | 'unclear';

@@ -1,0 +1,181 @@
+{
+  "provider": "google-analytics",
+  "officialHosts": ["developers.google.com", "support.google.com", "developer.chrome.com"],
+  "entries": [
+    {
+      "id": "GA-1.measurement-protocol",
+      "provider": "google-analytics",
+      "what": "Universal Analytics hits sent directly to google-analytics.com/collect or /batch with v=1 and tid=UA-... Google's sunset page names the product, not these endpoints; tying them to Universal Analytics is a reading from DEAD-APIS.md, backed by the old protocol docs now redirecting to the sunset page. Google's support page (https://support.google.com/analytics/answer/11583528) says standard Universal Analytics properties stopped processing hits starting July 1, 2023, and access to the interface, API and data ended starting July 1, 2024, so a standard property's hits stopped counting a year before diedOn.",
+      "diedOn": "2024-07-01",
+      "source": {
+        "url": "https://developers.google.com/analytics/legacy/universal-analytics",
+        "checkedOn": "2026-11-05",
+        "quote": "no longer available as of July 1, 2024"
+      },
+      "lookFor": [
+        "Requests to google-analytics.com/collect or google-analytics.com/batch, on any subdomain such as www or ssl",
+        "The hit parameter tid=UA-... in a query string or form body. v=1 alone isn't matched, since a cache-buster like style.css?v=1 looks the same, and neither is an object shaped like { v: 1, tid: ... } or a tid built from a variable: those are found through the host URL, so read the code around that hit",
+        "Not /g/collect or /mp/collect, and not tid=G-...: those are GA4 and still live"
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "google-analytics.com/collect"
+        },
+        {
+          "kind": "url",
+          "value": "google-analytics.com/batch"
+        },
+        {
+          "kind": "regex",
+          "value": "tid=UA-"
+        }
+      ],
+      "replacement": "The sunset page only says to get started with Google Analytics. For server hits and Manifest V3 Chrome extensions, Google's GA4 pages give the Measurement Protocol: POST https://www.google-analytics.com/mp/collect?measurement_id=G-XXXX&api_secret=SECRET with a JSON body holding client_id and events: [{name, params}]. For code running in a web page, they say to use the Google tag (gtag.js) or Google Tag Manager instead. Pages: https://developers.google.com/analytics/devguides/collection/protocol/ga4/sending-events and https://developers.google.com/tag-platform/gtagjs.",
+      "replacementIds": ["/mp/collect", "gtag.js"],
+      "requires": [
+        "Read the GA4 measurement ID and API secret from config, and say in the PR what a person must set: nobody has these yet, and they can't be derived from the UA- ID.",
+        "A person creates the secret in Google Analytics under Admin > Data collection and modification > Data streams > the stream > Measurement Protocol API secrets, and copies the measurement ID (usually starting G-) from Stream details.",
+        "The api_secret is private: Google says not to expose it in client-side code, so never put it in browser code; a hit sent from a web page moves to gtag.js or through the app's own server.",
+        "Manifest V3 Chrome extensions can't load gtag.js, so Google recommends the Measurement Protocol there even though the secret ships inside the extension: say this exposure in the PR.",
+        "Only HTTP POST with a JSON body works: a GET, an image pixel or a form-encoded v=1 body has to be rewritten.",
+        "client_id is required in the body and should match the ID the Google tag generated; an extension keeps its own in browser.storage.local, which needs the storage permission. UA's cid carrying this value is a reading, not on a live Google page.",
+        "Each hit becomes an event with a name and params. A /batch call becomes one body with at most 25 events, each with at most 25 parameters, under 130kB.",
+        "Event and parameter names must be 40 characters or fewer, use only letters, numbers and underscores, and start with a letter. Event names are case sensitive.",
+        "Reserved names can't be used, such as session_start, first_visit, user_engagement and error; parameter names can't begin with _, firebase_, ga_, google_ or gtag.",
+        "Web streams use page_view, not screen_view: a UA pageview or screenview hit maps to page_view (the UA side of that mapping is a reading).",
+        "Move custom dimensions such as cd1 into named event params. Each must also be registered in Admin > Custom definitions, a step for a person, or the data is collected but isn't available in reports. The cd1-to-name mapping can't be derived, so read what each one means from the code.",
+        "Parameter values must be 100 characters or fewer on a standard property, so old long values may need trimming.",
+        "Add session_id and engagement_time_msec to event params, or user activity won't show in reports like Realtime. Measurement Protocol alone may give only partial reporting, and hits lose information such as geolocation.",
+        "The endpoint returns no HTTP error codes even for a malformed event, so a success check proves nothing: validate against /debug/mp/collect, which returns validationMessages."
+      ],
+      "context": {
+        "hosts": ["google-analytics.com"]
+      }
+    },
+    {
+      "id": "GA-1.analytics-js",
+      "provider": "google-analytics",
+      "what": "Universal Analytics on web pages: the analytics.js library and its ga('create', ...) and ga('send', ...) commands. Google's support page (https://support.google.com/analytics/answer/11583528) says standard Universal Analytics properties stopped processing hits starting July 1, 2023, and access to the interface, API and data ended starting July 1, 2024, so a standard property's hits stopped counting a year before diedOn.",
+      "diedOn": "2024-07-01",
+      "source": {
+        "url": "https://developers.google.com/analytics/legacy/universal-analytics",
+        "checkedOn": "2026-11-05",
+        "quote": "Universal Analytics has sunset"
+      },
+      "lookFor": [
+        "A script loaded from google-analytics.com/analytics.js (a repo's own file that happens to be called analytics.js doesn't count)",
+        "ga('create', ...) and ga('send', ...) calls, in either quote style, including on window.ga. Not ReactGA.ga(...) from react-ga4, which is alive, or a name that ends in ga, such as saga(...)"
+      ],
+      "matchers": [
+        {
+          "kind": "url",
+          "value": "google-analytics.com/analytics.js"
+        },
+        {
+          "kind": "regex",
+          "value": "(?<![\\w$.])(?:window\\.)?ga\\(\\s*['\"](?:create|send)['\"]"
+        }
+      ],
+      "replacement": "The sunset page only says to get started with Google Analytics. For web pages, Google's GA4 pages give the Google tag (gtag.js): load https://www.googletagmanager.com/gtag/js?id=TAG_ID, call gtag('config', 'G-XXXX'), and send events with gtag('event', name, params). Page: https://developers.google.com/tag-platform/gtagjs.",
+      "replacementIds": ["gtag.js"],
+      "requires": [
+        "Read the G- measurement ID from config, and say in the PR what a person must set: nobody has one yet, and it can't be derived from the UA- ID. It's in Google Analytics under Admin > Data collection and modification > Data streams > the web stream.",
+        "No API secret belongs in this code: gtag.js doesn't use one, and the Measurement Protocol secret must never reach client-side code.",
+        "A manual pageview on route change must be deleted. On a single-page site the Google tag also sends page_view on history changes, even with send_page_view: false, so turn off \"Page changes based on browser history events\" in the stream's Enhanced Measurement settings if the code keeps its own pageview. Otherwise pageviews count twice.",
+        "ga('send', 'event', category, action, label, value) becomes gtag('event', name, params): choose one event name and carry the rest as params. The old argument shape is a reading, not on a live Google page.",
+        "Event names must start with a letter, use only letters, numbers and underscores, are case sensitive, and can't be reserved names such as session_start or first_visit.",
+        "Move custom dimensions (ga('set', 'dimension1', ...) or cd1) into named event params. Each must also be registered in Admin > Custom definitions, a step for a person, or the data isn't available in reports. Parameter names can't begin with _, firebase_, ga_, google_ or gtag.",
+        "If the site sends a Content-Security-Policy, Google's list for Analytics without Ads features allows https://www.googletagmanager.com in script-src-elem, https://www.googletagmanager.com and https://*.google-analytics.com in img-src, and those two plus https://*.google.com in connect-src. With Ads features on, Google's default list needs more hosts, so read https://developers.google.com/tag-platform/security/guides/csp."
+      ]
+    },
+    {
+      "id": "GA-1.ua-property-id",
+      "provider": "google-analytics",
+      "what": "Universal Analytics property IDs, which start UA-. Matching the UA-digits-digits shape is a reading: the sunset page doesn't describe the ID format. Google's support page (https://support.google.com/analytics/answer/11583528) says standard Universal Analytics properties stopped processing hits starting July 1, 2023, and access to the interface, API and data ended starting July 1, 2024, so a standard property's hits stopped counting a year before diedOn.",
+      "diedOn": "2024-07-01",
+      "source": {
+        "url": "https://developers.google.com/analytics/legacy/universal-analytics",
+        "checkedOn": "2026-11-05",
+        "quote": "no longer available as of July 1, 2024"
+      },
+      "lookFor": [
+        "Property IDs shaped like UA-12345678-1: UA-, at least four digits, a hyphen, then digits, in code, config, env examples or HTML. Case sensitive and digits only, so ua-parser-js, X-UA-Compatible and Sec-CH-UA-Platform-Version don't count"
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\\bUA-\\d{4,}-\\d+\\b"
+        }
+      ],
+      "replacement": "A GA4 measurement ID, which Google says usually starts with G-, used with the Google tag (gtag.js) on web pages or as measurement_id on the Measurement Protocol's /mp/collect. Pages: https://support.google.com/analytics/answer/9539598 and https://developers.google.com/analytics/devguides/collection/protocol/ga4/sending-events.",
+      "replacementIds": ["gtag.js", "/mp/collect"],
+      "requires": [
+        "Read the measurement ID from config, and say in the PR what a person must set: it can't be derived from the UA- ID, so never make one up. It's in Google Analytics under Admin > Data collection and modification > Data streams > the web stream.",
+        "Changing the ID isn't enough on its own: whatever sends the data (analytics.js, /collect hits or a library) has to move as well, since a G- ID doesn't work there. That last part is a reading."
+      ]
+    },
+    {
+      "id": "GA-1.react-ga",
+      "provider": "google-analytics",
+      "what": "The npm package react-ga, a library built on Universal Analytics. Google's page doesn't name it: this comes from DEAD-APIS.md and is a reading. react-ga4 is a different package and doesn't count. Google's support page (https://support.google.com/analytics/answer/11583528) says standard Universal Analytics properties stopped processing hits starting July 1, 2023, and access to the interface, API and data ended starting July 1, 2024, so a standard property's hits stopped counting a year before diedOn.",
+      "diedOn": "2024-07-01",
+      "source": {
+        "url": "https://developers.google.com/analytics/legacy/universal-analytics",
+        "checkedOn": "2026-11-05",
+        "quote": "Universal Analytics has sunset"
+      },
+      "lookFor": ["react-ga as a dependency or import (not react-ga4)"],
+      "matchers": [
+        {
+          "kind": "package",
+          "value": "react-ga",
+          "ecosystem": "npm"
+        }
+      ],
+      "replacement": "The Google tag (gtag.js) with a G- measurement ID, which is what Google's GA4 pages give for web pages. Google's pages don't name a React wrapper, so any wrapper package is the fix session's own choice and should be said in the PR. Page: https://developers.google.com/tag-platform/gtagjs.",
+      "replacementIds": ["gtag.js"],
+      "requires": [
+        "Read the G- measurement ID from config, and say in the PR what a person must set: nobody has one yet, and it can't be derived from the UA- ID.",
+        "Remove the react-ga dependency, not just its imports.",
+        "A manual pageview on route change must be deleted. On a single-page site the Google tag also sends page_view on history changes, even with send_page_view: false, so turn off \"Page changes based on browser history events\" in the stream's Enhanced Measurement settings if the code keeps its own pageview. Otherwise pageviews count twice.",
+        "Category and action style events become one event name plus params. That the old call has this shape is a reading from react-ga, not on a Google page.",
+        "Event names must start with a letter, use only letters, numbers and underscores, are case sensitive, and can't be reserved names.",
+        "Move custom dimensions into named event params, and tell a person to register each one in Admin > Custom definitions, or the data isn't available in reports."
+      ]
+    },
+    {
+      "id": "GA-1.universal-analytics",
+      "provider": "google-analytics",
+      "what": "The npm package universal-analytics, a server-side library that sends Universal Analytics hits. Google's page doesn't name it: this comes from DEAD-APIS.md and is a reading. Google's support page (https://support.google.com/analytics/answer/11583528) says standard Universal Analytics properties stopped processing hits starting July 1, 2023, and access to the interface, API and data ended starting July 1, 2024, so a standard property's hits stopped counting a year before diedOn.",
+      "diedOn": "2024-07-01",
+      "source": {
+        "url": "https://developers.google.com/analytics/legacy/universal-analytics",
+        "checkedOn": "2026-11-05",
+        "quote": "Universal Analytics has sunset"
+      },
+      "lookFor": ["universal-analytics as a dependency or import"],
+      "matchers": [
+        {
+          "kind": "package",
+          "value": "universal-analytics",
+          "ecosystem": "npm"
+        }
+      ],
+      "replacement": "The Measurement Protocol, which Google's GA4 pages give for server-side use: POST https://www.google-analytics.com/mp/collect?measurement_id=G-XXXX&api_secret=SECRET with a JSON body holding client_id and events: [{name, params}]. Google's pages don't name a package for this, and a plain fetch works. Page: https://developers.google.com/analytics/devguides/collection/protocol/ga4/sending-events.",
+      "replacementIds": ["/mp/collect"],
+      "requires": [
+        "Read the GA4 measurement ID and API secret from config, and say in the PR what a person must set: nobody has these yet. The secret is under Admin > Data collection and modification > Data streams > the stream > Measurement Protocol API secrets.",
+        "The api_secret is private: keep it in server config, and never send it to client-side code or commit it.",
+        "client_id is required in the body and should match the ID the Google tag generated, if the site has one.",
+        "Each hit becomes an event with a name and params, at most 25 events to a request and 25 parameters to an event.",
+        "Event and parameter names must be 40 characters or fewer, use only letters, numbers and underscores, and start with a letter. Reserved names can't be used.",
+        "Move custom dimensions such as cd1 into named event params, and tell a person to register each one in Admin > Custom definitions, or the data isn't available in reports.",
+        "Add session_id and engagement_time_msec to event params, or activity won't show in reports like Realtime.",
+        "The endpoint returns no HTTP error codes even for a malformed event, so validate against /debug/mp/collect.",
+        "Sending events only through the Measurement Protocol may give partial reporting: Google says to use it alongside tagging (gtag, Tag Manager or Firebase)."
+      ]
+    }
+  ],
+  "future": []
+}
