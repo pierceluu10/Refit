@@ -1,5 +1,7 @@
+import { join } from 'node:path';
 import { Budget, defaultAi, defaultMemory, listRunViews, recordVerdict } from '../memory/index.ts';
 import { readConfig } from './config.ts';
+import { createConsentStore } from './consent.ts';
 import {
   compareCommits,
   createInstallationTokens,
@@ -8,7 +10,7 @@ import {
   listViewerRepos,
 } from './github.ts';
 import { createFileQueue } from './queue.ts';
-import { createAppRunner } from './runner.ts';
+import { createAppEvidence, createAppRunner } from './runner.ts';
 import { createWebhookServer } from './server.ts';
 import { createTick, createTriggerStore, startClock } from './triggers.ts';
 import type { RecordVerdict } from './types.ts';
@@ -20,11 +22,15 @@ const VERDICT_BUDGET_USD = 1;
 const config = readConfig();
 const host = process.env.HOST ?? DEFAULT_HOST;
 const tokens = createInstallationTokens(config.appId, config.privateKey);
+const consent = createConsentStore(join(config.dataDir, 'installations'));
 
+const evidence = createAppEvidence(tokens, config.dataDir, consent);
 const triggers = createTriggerStore(config.triggerDir);
 
-const queue = await createFileQueue(config.queueFile, createAppRunner(tokens, triggers), (job) =>
-  triggers.merged(job, new Date()),
+const queue = await createFileQueue(
+  config.queueFile,
+  createAppRunner(tokens, triggers, evidence),
+  (job) => triggers.merged(job, new Date()),
 );
 
 const verdict: RecordVerdict = async (pr, human) => {
@@ -43,6 +49,8 @@ const server = createWebhookServer({
   queue,
   forgetRepo: (job) => triggers.forget(job, new Date()),
   recordVerdict: verdict,
+  evidence,
+  consent,
   listRunViews,
   viewerRepos: (userToken) => listViewerRepos(userToken, config.appId),
 });

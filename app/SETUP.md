@@ -107,6 +107,7 @@ Put these in `app/.env` (gitignored; `npm run dev` loads it). Never commit or pr
 | `SMEE_URL`                    | Dev tunnel only                                                                                   |
 | `APTITUDE_QUEUE_FILE`         | Job queue file; default `.aptitude/queue.json` (a persistent path in production)                  |
 | `APTITUDE_TRIGGER_DIR`        | Scan state and the trigger record; default `.aptitude/triggers` (a persistent path in production) |
+| `APTITUDE_APP_DIR`            | Consent settings and fix facts; default `.aptitude/app` (a persistent path in production)         |
 | `APTITUDE_SPEND_LOG`          | Keeps the AI check's spend across restarts; without it each restart starts from $0                |
 | `APTITUDE_MEMORY_DIR`         | memory/'s store; absolute path on a persistent volume in production                               |
 | `APTITUDE_AI_BUDGET_USD`      | Run cap for the loop; required once `ANTHROPIC_API_KEY` is set                                    |

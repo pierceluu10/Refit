@@ -5,7 +5,7 @@ import { inForceVersion, type DeadApiList } from '../dead-apis/list.ts';
 import { utcDay } from '../dead-apis/proposals.ts';
 import { redactSecrets } from '../harness/secrets.ts';
 import type { DeadScanReport } from '../inventory/dead-scan.ts';
-import type { OpenPullRequest, RunRepoJob } from '../shared/types.ts';
+import type { Finding, OpenPullRequest, RunRepoJob } from '../shared/types.ts';
 import {
   decide,
   type RepoState,
@@ -26,6 +26,8 @@ export type JobRunnerDeps = {
   loadList: () => DeadApiList;
   triggers: TriggerStore;
   now?: () => Date;
+  // Tells evidence what this scan found. `at` is from before the clone.
+  rescan: (job: UnderstandJob, findings: Finding[], at: string) => Promise<void>;
 };
 
 type Outcome = Omit<
@@ -66,11 +68,18 @@ export function createJobRunner(deps: JobRunnerDeps) {
     today: string,
   ): Promise<{ outcome: Outcome; failure?: unknown }> {
     const dir = await mkdtemp(join(tmpdir(), 'aptitude-checkout-'));
+    const at = now().toISOString();
     try {
       await deps.checkout(token, job.repo, dir);
       // From the clone, not the earlier read: a push between the two must not pass as this scan's tree.
       const treeSha = await deps.treeOfCheckout(dir);
       const report = await deps.scan(dir, job.repo);
+      try {
+        await deps.rescan(job, report.findings, at);
+      } catch (error) {
+        // Learning from a rescan never stands between a repo and its fix.
+        console.error(`rescan evidence for ${job.repo} failed: ${messageOf(error)}`);
+      }
       const live = liveFindings(report);
       const tried = why === 'manual' ? [] : (previous?.attempted ?? []);
       let fix: TriggerRecord['fix'];

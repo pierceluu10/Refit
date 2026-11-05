@@ -1,6 +1,7 @@
 // Usage: node app/triggers-cli.ts summary [--json]     what ran, why, and how long since each repo's last check
 //        node app/triggers-cli.ts rescan <owner/name>  scan now and try a fix again, even with nothing changed
 // Only rescan needs the App's credentials, and only rescan can spend.
+import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { readTriggerDir } from './config.ts';
 import {
@@ -51,16 +52,24 @@ async function rescan(repo: string): Promise<void> {
     process.exit(BAD_USAGE);
   }
   // Loaded here so that a summary doesn't pull in the orchestrator or ask for credentials.
-  const [{ readConfig }, { createInstallationTokens }, { createAppRunner }] = await Promise.all([
+  const [
+    { readConfig },
+    { createConsentStore },
+    { createInstallationTokens },
+    { createAppEvidence, createAppRunner },
+  ] = await Promise.all([
     import('./config.ts'),
+    import('./consent.ts'),
     import('./github.ts'),
     import('./runner.ts'),
   ]);
   const config = readConfig();
   const tokens = createInstallationTokens(config.appId, config.privateKey);
+  const consent = createConsentStore(join(config.dataDir, 'installations'));
   await createAppRunner(
     tokens,
     triggers,
+    createAppEvidence(tokens, config.dataDir, consent),
   )({
     kind: 'understand',
     installationId: state.installationId,

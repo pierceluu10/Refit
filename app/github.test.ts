@@ -3,12 +3,17 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   GITHUB_API,
   GitHubApiError,
+  commitFiles,
+  compareFiles,
   createAppJwt,
   createInstallationTokens,
   githubRequest,
   headTree,
+  isPersonCommit,
   listInstallationIds,
   listInstallationRepos,
+  listPullComments,
+  listPullFiles,
   listViewerRepos,
 } from './github.ts';
 
@@ -254,5 +259,65 @@ describe('listInstallationIds', () => {
     expect(fetchImpl).toHaveBeenCalledTimes(2);
     expect(fetchImpl.mock.calls[1][0]).toBe(`${GITHUB_API}/app/installations?per_page=100&page=2`);
     expect(headersOf(fetchImpl).Authorization).toMatch(/^Bearer .+\..+\..+$/);
+  });
+});
+
+describe('reading what happened to a PR', () => {
+  const REPO = 'acme/shop';
+  const urlOf = (fetchImpl: ReturnType<typeof vi.fn>, call = 0) =>
+    fetchImpl.mock.calls[call][0] as string;
+
+  it("compares with GitHub's three dots: two dots answer 404 on the real API", async () => {
+    const fetchImpl = vi.fn(async () =>
+      json({ status: 'ahead', ahead_by: 1, commits: [], files: [{ filename: 'a.ts' }] }),
+    );
+    const compared = await compareFiles('tok', REPO, 'ours', 'head', fetchImpl);
+    expect(urlOf(fetchImpl)).toBe(`${GITHUB_API}/repos/${REPO}/compare/ours...head`);
+    expect(compared).toEqual({ status: 'ahead', files: [{ filename: 'a.ts' }] });
+  });
+
+  it('reads the files of one commit', async () => {
+    const fetchImpl = vi.fn(async () => json({ sha: 'x', files: [{ filename: 'a.ts' }] }));
+    expect(await commitFiles('tok', REPO, 'ours', fetchImpl)).toEqual([{ filename: 'a.ts' }]);
+    expect(urlOf(fetchImpl)).toBe(`${GITHUB_API}/repos/${REPO}/commits/ours`);
+  });
+
+  it('keeps asking until a page comes back short', async () => {
+    const full = Array.from({ length: 100 }, (_, index) => ({ filename: `${index}.ts` }));
+    const pages = [full, [{ filename: 'last.ts' }]];
+    const fetchImpl = vi.fn(async () => json(pages.shift()));
+    const files = await listPullFiles('tok', REPO, 41, fetchImpl);
+    expect(files).toHaveLength(101);
+    expect(urlOf(fetchImpl, 1)).toBe(
+      `${GITHUB_API}/repos/${REPO}/pulls/41/files?per_page=100&page=2`,
+    );
+  });
+
+  it('gathers the conversation, reviews and line comments, leaving out pending reviews', async () => {
+    const user = { login: 'dev', type: 'User' };
+    const replies: Record<string, unknown[]> = {
+      'issues/41/comments': [{ user, body: 'talk', created_at: '2026-11-01T01:00:00Z' }],
+      'pulls/41/reviews': [
+        { user, body: 'review', submitted_at: '2026-11-01T02:00:00Z' },
+        { user, body: 'still pending' },
+      ],
+      'pulls/41/comments': [{ user, body: 'on a line', created_at: '2026-11-01T03:00:00Z' }],
+    };
+    const fetchImpl = vi.fn(async (url: string | URL | Request) => {
+      const key = Object.keys(replies).find((path) => String(url).includes(path));
+      return json(key ? replies[key] : []);
+    });
+    expect(await listPullComments('tok', REPO, 41, fetchImpl)).toEqual([
+      { user, body: 'talk', at: '2026-11-01T01:00:00Z' },
+      { user, body: 'on a line', at: '2026-11-01T03:00:00Z' },
+      { user, body: 'review', at: '2026-11-01T02:00:00Z' },
+    ]);
+  });
+
+  it('a person commit is a non-merge commit not authored by a bot', () => {
+    expect(isPersonCommit({ parents: ['a'], author: { type: 'User' } })).toBe(true);
+    expect(isPersonCommit({ parents: ['a'], author: null })).toBe(true);
+    expect(isPersonCommit({ parents: ['a'], author: { type: 'Bot' } })).toBe(false);
+    expect(isPersonCommit({ parents: ['a', 'b'], author: { type: 'User' } })).toBe(false);
   });
 });

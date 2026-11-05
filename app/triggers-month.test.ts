@@ -203,6 +203,7 @@ describe('a month of ticks over quiet repos', () => {
       loadList: () => list,
       triggers: store,
       now,
+      rescan: async () => {},
     });
 
     const queue = await createFileQueue(join(root, 'queue.json'), run, (job) =>
@@ -219,6 +220,13 @@ describe('a month of ticks over quiet repos', () => {
         forgetRepo: (job) => store.forget(job, now()),
         recordVerdict: async () => {},
         compareCommits: async () => [],
+        evidence: {
+          closed: async () => {},
+          edited: async () => {},
+          revertMerged: async () => {},
+          pushed: async () => {},
+        },
+        consent: { recordInstall: async () => {}, forget: async () => {} },
       },
     );
     await queue.idle();

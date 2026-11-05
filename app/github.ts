@@ -220,7 +220,17 @@ export async function listViewerRepos(
   return repos;
 }
 
+export const BOT = 'Bot';
+
 export type ComparedCommit = { parents: unknown[]; author: { type: string } | null };
+
+// memory/README.md: a person's own commit is a non-merge commit not authored by a bot, which leaves
+// out Aptitude's commits, other bots' and the Update branch button's merge.
+export const isPersonCommit = (commit: ComparedCommit) =>
+  commit.parents.length < 2 && commit.author?.type !== BOT;
+
+const comparePath = (repo: string, base: string, head: string) =>
+  `/repos/${repo}/compare/${encodeURIComponent(base)}...${encodeURIComponent(head)}`;
 
 // The commits reachable from head but not base. shortcut: GitHub returns at most 250.
 export async function compareCommits(
@@ -230,13 +240,117 @@ export async function compareCommits(
   head: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<ComparedCommit[]> {
-  const path = `/repos/${repo}/compare/${encodeURIComponent(base)}...${encodeURIComponent(head)}`;
   const result = await githubRequest<{ commits: ComparedCommit[] }>(
     token,
     'GET',
-    path,
+    comparePath(repo, base, head),
     undefined,
     fetchImpl,
   );
   return result.commits;
+}
+
+// For endpoints that answer with a bare array, a page at a time.
+async function listEvery<T>(token: string, path: string, fetchImpl: typeof fetch): Promise<T[]> {
+  const items: T[] = [];
+  for (let page = 1; ; page++) {
+    const batch = await githubRequest<T[]>(
+      token,
+      'GET',
+      `${path}?per_page=${PER_PAGE}&page=${page}`,
+      undefined,
+      fetchImpl,
+    );
+    items.push(...batch);
+    if (batch.length < PER_PAGE) return items;
+  }
+}
+
+// `patch` is missing for binary and very large files; `sha` is the file's blob after the change.
+export type ChangedFile = { filename: string; status: string; sha: string; patch?: string };
+
+export const listPullCommits = (
+  token: string,
+  repo: string,
+  number: number,
+  fetchImpl: typeof fetch = fetch,
+) => listEvery<ComparedCommit>(token, `/repos/${repo}/pulls/${number}/commits`, fetchImpl);
+
+// What the PR changes against its base. GitHub measures from the merge base, so what main gained
+// meanwhile, through Update branch or not, doesn't show here.
+export const listPullFiles = (
+  token: string,
+  repo: string,
+  number: number,
+  fetchImpl: typeof fetch = fetch,
+) => listEvery<ChangedFile>(token, `/repos/${repo}/pulls/${number}/files`, fetchImpl);
+
+export async function commitFiles(
+  token: string,
+  repo: string,
+  sha: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<ChangedFile[]> {
+  const commit = await githubRequest<{ files: ChangedFile[] }>(
+    token,
+    'GET',
+    `/repos/${repo}/commits/${encodeURIComponent(sha)}`,
+    undefined,
+    fetchImpl,
+  );
+  return commit.files;
+}
+
+export type FileComparison = { status: string; files: ChangedFile[] };
+
+// GitHub's only form is BASE...HEAD, which diffs from their merge base; BASE..HEAD answers 404. So this
+// is a diff of the two trees only while status is `ahead` or `identical`: base is head's ancestor.
+// shortcut: GitHub lists at most 300 files here.
+export async function compareFiles(
+  token: string,
+  repo: string,
+  base: string,
+  head: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<FileComparison> {
+  const { status, files } = await githubRequest<FileComparison>(
+    token,
+    'GET',
+    comparePath(repo, base, head),
+    undefined,
+    fetchImpl,
+  );
+  return { status, files };
+}
+
+export type PullComment = {
+  user: { login: string; type: string } | null;
+  body: string | null;
+  at: string;
+};
+
+type Commented = Omit<PullComment, 'at'> & { created_at: string };
+type Reviewed = Omit<PullComment, 'at'> & { submitted_at?: string };
+
+// Everything people said on a PR: its conversation, review summaries and comments on lines.
+export async function listPullComments(
+  token: string,
+  repo: string,
+  number: number,
+  fetchImpl: typeof fetch = fetch,
+): Promise<PullComment[]> {
+  const [conversation, reviews, onLines] = await Promise.all([
+    listEvery<Commented>(token, `/repos/${repo}/issues/${number}/comments`, fetchImpl),
+    listEvery<Reviewed>(token, `/repos/${repo}/pulls/${number}/reviews`, fetchImpl),
+    listEvery<Commented>(token, `/repos/${repo}/pulls/${number}/comments`, fetchImpl),
+  ]);
+  const said = ({ user, body, created_at }: Commented) => ({ user, body, at: created_at });
+  return [
+    ...conversation.map(said),
+    ...onLines.map(said),
+    // A review still pending has no submitted_at.
+    ...reviews.flatMap(({ user, body, submitted_at }) =>
+      submitted_at ? [{ user, body, at: submitted_at }] : [],
+    ),
+  ];
 }

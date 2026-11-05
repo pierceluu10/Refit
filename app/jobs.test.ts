@@ -6,7 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildList, type ProviderFile } from '../dead-apis/list.ts';
 import { readQueue } from '../dead-apis/queue.ts';
 import { scanDeadApis, type DeadScanReport, type FindingDetail } from '../inventory/dead-scan.ts';
-import type { DeadApiEntry, FutureShutdown, OpenPullRequest, RunRecord } from '../shared/types.ts';
+import type {
+  DeadApiEntry,
+  Finding,
+  FutureShutdown,
+  OpenPullRequest,
+  RunRecord,
+} from '../shared/types.ts';
 import { GitHubApiError } from './github.ts';
 import { createJobRunner, type JobRunnerDeps } from './jobs.ts';
 import { createFileQueue } from './queue.ts';
@@ -126,6 +132,7 @@ function world(overrides: Partial<JobRunnerDeps> = {}) {
     scanResult: report(),
     calls: { head: 0, checkout: 0, scan: 0, fix: 0 },
     dirs: [] as string[],
+    rescans: [] as { findings: Finding[]; at: string }[],
     fix: async (): Promise<RunRecord[]> => [RECORD],
     records: () => triggers.records(),
     last: async () => (await triggers.records()).at(-1),
@@ -157,6 +164,9 @@ function world(overrides: Partial<JobRunnerDeps> = {}) {
     loadList: () => w.list,
     triggers,
     now: () => new Date(`${w.today}T12:00:00Z`),
+    rescan: async (_job, findings, at) => {
+      w.rescans.push({ findings, at });
+    },
     ...overrides,
   });
   return w;
@@ -219,6 +229,60 @@ describe('the skip rule', () => {
     w.head.set(REPO, TREE_A);
     await w.run(job('push'));
     expect(await w.last()).toMatchObject({ decision: 'scanned', why: 'first-scan' });
+  });
+});
+
+describe('telling evidence what a scan found', () => {
+  const FOUND = [live('AN-1', 'src/a.ts')];
+
+  it('hands over the findings of the one scan, then fixes', async () => {
+    const order: string[] = [];
+    const w = world({
+      rescan: async () => {
+        order.push(`rescan after ${w.calls.scan} scan, ${w.calls.fix} fix`);
+      },
+    });
+    w.scanResult = report(FOUND);
+    await w.run(job('install'));
+    expect(order).toEqual(['rescan after 1 scan, 0 fix']);
+    expect(w.calls).toMatchObject({ scan: 1, fix: 1 });
+  });
+
+  it('passes the report and a time from before the clone', async () => {
+    let clock = Date.parse('2026-11-05T12:00:00Z');
+    const before = new Date(clock).toISOString();
+    const w = world({
+      now: () => new Date(clock),
+      checkout: async () => {
+        clock += 60_000; // a merge can land during the clone, and mustn't count against itself
+      },
+    });
+    w.scanResult = report(FOUND);
+    await w.run(job('install'));
+    expect(w.rescans).toEqual([{ findings: FOUND, at: before }]);
+  });
+
+  it('a failed hand-over never stops the fix, and its message is redacted', async () => {
+    const w = world({
+      rescan: async () => {
+        throw new Error(`evidence store broke with ${SECRET_TOKEN}`);
+      },
+    });
+    w.scanResult = report(FOUND);
+    await w.run(job('install'));
+    expect(w.calls.fix).toBe(1);
+    expect(await w.last()).toMatchObject({ decision: 'scanned', fix: 'ran' });
+    const logged = vi.mocked(console.error).mock.calls.flat().join(' ');
+    expect(logged).toContain('evidence store broke');
+    expect(logged).not.toContain(SECRET_TOKEN);
+  });
+
+  it('has nothing to look at on a skip, since nothing was downloaded', async () => {
+    const w = world();
+    await w.run(job('install'));
+    await w.run(job('clock'));
+    expect(w.calls.scan).toBe(1);
+    expect(w.rescans).toHaveLength(1);
   });
 });
 
@@ -522,6 +586,13 @@ describe('webhooks through the real queue', () => {
   ) as { after: string; repository: { full_name: string }; deleted?: boolean };
   const pushed = pushPayload.repository.full_name;
 
+  const NO_EVIDENCE: WebhookDeps['evidence'] = {
+    closed: async () => {},
+    edited: async () => {},
+    revertMerged: async () => {},
+    pushed: async () => {},
+  };
+
   function webhookDeps(
     queue: WebhookDeps['queue'],
     triggers: ReturnType<typeof createTriggerStore>,
@@ -533,6 +604,8 @@ describe('webhooks through the real queue', () => {
       tokens: { token: async () => 'token' },
       listRepos: async () => REPOS,
       compareCommits: async () => [],
+      evidence: NO_EVIDENCE,
+      consent: { recordInstall: async () => {}, forget: async () => {} },
     };
   }
   const push = { ...pushPayload, deleted: false };
