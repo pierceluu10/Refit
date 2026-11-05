@@ -977,7 +977,14 @@ function classify(hit: Hit, repo: Repo): Verdict {
     // A picker's option isn't a common word, and what's picked often reaches the provider in another file.
     // Nor is a field a GraphQL query asks for, and the client it goes through is often in another file.
     const asked = span !== undefined && isGraphqlText(source, span);
-    if (matcher.kind !== 'url' && !picker && !asked && !fileNamesProvider(repo, source, context)) {
+    // A bare name is one another provider shares, so a picker in this file may well be that provider's.
+    const pickedHere = picker && !('bare' in matcher && matcher.bare);
+    if (
+      matcher.kind !== 'url' &&
+      !pickedHere &&
+      !asked &&
+      !fileNamesProvider(repo, source, context)
+    ) {
       return { quiet: true, reason: `a common word in a file that never names ${entry.provider}` };
     }
   }

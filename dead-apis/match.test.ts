@@ -36,7 +36,6 @@ describe('string matchers are whole tokens', () => {
     'claude-sonnet-4-5-20250929',
     'claude-opus-4-8',
     'claude-sonnet-5-5',
-    'anthropic.claude-sonnet-4-20250514-v1:0',
     'claude-sonnet-4-20250514@20250514',
     'gemini-embedding-001',
     'gemini-pro-latest',
@@ -54,6 +53,12 @@ describe('string matchers are whole tokens', () => {
     '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b',
   ])('does not flag the live name %s', (name) => {
     expect(flags(`model: "${name}"`)).toEqual([]);
+  });
+
+  it("gives the Bedrock form of a name to Bedrock's entry, not Anthropic's", () => {
+    expect(flags('model: "anthropic.claude-sonnet-4-20250514-v1:0"')).toEqual([
+      'AW-1.claude-sonnet-4',
+    ]);
   });
 
   it.each([

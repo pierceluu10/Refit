@@ -1,0 +1,359 @@
+{
+  "provider": "xai",
+  "officialHosts": ["docs.x.ai"],
+  "entries": [
+    {
+      "id": "XA-1.grok-4-1-fast-reasoning",
+      "provider": "xai",
+      "what": "xAI retired grok-4-1-fast-reasoning on 2026-05-15. Requests do not fail: the slug still resolves and is served by grok-4.3 with low reasoning effort, billed at that model's rates ($1.25 per 1M input and $2.50 per 1M output).",
+      "diedOn": "2026-05-15",
+      "source": {
+        "url": "https://docs.x.ai/developers/migration/may-15-retirement",
+        "checkedOn": "2026-11-05",
+        "quote": "requests to the retired model slugs above will automatically redirect to grok-4.3. The slugs themselves continue to resolve, so you do not need to change your code to avoid breakage."
+      },
+      "lookFor": [
+        "The model ID grok-4-1-fast-reasoning sent to xAI (api.x.ai, its SDK, or a client pointed at it), or xai/grok-4-1-fast-reasoning. Not a gateway's vendor/name form such as x-ai/grok-4-1-fast-reasoning, and not an Azure Foundry deployment."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "grok-4-1-fast-reasoning",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "xai/grok-4-1-fast-reasoning",
+          "bare": true
+        }
+      ],
+      "replacement": "grok-4.3, which is what the redirect serves at low reasoning effort.",
+      "replacementIds": ["grok-4.3"],
+      "requires": [
+        "Set reasoning_effort on the request to choose it: none, low, medium or high. The redirect picks for you, and the price changes with the model."
+      ],
+      "context": {
+        "packages": ["@ai-sdk/xai", "xai-sdk", "@langchain/xai", "langchain-xai"],
+        "hosts": ["api.x.ai", "xai_api_key", "chatxai", "createxai"]
+      }
+    },
+    {
+      "id": "XA-1.grok-4-1-fast-non-reasoning",
+      "provider": "xai",
+      "what": "xAI retired grok-4-1-fast-non-reasoning on 2026-05-15. Requests do not fail: the slug still resolves and is served by grok-4.3 with none reasoning effort, billed at that model's rates ($1.25 per 1M input and $2.50 per 1M output).",
+      "diedOn": "2026-05-15",
+      "source": {
+        "url": "https://docs.x.ai/developers/migration/may-15-retirement",
+        "checkedOn": "2026-11-05",
+        "quote": "requests to the retired model slugs above will automatically redirect to grok-4.3. The slugs themselves continue to resolve, so you do not need to change your code to avoid breakage."
+      },
+      "lookFor": [
+        "The model ID grok-4-1-fast-non-reasoning sent to xAI (api.x.ai, its SDK, or a client pointed at it), or xai/grok-4-1-fast-non-reasoning. Not a gateway's vendor/name form such as x-ai/grok-4-1-fast-non-reasoning, and not an Azure Foundry deployment."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "grok-4-1-fast-non-reasoning",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "xai/grok-4-1-fast-non-reasoning",
+          "bare": true
+        }
+      ],
+      "replacement": "grok-4.3, which is what the redirect serves at none reasoning effort.",
+      "replacementIds": ["grok-4.3"],
+      "requires": [
+        "Set reasoning_effort on the request to choose it: none, low, medium or high. The redirect picks for you, and the price changes with the model."
+      ],
+      "context": {
+        "packages": ["@ai-sdk/xai", "xai-sdk", "@langchain/xai", "langchain-xai"],
+        "hosts": ["api.x.ai", "xai_api_key", "chatxai", "createxai"]
+      }
+    },
+    {
+      "id": "XA-1.grok-4-fast-reasoning",
+      "provider": "xai",
+      "what": "xAI retired grok-4-fast-reasoning on 2026-05-15. Requests do not fail: the slug still resolves and is served by grok-4.3 with low reasoning effort, billed at that model's rates ($1.25 per 1M input and $2.50 per 1M output).",
+      "diedOn": "2026-05-15",
+      "source": {
+        "url": "https://docs.x.ai/developers/migration/may-15-retirement",
+        "checkedOn": "2026-11-05",
+        "quote": "requests to the retired model slugs above will automatically redirect to grok-4.3. The slugs themselves continue to resolve, so you do not need to change your code to avoid breakage."
+      },
+      "lookFor": [
+        "The model ID grok-4-fast-reasoning sent to xAI (api.x.ai, its SDK, or a client pointed at it), or xai/grok-4-fast-reasoning. Not a gateway's vendor/name form such as x-ai/grok-4-fast-reasoning, and not an Azure Foundry deployment."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "grok-4-fast-reasoning",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "xai/grok-4-fast-reasoning",
+          "bare": true
+        }
+      ],
+      "replacement": "grok-4.3, which is what the redirect serves at low reasoning effort.",
+      "replacementIds": ["grok-4.3"],
+      "requires": [
+        "Set reasoning_effort on the request to choose it: none, low, medium or high. The redirect picks for you, and the price changes with the model."
+      ],
+      "context": {
+        "packages": ["@ai-sdk/xai", "xai-sdk", "@langchain/xai", "langchain-xai"],
+        "hosts": ["api.x.ai", "xai_api_key", "chatxai", "createxai"]
+      }
+    },
+    {
+      "id": "XA-1.grok-4-fast-non-reasoning",
+      "provider": "xai",
+      "what": "xAI retired grok-4-fast-non-reasoning on 2026-05-15. Requests do not fail: the slug still resolves and is served by grok-4.3 with none reasoning effort, billed at that model's rates ($1.25 per 1M input and $2.50 per 1M output).",
+      "diedOn": "2026-05-15",
+      "source": {
+        "url": "https://docs.x.ai/developers/migration/may-15-retirement",
+        "checkedOn": "2026-11-05",
+        "quote": "requests to the retired model slugs above will automatically redirect to grok-4.3. The slugs themselves continue to resolve, so you do not need to change your code to avoid breakage."
+      },
+      "lookFor": [
+        "The model ID grok-4-fast-non-reasoning sent to xAI (api.x.ai, its SDK, or a client pointed at it), or xai/grok-4-fast-non-reasoning. Not a gateway's vendor/name form such as x-ai/grok-4-fast-non-reasoning, and not an Azure Foundry deployment."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "grok-4-fast-non-reasoning",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "xai/grok-4-fast-non-reasoning",
+          "bare": true
+        }
+      ],
+      "replacement": "grok-4.3, which is what the redirect serves at none reasoning effort.",
+      "replacementIds": ["grok-4.3"],
+      "requires": [
+        "Set reasoning_effort on the request to choose it: none, low, medium or high. The redirect picks for you, and the price changes with the model."
+      ],
+      "context": {
+        "packages": ["@ai-sdk/xai", "xai-sdk", "@langchain/xai", "langchain-xai"],
+        "hosts": ["api.x.ai", "xai_api_key", "chatxai", "createxai"]
+      }
+    },
+    {
+      "id": "XA-1.grok-4-0709",
+      "provider": "xai",
+      "what": "xAI retired grok-4-0709 on 2026-05-15. Requests do not fail: the slug still resolves and is served by grok-4.3 with low reasoning effort, billed at that model's rates ($1.25 per 1M input and $2.50 per 1M output).",
+      "diedOn": "2026-05-15",
+      "source": {
+        "url": "https://docs.x.ai/developers/migration/may-15-retirement",
+        "checkedOn": "2026-11-05",
+        "quote": "requests to the retired model slugs above will automatically redirect to grok-4.3. The slugs themselves continue to resolve, so you do not need to change your code to avoid breakage."
+      },
+      "lookFor": [
+        "The model ID grok-4-0709 sent to xAI (api.x.ai, its SDK, or a client pointed at it), or xai/grok-4-0709. Not a gateway's vendor/name form such as x-ai/grok-4-0709, and not an Azure Foundry deployment."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "grok-4-0709",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "xai/grok-4-0709",
+          "bare": true
+        }
+      ],
+      "replacement": "grok-4.3, which is what the redirect serves at low reasoning effort.",
+      "replacementIds": ["grok-4.3"],
+      "requires": [
+        "Set reasoning_effort on the request to choose it: none, low, medium or high. The redirect picks for you, and the price changes with the model."
+      ],
+      "context": {
+        "packages": ["@ai-sdk/xai", "xai-sdk", "@langchain/xai", "langchain-xai"],
+        "hosts": ["api.x.ai", "xai_api_key", "chatxai", "createxai"]
+      }
+    },
+    {
+      "id": "XA-1.grok-3",
+      "provider": "xai",
+      "what": "xAI retired grok-3 on 2026-05-15. Requests do not fail: the slug still resolves and is served by grok-4.3 with none reasoning effort, billed at that model's rates ($1.25 per 1M input and $2.50 per 1M output).",
+      "diedOn": "2026-05-15",
+      "source": {
+        "url": "https://docs.x.ai/developers/migration/may-15-retirement",
+        "checkedOn": "2026-11-05",
+        "quote": "requests to the retired model slugs above will automatically redirect to grok-4.3. The slugs themselves continue to resolve, so you do not need to change your code to avoid breakage."
+      },
+      "lookFor": [
+        "The model ID grok-3 sent to xAI (api.x.ai, its SDK, or a client pointed at it), or xai/grok-3. Not a gateway's vendor/name form such as x-ai/grok-3, and not an Azure Foundry deployment."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "grok-3",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "xai/grok-3",
+          "bare": true
+        }
+      ],
+      "replacement": "grok-4.3, which is what the redirect serves at none reasoning effort.",
+      "replacementIds": ["grok-4.3"],
+      "requires": [
+        "Set reasoning_effort on the request to choose it: none, low, medium or high. The redirect picks for you, and the price changes with the model."
+      ],
+      "context": {
+        "packages": ["@ai-sdk/xai", "xai-sdk", "@langchain/xai", "langchain-xai"],
+        "hosts": ["api.x.ai", "xai_api_key", "chatxai", "createxai"]
+      }
+    },
+    {
+      "id": "XA-1.grok-code-fast-1",
+      "provider": "xai",
+      "what": "xAI retired grok-code-fast-1 on 2026-05-15. Requests do not fail: the slug still resolves and is served by grok-build-0.1, billed at that model's rates.",
+      "diedOn": "2026-05-15",
+      "source": {
+        "url": "https://docs.x.ai/developers/migration/may-15-retirement",
+        "checkedOn": "2026-11-05",
+        "quote": "After May 15, requests to grok-code-fast-1 are routed to grok-build-0.1."
+      },
+      "lookFor": [
+        "The model ID grok-code-fast-1 sent to xAI (api.x.ai, its SDK, or a client pointed at it), or xai/grok-code-fast-1. Not a gateway's vendor/name form such as x-ai/grok-code-fast-1, and not an Azure Foundry deployment."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "grok-code-fast-1",
+          "bare": true,
+          "ambiguous": true
+        },
+        {
+          "kind": "string",
+          "value": "xai/grok-code-fast-1",
+          "bare": true
+        }
+      ],
+      "replacement": "grok-build-0.1",
+      "replacementIds": ["grok-build-0.1"],
+      "requires": [],
+      "context": {
+        "packages": ["@ai-sdk/xai", "xai-sdk", "@langchain/xai", "langchain-xai"],
+        "hosts": ["api.x.ai", "xai_api_key", "chatxai", "createxai"]
+      }
+    },
+    {
+      "id": "XA-2.grok-imagine-image-pro",
+      "provider": "xai",
+      "what": "xAI retired grok-imagine-image-pro on 2026-05-15, with a redirect to grok-imagine-image-quality, which was itself retired on 2026-11-02. Requests do not fail: they are now served by grok-imagine-image-2.0 at quality low, at that model's lower price.",
+      "diedOn": "2026-05-15",
+      "source": {
+        "url": "https://docs.x.ai/developers/migration/imagine-image-quality-nov-2",
+        "checkedOn": "2026-11-05",
+        "quote": "Requests to grok-imagine-image-pro, which already redirect to grok-imagine-image-quality, follow it to grok-imagine-image-2.0 at low."
+      },
+      "lookFor": [
+        "The model ID grok-imagine-image-pro sent to xAI (api.x.ai, its SDK, or a client pointed at it), or xai/grok-imagine-image-pro. Not a gateway's vendor/name form such as x-ai/grok-imagine-image-pro, and not an Azure Foundry deployment."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "grok-imagine-image-pro",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "xai/grok-imagine-image-pro",
+          "bare": true
+        }
+      ],
+      "replacement": "grok-imagine-image-2.0",
+      "replacementIds": ["grok-imagine-image-2.0"],
+      "requires": [
+        "The redirect pins quality to low. grok-imagine-image-2.0 takes quality low, medium or auto, and auto is its default when quality is left out, so set it to keep what you pay for."
+      ],
+      "context": {
+        "packages": ["@ai-sdk/xai", "xai-sdk", "@langchain/xai", "langchain-xai"],
+        "hosts": ["api.x.ai", "xai_api_key", "chatxai", "createxai"]
+      }
+    },
+    {
+      "id": "XA-2.grok-imagine-image-quality",
+      "provider": "xai",
+      "what": "xAI retired grok-imagine-image-quality on 2026-11-02. Requests do not fail: the slug still resolves and is served by grok-imagine-image-2.0 at quality low, at a lower per-image price. grok-imagine-image (1.0) is not affected.",
+      "diedOn": "2026-11-02",
+      "source": {
+        "url": "https://docs.x.ai/developers/migration/imagine-image-quality-nov-2",
+        "checkedOn": "2026-11-05",
+        "quote": "Effective November 2, 2026, the grok-imagine-image-quality model slug is retired from the xAI API."
+      },
+      "lookFor": [
+        "The model ID grok-imagine-image-quality sent to xAI (api.x.ai, its SDK, or a client pointed at it), or xai/grok-imagine-image-quality. Not a gateway's vendor/name form such as x-ai/grok-imagine-image-quality, and not an Azure Foundry deployment."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "grok-imagine-image-quality",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "xai/grok-imagine-image-quality",
+          "bare": true
+        }
+      ],
+      "replacement": "grok-imagine-image-2.0",
+      "replacementIds": ["grok-imagine-image-2.0"],
+      "requires": [
+        "The redirect pins quality to low. grok-imagine-image-2.0 takes quality low, medium or auto, and auto is its default when quality is left out, so set it to keep what you pay for."
+      ],
+      "context": {
+        "packages": ["@ai-sdk/xai", "xai-sdk", "@langchain/xai", "langchain-xai"],
+        "hosts": ["api.x.ai", "xai_api_key", "chatxai", "createxai"]
+      }
+    },
+    {
+      "id": "XA-3.grok-voice-transcribe-1.0",
+      "provider": "xai",
+      "what": "grok-voice-transcribe-1.0 reached end of life on 2026-10-02. Requests do not fail: the slug is routed to grok-voice-transcribe-2.0 at the same price.",
+      "diedOn": "2026-10-02",
+      "source": {
+        "url": "https://docs.x.ai/developers/release-notes",
+        "checkedOn": "2026-11-05",
+        "quote": "grok-voice-transcribe-1.0 is deprecated and reaches end of life on October 2, 2026."
+      },
+      "lookFor": [
+        "The model ID grok-voice-transcribe-1.0 sent to xAI (api.x.ai, its SDK, or a client pointed at it), or xai/grok-voice-transcribe-1.0. Not a gateway's vendor/name form such as x-ai/grok-voice-transcribe-1.0, and not an Azure Foundry deployment."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "grok-voice-transcribe-1.0",
+          "bare": true
+        },
+        {
+          "kind": "string",
+          "value": "xai/grok-voice-transcribe-1.0",
+          "bare": true
+        }
+      ],
+      "replacement": "grok-voice-transcribe-2.0",
+      "replacementIds": ["grok-voice-transcribe-2.0"],
+      "requires": [],
+      "context": {
+        "packages": ["@ai-sdk/xai", "xai-sdk", "@langchain/xai", "langchain-xai"],
+        "hosts": ["api.x.ai", "xai_api_key", "chatxai", "createxai"]
+      }
+    }
+  ],
+  "future": []
+}

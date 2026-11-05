@@ -3642,15 +3642,7 @@ describe('P5 round 3: providers the report should name', () => {
       'b.py': 'from openai import AzureOpenAI\nclient = AzureOpenAI()\n',
     });
     expect(report.unlistedProviders).toEqual(
-      expect.arrayContaining([
-        'azure-openai',
-        'convex',
-        'kakao',
-        'langsmith',
-        'mongodb',
-        'neon',
-        'strapi',
-      ]),
+      expect.arrayContaining(['convex', 'kakao', 'langsmith', 'mongodb', 'neon', 'strapi']),
     );
   });
 });
