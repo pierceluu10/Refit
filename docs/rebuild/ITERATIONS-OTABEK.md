@@ -216,6 +216,8 @@ Measured so far, on repos already seen and with layers restored: `Chat-Nest-AI` 
 
 These were built in O3: failed checks and what the rescan still finds go back to the same session. 5 of the first 26 runs needed a second pass. The retry cost $0.05 on `buddy_connect`. I didn't test running without it, so I can't say how many fixes it rescued.
 
+A third kind came with the rounds: a major upgrade no entry asks for comes back once (round 3), and so does GraphQL the validator rejects and a requirement answered `left` (round 7). The major-upgrade retry had no unneeded major left in rounds 4 to 7.
+
 ### One PR per repo
 
 One session gives one PR per repo by construction. The PR body lists each entry, its source and how many uses it had.
@@ -417,7 +419,7 @@ The locks can't see what went wrong here. They show a name moved, and every lock
 
 ## O8 round 6: the last of the fresh pool
 
-Run 2026-11-05 from `rebuild/integration` at `bf80757c`, lock in `evals/rounds/o8-6/`, prompt `rebuild-3`. It cost $1.0022 of a $9 cap, so the lane stands at about $14.70 of $50, with the `hyperion` rerun below included.
+Run 2026-11-05 from `rebuild/integration` at `bf80757c`, lock in `evals/rounds/o8-6/`, prompt `rebuild-3`. It cost $1.0022 of a $9 cap, so the lane stands at about $14.90 of $50, with the `hyperion` rerun below included.
 
 | Measure | Result | Target |
 | --- | --- | --- |
@@ -514,7 +516,7 @@ Round 7's repos had nothing for the new rules to catch, so 3 harder repos reran 
 - **Plain code reads the GraphQL.** It runs the provider's validator over the repo before the session and hands over what's rejected. It checks again afterwards, with one retry, and what stays gives Needs a look.
 - **The session answers each requirement.** The "requires" lines used to reach it joined into one paragraph. They're now numbered once each, and `finish` wants `done`, `not-applicable` or `left` for every one. An unanswered line counts as left.
 
-**To Pierce:** `Shopify-Storefront-AI-agent`'s `api_version = "2025-04"` went from a fix to `catalog` on the newer scanner, so its webhook version no longer moves. `productVariantUpdate` needs a list entry either way.
+**To Pierce:** `productVariantUpdate` needs a list entry either way.
 
 ### Second reruns: plain code in, `rebuild-5`
 
@@ -547,4 +549,65 @@ So numbered requirements cost nothing extra and didn't over-label the Shopify re
 **The push back backfired on the 3 harder repos.** All 3 read Fixed, and none added `refusal` handling. They answered `not-applicable` and wrote in `unproven` that a refusal could loop. Those are false Fixed labels, and that's worse than `rebuild-5`.
 
 **What changed, `rebuild-7`:** a line that came back can only become `done`, with a change to show for it, or stay `left`. `not-applicable` now means the code has nothing the line is about, or it's tuning or review advice. A line that says to handle, remove or replace something the code can meet applies.
+
+### Last rerun: `rebuild-7`
+
+The same 3 harder repos, for $0.7091. All 10 locks passed. They aren't fresh and don't count.
+
+| Repo | `rebuild-6` | `rebuild-7` | Right? |
+| --- | --- | --- | --- |
+| `Shopify-Storefront-AI-agent` | False Fixed | Needs a look. The chat loop now ends on `refusal` and the rest and tells the user. 2 lines stay left, and the PR names them | Yes |
+| `ListAI-V2` | False Fixed | Needs a look. Both calls handle a refusal, but no test runs the rework | Yes |
+| `shop-chat-agent` | False Fixed | Fixed. It stops on `refusal`, the context limit and `max_tokens`, and sets `effort` | Yes |
+
+The work got done this time, and it cost for it: $0.24 a repo against $0.18. All 3 took under 3 minutes. With the last code, all 5 of the harder repos got a label I agree with. That's a small set I've tuned against, so it's not a score.
+
+## Why the O8 loop stopped
+
+The list of fresh repos ran out with round 7, so there's nothing left to score against. The last prompt, `rebuild-7`, has only run on repos I've seen.
+
+| Round | Required changes | Fixed labels I agreed with | Unneeded majors |
+| --- | --- | --- | --- |
+| 3 | 13 of 13 | 6 of 8 | 1 repo |
+| 4 | 23 of 23 | 3 of 6 | none |
+| 5 | 18 of 19 | 6 of 7 | none |
+| 6 | 23 of 23 | 5 of 7 | none |
+| 7 | 23 of 23 | 9 of 9, easy repos | none |
+| All | 100 of 101 | 29 of 37, 78% | 1 repo |
+
+| Target | Result | Met? |
+| --- | --- | --- |
+| At least 70% of required changes | 99% across rounds 3 to 7. Locks only read names | Yes |
+| At least 90% of Fixed labels agreed | 78% across rounds. The last code hasn't had a fresh test | Not shown |
+| About $0 with no match | No model call on a clean scan, about $0.0006 when a check runs | Yes |
+| About $0.50 with matches, never above $1 | $0.13 average, $0.27 highest in rounds 3 to 7 | Yes |
+| Under 5 minutes with matches | 10 of 10 first runs in round 7, but green repos only. About 1 repo in 10 misses on setup alone, and `hyperion` took 22 minutes | Green repos only |
+| No unneeded major upgrades | None since round 3 | Yes |
+
+**What's blocking the 90%:**
+
+- **Fresh, hard repos.** The next honest number needs new repos with more than one provider. O9's sealed set is the planned test.
+- **A first answer of `not-applicable` isn't checked.** Only a line that came back has to show a change. `ListAI-V2` and `shop-chat-agent` used `left` honestly on `rebuild-7`, but nothing makes a session do so.
+- **Locks read names, not behaviour.** The labels that went wrong all passed their locks, so the hand-check is the only measure of quality.
+- **GraphQL only.** The plain-code check covers Shopify's Admin GraphQL. Other providers' tool packs have no such pass, and neither do webhook payloads.
+
+## Lane total
+
+| Run | Cost |
+| --- | --- |
+| O2 to O4 | $1.79 |
+| O7 | $3.70 |
+| Sweep and rounds 1 and 2 | $3.33 |
+| O10 | $0.75 |
+| Regression and the AI check | $0.76 |
+| Round 3 and the `ksyp-7` rerun | $1.00 |
+| Rounds 4 and 5 | $2.17 |
+| Planner screens, all rounds | about $0.20 |
+| `hyperion` rerun | $0.20 |
+| Round 6 | $1.00 |
+| Round 7 | $1.29 |
+| Reruns on rounds 6 and 7's code | $3.74 |
+| **Total** | **about $20 of $50** |
+
+Costs are the Agent SDK's estimate, and O9 hasn't run.
 
