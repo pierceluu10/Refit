@@ -8,12 +8,14 @@ import { PROVIDERS_ROOT } from './pack.ts';
 const ID = /^[a-z0-9][a-z0-9-]*$/;
 
 // A retired model's quoted id becomes its replacement. A file that also sets something the new model
-// handles differently is left for Claude: `blockedBy` is what the list entry's "requires" names.
+// handles differently is left for Claude: `blockedBy` is what the list entry's "requires" names, and
+// `dropLines` the lines those fixes all removed.
 export function modelSwap(
   entryId: string,
   from: string,
   to: string,
   blockedBy?: RegExp,
+  dropLines?: RegExp,
 ): ProvenFix {
   const quoted = new RegExp(`(["'\`])${from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\1`, 'g');
   return {
@@ -21,7 +23,8 @@ export function modelSwap(
     apply: (text) => {
       if (blockedBy?.test(text)) return undefined;
       const next = text.replace(quoted, (_, quote: string) => `${quote}${to}${quote}`);
-      return next === text ? undefined : next;
+      if (next === text) return undefined;
+      return dropLines ? next.replace(dropLines, '') : next;
     },
   };
 }
