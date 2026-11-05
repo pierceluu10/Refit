@@ -4157,6 +4157,254 @@ describe('product runs: a REST import that carries its own version', () => {
   });
 });
 
+describe("seen in P5, round 6: lines of Shopify's template that only repeat a pin", () => {
+  const PACKAGE = {
+    'package.json': JSON.stringify({
+      private: true,
+      dependencies: { '@shopify/shopify-app-remix': '^3.7.0' },
+    }),
+  };
+  const OLD = 'SH-1.before-2025-04';
+  const PIN = '  apiVersion: ApiVersion.January25,\n';
+  const server = (config: string, after = '') =>
+    `const shopify = shopifyApp({\n${config}});\nexport default shopify;\n${after}`;
+  const UNREAD = 'export const apiVersion = ApiVersion.January25;\n';
+  const lineOf = (report: DeadScanReport, text: string) =>
+    report.details.find((one) => one.text.includes(text));
+
+  describe('an exported constant nothing reads', () => {
+    it('is catalog beside the real pin, and goes with its fix', async () => {
+      const report = await scan({ ...PACKAGE, 'app/shopify.server.ts': server(PIN, UNREAD) });
+      const unread = lineOf(report, 'export const apiVersion');
+      expect([unread?.matchClass, unread?.withFix], explain(report)).toEqual(['catalog', true]);
+      expect(lineOf(report, PIN.trim())?.matchClass, explain(report)).toBe('live');
+    });
+
+    it("doesn't take another file's key of the same name for a read", async () => {
+      const report = await scan({
+        ...PACKAGE,
+        'app/shopify.server.ts': server(PIN, UNREAD),
+        '.graphqlrc.ts':
+          'export default shopifyApiProject({\n  apiVersion: LATEST_API_VERSION,\n});\n',
+        'app/routes/a.ts': '// see apiVersion in shopify.server\n',
+      });
+      expect(lineOf(report, 'export const apiVersion')?.matchClass, explain(report)).toBe(
+        'catalog',
+      );
+    });
+
+    it.each([
+      [
+        'an importer',
+        {
+          'app/routes/a.ts':
+            "import { apiVersion } from '../shopify.server';\nfetch(apiVersion);\n",
+        },
+        '',
+      ],
+      [
+        'an importer on its own line',
+        { 'app/routes/a.ts': "import {\n  apiVersion,\n} from '../shopify.server';\n" },
+        '',
+      ],
+      ['a read in its own file', {}, 'createClient({ apiVersion });\n'],
+      ['its own key taking the value', {}, 'createClient({\n  apiVersion: apiVersion,\n});\n'],
+      ['a name in a string', { 'app/a.ts': "const v = load('apiVersion');\n" }, ''],
+    ])('stays live with %s', async (_what, files, after) => {
+      const report = await scan({
+        ...PACKAGE,
+        'app/shopify.server.ts': server(PIN, UNREAD + after),
+        ...files,
+      });
+      expect(lineOf(report, 'export const apiVersion')?.matchClass, explain(report)).toBe('live');
+    });
+
+    it.each([
+      ['main', { name: 'lib', main: 'index.js', dependencies: {} }],
+      ['exports', { name: 'lib', exports: './index.js', dependencies: {} }],
+    ])('stays live in a package published through %s', async (_what, fields) => {
+      const report = await scan({
+        'package.json': JSON.stringify(fields),
+        'index.ts': UNREAD,
+        'other.ts': `const c = {\n${PIN}};\n`,
+      });
+      expect(lineOf(report, 'export const apiVersion')?.matchClass, explain(report)).toBe('live');
+    });
+
+    it('stays live with no package.json to say it is an app', async () => {
+      const report = await scan({ 'index.ts': UNREAD, 'other.ts': `const c = {\n${PIN}};\n` });
+      expect(lineOf(report, 'export const apiVersion')?.matchClass, explain(report)).toBe('live');
+    });
+
+    it("is unclear, never clean, when it's the entry's only open hit", async () => {
+      const report = await scan({
+        ...PACKAGE,
+        'app/shopify.server.ts': UNREAD,
+        '.graphqlrc.ts': `export default {\n${PIN}};\n`,
+      });
+      expect(lineOf(report, 'export const apiVersion')?.matchClass, explain(report)).toBe(
+        'unclear',
+      );
+      expect(report.clean).toBe(false);
+    });
+
+    it('leaves an exported string as it was: a config value a word search can miss', async () => {
+      const report = await scan({
+        ...PACKAGE,
+        'app/a.ts': "export const url = 'https://x.myshopify.com/admin/api/2024-10/shop.json';\n",
+      });
+      expect(classesOf(report, OLD, 'app/a.ts'), explain(report)).toEqual(['live']);
+    });
+
+    it("doesn't apply to a field read, which isn't a value the code holds", async () => {
+      const report = await scan({
+        ...STRIPE_AT('^20.0.0'),
+        'a.ts': `${STRIPE_IMPORT}new Stripe('k', { apiVersion: '2026-02-25.clover' });\nexport function go(subscription: Stripe.Subscription) {\n  const end = subscription.current_period_end;\n  console.log(end);\n}\n`,
+      });
+      expect(classesOf(report, 'ST-1.current_period_end'), explain(report)).toEqual(['live']);
+    });
+  });
+
+  describe('a webhook version with no subscription', () => {
+    const TOML = (body = '') => `[webhooks]\napi_version = "2024-10"\n${body}`;
+    const SUBSCRIBED = '\n[[webhooks.subscriptions]]\ntopics = ["app/uninstalled"]\nuri = "/w"\n';
+    const version = (report: DeadScanReport, file = 'shopify.app.toml') =>
+      report.details.find((one) => one.file === file && one.entryId === OLD);
+
+    it.each([
+      ['shopify.app.toml', TOML()],
+      ['shopify.app.staging.toml', TOML()],
+      ['shopify.app.toml', TOML('# [[webhooks.subscriptions]]\n# topics = ["app/uninstalled"]\n')],
+    ])('is catalog in %s', async (file, text) => {
+      const report = await scan({
+        ...PACKAGE,
+        [file]: text,
+        'app/shopify.server.ts': server(
+          PIN,
+          'export const registerWebhooks = shopify.registerWebhooks;\n',
+        ),
+      });
+      const found = version(report, file);
+      expect([found?.matchClass, found?.withFix], explain(report)).toEqual(['catalog', true]);
+    });
+
+    it('stays as it was with a subscription in the file', async () => {
+      const report = await scan({
+        ...PACKAGE,
+        'shopify.app.toml': TOML(SUBSCRIBED),
+        'app/shopify.server.ts': server(PIN),
+      });
+      const found = version(report);
+      expect(found?.matchClass, explain(report)).toBe('unclear');
+      expect(found?.reason).toBe('the list marks this name ambiguous');
+    });
+
+    it.each([
+      ['a webhooks config', server(`${PIN}  webhooks: { APP_UNINSTALLED: {} },\n`)],
+      ['a call of registerWebhooks', server(PIN, 'await shopify.registerWebhooks({ session });\n')],
+      [
+        'a subscribe mutation',
+        'const q = `mutation { webhookSubscriptionCreate(topic: X) { id } }`;\n',
+      ],
+      ['an SDK subscribe', 'shopify.webhooks.addHandlers({});\n'],
+    ])('stays for the check when the code subscribes through %s', async (_what, code) => {
+      const report = await scan({
+        ...PACKAGE,
+        'shopify.app.toml': TOML(),
+        'app/shopify.server.ts': code,
+      });
+      const found = version(report);
+      expect(found?.matchClass, explain(report)).toBe('unclear');
+      expect(found?.reason).toMatch(/declares no \[\[webhooks\.subscriptions\]\]/);
+      expect(found?.reads?.[0]).toMatch(/^app\/shopify\.server\.ts:\d+: /);
+    });
+  });
+
+  describe('GraphQL tooling config', () => {
+    const CONFIG = `export default {\n  apiVersion: ApiVersion.January25,\n};\n`;
+    it.each([
+      ['.graphqlrc.js', CONFIG],
+      ['.graphqlrc.ts', CONFIG],
+      ['graphql.config.ts', CONFIG],
+      [
+        'codegen.ts',
+        `export default {\n  generates: {},\n  apiVersion: ApiVersion.January25,\n};\n`,
+      ],
+    ])('is catalog in %s, and goes with the fix', async (file, text) => {
+      const report = await scan({
+        ...PACKAGE,
+        [file]: text,
+        'app/shopify.server.ts': server(PIN),
+      });
+      const found = report.details.find((one) => one.file === file);
+      expect([found?.matchClass, found?.withFix], explain(report)).toEqual(['catalog', true]);
+      expect(classesOf(report, OLD, 'app/shopify.server.ts')).toEqual(['live']);
+    });
+
+    it("keeps a codegen.ts that isn't GraphQL codegen's, and any other file", async () => {
+      const report = await scan({
+        ...PACKAGE,
+        'codegen.ts': CONFIG,
+        'app/client.ts': CONFIG,
+      });
+      expect(classesOf(report, OLD, 'codegen.ts'), explain(report)).toEqual(['live']);
+      expect(classesOf(report, OLD, 'app/client.ts'), explain(report)).toEqual(['live']);
+    });
+  });
+
+  describe('a REST resources import', () => {
+    const IMPORT = 'import { restResources } from "@shopify/shopify-api/rest/admin/2024-10";\n';
+    const TEMPLATE = `${IMPORT}${server(`${PIN}  restResources,\n`)}`;
+    const importHit = (report: DeadScanReport) => lineOf(report, 'rest/admin');
+
+    it('is catalog with no REST use, and goes with the fix', async () => {
+      const report = await scan({
+        ...PACKAGE,
+        'app/shopify.server.ts': TEMPLATE,
+        'app/routes/a.ts':
+          '// admin.rest.resources.Metafield once went here\nconst rest = "admin.rest.x";\n',
+      });
+      const found = importHit(report);
+      expect([found?.matchClass, found?.withFix], explain(report)).toEqual(['catalog', true]);
+      expect(lineOf(report, PIN.trim())?.matchClass, explain(report)).toBe('live');
+    });
+
+    it.each([
+      ['admin.rest.resources', 'await admin.rest.resources.Metafield.all({});\n'],
+      ['admin.rest.get', 'await admin.rest.get({ path: "x" });\n'],
+      ['admin?.rest?.resources', 'await admin?.rest?.resources.Metafield.all({});\n'],
+      ['a held admin.rest', 'const rest = admin.rest;\n'],
+      ['rest.resources', 'const { rest } = admin;\nrest.resources.Metafield.all({});\n'],
+      [
+        'restResources',
+        "import { restResources } from './shopify.server';\nsetup(restResources);\n",
+      ],
+    ])('stays live when a route reads %s', async (_what, route) => {
+      const report = await scan({
+        ...PACKAGE,
+        'app/shopify.server.ts': TEMPLATE,
+        'app/routes/a.ts': route,
+      });
+      expect(importHit(report)?.matchClass, explain(report)).toBe('live');
+    });
+
+    it.each([
+      ['a read beside the pass', `${TEMPLATE}setup(restResources);\n`],
+      [
+        'a resource class',
+        'import { Metafield } from "@shopify/shopify-api/rest/admin/2024-10";\n',
+      ],
+      [
+        'an alias',
+        `import { restResources as r } from "@shopify/shopify-api/rest/admin/2024-10";\n`,
+      ],
+    ])('stays live with %s', async (_what, code) => {
+      const report = await scan({ ...PACKAGE, 'app/shopify.server.ts': code });
+      expect(importHit(report)?.matchClass, explain(report)).toBe('live');
+    });
+  });
+});
+
 describe('product runs: code that strips a dead field', () => {
   const META_PACKAGE = { 'package.json': manifest({ 'facebook-nodejs-business-sdk': '^20.0.0' }) };
 

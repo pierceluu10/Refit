@@ -13,7 +13,13 @@ import {
 import { closeOf, enclosing, listName, wordPattern } from './dead-scan-place.ts';
 import type { Manifest } from './scanners.ts';
 
-export type Reach = { kind: 'catalog' | 'unclear'; reason: string; reads?: string[] };
+export type Reach = {
+  kind: 'catalog' | 'unclear';
+  reason: string;
+  reads?: string[];
+  /** A catalog verdict that holds only beside another open hit on the entry, so a repo isn't called clean on it. */
+  unclearIfAlone?: boolean;
+};
 
 export type Readers = {
   /** Files that can read a value: written code and config, no tests, docs or build output. */
@@ -158,6 +164,27 @@ const DYNAMIC_SEGMENT = /^\[.*\]$/;
 const NEXT_CONFIG = /(?:^|\/)next\.config\.\w+$/;
 const REWRITES = /\brewrites\b/;
 const PACKAGING_FILE = /(?:^|\/)(?:setup\.py|pyproject\.toml)$/;
+const PACKAGE_JSON = 'package.json';
+const PUBLISH_FIELDS = [
+  'main',
+  'module',
+  'exports',
+  'types',
+  'typings',
+  'bin',
+  'files',
+  'publishConfig',
+];
+// shopifyApp({ restResources }) only hands the classes over: they send nothing until code uses them.
+const TEMPLATE_REST_IMPORT = /\bimport\s*\{\s*restResources\s*,?\s*\}\s*from\s*["']@shopify\/$/;
+const REST_RESOURCES = 'restResources';
+const REST_USE = /\.rest\b|\brest\??\.resources\b/;
+const SHOPIFY_INIT_OPEN = /\bshopify(?:App|Api)\s*\(\s*$/;
+const SHOPIFY_INIT_CALL = /\bshopify(?:App|Api)\s*\(/;
+const WEBHOOKS_KEY = /\bwebhooks\s*:/;
+// A call: the template's `export const registerWebhooks = shopify.registerWebhooks` registers nothing.
+const REGISTERS_WEBHOOKS = /\bregisterWebhooks\s*\(|\.webhooks\.(?:register|addHandlers)\s*\(/;
+const SUBSCRIBE_MUTATION = /[wW]ebhookSubscriptionCreate/;
 const JS_PATH_STRING = /["'`]([\w$@~./-]*\/[\w$.-]+)["'`]/g;
 // A returned object often goes to a framework that calls its members by name, as a Vite plugin does.
 const OBJECT_OR_PLAIN_CLASS = /(?:(?<![=!<>])=|\bclass\s+[\w$]+)\s*$/;
@@ -344,21 +371,61 @@ function readElsewhere(readers: Readers, source: Source, word: string, exported:
   );
 }
 
+const hasPackagingFile = (readers: Readers) =>
+  readers.sources.some((one) => PACKAGING_FILE.test(one.file));
+
+// Whether people outside this repo can read a package's exports. With no package.json to say it's an
+// app, or one that can't be read, assume they can.
+function isPublished(readers: Readers, file: string): boolean {
+  if (hasPackagingFile(readers)) return true;
+  const wanted = path.posix.join(packageFolder(readers, file), PACKAGE_JSON);
+  const manifest = readers.sources.find((one) => one.file === wanted);
+  if (!manifest) return true;
+  try {
+    const fields = JSON.parse(manifest.text) as Record<string, unknown>;
+    return fields.private !== true && PUBLISH_FIELDS.some((field) => field in fields);
+  } catch (error) {
+    if (error instanceof SyntaxError) return true;
+    throw error;
+  }
+}
+
+// No file names it but as a key of its own, such as `apiVersion: LATEST_API_VERSION` in a tool's config.
+// A key's value is a read, even under the same name: `apiVersion: apiVersion`, which readsIn takes as a key.
+function isUnreadExport(readers: Readers, source: Source, word: string): boolean {
+  const asValue = new RegExp(`:\\s*${escapeRegex(word)}(?![\\w$])`);
+  return (
+    !isPublished(readers, source.file) &&
+    !readers.sources.some((one) => readsIn(readers, one, word).length > 0 || asValue.test(one.code))
+  );
+}
+
 function assignedReach(
   readers: Readers,
   source: Source,
-  span: Span,
+  start: number,
   namesProvider: boolean,
+  bareValue = false,
 ): Reach | undefined {
   const { code } = source;
-  const around = enclosing(code, span.start);
+  const around = enclosing(code, start);
   if (around?.char === '[') return undefined;
   if (around?.char === '(' && !DEF_BEFORE.test(code.slice(0, around.open))) return undefined;
-  const ahead = code.slice(Math.max(0, span.start - LOOK_BACK_CHARS), span.start);
+  const ahead = code.slice(Math.max(0, start - LOOK_BACK_CHARS), start);
   const assigned = ASSIGNED_WITH_EQUALS.exec(ahead)?.[1];
   if (!assigned) return undefined;
   const word = assigned.replace(/^(?:self|this)\./, '');
-  const where = placeOfDeclaration(source, span.start);
+  const where = placeOfDeclaration(source, start);
+  // Only a bare value, such as an SDK's enum. An exported string may be a config value a word search misses.
+  if (bareValue) {
+    return where === 'exported' && isUnreadExport(readers, source, word)
+      ? {
+          kind: 'catalog',
+          reason: `${word} is exported, and nothing in this repo imports or reads it`,
+          unclearIfAlone: true,
+        }
+      : undefined;
+  }
   if (where !== 'local' && readElsewhere(readers, source, word, where === 'exported')) {
     return undefined;
   }
@@ -761,8 +828,8 @@ function defaultReach(readers: Readers, source: Source, span: Span): Reach | und
   const offeredBy = allReads.find((read) => !called.includes(read));
   if (offeredBy) {
     const folder = `${folderOf(offeredBy.source.file)}/`;
-    const published = readers.sources.some((one) => PACKAGING_FILE.test(one.file));
-    if (published || reads.every((read) => read.source.file.startsWith(folder))) return undefined;
+    if (hasPackagingFile(readers) || reads.every((read) => read.source.file.startsWith(folder)))
+      return undefined;
   }
   return reads.every((read) => passesParameter(read, word, parameter, earlier.length))
     ? {
@@ -1417,10 +1484,58 @@ function callerReads(readers: Readers, source: Source, offset: number): string[]
     });
 }
 
+/** The template's REST classes, handed to shopifyApp, in a repo where nothing goes on to use them. */
+function unusedRestImportReach(
+  readers: Readers,
+  source: Source,
+  offset: number,
+): Reach | undefined {
+  const ahead = source.text.slice(Math.max(0, offset - LOOK_BACK_CHARS), offset);
+  if (!TEMPLATE_REST_IMPORT.test(ahead)) return undefined;
+  const handed = readsIn(readers, source, REST_RESOURCES).filter((read) => !isImportOf(read));
+  const onlyHandedOver =
+    handed.length > 0 &&
+    handed.every((read) => {
+      const around = enclosing(source.code, read.offset);
+      return (
+        around?.char === '{' &&
+        SHOPIFY_INIT_OPEN.test(
+          source.code.slice(Math.max(0, around.open - LOOK_BACK_CHARS), around.open),
+        )
+      );
+    });
+  if (!onlyHandedOver) return undefined;
+  const used = readers.sources.some(
+    (one) =>
+      REST_USE.test(one.code) ||
+      (one !== source && readsIn(readers, one, REST_RESOURCES).length > 0),
+  );
+  return used
+    ? undefined
+    : {
+        kind: 'catalog',
+        reason:
+          'REST resources handed to shopifyApp, and nothing in this repo uses admin.rest, so they send nothing at this version',
+      };
+}
+
+/** Where the code subscribes to Shopify webhooks itself, one line a file. */
+export function webhookRegistrations(readers: Readers): string[] {
+  return readers.sources.flatMap((source) => {
+    const called = source.code.search(REGISTERS_WEBHOOKS);
+    const configured = SHOPIFY_INIT_CALL.test(source.code) ? source.code.search(WEBHOOKS_KEY) : -1;
+    // A mutation is a string, which the code view blanks.
+    const at = [called, configured, source.text.search(SUBSCRIBE_MUTATION)].find((one) => one >= 0);
+    return at === undefined ? [] : [importLine(source, at)];
+  });
+}
+
 export type ReachInput = {
   source: Source;
   offset: number;
   span?: Span;
+  /** A match in code that isn't quoted, such as ApiVersion.January25: a value, unlike a field read. */
+  bareValue: boolean;
   picker: boolean;
   fileNamesProvider: boolean;
   packages: string[];
@@ -1428,7 +1543,7 @@ export type ReachInput = {
 
 /** Why this match never reaches the API, or undefined when nothing here shows that. */
 export function reachOf(readers: Readers, input: ReachInput): Reach | undefined {
-  const { source, offset, span, picker, fileNamesProvider, packages } = input;
+  const { source, offset, span, bareValue, picker, fileNamesProvider, packages } = input;
   const backup = backupReach(readers, source);
   if (backup) return backup;
   if (orphansOf(readers).has(source.file)) {
@@ -1441,8 +1556,13 @@ export function reachOf(readers: Readers, input: ReachInput): Reach | undefined 
   const stopped =
     brokenImportReach(readers, source) ?? uncalledConvexReach(readers, source, offset);
   if (stopped) return stopped;
-  if (span?.kind !== 'string') return undefined;
+  if (span?.kind !== 'string') {
+    return !span && bareValue
+      ? assignedReach(readers, source, offset, fileNamesProvider, true)
+      : undefined;
+  }
   return (
+    unusedRestImportReach(readers, source, offset) ??
     deadBranchReach(readers, source, offset) ??
     controlledValueReach(source, offset) ??
     unreadKeyReach(readers, source, offset) ??
@@ -1457,7 +1577,7 @@ export function reachOf(readers: Readers, input: ReachInput): Reach | undefined 
     uncalledReach(readers, source, offset) ??
     uncalledMemberReach(readers, source, offset) ??
     unresolvedCall(source, offset) ??
-    assignedReach(readers, source, span, fileNamesProvider) ??
+    assignedReach(readers, source, span.start, fileNamesProvider) ??
     constructedReach(readers, source, offset) ??
     listReach(readers, source, offset) ??
     (picker ? unreadOwnerReach(readers, source, offset) : undefined)

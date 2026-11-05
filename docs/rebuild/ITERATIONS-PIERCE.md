@@ -13,6 +13,7 @@ The loop for P5. Each round measures a fresh random sample (seed `pierce-p5`, di
 | 3     | 2026-11-05 11:16 | `ab593087`     | 16    | 118        | 86% (97%)            | 177         | 58%       | $0.0194 for all repos with unclear hits                                        | 0.2 / 16.0           |
 | 4     | 2026-11-05 11:44 | `cbc417f6`     | 16    | 95         | 80% (87%)            | 74          | 85%       | $0.0223 for all repos with unclear hits, plus the fix agent's capped test runs | 0.2 / 4.5            |
 | 5     | 2026-11-05 12:13 | `d28edf58`     | 13    | 66         | 73% (83%)            | 70          | 74%       | $0.0208 for all repos with unclear hits, plus the fix agent's capped test runs | 0.2 / 4.7            |
+| 6     | 2026-11-05 13:58 | `13d0c1d0`     | 13    | 22         | 82% (100%)           | 43          | 42%       | $0.0035 for all 9 repos with unclear hits                                      | 0.1 / 5.2            |
 
 ## Round 1
 
@@ -161,3 +162,21 @@ The loop for P5. Each round measures a fresh random sample (seed `pierce-p5`, di
 - HeyGen has no fetched shutdown date, so diedOn in heygen.json is the check date (2026-11-05). The quotes prove the REST route is gone (404) and the SDK is deprecated, not when that happened.
 - AI noise remains on orphan modules: Jmk125 services/openai.js:69 came back live once and catalog twice across the last 3 runs. Removing the prompt sentence didn't settle it, and a code gate there would go against the AGENTS.md rule that the AI decides.
 - Not checked with the AI after the final patch: MU-2 records in benlamiro models.js (lines 2138, 2140, 4030, 4032) are ruled live with 'can't be ruled out'. They are ambiguous rows with no caller shown, which looks like a false alarm. It was not in this round's hand-check, so I left it for the next one.
+
+## Round 6
+
+**Numbers:** 18 of 22 dead items flagged, 18 of 43 live lines correct, 3 couldn't be told. False alarms by repo: chandandadhekar/ListAI-V2 5, mssalemi__b-is-for-bundles 4, polidario__weeklyhow-remix-app 3, sanjeev744__smart-bundle 3, Priyadharshini29-M/Combo-page-app 2. Fresh repos from a new screen: 13 counted (Meta 3, Shopify 10, Stripe 0). One more, AdReplica, was left out because the other lane tuned on it. Shopify's app template skews this round: 22 of its 25 false alarms are Shopify version-pin lines, most from that template. Most of these repos' green is a bundler build alone.
+
+**Top causes, and what changed:**
+
+- **An exported version constant nothing reads, repeating the pin** (9): assignedReach also sees bare values like ApiVersion.X: catalog if no file reads it and the package is not published, unclear if it is the only hit on that entry. Exported strings stay live, because two existing tests lock that.
+- **A [webhooks] api_version in an app toml with no subscription under it** (8): catalog when the file declares no subscription and the code registers none: 6 of the 8. The 2 whose code calls registerWebhooks stay unclear with that doubt in the reason. Shopify's docs conflict on whether the setting applies to those, so the check isn't told to rule them out.
+- **Dev tool config treated as a runtime pin** (2): .graphqlrc*, graphql.config.* and codegen files with generates are catalog.
+- **REST resources import with no REST use** (2): catalog when the template import is only passed to shopifyApp and nothing reads .rest or rest.resources. The other lane's tungbinzzz case still flags.
+
+**Not fixed:**
+
+- A pin in a repo with no Admin traffic behind it (subscription-sync): the pin is still worth a fix, so it stays flagged.
+- A file under routes/ that is not a route (ListAI-V2), and an unused constants file (wp-module-facebook): one-repo rules.
+- MG-8 id-shape upgrade by the AI check (wp-module-facebook).
+- The 4 recall misses on Shopify GraphQL (Customer.ordersCount, Order.financialStatus, LineItem.weight, productVariantUpdate): the list has no entry and the scan does not read the schema. Needs a schema diff per version. For 3 of the 4, the hand-check could only source that the field is absent, not when it was removed.

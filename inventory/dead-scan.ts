@@ -60,7 +60,13 @@ import {
   textPlace,
   type Place,
 } from './dead-scan-place.ts';
-import { holderReads, reachOf, recordPicker, type Readers } from './dead-scan-reach.ts';
+import {
+  holderReads,
+  reachOf,
+  recordPicker,
+  webhookRegistrations,
+  type Readers,
+} from './dead-scan-reach.ts';
 import { gateFor, loadVersionFacts, type VersionFacts } from './dead-scan-version.ts';
 import { OutsideRepoError, readText, walkFiles } from './repo-files.ts';
 import { isSecretEnvFile, scanRepo } from './scan.ts';
@@ -140,6 +146,7 @@ type Classed = {
   vendored?: boolean;
   ruledOut?: boolean;
   reads?: string[];
+  unclearIfAlone?: boolean;
 };
 type Verdict = Classed | { quiet: true; reason: string; version?: string };
 
@@ -231,6 +238,16 @@ const STRIPS_FIELD =
 const EXTENSION_CONFIG = 'shopify.extension.toml';
 const UI_EXTENSION_TYPE = /^\s*type\s*=\s*"\w*ui_extension"/m;
 const API_VERSION_SETTING = /^\s*api_version\s*=/;
+// Shopify's app config. Its [webhooks] api_version sets the version of the subscriptions the file declares.
+const APP_CONFIG = /^shopify\.app(?:\.[\w-]+)?\.toml$/;
+const TOML_TABLE = /^\s*\[/;
+const WEBHOOKS_TABLE = /^\s*\[webhooks\]/;
+const DECLARES_SUBSCRIPTION = /^\s*(?:\[\[\s*webhooks\.subscriptions\s*\]\]|subscriptions\s*=)/m;
+// GraphQL's editor and codegen config: dev scripts read these, and nothing runs them in production.
+const GRAPHQL_TOOL_CONFIG = /^(?:\.graphqlrc(?:\.\w+)?|graphql\.config\.\w+)$/;
+const CODEGEN_CONFIG = /^(?:graphql-)?codegen(?:\.[\w-]+)*\.(?:[cm]?[jt]s|ya?ml|json)$/;
+const CODEGEN_SIGN = /\bgenerates\b/;
+const MAX_REGISTRATIONS_SHOWN = 5;
 const CLASS_RANK: Record<MatchClass, number> = {
   live: 4,
   unclear: 3,
@@ -641,6 +658,30 @@ function harmlessUse({ source, entry, matcher, offset, read }: Hit): string | un
   return undefined;
 }
 
+function isGraphqlToolConfig(source: Source): boolean {
+  const name = path.posix.basename(source.file);
+  return (
+    GRAPHQL_TOOL_CONFIG.test(name) || (CODEGEN_CONFIG.test(name) && CODEGEN_SIGN.test(source.text))
+  );
+}
+
+// An app config's webhook version with no subscription in that file to apply to.
+function isUnsubscribedWebhookVersion({ source, offset }: Hit): boolean {
+  const lineIndex = lineIndexAt(source, offset);
+  if (
+    !APP_CONFIG.test(path.posix.basename(source.file)) ||
+    !API_VERSION_SETTING.test(source.lines[lineIndex]) ||
+    DECLARES_SUBSCRIPTION.test(source.text)
+  ) {
+    return false;
+  }
+  const table = source.lines
+    .slice(0, lineIndex)
+    .reverse()
+    .find((line) => TOML_TABLE.test(line));
+  return table !== undefined && WEBHOOKS_TABLE.test(table);
+}
+
 // A browser session saved to JSON for a test run, as Playwright and Puppeteer write it.
 function isSavedCookie(source: Source, offset: number): boolean {
   if (source.mode !== 'json') return false;
@@ -684,6 +725,20 @@ function placeOf(hit: Hit, span: Span | undefined, repo: Repo): Classed | Place 
   }
   const harmless = harmlessUse(hit);
   if (harmless) return { matchClass: 'catalog', ruledOut: true, reason: harmless };
+  // Not ruled out: these repeat a pin, so they change along with the real one in a fix.
+  if (isGraphqlToolConfig(source)) {
+    return {
+      matchClass: 'catalog',
+      reason: 'GraphQL tooling config: only a dev script reads it, nothing runs it in production',
+    };
+  }
+  if (isUnsubscribedWebhookVersion(hit) && webhookRegistrations(repo.readers).length === 0) {
+    return {
+      matchClass: 'catalog',
+      reason:
+        'this file declares no [[webhooks.subscriptions]] and the code registers none, so no webhook arrives at this version',
+    };
+  }
   if (hit.matcher.kind === 'field' || hit.matcher.kind === 'package') return undefined;
   if (span?.kind === 'string' && offset + name.length <= span.end) {
     if (isProse(source, span, name, offset)) {
@@ -906,6 +961,7 @@ function judge(hit: Hit, repo: Repo): Verdict {
     source,
     offset,
     span,
+    bareValue: hit.matcher.kind === 'regex',
     picker: place !== undefined && 'kind' in place && place.kind === 'picker',
     fileNamesProvider: !entry.context || fileNamesProvider(repo, source, entry.context),
     packages: entry.context?.packages ?? [],
@@ -916,9 +972,17 @@ function judge(hit: Hit, repo: Repo): Verdict {
       matchClass: reach.kind,
       reason: `${reach.reason} (scan: ${verdict.reason})`,
       ...(reach.reads ? { reads: reach.reads } : {}),
+      ...(reach.unclearIfAlone ? { unclearIfAlone: true } : {}),
     };
   }
   if (verdict.matchClass !== 'unclear') return verdict;
+  if (isUnsubscribedWebhookVersion(hit)) {
+    return {
+      ...verdict,
+      reason: `${verdict.reason}; this file declares no [[webhooks.subscriptions]], and the code subscribes on its own`,
+      reads: webhookRegistrations(repo.readers).slice(0, MAX_REGISTRATIONS_SHOWN),
+    };
+  }
   const reads = holderReads(repo.readers, source, offset);
   return reads.length > 0 ? { ...verdict, reads } : verdict;
 }
@@ -957,6 +1021,24 @@ function manifestDetails(repo: Repo, entries: DeadApiEntry[]): FindingDetail[] {
     }
   }
   return details;
+}
+
+/** A hit that's only catalog beside another open one: with none, it's the check's to read, not clean. */
+function keepVisible(details: FindingDetail[], ifAlone: Set<FindingDetail>): FindingDetail[] {
+  const open = new Set(
+    details
+      .filter((one) => one.matchClass === 'live' || one.matchClass === 'unclear')
+      .map((one) => one.entryId),
+  );
+  return details.map((detail) =>
+    ifAlone.has(detail) && !open.has(detail.entryId)
+      ? {
+          ...detail,
+          matchClass: 'unclear',
+          reason: `${detail.reason}; it's the only open hit on this entry, so it may be the real use`,
+        }
+      : detail,
+  );
 }
 
 /** The result fields that follow from the details: what goes with a fix, the findings and `clean`. */
@@ -1077,6 +1159,7 @@ export async function scanDeadApis(
 
   const best = new Map<string, FindingDetail>();
   const quiet = new Map<string, QuietHit>();
+  const unclearIfAlone = new Set<FindingDetail>();
   const add = (detail: FindingDetail) => {
     const key = `${detail.entryId}|${detail.file}|${detail.line}`;
     const held = best.get(key);
@@ -1100,7 +1183,7 @@ export async function scanDeadApis(
           ...(version ? { version } : {}),
         });
       } else {
-        add({
+        const detail: FindingDetail = {
           ...place,
           what: hit.entry.what,
           matchClass: verdict.matchClass,
@@ -1112,14 +1195,20 @@ export async function scanDeadApis(
           ...(verdict.vendored ? { vendored: true } : {}),
           ...(verdict.ruledOut ? { ruledOut: true } : {}),
           ...(verdict.reads ? { reads: verdict.reads } : {}),
-        });
+        };
+        if (verdict.unclearIfAlone) unclearIfAlone.add(detail);
+        add(detail);
       }
     }
   }
   for (const detail of manifestDetails({ ...facts, manifests: allManifests }, entries)) add(detail);
 
-  const details = [...best.values()].sort(
-    (a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.entryId.localeCompare(b.entryId),
+  const details = keepVisible(
+    [...best.values()].sort(
+      (a, b) =>
+        a.file.localeCompare(b.file) || a.line - b.line || a.entryId.localeCompare(b.entryId),
+    ),
+    unclearIfAlone,
   );
   const { providers: unlisted, hostsOf } = await unlistedProviders(
     repoDir,
