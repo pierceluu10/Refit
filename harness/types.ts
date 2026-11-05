@@ -7,7 +7,7 @@ import type {
   RunRecord,
   ToolPack,
 } from '../shared/types.ts';
-import type { BudgetLedger, ChargeRun } from './ledger.ts';
+import type { BudgetLedger, CacheTally, ChargeRun } from './ledger.ts';
 import type { PlanPreparation, Preparation } from './prepare.ts';
 
 export type ExecResult = { code: number; stdout: string; stderr: string; timedOut: boolean };
@@ -123,6 +123,8 @@ export type HarnessRunRecord = RunRecord & {
   recipeIds: string[]; // the recipes injected into the prompt, for memory's learnFromRun
   // Checks the agent registered itself; they count toward proof, so reviewers see their exact commands.
   agentChecks: { name: string; command: string; before: string; after: string }[];
+  // Input tokens by how they were billed: a healthy session reads far more than it writes.
+  cache?: CacheTally;
   // Every tool call in order with what it returned, and the checks after each iteration: a short
   // stand-in for the transcript, for memory's recipe extraction.
   summary: string;

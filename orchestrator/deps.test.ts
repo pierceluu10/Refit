@@ -7,14 +7,7 @@ import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
 import { listProviderIds } from '../providers/core/registry.ts';
 import type { MigrationTask, RunRecord } from '../shared/types.ts';
 import { BudgetExceededError, createBudget } from './budget.ts';
-import {
-  anyWatcher,
-  cachedChanges,
-  createDeps,
-  MAX_TASK_USD,
-  MEMORY_USD,
-  TASK_USD,
-} from './deps.ts';
+import { anyWatcher, cachedChanges, createDeps, MEMORY_USD, REPO_USD } from './deps.ts';
 import { stubRunTask } from './stubs.ts';
 import { TURN_RESERVE_USD } from '../harness/index.ts';
 
@@ -129,8 +122,8 @@ describe('createDeps', () => {
     const skipped = await deps.runTask(task('change'), '/unused');
 
     expect(Object.keys(deps.watchers)).toEqual(listProviderIds());
-    // No $2 floor: the third task starts with $1.50 free, above the $1 overshoot reserve.
-    expect(harness.caps).toEqual([3, 2.25, 1.5]);
+    // Each repo's fix holds at most REPO_USD, and the third still has its full $1 free.
+    expect(harness.caps).toEqual([REPO_USD, REPO_USD, REPO_USD]);
     expect(budget.spentUsd()).toBe(2.25);
     // $0.75 left is below TURN_RESERVE_USD, so the fourth task never reaches the harness.
     expect(TURN_RESERVE_USD).toBeGreaterThan(0.75);
@@ -142,7 +135,7 @@ describe('createDeps', () => {
 
   it('runs tasks at once and never lets spend plus holds pass the cap', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
-    const cap = 13;
+    const cap = 4;
     const budget = createBudget(cap);
     const deps = createDeps({ budget, log: () => {} });
     let running = 0;
@@ -162,7 +155,7 @@ describe('createDeps', () => {
     );
 
     expect(peak).toBeGreaterThan(1);
-    expect(Math.max(...harness.caps.map(Number))).toBeLessThanOrEqual(TASK_USD);
+    expect(Math.max(...harness.caps.map(Number))).toBeLessThanOrEqual(REPO_USD);
     expect(Math.min(...harness.caps.map(Number))).toBeGreaterThanOrEqual(TURN_RESERVE_USD - 1e-9);
     expect(worst).toBeLessThanOrEqual(cap + 1e-9);
     expect(budget.spentUsd()).toBeLessThanOrEqual(cap + 1e-9);
@@ -172,11 +165,11 @@ describe('createDeps', () => {
     expect(records.some((r) => r.outcome === 'failed')).toBe(true);
   });
 
-  it('never gives one task more than MAX_TASK_USD, however big the run', async () => {
+  it('never gives one repo more than REPO_USD, however big the run', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
     const deps = createDeps({ budget: createBudget(2000), log: () => {} });
     await deps.runTask(task('big'), '/unused');
-    expect(harness.caps).toEqual([MAX_TASK_USD]);
+    expect(harness.caps).toEqual([REPO_USD]);
   });
 
   it('records a harness that throws as failed, counting its whole share once', async () => {
@@ -190,21 +183,13 @@ describe('createDeps', () => {
     };
     // Through the queue, as the loop runs it: the failure comes back as a record, so no retry.
     const record = await deps.queue.add('task', () => deps.runTask(task('c'), '/unused'));
-    expect(record).toMatchObject({ outcome: 'failed', costUsd: TASK_USD });
+    expect(record).toMatchObject({ outcome: 'failed', costUsd: REPO_USD });
     expect((record as { note?: string }).note).toMatch(
       /runTask failed: harness crashed; its spend is unknown/,
     );
     expect(calls).toBe(1);
-    expect(budget.spentUsd()).toBe(TASK_USD);
+    expect(budget.spentUsd()).toBe(REPO_USD);
     expect(budget.heldUsd()).toBe(0);
-  });
-
-  it('lets a task in a big run hold a fair share of what is free', async () => {
-    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
-    const deps = createDeps({ budget: createBudget(100), log: () => {} });
-    await deps.runTask(task('c'), '/unused');
-    // A quarter of the free $100, since four parts run at once.
-    expect(harness.caps).toEqual([25]);
   });
 
   it('counts an inventory that throws without a result as having spent its whole hold', async () => {

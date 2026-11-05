@@ -98,8 +98,8 @@ describe('run config', () => {
   });
 
   it('refuses a plan whose shards could never afford a task', () => {
-    expect(() => planMatrix('stripe-dev-30', 30)).toThrow(
-      /leaves \$0\.95 for each of 30 shards, below the \$1 overshoot reserve a task needs free/,
+    expect(() => planMatrix('stripe-dev-30', 5)).toThrow(
+      /leaves \$0\.12 for each of 30 shards, below the \$0\.15 overshoot reserve a task needs free/,
     );
   });
 

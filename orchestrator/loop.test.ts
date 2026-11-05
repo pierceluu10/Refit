@@ -292,3 +292,65 @@ describe('matching in batches', () => {
     ]);
   });
 });
+
+describe('runOrg with a scan', () => {
+  const entry = {
+    id: 'AN-1',
+    provider: 'anthropic',
+    what: 'claude-sonnet-4-20250514',
+    diedOn: '2026-06-15',
+    source: { url: 'https://example.com/deprecations', checkedOn: '2026-11-04' },
+    lookFor: ['claude-sonnet-4-20250514'],
+    replacement: 'claude-sonnet-5-5',
+    requires: [],
+  };
+  const finding = (line: number) => ({
+    entryId: 'AN-1',
+    file: 'src/llm.py',
+    line,
+    matchClass: 'live' as const,
+  });
+  const scanned = (findings: ReturnType<typeof finding>[]) => ({
+    findings,
+    unlistedProviders: [],
+    clean: findings.length === 0,
+  });
+
+  it('stops a clean repo at $0 with a verdict, reading no changelog and calling no model', async () => {
+    const { deps, opened } = fakeDeps([], async (t) => ok(t, 'verified', 'diff'));
+    deps.scan = async () => scanned([]);
+    deps.inventory = vi.fn();
+    const summary = await runOrg(org, deps);
+    expect(deps.runTask).not.toHaveBeenCalled();
+    expect(deps.inventory).not.toHaveBeenCalled();
+    expect(summary.counts['not-affected']).toBe(1);
+    expect(summary.costUsd).toBe(0);
+    expect(opened).toEqual([]);
+  });
+
+  it('gives one session every finding in the repo and opens one PR', async () => {
+    const { deps, opened } = fakeDeps([], async (t) => ok(t, 'verified', 'diff', 0.4));
+    deps.scan = async () => scanned([finding(3), finding(9)]);
+    deps.list = () => [entry, { ...entry, id: 'AN-2' }];
+    const summary = await runOrg(org, deps);
+    expect(deps.runTask).toHaveBeenCalledTimes(1);
+    const [task] = vi.mocked(deps.runTask).mock.calls[0];
+    expect(task).toMatchObject({ id: 'acme/shop:dead-apis', findings: [finding(3), finding(9)] });
+    expect((task as unknown as { entries: { id: string }[] }).entries.map((e) => e.id)).toEqual([
+      'AN-1',
+    ]);
+    expect(opened).toEqual(['acme/shop:dead-apis']);
+    expect(summary.costUsd).toBeCloseTo(0.4);
+  });
+
+  it('reports a failed scan and never treats it as clean', async () => {
+    const { deps } = fakeDeps([], async (t) => ok(t, 'verified', 'diff'));
+    deps.scan = async () => {
+      throw new Error('out of memory');
+    };
+    const summary = await runOrg(org, deps);
+    expect(deps.runTask).not.toHaveBeenCalled();
+    expect(summary.counts.failed).toBe(1);
+    expect(summary.errors).toEqual([expect.stringContaining('scan failed after retries')]);
+  });
+});

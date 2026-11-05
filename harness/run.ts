@@ -14,6 +14,8 @@ import {
   runChecks,
   runChecksAfter,
 } from './checks.ts';
+import { isRepoTask } from './findings.ts';
+import { installWithLayer } from './install-layers.ts';
 import { BudgetLedger, budgetFromEnv } from './ledger.ts';
 import { filesFromDiff, writePrBody } from './pr.ts';
 import {
@@ -44,9 +46,12 @@ import { failingCheckers, gradeValidators } from './validators.ts';
 
 export const MODEL = 'claude-sonnet-5-5';
 export const ESCALATION_MODEL = 'claude-opus-5-5';
-// The Agent SDK enforces maxBudgetUsd only between turns; one turn overshot by about $0.80 on
-// 2026-11-01's dev run, so a query is given the remainder minus this and none starts below it.
-export const TURN_RESERVE_USD = 1;
+// The stream meter stops a query once its grant is spent, so the most it can overshoot is the call
+// in flight: a query is given the remainder minus this and none starts below it. Sessions cap one
+// call's output (agent.ts), so at Sonnet's prices this covers it with its input and cache reads.
+export const TURN_RESERVE_USD = 0.15;
+// Opus costs twice as much per token and re-reads the session uncached, so its call needs more room.
+const ESCALATED_RESERVE_FACTOR = 3;
 
 // shortcut: stubs until providers/ (F2) and memory/ (O3) land; the orchestrator passes the real ones.
 const emptyToolPack = async (provider: string): Promise<ToolPack> => ({
@@ -55,6 +60,9 @@ const emptyToolPack = async (provider: string): Promise<ToolPack> => ({
   playbooks: {},
 });
 const noRecipes: RetrieveRecipes = async () => [];
+
+// Install layers stay within one owner.
+const ownerOf = (repo: string) => repo.split('/')[0] ?? '';
 
 const newFailureCount = (comparisons: CheckComparison[]) =>
   comparisons.reduce((sum, comparison) => sum + comparison.newFailures.length, 0);
@@ -95,10 +103,19 @@ export async function prepareBaseline(
   sandbox: Sandbox,
   ledger: BudgetLedger,
   planPreparation?: PlanPreparation,
+  layerScope = '',
 ) {
   const pm = await detectPackageManager(sandbox.dir);
   const pmVersion = await packageManagerVersion(sandbox.dir, pm);
-  const install = pm === 'none' ? undefined : await sandbox.exec(installCommand(pm, pmVersion));
+  const install =
+    pm === 'none'
+      ? undefined
+      : await installWithLayer(sandbox, {
+          pm,
+          version: pmVersion,
+          command: installCommand(pm, pmVersion),
+          scope: layerScope,
+        });
   const checks = await detectChecks(sandbox.dir, pm, pmVersion);
   const commands = checks.map((check) => check.command);
   // The repo's own codegen, which install scripts off never ran, and the placeholder env its
@@ -184,6 +201,7 @@ export async function runTask(
       sandbox,
       ledger,
       deps.planPreparation,
+      ownerOf(task.repo),
     );
     log({
       type: 'harness',
@@ -202,7 +220,14 @@ export async function runTask(
       const check = { ...named, command: withEnv(named.command, preparation.env) };
       baselineSandbox ??= (async () => {
         const box = await (deps.createSandbox ?? createSandbox)(repoDir);
-        if (pm !== 'none') await box.exec(installCommand(pm, pmVersion));
+        if (pm !== 'none') {
+          await installWithLayer(box, {
+            pm,
+            version: pmVersion,
+            command: installCommand(pm, pmVersion),
+            scope: ownerOf(task.repo),
+          });
+        }
         await runSteps(box, preparation);
         return box;
       })();
@@ -274,6 +299,7 @@ export async function runTask(
       installOutput,
       packageManagerNote(pm, pmVersion),
       preparationNotes(preparation),
+      isRepoTask(task) ? task : undefined,
     );
     let sessionId: string | undefined;
     let after = before;
@@ -284,7 +310,8 @@ export async function runTask(
     // Ends when the checks pass, the agent finishes with an explanation, or the budget runs out.
     const reserveUsd = deps.turnReserveUsd ?? TURN_RESERVE_USD;
     for (let iteration = 0; iteration < (deps.maxIterations ?? Infinity); iteration++) {
-      if (ledger.remainingUsd <= reserveUsd) break;
+      const callReserveUsd = model === MODEL ? reserveUsd : reserveUsd * ESCALATED_RESERVE_FACTOR;
+      if (ledger.remainingUsd <= callReserveUsd) break;
       if (!models.includes(model)) models.push(model);
       finishedThisIteration = false;
       steps = [];
@@ -298,7 +325,7 @@ export async function runTask(
           tools,
           sandbox,
           ledger,
-          budgetUsd: ledger.remainingUsd - reserveUsd,
+          budgetUsd: ledger.remainingUsd - callReserveUsd,
           resume: sessionId,
           maxTurns: 80,
           log,
@@ -320,12 +347,11 @@ export async function runTask(
         result.stopReason === 'error' && ledger.spentUsd === spentBefore ? silentErrors + 1 : 0;
       if (silentErrors >= 3) break;
 
-      // Stuck: the session failed, or new failures remain and did not go down. Green checks with only
-      // the report missing are not: caches are per model, so Opus would re-read the whole session
-      // uncached (about $0.75 at 150k tokens) just to call finish.
+      // Opus only after a failed check that did not get better. Green checks with only the report
+      // missing are not that, and neither is a session that errored: caches are per model, so Opus
+      // would re-read the whole session uncached (about $0.75 at 150k tokens) to no end.
       const stuck =
-        result.stopReason === 'error' ||
-        (newFailures > 0 && (result.stopReason !== 'done' || newFailures >= previousNewFailures));
+        newFailures > 0 && (result.stopReason !== 'done' || newFailures >= previousNewFailures);
       const escalated = stuck && model === MODEL;
       if (escalated) model = ESCALATION_MODEL;
       previousNewFailures = newFailures;
@@ -394,6 +420,7 @@ export async function runTask(
       }),
       summary,
       preparation,
+      cache: ledger.cache,
     };
     log({ type: 'harness', phase: 'done', outcome, ledger: ledger.entries });
     await writeFile(join(outDir, 'diff.patch'), diff);

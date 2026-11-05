@@ -1,11 +1,12 @@
 // The harness system prompt, in the order set by "The harness system prompt" in APTITUDE-PLAN.md.
 import type { MigrationTask, Recipe, ToolPack } from '../shared/types.ts';
 import { packageManagerBinary, type PackageManager } from './checks.ts';
+import { isRepoTask, renderList, type RepoTask } from './findings.ts';
 import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-03.r3-5';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-05.rebuild-1';
 
 // The day the run happens, so the agent can tell a change in effect from a later one.
 const today = () => new Date().toISOString().slice(0, 10);
@@ -125,7 +126,46 @@ function taskSection(task: TaskWithNotes): string {
     .join('\n\n');
 }
 
+// The rules of a repo session. They come first in the prompt and name no repo, so every session
+// with the same tools shares this cached prefix; the list itself is in the kickoff message.
+const LIST_RULES = [
+  '## The list is the scope',
+  [
+    '- Plain code scanned this repo against a kept list of dead APIs. The kickoff message gives every entry it found, with file and line. Fix all of them in this one session.',
+    '- "Out of scope" is not an answer for anything on the list. If a finding is a false alarm (the code never reaches that provider, or the object is the app\'s own), leave it and report it in `falseAlarms` with your evidence.',
+    "- No major upgrade unless a list entry requires it. Don't move a package across a major version to fix something else.",
+    '- If a fix needs a secret or an ID nobody has yet, read it from config (an env var with a clear name, added to any env template the repo keeps) and say in `personMustDo` what a person must set. Never decline because of it.',
+    '- Change defaults and live paths, not only tests. A retired model left as a fallback default is still a break, and so is one in a config, a picker or a shared constant.',
+    "- Replacements come from the list entry. Don't use a name that isn't in it, however likely it looks, and don't stop on a name the entry says is itself dead.",
+    '- An entry\'s "requires" line is part of the fix: for example, moving to a newer Claude model means dropping `temperature` on that path.',
+    "- Don't edit an existing test just to make it pass. If a test hard-codes the dead name, change only that name, to the entry's replacement, and say so. A test that asserts old behaviour stays failing until you can say why in `unproven`.",
+    '- Other problems you notice go in your finish summary. Fix only what is on the list.',
+  ].join('\n'),
+].join('\n\n');
+
+const LIST_WORKFLOW = [
+  '## Workflow',
+  [
+    '1. Read every finding in the kickoff message and the code around it. Follow values to where they are set: env defaults, config files, shared constants.',
+    '2. Plan one change that handles the whole list.',
+    '3. Edit the code.',
+    "4. Write one small test that proves the live path now uses the replacement, inside the repo's test setup, and register it with `run_checks` `add`. When the repo has no test setup, put a plain node or python script under `.refit-proof/`: the harness runs it but keeps it out of the PR. Mock the provider; the sandbox has no credentials.",
+    '5. Run the checks. Iterate until they are no worse than the baseline.',
+    '6. Call `finish`. The harness then re-scans the repo with the same plain code. An entry still found comes back to you.',
+  ].join('\n'),
+].join('\n\n');
+
 function workflowSection(task: MigrationTask, toolPack: ToolPack, recipes: Recipe[]): string {
+  if (isRepoTask(task)) {
+    const recipeParts = recipes.length
+      ? [
+          '### Recipes from memory (guidance, not rules)',
+          'These worked on earlier runs. Use what fits this repo and ignore what does not.',
+          renderRecipes(recipes),
+        ]
+      : [];
+    return [LIST_RULES, LIST_WORKFLOW, ...recipeParts].join('\n\n');
+  }
   const parts = [
     '## Workflow',
     [
@@ -162,13 +202,16 @@ function workflowSection(task: MigrationTask, toolPack: ToolPack, recipes: Recip
 
 export function buildSystemPrompt(input: PromptInput): string {
   const { task, toolPack, recipes, tools, budgetUsd, sandboxNote } = input;
+  const list = isRepoTask(task);
 
   const sections = [
     [
       '## Role',
-      "You are Aptitude, a senior engineer who migrates code when external APIs change. Every task ends in a real attempt: a migration, or a careful 'not affected' or 'nothing to change yet' verdict with its evidence. A well-supported 'not affected' is as good an outcome as a migration; never edit code just to have changed something.",
+      list
+        ? 'You are Aptitude, a senior engineer who fixes code that still uses dead external APIs. Every finding gets a real attempt in this session.'
+        : "You are Aptitude, a senior engineer who migrates code when external APIs change. Every task ends in a real attempt: a migration, or a careful 'not affected' or 'nothing to change yet' verdict with its evidence. A well-supported 'not affected' is as good an outcome as a migration; never edit code just to have changed something.",
     ].join('\n\n'),
-    taskSection(task),
+    ...(list ? [] : [taskSection(task)]),
     workflowSection(task, toolPack, recipes),
     [
       '## Tools',
@@ -241,8 +284,14 @@ export function buildKickoffMessage(
   installOutput?: string,
   packageManager?: string,
   prepared: string[] = [],
+  task?: RepoTask,
 ): string {
-  const parts = ['Start the migration described in the system prompt.'];
+  const parts = task
+    ? [
+        `Repository: ${task.repo}. Today is ${today()}. Fix every entry on this list:`,
+        renderList(task),
+      ]
+    : ['Start the migration described in the system prompt.'];
   if (packageManager) parts.push(packageManager);
   if (prepared.length) {
     parts.push(

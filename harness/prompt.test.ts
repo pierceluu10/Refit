@@ -8,6 +8,7 @@ import {
   packageManagerNote,
   renderRecipes,
 } from './prompt.ts';
+import { repoTask, type DeadApiEntry, type ScanResult } from './findings.ts';
 import type { CheckRun } from './types.ts';
 
 // Illustrative fixture, not a real customer repo.
@@ -81,7 +82,7 @@ const prompt = buildSystemPrompt({
 
 describe('buildSystemPrompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-03.r3-5');
+    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-05.rebuild-1');
   });
 
   it('puts the sections in the plan order', () => {
@@ -265,5 +266,64 @@ describe('buildRetryMessage', () => {
     });
     expect(message).toContain('no new failures');
     expect(message).not.toContain('finish');
+  });
+});
+
+describe('a repo session', () => {
+  const entry = (id: string): DeadApiEntry => ({
+    id,
+    provider: 'anthropic',
+    what: `${id} model`,
+    diedOn: '2026-06-15',
+    source: { url: 'https://example.com/deprecations', checkedOn: '2026-11-04' },
+    lookFor: [id],
+    replacement: 'claude-sonnet-5-5',
+    requires: ['Drop `temperature`.'],
+  });
+  const scan = (file: string): ScanResult => ({
+    findings: [{ entryId: 'AN-1', file, line: 7, matchClass: 'live', version: '0.30.0' }],
+    unlistedProviders: [],
+    clean: false,
+  });
+  const system = (task: MigrationTask) =>
+    buildSystemPrompt({
+      task,
+      toolPack: { provider: 'anthropic', tools: [], playbooks: {} },
+      recipes: [],
+      tools: [{ name: 'finish', description: '' }],
+      budgetUsd: 1,
+      sandboxNote: 'Docker',
+    });
+
+  it('gives the session the fix rules', () => {
+    const prompt = system(repoTask('acme/a', scan('a.py'), [entry('AN-1')]));
+    for (const rule of [
+      '"Out of scope" is not an answer',
+      'No major upgrade unless a list entry requires it',
+      'read it from config',
+      'Change defaults and live paths, not only tests',
+      'Replacements come from the list entry',
+      "Don't edit an existing test just to make it pass",
+    ]) {
+      expect(prompt).toContain(rule);
+    }
+  });
+
+  it('keeps the system prompt the same across repos, so its cached prefix is shared', () => {
+    const a = system(repoTask('acme/a', scan('a.py'), [entry('AN-1')]));
+    const b = system(repoTask('other/b', scan('b.py'), [entry('AN-1')]));
+    expect(a).toBe(b);
+    expect(a).not.toContain('acme/a');
+  });
+
+  it('puts every entry and finding in the kickoff message', () => {
+    const task = repoTask('acme/a', scan('src/a.py'), [entry('AN-1'), entry('AN-9')]);
+    const kickoff = buildKickoffMessage([], undefined, undefined, [], task);
+    expect(kickoff).toContain('acme/a');
+    expect(kickoff).toContain('### AN-1: AN-1 model');
+    expect(kickoff).toContain('src/a.py:7 (live, version 0.30.0)');
+    expect(kickoff).toContain('Replacement: claude-sonnet-5-5');
+    expect(kickoff).toContain('Drop `temperature`.');
+    expect(kickoff).not.toContain('AN-9');
   });
 });

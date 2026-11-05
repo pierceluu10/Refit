@@ -244,7 +244,7 @@ describe('the review reserve', () => {
 
   it('never makes a task unaffordable to keep the reserve', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
-    parts.inventoryUsd = 3.9;
+    parts.inventoryUsd = 4.7;
     let heldDuringTask = -1;
     parts.runTask = async (budget) => {
       heldDuringTask = budget.heldUsd();

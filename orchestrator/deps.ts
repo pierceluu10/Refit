@@ -43,12 +43,9 @@ export const defaultOut = join(tmpdir(), 'aptitude-runs.jsonl');
 // Provider changelogs change at most daily, so one read per provider per UTC day serves every run.
 export const defaultWatchCache = join(tmpdir(), 'aptitude-watch');
 
-// The most one task holds of a small run, so several tasks run at once. In a big run a task may hold
-// a fair share of what is free instead: a CONCURRENCY-th of it. What it leaves goes back to the run.
-export const TASK_USD = 5;
-// The most one task holds of any run: about 50 times what a task cost in the first benchmark
-// ($0.31 to $0.47), so it decides nothing normal and only bounds an agent loop that never ends.
-export const MAX_TASK_USD = 25;
+// The cap on one repo's fix: one session for everything the scan found. What it leaves goes back to
+// the run.
+export const REPO_USD = 1;
 // One provider read. The six folder reads cost about $2.60 together on 2026-11-01's dev run.
 export const WATCH_USD = 1.5;
 // A watcher's ledger checks its cap only before a call, so its hold keeps one call's worst case spare.
@@ -248,15 +245,10 @@ export function createDeps({
     // over-matched the Coinbase bot (10 changes, where Opus found 4), to save about $0.07 a repo.
     match: createMatchAgent({ budget }),
     runTask: async (task, dir) => {
-      const freeUsd = budget.capUsd - budget.spentUsd() - budget.heldUsd();
       let hold: Hold;
       try {
-        hold = await budget.reserve(
-          `task ${task.id}`,
-          Math.min(Math.max(TASK_USD, freeUsd / CONCURRENCY), MAX_TASK_USD),
-          // A task starts whenever the run has room for the harness's overshoot reserve.
-          TURN_RESERVE_USD,
-        );
+        // A task starts whenever the run has room for the harness's overshoot reserve.
+        hold = await budget.reserve(`task ${task.id}`, REPO_USD, TURN_RESERVE_USD);
       } catch (error) {
         if (!(error instanceof BudgetExceededError)) throw error;
         const leftUsd = budget.capUsd - budget.spentUsd();

@@ -37,9 +37,13 @@ export function usageCostUsd(model: string, usage: TokenUsage): number {
   return tokens / 1e6 + (usage.server_tool_use?.web_search_requests ?? 0) * WEB_SEARCH_USD;
 }
 
+// Input tokens by how they were billed, so a run can show whether its cache is hitting.
+export type CacheTally = { input: number; cacheRead: number; cacheWrite: number };
+
 export class BudgetLedger {
   readonly entries: LedgerEntry[] = [];
   readonly capUsd: number;
+  readonly cache: CacheTally = { input: 0, cacheRead: 0, cacheWrite: 0 };
   private readonly onCharge?: ChargeRun;
   private readonly cumulative = new Map<string, number>();
 
@@ -61,6 +65,13 @@ export class BudgetLedger {
 
   get exhausted(): boolean {
     return this.spentUsd >= this.capUsd;
+  }
+
+  // A call's input as message_start reports it; a call counts once.
+  noteInput(usage: TokenUsage): void {
+    this.cache.input += usage.input_tokens ?? 0;
+    this.cache.cacheRead += usage.cache_read_input_tokens ?? 0;
+    this.cache.cacheWrite += usage.cache_creation_input_tokens ?? 0;
   }
 
   charge(entry: LedgerEntry): void {

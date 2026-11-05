@@ -313,7 +313,8 @@ describe('runTask with a fake model', () => {
     });
     expect(record.outcome).toBe('failed');
     expect(record.diff).toBe('');
-    expect(record.models).toEqual([MODEL, ESCALATION_MODEL]);
+    // Opus only after a failed check: a session that crashed is not one.
+    expect(record.models).toEqual([MODEL]);
   });
 
   it('runs the agent’s own checks with the placeholder env', async () => {
