@@ -25,7 +25,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v20\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v20\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v20\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?20\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v20\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v20\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v20\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v20\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v20\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v20\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?20\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v20\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v20\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v20\\.0(?![\\d.])['\"]",
           "ambiguous": true
         },
         {
@@ -88,7 +88,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v19\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v19\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v19\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?19\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v19\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v19\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v19\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v19\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v19\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v19\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?19\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v19\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v19\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v19\\.0(?![\\d.])['\"]",
           "ambiguous": true
         },
         {
@@ -152,7 +152,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v18\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v18\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v18\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?18\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v18\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v18\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v18\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v18\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v18\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v18\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?18\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v18\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v18\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v18\\.0(?![\\d.])['\"]",
           "ambiguous": true
         },
         {
@@ -216,7 +216,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v17\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v17\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v17\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?17\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v17\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v17\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v17\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v17\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v17\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v17\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?17\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v17\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v17\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v17\\.0(?![\\d.])['\"]",
           "ambiguous": true
         },
         {
@@ -280,7 +280,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v16\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v16\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v16\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?16\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v16\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v16\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v16\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v16\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v16\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v16\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?16\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v16\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v16\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v16\\.0(?![\\d.])['\"]",
           "ambiguous": true
         },
         {
@@ -344,7 +344,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v15\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v15\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v15\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?15\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v15\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v15\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v15\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v15\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v15\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v15\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?15\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v15\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v15\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v15\\.0(?![\\d.])['\"]",
           "ambiguous": true
         },
         {
@@ -408,7 +408,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v14\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v14\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v14\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?14\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v14\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v14\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v14\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v14\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v14\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v14\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?14\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v14\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v14\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v14\\.0(?![\\d.])['\"]",
           "ambiguous": true
         },
         {
@@ -472,7 +472,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v13\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v13\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v13\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?13\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v13\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v13\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v13\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v13\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v13\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v13\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?13\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v13\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v13\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v13\\.0(?![\\d.])['\"]",
           "ambiguous": true
         },
         {
@@ -536,7 +536,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v12\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v12\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v12\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?12\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v12\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v12\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v12\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v12\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v12\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v12\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?12\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v12\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v12\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v12\\.0(?![\\d.])['\"]",
           "ambiguous": true
         },
         {
@@ -600,7 +600,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v11\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v11\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v11\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?11\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v11\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v11\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v11\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v11\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v11\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v11\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?11\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v11\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v11\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v11\\.0(?![\\d.])['\"]",
           "ambiguous": true
         },
         {
@@ -664,7 +664,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v10\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v10\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v10\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?10\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v10\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v10\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v10\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v10\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v10\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v10\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?10\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v10\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v10\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v10\\.0(?![\\d.])['\"]",
           "ambiguous": true
         },
         {
@@ -728,7 +728,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v9\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v9\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v9\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?9\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v9\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v9\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v9\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v9\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v9\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v9\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?9\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v9\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v9\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v9\\.0(?![\\d.])['\"]",
           "ambiguous": true
         },
         {
@@ -792,7 +792,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v8\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v8\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v8\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?8\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v8\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v8\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v8\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v8\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v8\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v8\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?8\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v8\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v8\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v8\\.0(?![\\d.])['\"]",
           "ambiguous": true
         },
         {
@@ -856,7 +856,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v7\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v7\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v7\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?7\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v7\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v7\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v7\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v7\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v7\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v7\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?7\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v7\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v7\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v7\\.0(?![\\d.])['\"]",
           "ambiguous": true
         },
         {
@@ -920,7 +920,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v6\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v6\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v6\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?6\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v6\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v6\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v6\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v6\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v6\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v6\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?6\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v6\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v6\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v6\\.0(?![\\d.])['\"]",
           "ambiguous": true
         },
         {
@@ -984,7 +984,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v5\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v5\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v5\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?5\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v5\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v5\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v5\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v5\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v5\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v5\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?5\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v5\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v5\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v5\\.0(?![\\d.])['\"]",
           "ambiguous": true
         },
         {
@@ -1048,7 +1048,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v4\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v4\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v4\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?4\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v4\\.0(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v4\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v4\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v4\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?4\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v4\\.0(?![\\d.])",
           "ambiguous": true
         },
         {
@@ -1112,7 +1112,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v3\\.3(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v3\\.3(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v3\\.3(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?3\\.3(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v3\\.3(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v3\\.3(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v3\\.3(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v3\\.3(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?3\\.3(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v3\\.3(?![\\d.])",
           "ambiguous": true
         },
         {
@@ -1176,7 +1176,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v3\\.2(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v3\\.2(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v3\\.2(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?3\\.2(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v3\\.2(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v3\\.2(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v3\\.2(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v3\\.2(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?3\\.2(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v3\\.2(?![\\d.])",
           "ambiguous": true
         },
         {
@@ -1240,7 +1240,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v3\\.1(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v3\\.1(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v3\\.1(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?3\\.1(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v3\\.1(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v3\\.1(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v3\\.1(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v3\\.1(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?3\\.1(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v3\\.1(?![\\d.])",
           "ambiguous": true
         },
         {
@@ -1304,7 +1304,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v3\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v3\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v3\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?3\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v3\\.0(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v3\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v3\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v3\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?3\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v3\\.0(?![\\d.])",
           "ambiguous": true
         },
         {
@@ -1368,7 +1368,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.12(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v2\\.12(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v2\\.12(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?2\\.12(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.12(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.12(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v2\\.12(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v2\\.12(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?2\\.12(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.12(?![\\d.])",
           "ambiguous": true
         },
         {
@@ -1431,7 +1431,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.11(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v2\\.11(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v2\\.11(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?2\\.11(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.11(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.11(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v2\\.11(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v2\\.11(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?2\\.11(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.11(?![\\d.])",
           "ambiguous": true
         }
       ],
@@ -1490,7 +1490,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.10(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v2\\.10(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v2\\.10(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?2\\.10(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.10(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.10(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v2\\.10(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v2\\.10(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?2\\.10(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.10(?![\\d.])",
           "ambiguous": true
         }
       ],
@@ -1549,7 +1549,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.9(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v2\\.9(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v2\\.9(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?2\\.9(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.9(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.9(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v2\\.9(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v2\\.9(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?2\\.9(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.9(?![\\d.])",
           "ambiguous": true
         }
       ],
@@ -1608,7 +1608,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.8(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v2\\.8(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v2\\.8(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?2\\.8(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.8(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.8(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v2\\.8(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v2\\.8(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?2\\.8(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.8(?![\\d.])",
           "ambiguous": true
         }
       ],
@@ -1667,7 +1667,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.7(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v2\\.7(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v2\\.7(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?2\\.7(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.7(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.7(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v2\\.7(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v2\\.7(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?2\\.7(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.7(?![\\d.])",
           "ambiguous": true
         }
       ],
@@ -1726,7 +1726,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.6(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v2\\.6(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v2\\.6(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?2\\.6(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.6(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.6(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v2\\.6(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v2\\.6(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?2\\.6(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.6(?![\\d.])",
           "ambiguous": true
         }
       ],
@@ -1785,7 +1785,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.5(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v2\\.5(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v2\\.5(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?2\\.5(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.5(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.5(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v2\\.5(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v2\\.5(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?2\\.5(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.5(?![\\d.])",
           "ambiguous": true
         }
       ],
@@ -1844,7 +1844,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.4(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v2\\.4(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v2\\.4(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?2\\.4(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.4(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.4(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v2\\.4(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v2\\.4(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?2\\.4(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.4(?![\\d.])",
           "ambiguous": true
         }
       ],
@@ -1903,7 +1903,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.3(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v2\\.3(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v2\\.3(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?2\\.3(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.3(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.3(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v2\\.3(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v2\\.3(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?2\\.3(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.3(?![\\d.])",
           "ambiguous": true
         }
       ],
@@ -1962,7 +1962,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.2(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v2\\.2(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v2\\.2(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?2\\.2(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.2(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.2(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v2\\.2(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v2\\.2(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?2\\.2(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.2(?![\\d.])",
           "ambiguous": true
         }
       ],
@@ -2021,7 +2021,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.1(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v2\\.1(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v2\\.1(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?2\\.1(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.1(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.1(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v2\\.1(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v2\\.1(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?2\\.1(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.1(?![\\d.])",
           "ambiguous": true
         }
       ],
@@ -2080,7 +2080,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v2\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v2\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?2\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.0(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v2\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v2\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v2\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?2\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v2\\.0(?![\\d.])",
           "ambiguous": true
         }
       ],
@@ -2139,7 +2139,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v1\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v1\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v1\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?1\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v1\\.0(?![\\d.])",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v1\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v1\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v1\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?1\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v1\\.0(?![\\d.])",
           "ambiguous": true
         }
       ],
@@ -4522,7 +4522,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v25\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v25\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v25\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?25\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v25\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v25\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v25\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v25\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v25\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v25\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?25\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v25\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v25\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v25\\.0(?![\\d.])['\"]",
           "ambiguous": true
         }
       ],
@@ -4570,7 +4570,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v24\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v24\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v24\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?24\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v24\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v24\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v24\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v24\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v24\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v24\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?24\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v24\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v24\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v24\\.0(?![\\d.])['\"]",
           "ambiguous": true
         }
       ],
@@ -4619,7 +4619,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v23\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v23\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v23\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?23\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v23\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v23\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v23\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v23\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v23\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v23\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?23\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v23\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v23\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v23\\.0(?![\\d.])['\"]",
           "ambiguous": true
         }
       ],
@@ -4668,7 +4668,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v22\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v22\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v22\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?22\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v22\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v22\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v22\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v22\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v22\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v22\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?22\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v22\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v22\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v22\\.0(?![\\d.])['\"]",
           "ambiguous": true
         }
       ],
@@ -4718,7 +4718,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]*(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v21\\.0(?![\\d.])|FB\\.init\\([^)]*version\\W{1,4}v21\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]*v21\\.0(?![\\d.])|GraphAPI\\([^)]*version\\W{1,4}v?21\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v21\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v21\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v21\\.0(?![\\d.])['\"]",
+          "value": "(?:(?<![A-Za-z])(?:graph|fb|facebook|whatsapp|wa|instagram|ig|messenger|meta)|Graph|FB|Fb|Facebook|WhatsApp|Whatsapp|Instagram|Messenger|Meta|(?<![A-Za-z])(?:GRAPH|FACEBOOK|WHATSAPP|WA|INSTAGRAM|IG|MESSENGER|META))[\\w.-]{0,40}(?:VERSION|[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v21\\.0(?![\\d.])|FB\\.init\\([^)]{0,500}version\\W{1,4}v21\\.0(?![\\d.])|FacebookAdsApi\\.init\\([^)]{0,500}v21\\.0(?![\\d.])|GraphAPI\\([^)]{0,500}version\\W{1,4}v?21\\.0(?![\\d.])|(?:GraphRequest\\.setVersion|overrideVersionPartWith:?)\\W{1,4}v21\\.0(?![\\d.])|(?:API_VERSION|[Aa]pi_?[Vv]ersion)['\"]?\\s*(?:=>|[:=,(])\\s*['\"]?v21\\.0(?![\\d.])|(?<![\\w.-])['\"]?version['\"]?\\s*[:=]\\s*['\"]v21\\.0(?![\\d.])['\"]",
           "ambiguous": true
         }
       ],

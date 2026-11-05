@@ -113,6 +113,16 @@ describe('listProblems', () => {
     expect(listProblems([file([entry()], [future()])])).toEqual([]);
   });
 
+  it('trusts only the named part of a shared host', () => {
+    const on = (url: string) => {
+      const scoped = { ...file([entry({ source: { url, checkedOn: '2026-11-04' } })]) };
+      return listProblems([{ ...scoped, officialHosts: ['github.com/acme'] }]);
+    };
+    expect(on('https://github.com/acme/sdk/blob/main/CHANGES.md')).toEqual([]);
+    expect(on('https://github.com/someone-else/sdk/blob/main/CHANGES.md')[0]).toMatch(/official/);
+    expect(on('https://github.com/acme-evil/sdk')[0]).toMatch(/official/);
+  });
+
   it.each<[string, Partial<DeadApiEntry>, RegExp]>([
     [
       'an unofficial source',

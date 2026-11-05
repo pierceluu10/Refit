@@ -159,6 +159,32 @@ describe('going live', () => {
     expect(await readProposals(storeDir)).toEqual([proposal]);
   });
 
+  it('rejects a deprecation with no end, and passes one with an end', async () => {
+    const noEnd = 'widget-1 is deprecated in favor of widget-2.';
+    const withEnd = 'widget-1 is deprecated and reaches end of life on October 1, 2026.';
+    const [held, passed] = await settle(
+      [quoted(noEnd), quoted(withEnd, { id: 'acme:widget-1b' })],
+      fakeFetcher({ [PAGE_URL]: `${PAGE}\n${noEnd}\n${withEnd}` }),
+      true,
+    );
+    expect(held.status).toBe('rejected');
+    expect(held.reason).toMatch(/deprecated with no end/);
+    expect(passed.status).toBe('pending');
+  });
+
+  it('turns a trailing /* in a templated path into everything under it', async () => {
+    const quote = 'Requests to POST /a/{id}/kv/* will no longer work after October 1, 2026.';
+    const [proposal] = await settle(
+      [quoted(quote, { affects: { operations: ['POST /a/{id}/kv/*'] } })],
+      fakeFetcher({ [PAGE_URL]: `${PAGE}\n${quote}` }),
+      true,
+    );
+    const pattern = new RegExp((proposal.entry?.matchers[0] as { value: string }).value);
+    expect(pattern.test('/a/123/kv/items')).toBe(true);
+    expect(pattern.test('/a/123/kv')).toBe(true);
+    expect(pattern.test('/a/123/kvstore')).toBe(false);
+  });
+
   it("doesn't fetch a page on a host that isn't official", async () => {
     const fake = fakeFetcher();
     await settle([change({ source: { url: 'https://evil.example/x', quote: QUOTE } })], fake);
@@ -191,7 +217,9 @@ describe('going live', () => {
         affects: { operations: ['POST /v2/widgets'] },
       }),
     ]);
-    expect(proposal.entry?.matchers).toEqual([{ kind: 'url', value: '/v2/widgets' }]);
+    expect(proposal.entry?.matchers).toEqual([
+      { kind: 'url', value: '/v2/widgets', ambiguous: true },
+    ]);
     expect(proposal.status).toBe('live');
   });
 
@@ -402,10 +430,16 @@ describe('going live', () => {
   });
 
   it.each<[string, Record<string, unknown>]>([
-    ['GET /v1/charges/{id}', { kind: 'regex', value: '/v1/charges/[^/\\s]+(?![\\w/-])' }],
-    ['DELETE /v1/customers/:id', { kind: 'regex', value: '/v1/customers/[^/\\s]+(?![\\w/-])' }],
-    ['POST /v1/x?y=1', { kind: 'url', value: '/v1/x' }],
-    ['get /v1/x', { kind: 'url', value: '/v1/x' }],
+    [
+      'GET /v1/charges/{id}',
+      { kind: 'regex', value: '/v1/charges/[^/\\s]+(?![\\w/-])', ambiguous: true },
+    ],
+    [
+      'DELETE /v1/customers/:id',
+      { kind: 'regex', value: '/v1/customers/[^/\\s]+(?![\\w/-])', ambiguous: true },
+    ],
+    ['POST /v1/x?y=1', { kind: 'url', value: '/v1/x', ambiguous: true }],
+    ['get /v1/x', { kind: 'url', value: '/v1/x', ambiguous: true }],
   ])('makes a matcher from the endpoint %s', async (operation, matcher) => {
     const [proposal] = await settle(
       [
@@ -584,7 +618,9 @@ describe('what a read proposes', () => {
     const [proposal] = await settle([
       change({ affects: { operations: ['old-model', 'widget-1'] } }),
     ]);
-    expect(proposal.entry?.matchers).toEqual([{ kind: 'string', value: 'widget-1' }]);
+    expect(proposal.entry?.matchers).toEqual([
+      { kind: 'string', value: 'widget-1', ambiguous: true },
+    ]);
     expect(proposal.status).toBe('live');
   });
 

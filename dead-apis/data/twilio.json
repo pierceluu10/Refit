@@ -1,6 +1,11 @@
 {
   "provider": "twilio",
-  "officialHosts": ["twilio.com", "github.com"],
+  "officialHosts": [
+    "twilio.com",
+    "github.com/twilio",
+    "raw.githubusercontent.com/twilio",
+    "api.github.com/repos/twilio"
+  ],
   "entries": [
     {
       "id": "TW-1.programmable-fax",
@@ -93,7 +98,7 @@
         },
         {
           "kind": "regex",
-          "value": "calls\\([^)]*\\)(?:\\.|->)feedback\\b"
+          "value": "calls\\([^)]{0,500}\\)(?:\\.|->)feedback\\b"
         },
         {
           "kind": "regex",

@@ -11,7 +11,7 @@ export const NO_REPLACEMENT = 'None listed on the provider page when this was ad
 
 export type ProviderFile = {
   provider: string;
-  officialHosts: string[]; // a source must be on one of these
+  officialHosts: string[]; // a source must be on one of these; a path narrows a shared host
   entries: DeadApiEntry[];
   future: FutureShutdown[];
 };
@@ -42,14 +42,19 @@ const isDate = (value: unknown): value is string =>
   !Number.isNaN(Date.parse(value)) &&
   new Date(value).toISOString().startsWith(value);
 
+// A path in an official host ("github.com/twilio") trusts only that part of a shared host.
+function onOfficialHost(official: string, url: URL) {
+  const [host, ...path] = official.split('/');
+  const within = url.hostname === host || url.hostname.endsWith(`.${host}`);
+  return within && (path.length === 0 || url.pathname.startsWith(`/${path.join('/')}/`));
+}
+
 function sourceProblems(file: ProviderFile, id: string, url: unknown, checkedOn: unknown) {
   const problems: string[] = [];
   if (!isDate(checkedOn)) problems.push(`${id}: source.checkedOn is not a date`);
   try {
     const parsed = new URL(String(url));
-    const official = file.officialHosts.some(
-      (host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`),
-    );
+    const official = file.officialHosts.some((one) => onOfficialHost(one, parsed));
     if (parsed.protocol !== 'https:' || !official) {
       problems.push(`${id}: source ${String(url)} is not on an official host`);
     }

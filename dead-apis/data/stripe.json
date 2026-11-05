@@ -1,6 +1,11 @@
 {
   "provider": "stripe",
-  "officialHosts": ["docs.stripe.com", "github.com"],
+  "officialHosts": [
+    "docs.stripe.com",
+    "github.com/stripe",
+    "raw.githubusercontent.com/stripe",
+    "api.github.com/repos/stripe"
+  ],
   "entries": [
     {
       "id": "ST-1.current_period_start",
@@ -51,7 +56,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["items.data[].current_period_start"]
@@ -105,7 +110,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["items.data[].current_period_end"]
@@ -179,7 +184,7 @@
         "stripe-node 23.1.0 still declares an undocumented top-level subscription on InvoiceLineItem, though the API reference at 2026-10-28.endive no longer lists it, so typecheck won't catch a stale line read."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": [
@@ -243,7 +248,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["invoice.parent.subscription_details"]
@@ -300,7 +305,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["invoice.parent.subscription_details.subscription_proration_date"]
@@ -355,7 +360,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["invoice.parent.quote_details.quote"]
@@ -421,7 +426,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": [
@@ -487,7 +492,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": [
@@ -550,7 +555,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": [
@@ -613,7 +618,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": [
@@ -680,7 +685,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["line_item.parent.type"]
@@ -749,7 +754,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": [
@@ -815,7 +820,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["invoice.payments", "/v1/invoice_payments"]
@@ -873,7 +878,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["invoice.status"]
@@ -929,7 +934,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["invoice.payments", "invoice.amount_paid_off_stripe"]
@@ -986,7 +991,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["invoice.payments.data[i].payment.payment_intent.application_fee_amount"]
@@ -1043,7 +1048,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["invoice.payments.data[i].payment.payment_intent.transfer_data"]
@@ -1098,7 +1103,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["/v1/invoice_payments"]
@@ -1145,7 +1150,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["credit_note.refunds"]
@@ -1201,7 +1206,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["session.collected_information.shipping_details"]
@@ -1261,7 +1266,7 @@
         "It is a create call, POST /v1/invoices/create_preview, where the old one was a GET: raw HTTP callers change method and path."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["invoices.createPreview", "/v1/invoices/create_preview"]
@@ -1326,7 +1331,7 @@
         "Lines paginate differently from a dedicated list call: read lines on the preview invoice and page if has_more is set. Reading, not on the page."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["invoices.createPreview", "/v1/invoices/create_preview"]
@@ -1380,7 +1385,7 @@
         "Temporary workaround per Stripe, not a migration: keep the legacy API with a raw request pinned to 2025-02-24.acacia."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["billing/meters", "default_aggregation.formula"]
@@ -1444,7 +1449,7 @@
         "Temporary workaround per Stripe, not a migration: keep the legacy API with a raw request pinned to 2025-02-24.acacia."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["billing/meters"]
@@ -1510,7 +1515,7 @@
         "A meter event identifies the customer by payload.stripe_customer_id and carries an event_name, value, timestamp and identifier, where a usage record named a subscription item."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["/v1/billing/meter_events", "billing.meterEvents.create"]
@@ -1575,7 +1580,7 @@
         "Temporary workaround per Stripe, not a migration: keep the legacy API with a raw request pinned to 2025-02-24.acacia."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["billing/meters"]
@@ -1633,7 +1638,7 @@
         "Temporary workaround per Stripe, not a migration: keep the legacy API with a raw request pinned to 2025-02-24.acacia."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["recurring.meter"]
@@ -1682,7 +1687,7 @@
         "A count shown to users has no replacement field: decide whether to page through everything or drop the number."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["has_more"]
@@ -1777,7 +1782,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["discount.source.coupon"]
@@ -1838,7 +1843,7 @@
         "duration was added in 2025-07-30.basil, so a pin older than that must move first."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["phases[].duration"]
@@ -1906,7 +1911,7 @@
         "pricing.price_details.price is typed string | Price in stripe-node 23.1.0 and string in 18.0.0, so it is an ID unless expanded: code reading price.id takes the string or expands it, and code reading other Price fields has to expand or retrieve the Price."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["pricing.price_details.price", "pricing.price"]
@@ -1971,7 +1976,7 @@
         "Plan attributes such as interval aren't on pricing: retrieve the Price if the code needs them."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["pricing.price_details.price"]
@@ -2039,7 +2044,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["pricing.unit_amount_decimal"]
@@ -2107,7 +2112,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["pricing.unit_amount_decimal"]
@@ -2172,7 +2177,7 @@
         "The new value is a Tax Rate ID, so code reading rate details such as percentage has to retrieve the Tax Rate. Reading, not on the page."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["line_item.taxes[].tax_rate_details.tax_rate"]
@@ -2238,7 +2243,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["line_item.taxes[].amount", "credit_note.total_taxes"]
@@ -2293,7 +2298,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["invoice.total_taxes"]
@@ -2350,7 +2355,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["invoice.total_taxes"]
@@ -2414,7 +2419,7 @@
         "Say in the PR that the computed value is unproven against tax-inclusive prices."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["line_item.taxes"]
@@ -2478,7 +2483,7 @@
         "Say in the PR that the computed value is unproven against tax-inclusive prices."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["line_item.taxes"]
@@ -2511,7 +2516,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?<![\\w.])['\"]?coupon['\"]?\\s*[:=](?!=)",
+          "value": "(?<![\\w.])(?<!\\b(?:const|let|var)\\s+)['\"]?coupon['\"]?\\s*[:=](?!=)",
           "ambiguous": true
         }
       ],
@@ -2540,7 +2545,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["discounts"]
@@ -2602,7 +2607,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["discounts"]
@@ -2663,7 +2668,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["discounts"]
@@ -2720,7 +2725,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["session.presentment_details"]
@@ -2783,7 +2788,7 @@
         "The webhook endpoint needs its own upgrade: its version doesn't move with the SDK. Create a new endpoint with the new api_version and move traffic over, per docs.stripe.com/webhooks/versioning."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["promotion.coupon"]
@@ -2807,6 +2812,10 @@
         {
           "kind": "string",
           "value": "AffirmMessageElement"
+        },
+        {
+          "kind": "regex",
+          "value": "\\bAffirmMessageElement\\b"
         }
       ],
       "versions": "A break only on Stripe.js clover or later: a script from js.stripe.com/clover/stripe.js or a later release, or @stripe/stripe-js 8.0.0 or later (each major is pinned to one Stripe.js release, per that package's README). js.stripe.com/v3 and Stripe.js releases through basil are older and aren't affected. The server's stripe package version and apiVersion don't decide this: Stripe.js uses its own associated API version (2025-09-30.clover here) and it can't be overridden. Not a break: a pinned or SDK-default version older than the removal, reading fields that exist at that version. Stripe keeps those working. Do not upgrade to fix it. ",
@@ -3458,6 +3467,30 @@
           "kind": "string",
           "value": "payment_method_types",
           "ambiguous": true
+        },
+        {
+          "kind": "field",
+          "value": "payment_method_types",
+          "on": [
+            "sessions.create",
+            "Session.create",
+            "paymentIntents.create",
+            "paymentIntents.update",
+            "paymentIntents.confirm",
+            "PaymentIntent.create",
+            "PaymentIntent.modify",
+            "PaymentIntent.confirm",
+            "payment_intents.create",
+            "payment_intents.update",
+            "payment_intents.confirm",
+            "setupIntents.create",
+            "setupIntents.update",
+            "SetupIntent.create",
+            "SetupIntent.modify",
+            "setup_intents.create",
+            "setup_intents.update"
+          ],
+          "ambiguous": true
         }
       ],
       "versions": "A break only if the code runs at or after 2026-09-30.endive, set by apiVersion, stripe.api_version or Stripe-Version; if unset, the SDK's own pin applies: stripe on npm 23.0.0 or later, stripe on PyPI 16.0.0 or later send 2026-09-30.endive or newer. stripe-node before v12 and stripe-python before v6 use the account's default version when none is set, so the repo alone can't say. Untyped or any-typed reads hide this from typecheck: read the code. Not a break: a pinned or SDK-default version older than the removal, reading fields that exist at that version. Stripe keeps those working. Do not upgrade to fix it. Webhook payloads follow the webhook endpoint's own API version, not the SDK pin, so an object from event.data.object may have either shape and the repo alone can't say which. Objects from API calls follow the pin.",
@@ -3484,7 +3517,7 @@
         "Payment methods then come from Dashboard settings, which a person controls. Reading, not on the page: dropping a card-only list can offer methods the handler doesn't expect, so keep the same list in allowed_payment_method_types unless asked otherwise."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["allowed_payment_method_types", "excluded_payment_method_types"]
@@ -3627,7 +3660,7 @@
         "Those requests now return an error. No stored data is affected, because the API never persisted these values."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       }
     },
@@ -3653,7 +3686,7 @@
         },
         {
           "kind": "regex",
-          "value": "(?<![\\w.])['\"]?countries['\"]?\\s*[:=](?!=)|filters\\[countries\\]",
+          "value": "(?<![\\w.])(?<!\\b(?:const|let|var)\\s+)['\"]?countries['\"]?\\s*[:=](?!=)|filters\\[countries\\]",
           "ambiguous": true
         }
       ],
@@ -3680,7 +3713,7 @@
         "The old name or an array value returns an error."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["filters.country"]
@@ -3725,7 +3758,7 @@
       "replacement": "None: the page says to remove the parameter from create Account Link requests.",
       "requires": ["Requests that include it return an error."],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       }
     },
@@ -3769,7 +3802,7 @@
         "Payment Intents that specify setup_future_usage must also pass allow_redisplay before collecting card details."
       ],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["allow_redisplay"]
@@ -3811,7 +3844,7 @@
       "replacement": "usage_threshold",
       "requires": ["The filter moves inside it as a list, so move ST-27.filter at the same time."],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["usage_threshold"]
@@ -3857,7 +3890,7 @@
       "replacement": "A list of filters inside the alert type configuration: usage_threshold.filters.",
       "requires": ["A single value becomes a list."],
       "context": {
-        "packages": ["stripe"],
+        "packages": ["stripe", "stripe/stripe-php"],
         "hosts": ["api.stripe.com"]
       },
       "replacementIds": ["usage_threshold.filters"]

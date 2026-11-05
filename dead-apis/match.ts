@@ -4,6 +4,10 @@
 import type { DeadApiMatcher } from '../shared/types.ts';
 
 const TOKEN = /[A-Za-z0-9_.:/@-]+/g;
+const SHELL_DEFAULT_PREFIX = /^(?:[A-Z][A-Z0-9_]*)?-(?=[a-z])/;
+const MIN_LITERAL_CHARS = 2;
+// A template (/x/${id}, /x/{id}, /x/:id) is a longer path too, and often a live one.
+const LONGER_PATH = '/[\\w${:<-]';
 export const escapeRegex = (text: string) => text.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
 
 /** The tokens in a piece of text. A trailing dot or colon is sentence punctuation, not a name. */
@@ -11,17 +15,28 @@ export const tokensOf = (text: string): string[] =>
   (text.match(TOKEN) ?? []).map((token) => token.replace(/[.:/]+$/, '')).filter(Boolean);
 
 function candidates(token: string): string[] {
-  // models/gemini-2.0-flash:generateContent, groq/llama-3.3-70b-versatile, https://x/v1/models/o1.
-  // Segments of a path count, but a vertex @date or a bedrock anthropic.… prefix stays attached,
+  // models/gemini-2.0-flash:generateContent, groq/llama-3.3-70b-versatile, https://x/v1/models/o1,
+  // openai:gpt-4 and a shell's ${MODEL:-gemini-2.0-flash} or ${MODEL-gemini-2.0-flash}.
+  // Segments count, but a vertex @date or a bedrock anthropic.… prefix stays attached,
   // and @cf/… and @hf/… are Cloudflare's own model ids, not the provider's.
   if (token.startsWith('@')) return [token];
-  const segments = token.split('/').filter(Boolean);
-  const named = segments.map((segment) => segment.replace(/:[A-Za-z]\w*$/, ''));
-  return [...new Set([token, ...segments, ...named])];
+  const segments = token.split(/[/:]/).filter(Boolean);
+  const defaults = segments.map((segment) => segment.replace(SHELL_DEFAULT_PREFIX, ''));
+  return [...new Set([token, ...segments, ...defaults])];
 }
 
-const tokenRegex = (value: string, caseSensitive: boolean) =>
-  new RegExp(`^${value.split('*').map(escapeRegex).join('.*')}$`, caseSensitive ? '' : 'i');
+const compiledTokens = new Map<string, RegExp>();
+
+function tokenRegex(value: string, caseSensitive: boolean): RegExp {
+  const key = `${caseSensitive}|${value}`;
+  let regex = compiledTokens.get(key);
+  if (!regex) {
+    const pattern = `^${value.split('*').map(escapeRegex).join('.*')}$`;
+    regex = new RegExp(pattern, caseSensitive ? '' : 'i');
+    compiledTokens.set(key, regex);
+  }
+  return regex;
+}
 
 /** Whether one token is the name a string matcher means. Names are case sensitive unless they say. */
 export function tokenMatches(
@@ -59,6 +74,59 @@ export function urlMatches(
   const resource = matcher.value.endsWith('*');
   const address = escapeRegex(matcher.value.replace(/\*$/, ''));
   const longerHost = bareHost ? '|\\.[\\w-]' : '';
-  const end = resource ? `(?![\\w-]${longerHost})` : `(?![\\w-]|/[\\w-]${longerHost})`;
+  const end = resource ? `(?![\\w-]${longerHost})` : `(?![\\w-]|${LONGER_PATH}${longerHost})`;
   return new RegExp(`${start}${before}${address}${end}`, 'i').test(text);
+}
+
+/**
+ * The text a regex can't match without, one per top-level branch: a match holds at least one of them.
+ * Undefined when a branch has none. It lets a scan skip a file without running the regex at all.
+ */
+export function requiredLiterals(value: string): string[] | undefined {
+  const branches: string[] = [];
+  let depth = 0;
+  let inClass = false;
+  let run = '';
+  let best = '';
+  const flush = () => {
+    if (run.length > best.length) best = run;
+    run = '';
+  };
+  for (let at = 0; at < value.length; at += 1) {
+    const char = value[at];
+    if (char === '\\') {
+      at += 1;
+      if (depth > 0 || inClass) continue;
+      if (/\w/.test(value[at] ?? '')) flush();
+      else run += value[at];
+    } else if (inClass) {
+      inClass = char !== ']';
+    } else if (char === '[') {
+      flush();
+      inClass = true;
+    } else if (char === '(') {
+      flush();
+      depth += 1;
+    } else if (char === ')') {
+      depth -= 1;
+    } else if (depth > 0) {
+      continue;
+    } else if (char === '|') {
+      flush();
+      branches.push(best);
+      best = '';
+    } else if (char === '*' || char === '?' || char === '{') {
+      // The character before can be absent, so it isn't required.
+      run = run.slice(0, -1);
+      flush();
+      if (char === '{') at = value.indexOf('}', at);
+    } else if ('^$.+'.includes(char)) {
+      flush();
+    } else {
+      run += char;
+    }
+  }
+  flush();
+  branches.push(best);
+  return branches.every((one) => one.length >= MIN_LITERAL_CHARS) ? branches : undefined;
 }

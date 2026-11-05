@@ -27,5 +27,6 @@
     "evals",
     "shared",
     "orchestrator"
-  ]
+  ],
+  "exclude": ["inventory/fixtures"]
 }
