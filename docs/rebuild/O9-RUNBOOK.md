@@ -15,9 +15,9 @@
 | 1 | Fresh repos, picked by a written rule | Same rule as `evals/rounds/o2/README.md`, with a new seed, from repos no round has used |
 | 2 | Lock required changes and tests | `evals/scoring/required.ts` for name changes. Add behaviour tests for field changes, which a static lock can't show. Commit the lock before any run |
 | 3 | Screen | `node evals/runner/cli.ts screen --sets sealed:stripe,sealed:openai,sealed:anthropic,sealed:gemini` opens the sets once and writes the `OPENED.json` marker |
-| 4 | The sealed set, once | `evals/runner/sealed-run.ts` refuses a second open unless it's resuming the same run. It's wired to the old pipeline today, so it needs pointing at `runProductRepo` first. That's a small change, and it's the one thing here that isn't ready |
+| 4 | The sealed set, once | Keep the lock in the screen's output folder, never in `evals/`. Then `APTITUDE_AI_BUDGET_USD=<cap> node evals/runner/session-run.ts <lock.json> <out-dir> --product --sealed`. A second run in that folder is refused, and `--resume` finishes one a crash stopped |
 | 5 | Refit with empty memory | Point `APTITUDE_MEMORY_DIR` at a new folder for this row, so the gap to the row with memory shows what learning adds |
-| 6 | Claude Code, independent | Same repos and commits, in the same containers. Once with the bare prompt from `TEST-2026-11-04.md`, and once with a detailed prompt a smart customer would write. `evals/runner/baseline.ts` runs plain Claude, but its prompt must be swapped for each of these |
+| 6 | Claude Code, independent | Same repos and commits, in the same containers: `node evals/runner/baseline.ts --claude-only --locks <lock.json> --set <set> --screen <screen-dir> --prompt-file <file> --out <dir> --budget-usd <cap>`. Run it once with the bare prompt from `TEST-2026-11-04.md` and once with a detailed prompt a smart customer would write, each to its own `--out`. This path needs a real `ANTHROPIC_API_KEY` |
 | 7 | Grade blind | Shuffled labels, as `evals/runner/learning.ts` writes them. A fresh grader, with the key kept apart |
 | 8 | Hand-check | At least 10 results, or all if there are fewer. Report how often the grader and the hand-check agree |
 

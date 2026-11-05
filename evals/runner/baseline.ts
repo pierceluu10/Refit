@@ -257,7 +257,7 @@ type RepoAt = { set: string; repo: string; commit: string; provider: string };
 async function runClaude(
   entry: RepoAt,
   screenDir: string,
-  date: string,
+  prompt: string,
   budget: ReturnType<typeof createBudget>,
 ): Promise<ClaudeRun> {
   const own = ownChecks(screenDir, entry.set, entry.repo);
@@ -311,7 +311,7 @@ async function runClaude(
         const session = await claudeAgentSession({
           model: MODEL,
           systemPrompt: SYSTEM,
-          prompt: baselinePrompt(date),
+          prompt,
           tools,
           sandbox,
           ledger,
@@ -647,6 +647,9 @@ async function main(argv: string[]) {
   if (!(budgetUsd > 0)) throw new Error('--budget-usd is required and must be above zero');
   if (!process.env.ANTHROPIC_API_KEY) throw new Error('Set ANTHROPIC_API_KEY for the baseline.');
   const date = flag('date') ?? new Date().toISOString().slice(0, 10);
+  // O9 runs this twice, with the bare prompt and a detailed one, each to its own --out folder.
+  const promptFile = flag('prompt-file');
+  const prompt = promptFile ? readFileSync(promptFile, 'utf8').trim() : baselinePrompt(date);
   const budget = createBudget(budgetUsd);
   const judgeClient = anthropicModelClient({ budget, model: JUDGE_MODEL });
   // Plain Claude's runs are kept apart from the comparisons, so they can run beside Refit's.
@@ -657,7 +660,7 @@ async function main(argv: string[]) {
   const claudeFor = async (entry: RepoAt): Promise<ClaudeRun> => {
     const file = claudeFile(entry.set, entry.repo);
     if (existsSync(file)) return JSON.parse(readFileSync(file, 'utf8')) as ClaudeRun;
-    const run = await runClaude(entry, screenDir, date, budget);
+    const run = await runClaude(entry, screenDir, prompt, budget);
     if (!run.error) writeFileSync(file, `${JSON.stringify(run, null, 2)}\n`);
     return run;
   };
@@ -711,22 +714,27 @@ async function main(argv: string[]) {
     return;
   }
   if (argv.includes('--claude-only')) {
-    // Plain Claude alone, on chosen repos of the sets: nothing of Refit's is read.
+    // Plain Claude alone, on chosen repos of the sets or a lock file: nothing of Refit's is read.
     const repos = new Set((flag('repos') ?? '').split(',').filter(Boolean));
-    const entries = (flag('sets') ?? '')
-      .split(',')
-      .filter(Boolean)
-      .flatMap((name) => {
-        const set = loadDevSet(name);
-        return set.repos
-          .filter((entry) => repos.has(entry.repo))
-          .map((entry) => ({
-            set: set.name,
-            repo: entry.repo,
-            commit: entry.commit,
-            provider: typeof entry.provider === 'string' ? entry.provider : set.provider,
-          }));
-      });
+    const locks = flag('locks');
+    const entries: RepoAt[] = locks
+      ? (JSON.parse(readFileSync(locks, 'utf8')) as { repo: string; commit: string }[]).map(
+          ({ repo, commit }) => ({ set: flag('set') ?? 'locked', repo, commit, provider: 'any' }),
+        )
+      : (flag('sets') ?? '')
+          .split(',')
+          .filter(Boolean)
+          .flatMap((name) => {
+            const set = loadDevSet(name);
+            return set.repos
+              .filter((entry) => repos.has(entry.repo))
+              .map((entry) => ({
+                set: set.name,
+                repo: entry.repo,
+                commit: entry.commit,
+                provider: typeof entry.provider === 'string' ? entry.provider : set.provider,
+              }));
+          });
     let at = 0;
     const runner = async () => {
       while (at < entries.length) {

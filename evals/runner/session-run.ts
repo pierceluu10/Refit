@@ -3,7 +3,15 @@
 // proof, grade. It runs what the product's scan path runs.
 //   APTITUDE_AI_BUDGET_USD=5 node evals/runner/session-run.ts evals/rounds/o2/lock.json out-dir
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, cpSync, writeFileSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
@@ -134,16 +142,37 @@ export async function runProductRepo(lock: RepoLock, deps: LoopDeps): Promise<Se
   }
 }
 
+// What this folder already ran. A sealed run happens once, so finding results refuses it, unless
+// resume finishes the run a crash stopped.
+export function earlierResults(
+  outDir: string,
+  { sealed = false, resume = false } = {},
+): SessionResult[] {
+  const file = path.join(outDir, 'results.json');
+  if (!existsSync(file)) return [];
+  if (sealed && !resume) {
+    throw new Error(`${file} exists: a sealed run happens once (--resume finishes that run)`);
+  }
+  return resume ? (JSON.parse(readFileSync(file, 'utf8')) as SessionResult[]) : [];
+}
+
 async function main(argv: string[]) {
   const { values, positionals } = parseArgs({
     args: argv,
     allowPositionals: true,
-    options: { product: { type: 'boolean', default: false }, model: { type: 'string' } },
+    options: {
+      product: { type: 'boolean', default: false },
+      model: { type: 'string' },
+      sealed: { type: 'boolean', default: false },
+      resume: { type: 'boolean', default: false },
+    },
   });
-  const { product, model } = values;
+  const { product, model, sealed, resume } = values;
   const [lockFile, outDir] = positionals;
   if (!lockFile || !outDir)
-    throw new Error('usage: session-run.ts <lock.json> <out-dir> [--product] [--model <id>]');
+    throw new Error(
+      'usage: session-run.ts <lock.json> <out-dir> [--product] [--model <id>] [--sealed] [--resume]',
+    );
   const capUsd = budgetFromEnv();
   const locks = JSON.parse(readFileSync(lockFile, 'utf8')) as RepoLock[];
   mkdirSync(outDir, { recursive: true });
@@ -157,10 +186,11 @@ async function main(argv: string[]) {
         ...scanner,
       })
     : undefined;
-  let spentUsd = 0;
-  const results: SessionResult[] = [];
+  const results = earlierResults(outDir, { sealed, resume });
+  let spentUsd = results.reduce((sum, result) => sum + result.costUsd, 0);
   // One at a time, so each repo's time is its own and the cap is checked between repos.
   for (const lock of locks) {
+    if (results.some((result) => result.repo === lock.repo)) continue;
     if (spentUsd + REPO_USD > capUsd) {
       console.log(`stopped before ${lock.repo}: $${spentUsd.toFixed(2)} of $${capUsd} spent`);
       break;
