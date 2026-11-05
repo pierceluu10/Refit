@@ -354,4 +354,17 @@ describe('runOrg with a scan', () => {
     expect(summary.counts.failed).toBe(1);
     expect(summary.errors).toEqual([expect.stringContaining('scan failed after retries')]);
   });
+
+  it('never logs a key that an error carries', async () => {
+    const { deps } = fakeDeps([], async (t) => ok(t, 'verified', 'diff'));
+    const lines: string[] = [];
+    deps.log = (line) => lines.push(line);
+    deps.scan = async () => {
+      throw new Error('401 for sk-ant-abcdefghijklmnopqrstuvwxyz');
+    };
+    const summary = await runOrg(org, deps);
+    expect(summary.errors.join()).not.toContain('sk-ant-');
+    expect(lines.join()).toContain('[redacted]');
+    expect(lines.join()).not.toContain('sk-ant-');
+  });
 });

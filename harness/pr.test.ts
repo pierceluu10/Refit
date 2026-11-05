@@ -121,6 +121,13 @@ describe('writePrBody', () => {
     expect(unproven).not.toContain('Nothing known.');
   });
 
+  it('puts list requirements the session left undone under Unproven', () => {
+    const report = { ...base.report!, requirementsLeft: ['Handle stop_reason refusal.'] };
+    expect(writePrBody({ ...base, report })).toContain(
+      '- Left undone from the list: Handle stop_reason refusal.',
+    );
+  });
+
   it('lists a provider check that failed on its last call even when the agent left it out', () => {
     const unclaimed = writePrBody({
       ...base,

@@ -65,7 +65,9 @@ export async function createSandbox(
     await git('add', '-A');
     await git('commit', '-q', '--allow-empty', '--no-verify', '-m', 'baseline');
     let baseline = (await git('rev-parse', 'HEAD')).trim();
+    const given = baseline;
     const leftOut = new Set<string>();
+    const leftOutFolders = new Set<string>();
     const snapshot = async () => {
       await git('add', '-A');
       await git('commit', '-q', '--allow-empty', '--no-verify', '-m', 'prepared');
@@ -94,11 +96,27 @@ export async function createSandbox(
         ':(exclude,glob)**/*.pyc',
         // A proof test for a repo with no test setup: run by the harness, kept out of the PR.
         ':(exclude).refit-proof',
-        ...[...leftOut].map((file) => `:(exclude,literal)${file}`),
+        ...[...leftOut, ...leftOutFolders].map((file) => `:(exclude,literal)${file}`),
       );
     };
-    const leaveOut = (files: string[]) => files.forEach((file) => leftOut.add(file));
-    const keep = (file: string) => void leftOut.delete(file);
+    // Output in a folder the repo doesn't have goes whole: the next build can name its files
+    // differently (round 6, chandandadhekar/ListAI-V2's hashed assets under build/).
+    const leaveOut = async (files: string[]) => {
+      const folders = await git('ls-tree', '-r', '-d', '-z', '--name-only', given);
+      const tracked = new Set(folders.split('\0'));
+      for (const file of files) {
+        leftOut.add(file);
+        const parts = file.split('/').slice(0, -1);
+        const made = parts.findIndex((_, i) => !tracked.has(parts.slice(0, i + 1).join('/')));
+        if (made >= 0) leftOutFolders.add(parts.slice(0, made + 1).join('/'));
+      }
+    };
+    const keep = (file: string) => {
+      leftOut.delete(file);
+      for (const folder of leftOutFolders) {
+        if (file.startsWith(`${folder}/`)) leftOutFolders.delete(folder);
+      }
+    };
     const remove = () => fs.rm(root, { recursive: true, force: true });
 
     if (mode === 'local') {
@@ -124,7 +142,7 @@ export async function createSandbox(
     // prettier-ignore
     const started = await run('docker', [
       'run', '-d', '--rm', '--name', name, ...user,
-      '--memory', '4g', '--cpus', process.env.APTITUDE_SANDBOX_CPUS ?? '2', '--security-opt', 'no-new-privileges',
+      '--memory', '4g', '--cpus', process.env.APTITUDE_SANDBOX_CPUS ?? '4', '--security-opt', 'no-new-privileges',
       ...Object.entries(SANDBOX_ENV).flatMap(([key, value]) => ['-e', `${key}=${value}`]),
       '-e', 'HOME=/tmp',
       '-v', `${dir}:/work`, '-w', '/work', image, 'sleep', 'infinity',

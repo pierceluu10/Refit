@@ -21,6 +21,8 @@
 | 7 | Grade blind | Shuffled labels, as `evals/runner/learning.ts` writes them. A fresh grader, with the key kept apart |
 | 8 | Hand-check | At least 10 results, or all if there are fewer. Report how often the grader and the hand-check agree |
 
+**Keep setup level.** Both sides count install, generated code and the first check run, but Refit reuses saved installs and the Claude path doesn't. Before each timed row, clear them with `rm -rf "$(node -p 'require("os").tmpdir()')/aptitude-install-layers"`, so every row starts cold. Report each side's time with and without setup, because a developer's own machine usually has the packages already.
+
 ## The write-up
 
 Plain language, including everywhere Refit loses. Report:

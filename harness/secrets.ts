@@ -14,6 +14,8 @@ const SECRET_PATTERNS = [
   /shp(?:at|ca|pa|ss)_[a-fA-F0-9]{32}\b/g, // Shopify
   /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g,
 ];
+// shortcut: as with NAMED_SECRET below, a value with no digit stays, so `Bearer authentication` reads on.
+const BEARER = /\b([Bb]earer\s+)(?=[\w+/=.~-]*\d)[\w+/=.~-]{8,}/g;
 
 export function secretValues(env: NodeJS.ProcessEnv = process.env): string[] {
   return Object.entries(env)
@@ -34,7 +36,7 @@ export function redactSecrets(text: string, env: NodeJS.ProcessEnv = process.env
   let out = text;
   for (const value of secretValues(env)) out = out.split(value).join('[redacted]');
   for (const pattern of SECRET_PATTERNS) out = out.replace(pattern, '[redacted]');
-  return out.replace(NAMED_SECRET, '$1[redacted]');
+  return out.replace(BEARER, '$1[redacted]').replace(NAMED_SECRET, '$1[redacted]');
 }
 
 /**

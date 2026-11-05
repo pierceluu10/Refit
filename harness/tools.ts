@@ -613,6 +613,12 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
           description:
             'What a person must set or decide for the fix to work, such as a new env var. Leave it empty when there is nothing.',
         },
+        requirementsLeft: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'Requirements in an entry\'s "requires" lines that apply to this code and that you did not do. Anything here puts the PR under Needs a look.',
+        },
         falseAlarms: {
           type: 'array',
           description: 'Findings you left alone because they are not the dead API, with evidence.',
@@ -647,6 +653,9 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
             ? { noProofTestReason: text(args.noProofTestReason) }
             : {}),
           ...(Array.isArray(args.personMustDo) ? { personMustDo: strings(args.personMustDo) } : {}),
+          ...(Array.isArray(args.requirementsLeft)
+            ? { requirementsLeft: strings(args.requirementsLeft) }
+            : {}),
           ...(Array.isArray(args.falseAlarms)
             ? {
                 falseAlarms: args.falseAlarms.map((item) => {

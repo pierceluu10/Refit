@@ -28,7 +28,7 @@ export type Sandbox = {
   // Puts the working copy back to the last snapshot (or creation): edits undone, new files removed.
   reset?(): Promise<void>;
   // Keeps files out of the diff, and takes one back when the session edits it.
-  leaveOut?(files: string[]): void;
+  leaveOut?(files: string[]): Promise<void>;
   keep?(file: string): void;
   dispose(): Promise<void>;
 };
@@ -62,6 +62,8 @@ export type FinishReport = {
   // A repo session: what a person must set for the fix to work, and findings it read as false alarms.
   personMustDo?: string[];
   falseAlarms?: { entryId: string; file: string; why: string }[];
+  // What an entry's `requires` lines ask of this code that the session left undone.
+  requirementsLeft?: string[];
   // The registered check that tests this change, or why no test of it can be written.
   proofTest?: string;
   noProofTestReason?: string;

@@ -96,7 +96,7 @@ Each customer has one SQLite file, `customers/<owner>.sqlite`, so two processes 
 
 - `ANTHROPIC_API_KEY`: extraction, retrieval judgement and skill writing use `claude-opus-5-5`. Without it, runs are still stored and retrieval falls back to embedding order.
 - `VOYAGE_API_KEY`: `voyage-code-3` embeddings. Without it, a free local hashed embedder is used (lexical, not semantic).
-- `APTITUDE_AI_BUDGET_USD`: every model and embedding call in memory/ reserves its worst case against this cap first. Unset, memory/ spends nothing: runs and verdicts are still stored, but nothing is distilled (AGENTS.md: a run without a cap refuses to spend). The orchestrator passes each call its own share of the run's cap. With the default deps, which the app gets when it calls `recordVerdict(pr, verdict)`, every call shares one cap for the life of the process, so give each verdict its own instead: `recordVerdict(pr, verdict, { ...defaultMemory(), ...defaultAi(process.env, new Budget(1)) })`. The self-eval command spends through the loop's run budget, which refuses to start without it.
+- `APTITUDE_AI_BUDGET_USD`: every model and embedding call in memory/ reserves its worst case against this cap first. Unset, memory/ spends nothing: runs and verdicts are still stored, but nothing is distilled (AGENTS.md: a run without a cap refuses to spend). The orchestrator passes each call its own share of the run's cap. The app gives each verdict up to $1 of the run's cap and never waits for it (`verdictWith` in `app/runner.ts`). With nothing free, the verdict is still stored and memory spends nothing. The self-eval command spends through the loop's run budget, which refuses to start without it.
 
 ## Tests
 

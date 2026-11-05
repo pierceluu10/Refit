@@ -54,6 +54,27 @@ describe('local sandbox', () => {
     );
   });
 
+  it('leaves out a folder the checks made, even files a later build names differently', async () => {
+    const write = async (file: string) => {
+      await fs.mkdir(path.dirname(path.join(sandbox.dir, file)), { recursive: true });
+      await fs.writeFile(path.join(sandbox.dir, file), 'output\n');
+    };
+    await write('build/assets/page-aaa.js');
+    await write('src/generated.js');
+    await sandbox.leaveOut?.(['build/assets/page-aaa.js', 'src/generated.js']);
+    await write('build/assets/page-bbb.js');
+    await write('src/new.js');
+    const diff = await sandbox.diff();
+    expect(diff).toContain('src/new.js');
+    expect(diff).not.toContain('build/');
+    expect(diff).not.toContain('src/generated.js');
+
+    // What the session writes there on purpose comes back.
+    sandbox.keep?.('build/assets/mine.js');
+    await write('build/assets/mine.js');
+    expect(await sandbox.diff()).toContain('build/assets/mine.js');
+  });
+
   it('runs commands in the copy and reports exit codes', async () => {
     const ok = await sandbox.exec('pwd && ls');
     expect(ok.code).toBe(0);
