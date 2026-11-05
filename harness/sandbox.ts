@@ -65,6 +65,7 @@ export async function createSandbox(
     await git('add', '-A');
     await git('commit', '-q', '--allow-empty', '--no-verify', '-m', 'baseline');
     let baseline = (await git('rev-parse', 'HEAD')).trim();
+    const leftOut = new Set<string>();
     const snapshot = async () => {
       await git('add', '-A');
       await git('commit', '-q', '--allow-empty', '--no-verify', '-m', 'prepared');
@@ -93,8 +94,11 @@ export async function createSandbox(
         ':(exclude,glob)**/*.pyc',
         // A proof test for a repo with no test setup: run by the harness, kept out of the PR.
         ':(exclude).refit-proof',
+        ...[...leftOut].map((file) => `:(exclude,literal)${file}`),
       );
     };
+    const leaveOut = (files: string[]) => files.forEach((file) => leftOut.add(file));
+    const keep = (file: string) => void leftOut.delete(file);
     const remove = () => fs.rm(root, { recursive: true, force: true });
 
     if (mode === 'local') {
@@ -106,6 +110,8 @@ export async function createSandbox(
         diff,
         snapshot,
         reset,
+        leaveOut,
+        keep,
         dispose: remove,
       };
     }
@@ -158,6 +164,8 @@ export async function createSandbox(
       diff,
       snapshot,
       reset,
+      leaveOut,
+      keep,
       dispose: async () => {
         await run('docker', ['rm', '-f', name], { timeoutMs: 60_000 });
         await remove();

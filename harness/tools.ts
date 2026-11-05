@@ -305,6 +305,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
         const content = str(args, 'content');
         await mkdir(path.dirname(file), { recursive: true });
         await writeFile(file, content);
+        sandbox.keep?.(path.normalize(str(args, 'path')));
         return `wrote ${display(file)} (${Buffer.byteLength(content)} bytes)`;
       },
     ),
@@ -336,6 +337,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
             ? text.split(oldText).join(newText)
             : text.slice(0, index) + newText + text.slice(index + oldText.length);
         await writeFile(file, updated);
+        sandbox.keep?.(path.normalize(str(args, 'path')));
         return `edited ${display(file)} (${count} replacement${count === 1 ? '' : 's'})`;
       },
     ),

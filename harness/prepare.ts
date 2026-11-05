@@ -38,6 +38,8 @@ export type Preparation = {
   error?: string;
   // Repo files the steps changed. They stay out of the PR, so the PR names them.
   changedFiles?: string[];
+  // Repo files the checks themselves rewrite, which stay out of the PR too.
+  rebuiltFiles?: string[];
 };
 
 // Picks the steps from what the repo shows. Injected so tests and the screen's dry runs spend $0.
@@ -245,5 +247,10 @@ export function preparationNotes(prep: Preparation): string[] {
   const changed = prep.changedFiles?.length
     ? [`Preparation changed repo files, kept out of this PR: ${prep.changedFiles.join(', ')}.`]
     : [];
-  return [...steps, ...env, ...changed, ...(prep.error ? [prep.error] : [])];
+  const rebuilt = prep.rebuiltFiles?.length
+    ? [
+        `The repo's own checks rewrite ${prep.rebuiltFiles.join(', ')}, so this PR leaves them as they are. If you ship them, rebuild them.`,
+      ]
+    : [];
+  return [...steps, ...env, ...changed, ...rebuilt, ...(prep.error ? [prep.error] : [])];
 }
