@@ -44,7 +44,7 @@ import type {
   UnderstandJob,
 } from './types.ts';
 
-// A verdict's share of the run while it learns; memory refuses an Opus call whose worst case passes it.
+// A verdict's share of the run while it learns; memory refuses a call whose worst case passes it.
 const VERDICT_USD = 1;
 
 let budget: RunBudget | undefined;

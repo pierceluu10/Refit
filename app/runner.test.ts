@@ -123,7 +123,7 @@ describe('one cap across the check, the loop and verdicts', () => {
 
   describe('a verdict', () => {
     const PR = 'https://github.com/example-org/billing/pull/7';
-    const VERDICT_CALL_USD = 0.06; // opus-5-5: 10k tokens in at $4 and 1k out at $20, per million
+    const VERDICT_CALL_USD = 0.03; // sonnet-5-5: 10k tokens in at $2 and 1k out at $10, per million
     const RECIPE = {
       sameAsRecipeId: null,
       preconditions: 'Calls stripe.charges.create.',
