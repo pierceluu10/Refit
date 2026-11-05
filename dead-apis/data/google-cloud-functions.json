@@ -1,0 +1,75 @@
+{
+  "provider": "google-cloud-functions",
+  "officialHosts": ["docs.cloud.google.com"],
+  "entries": [
+    {
+      "id": "GC-1.nodejs18-and-older",
+      "provider": "google-cloud-functions",
+      "what": "The Cloud Functions Node.js 18 runtime passed its decommission date of 2025-10-30, and Node.js 16 and older before it. New deploys and updates on them are refused, and deployed functions may be disabled, so the page only says \"may\" about a function that's already running.",
+      "diedOn": "2025-10-30",
+      "source": {
+        "url": "https://docs.cloud.google.com/functions/docs/runtime-support",
+        "checkedOn": "2026-11-05",
+        "quote": "you can no longer create new workloads or update"
+      },
+      "lookFor": [
+        "Node.js 18 chosen for a Cloud Function: engines.node in the package.json beside firebase-functions, a runtime of nodejs18 in firebase.json or a gcloud --runtime flag. Not engines of an app that only calls a function, and not AWS Lambda's nodejs18.x."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\"node\"\\s*:\\s*\"(?:[6-9]|1[0-8])\"",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\bnodejs(?:[6-9]|1[0-8])\\b(?!\\.x)",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "nodejs24, supported until the page's later dates, or nodejs22 until its own.",
+      "requires": [
+        "Set engines.node, or the runtime in firebase.json, then redeploy every function. firebase-functions and firebase-admin may need a newer major to run on it."
+      ],
+      "context": {
+        "packages": ["firebase-functions", "@google-cloud/functions-framework"],
+        "hosts": ["cloudfunctions.net"]
+      }
+    },
+    {
+      "id": "GC-2.nodejs20",
+      "provider": "google-cloud-functions",
+      "what": "The Cloud Functions Node.js 20 runtime passed its decommission date of 2026-10-30. New deploys and updates on it are refused, and deployed functions may be disabled, so the page only says \"may\" about a function that's already running.",
+      "diedOn": "2026-10-30",
+      "source": {
+        "url": "https://docs.cloud.google.com/functions/docs/runtime-support",
+        "checkedOn": "2026-11-05",
+        "quote": "you can no longer create new workloads or update"
+      },
+      "lookFor": [
+        "Node.js 20 chosen for a Cloud Function: engines.node in the package.json beside firebase-functions, a runtime of nodejs20 in firebase.json or a gcloud --runtime flag. Not engines of an app that only calls a function, and not AWS Lambda's nodejs18.x."
+      ],
+      "matchers": [
+        {
+          "kind": "regex",
+          "value": "\"node\"\\s*:\\s*\"20\"",
+          "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "\\bnodejs20\\b(?!\\.x)",
+          "ambiguous": true
+        }
+      ],
+      "replacement": "nodejs24, supported until the page's later dates, or nodejs22 until its own.",
+      "requires": [
+        "Set engines.node, or the runtime in firebase.json, then redeploy every function. firebase-functions and firebase-admin may need a newer major to run on it."
+      ],
+      "context": {
+        "packages": ["firebase-functions", "@google-cloud/functions-framework"],
+        "hosts": ["cloudfunctions.net"]
+      }
+    }
+  ],
+  "future": []
+}

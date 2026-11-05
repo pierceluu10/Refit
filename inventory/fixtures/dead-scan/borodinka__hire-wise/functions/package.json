@@ -1,0 +1,5 @@
+{
+  "name": "excerpt-of-borodinka-hire-wise-functions-seen-in-p5",
+  "engines": { "node": "18" },
+  "dependencies": { "firebase-functions": "^4.3.1" }
+}
