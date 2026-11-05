@@ -7,7 +7,7 @@ import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
 import { listProviderIds } from '../providers/core/registry.ts';
 import type { MigrationTask, RunRecord } from '../shared/types.ts';
 import { BudgetExceededError, createBudget } from './budget.ts';
-import { anyWatcher, cachedChanges, createDeps, MEMORY_USD, REPO_USD } from './deps.ts';
+import { anyWatcher, cachedChanges, createDeps, REPO_USD } from './deps.ts';
 import { stubRunTask } from './stubs.ts';
 import { TURN_RESERVE_USD } from '../harness/index.ts';
 
@@ -244,7 +244,7 @@ describe('recordRun', () => {
     running.settle(0);
   });
 
-  it('holds its share of the run to learn from an attempt', async () => {
+  it('stores an attempt without spending from the run', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
     const budget = createBudget(3);
     const out = join(await mkdtemp(join(tmpdir(), 'aptitude-deps-')), 'runs.jsonl');
@@ -270,7 +270,8 @@ describe('recordRun', () => {
     );
 
     await deps.recordRun(task('c'), attempt, checkout);
-    expect(memory.caps).toEqual([MEMORY_USD]);
+    // Learning is off the fix path: a fix run only stores, and spends nothing of the run.
+    expect(budget.spentUsd()).toBe(0);
     expect(budget.heldUsd()).toBe(0);
     // The commit the run read, for memory's self-eval.
     expect(memory.commits).toEqual([git('rev-parse', 'HEAD')]);

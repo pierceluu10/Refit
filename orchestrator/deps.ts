@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { runTask, TURN_RESERVE_USD, type HarnessRunRecord } from '../harness/index.ts';
+import { isRepoTask } from '../harness/findings.ts';
 import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
 import { BudgetLedger as InventoryLedger, runInventory } from '../inventory/index.ts';
 import {
@@ -12,6 +13,7 @@ import {
   defaultAi,
   defaultMemory,
   learnFromRun,
+  recipesForEntries,
 } from '../memory/index.ts';
 import { anyProviderWatcher } from '../providers/core/any-watcher.ts';
 import { BudgetLedger as WatchLedger } from '../providers/core/model.ts';
@@ -260,11 +262,21 @@ export function createDeps({
       }
       let spentUsd = 0;
       try {
-        // Recipes come first, from what the hold has above the harness's overshoot reserve.
+        // Recipes come first. A repo session's are a plain lookup, so memory spends nothing of its
+        // cap; a changelog task's come from what the hold has above the overshoot reserve.
         const ai = memory(
-          new MemoryBudget(Math.max(Math.min(MEMORY_USD, hold.usd - TURN_RESERVE_USD), 0)),
+          new MemoryBudget(
+            isRepoTask(task) ? 0 : Math.max(Math.min(MEMORY_USD, hold.usd - TURN_RESERVE_USD), 0),
+          ),
         );
-        const recipes = await createRetriever(ai)(task).catch((error) => {
+        const recipes = await (
+          isRepoTask(task)
+            ? recipesForEntries(
+                task.entries.map((entry) => entry.id),
+                ai.store,
+              )
+            : createRetriever(ai)(task)
+        ).catch((error) => {
           log(`memory: no recipes for ${task.id}: ${error}`);
           return [];
         });
@@ -311,22 +323,9 @@ export function createDeps({
         usedRecipeIds: recipeIds,
         commit: await headCommit(dir),
       };
-      const learn = (memoryBudget: MemoryBudget) => learnFromRun(run, memory(memoryBudget));
-      // A record with no transcript was never attempted, so it is stored with nothing to distill.
-      // Learning from an attempt waits for its share of the run; when the run can never free it,
-      // the run is still stored, with nothing to spend.
-      const learned = !record.transcriptPath
-        ? await learn(new MemoryBudget(0))
-        : await held(
-            budget,
-            `learning from ${task.id}`,
-            MEMORY_USD,
-            (capUsd) => new MemoryBudget(capUsd),
-            learn,
-          ).catch((error: unknown) => {
-            if (error instanceof BudgetExceededError) return learn(new MemoryBudget(0));
-            throw error;
-          });
+      // Stored with no model: learning reads stored runs later, in batches, on its own budget, so it
+      // can't delay a fix or spend from a repo's cap (memory/scripts/learn.ts).
+      const learned = await learnFromRun(run, { ...defaultMemory(), model: undefined });
       if (learned.error) log(`memory: stored ${task.id} but learned no recipe: ${learned.error}`);
     },
     queue,

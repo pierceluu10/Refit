@@ -108,10 +108,12 @@ function worstCaseUsd({ system, prompt, schema, maxTokens }: Required<JsonReques
 export class AgentSdkModel implements Model {
   private readonly budget: Budget;
   private readonly run: typeof query;
+  private readonly model: string;
 
-  constructor(budget: Budget, run: typeof query = query) {
+  constructor(budget: Budget, run: typeof query = query, model = MODEL) {
     this.budget = budget;
     this.run = run;
+    this.model = model;
   }
 
   async json<T>({ system, prompt, schema, maxTokens = 16_000 }: JsonRequest): Promise<T> {
@@ -121,7 +123,7 @@ export class AgentSdkModel implements Model {
     for await (const message of this.run({
       prompt,
       options: {
-        model: MODEL,
+        model: this.model,
         systemPrompt: system,
         outputFormat: { type: 'json_schema', schema },
         tools: [],

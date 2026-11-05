@@ -9,7 +9,7 @@ import { toRunView } from './views.ts';
 
 export * from './ai.ts';
 export { extractRecipe, succeeded } from './extract.ts';
-export { createRetriever, renderMemoryForPrompt } from './retrieve.ts';
+export { createRetriever, recipesForEntries, renderMemoryForPrompt } from './retrieve.ts';
 export { runSelfEval } from './selfeval.ts';
 export { promoteSkills, recordRecipeOutcome } from './skills.ts';
 export { JsonMemoryStore, type MemoryStore } from './store.ts';
@@ -87,6 +87,32 @@ export async function recordVerdict(
     const distilled = run.extraction?.status === 'done' && run.extraction.mode === 'recipe';
     return learn(run, demoted, deps, succeeded(run.record) && !distilled);
   });
+}
+
+// Reads stored runs that haven't taught anything yet, in batches, on memory's own budget. Passes go
+// one run per provider, so each sees the recipes the last one wrote, and a run that fails is left for
+// the next call. A pass runs at once on purpose: a batch model answers its calls together.
+export async function learnPending(
+  deps: MemoryDeps & { model: Model },
+  { limit = 50 }: { limit?: number } = {},
+): Promise<{ learned: number; failed: number }> {
+  const stored = (await deps.store.listRuns())
+    .filter((run) => run.extraction?.status !== 'done' && run.record.outcome !== 'not-affected')
+    .sort((a, b) => a.recordedAt.localeCompare(b.recordedAt))
+    .slice(0, limit);
+  let pending = stored;
+  let learned = 0;
+  let failed = 0;
+  while (pending.length > 0) {
+    const pass = [...new Map(pending.map((run) => [run.task.change.provider, run])).values()];
+    pending = pending.filter((run) => !pass.includes(run));
+    const results = await Promise.all(pass.map((run) => learn(run, [], deps)));
+    for (const result of results) {
+      if (result.error) failed += 1;
+      else learned += 1;
+    }
+  }
+  return { learned, failed };
 }
 
 // The runs the dashboard shows, newest first. The app serves them at GET /api/runs.

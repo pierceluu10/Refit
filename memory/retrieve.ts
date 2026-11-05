@@ -203,3 +203,16 @@ export function renderMemoryForPrompt(recipes: MemoryRecipe[]): string {
   ];
   return blocks.join('\n\n');
 }
+
+// A repo session's recipes: a plain lookup by list entry, so memory costs a fix nothing and can't
+// delay it. A merged recipe comes before a low-confidence one, and a losing one stays out.
+export async function recipesForEntries(
+  entryIds: string[],
+  store: Pick<MemoryStore, 'listRecipes'>,
+  limit = 3,
+): Promise<MemoryRecipe[]> {
+  const matches = (await store.listRecipes()).filter(
+    (recipe) => recipe.changeIds?.some((id) => entryIds.includes(id)) && !losing(recipe),
+  );
+  return matches.sort((a, b) => b.verifiedRepos - a.verifiedRepos).slice(0, limit);
+}
