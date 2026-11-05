@@ -4,7 +4,7 @@
 import type { DeadApiMatcher } from '../shared/types.ts';
 
 const TOKEN = /[A-Za-z0-9_.:/@-]+/g;
-const escape = (text: string) => text.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+export const escapeRegex = (text: string) => text.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
 
 /** The tokens in a piece of text. A trailing dot or colon is sentence punctuation, not a name. */
 export const tokensOf = (text: string): string[] =>
@@ -21,7 +21,7 @@ function candidates(token: string): string[] {
 }
 
 const tokenRegex = (value: string, caseSensitive: boolean) =>
-  new RegExp(`^${value.split('*').map(escape).join('.*')}$`, caseSensitive ? '' : 'i');
+  new RegExp(`^${value.split('*').map(escapeRegex).join('.*')}$`, caseSensitive ? '' : 'i');
 
 /** Whether one token is the name a string matcher means. Names are case sensitive unless they say. */
 export function tokenMatches(
@@ -45,15 +45,20 @@ export function textMatches(
  * Whether a line holds a URL matcher's address. A value with a host must sit at the start of a host,
  * and a path must end at a path boundary, so /collect doesn't hit /g/collect and /v1/edits doesn't
  * hit /v1/edits-foo. A trailing `*` means the whole resource: /v1/threads* also hits /v1/threads/1.
+ * A bare host has to be the whole host: chat.x.com doesn't hit chat.x.com.evil.example, or a path
+ * that happens to spell it, as in https://y.com/chat.x.com.
  */
 export function urlMatches(
   matcher: Extract<DeadApiMatcher, { kind: 'url' }>,
   text: string,
 ): boolean {
-  const start = matcher.value.startsWith('/') ? '(?<![\\w.-])' : '(?<![\\w-])';
-  const before = matcher.value.startsWith('/') ? '(?:[a-z0-9.-]+\\.[a-z]{2,})?' : '';
+  const isPath = matcher.value.startsWith('/');
+  const bareHost = !isPath && !matcher.value.replace(/^\w+:\/\//, '').includes('/');
+  const start = isPath ? '(?<![\\w.-])' : '(?<![\\w-])(?<![\\w.-]/)';
+  const before = isPath ? '(?:[a-z0-9.-]+\\.[a-z]{2,})?' : '';
   const resource = matcher.value.endsWith('*');
-  const address = escape(matcher.value.replace(/\*$/, ''));
-  const end = resource ? '(?![\\w-])' : '(?![\\w-]|/[\\w-])';
+  const address = escapeRegex(matcher.value.replace(/\*$/, ''));
+  const longerHost = bareHost ? '|\\.[\\w-]' : '';
+  const end = resource ? `(?![\\w-]${longerHost})` : `(?![\\w-]|/[\\w-]${longerHost})`;
   return new RegExp(`${start}${before}${address}${end}`, 'i').test(text);
 }
