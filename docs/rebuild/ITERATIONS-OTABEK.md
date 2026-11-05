@@ -133,7 +133,9 @@ So a proven fix helps a lot when it finishes the repo, and doesn't help when it 
 
 Replayed over these runs with no spend, every Assistants rework becomes Needs a look, and the 3 Fixed that remain are all ones the blind read agrees with.
 
-**The AI sweep and the tracked numbers** are built (`orchestrator/sweep.ts`, `evals/runner/sweep-run.ts`, `memory/metrics.ts`), and not measured yet against the real scanner.
+**The AI sweep:** 6 repos the stand-in scan called clean, $0.52 in all, about $0.09 a repo, on Sonnet. It found 1 miss: `bricefrisco/NamesLoL` calls Riot's by-name summoner lookup, from a provider that isn't on the list. It said it was going on its own knowledge of Riot's changes, so it's a lead, not a checked break. That's 1 of 6 on a small sample and a stand-in scan, so it needs repeating on the real scanner. It's sent to Pierce's unlisted-provider queue.
+
+**Tracked numbers:** `learningMetrics` and `memory/scripts/report.ts` report the share of fixes needing no model, PRs merged without edits, reverts and scanner misses. With no real merges yet, three of them read zero.
 
 ## O8 round 1: the whole product
 
@@ -180,3 +182,40 @@ Scan: the labelled stand-in, on Pierce's real list. Memory started empty. No PR 
 **What changed for round 2:** Fixed now needs a check that imports the changed code when the fix is a rework, and nothing left in its own hunks that the entry says to remove.
 
 **For Pierce:** `OA-1.base-ada` matched the Indonesian word `ada`, which is a false alarm the session handled.
+
+## O10: what else helps
+
+### Haiku for plain model swaps
+
+**When:** 2026-11-05, 04:05 to 04:42. **Commit:** `539fd7c4`. **Locks:** `evals/rounds/o10/`. **Spend:** $0.75.
+
+| 6 repos, same locks | Fixed, locks | Fixed / Needs a look / Couldn't fix | Cost | Time |
+| --- | --- | --- | --- | --- |
+| Haiku 5.5 | 10 of 12 | 3 / 2 / 1 | $0.14 | 1,554 s |
+| Sonnet 5.5 | 12 of 12 | 5 / 1 / 0 | $0.61 | 661 s |
+
+**Decision: Sonnet stays the default.** Haiku cost 77% less, but it left a live use behind on `Chat-Nest-AI`, broke a build on `lamp-bot`, and took more than twice as long. One of its two misses is a lock artefact: `smartflow-hub`'s fix is right, but it kept the dead name in a comment. Even so, at $0.10 a repo Sonnet is cheap enough that a wasted review costs more than it saves. Haiku's runs were sharing the machine with O8, so the time gap may be smaller than this. Repeat after a new Haiku release.
+
+### The setup plan on Haiku
+
+$0.0013 a plan, against $0.035 on Sonnet, which was 24% of fix spend. On 12 repos the first-pass steps matched. This one stays.
+
+### Faster runs on big repos
+
+`nametag` took 30 minutes for less than a minute of model time, because the suite ran several times. Now:
+
+- Adding a check runs that check, not the whole suite.
+- A check that passed on the same code doesn't run again, in the session or after it.
+- The baseline's second pass reruns only what failed.
+
+Measured so far, on repos already seen and with layers restored: `Chat-Nest-AI` 247 s to 165 s, `text2question` 198 s to 148 s. Layers and the changes above both play a part, so this isn't a clean number for either.
+
+**Install layers:** the same repo's second arm in O7 set up 21% faster, 622 s to 494 s over 7 repos. It's a rough figure: the order was also the only thing that differed, and other work was on the machine.
+
+### Smarter retries
+
+These were built in O3: failed checks and what the rescan still finds go back to the same session. 5 of the first 26 runs needed a second pass. The retry cost $0.05 on `buddy_connect`. I didn't test running without it, so I can't say how many fixes it rescued.
+
+### One PR per repo
+
+One session gives one PR per repo by construction. The PR body lists each entry, its source and how many uses it had.
