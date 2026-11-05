@@ -423,6 +423,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
       [],
       async (args) => {
         const notes: string[] = [];
+        const added: string[] = [];
         for (const name of Array.isArray(args.remove) ? args.remove.map(String) : []) {
           notes.push(
             ctx.removeCheck?.(name)
@@ -440,6 +441,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
             notes.push(`${name} was not registered: this run cannot add checks`);
           } else {
             const baseline = await ctx.addCheck({ name, command });
+            added.push(name);
             notes.push(
               `registered ${name}; on the original code it ${baseline.ok ? 'passes' : `fails (${baseline.failures.length})`}`,
             );
@@ -451,15 +453,23 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
             'no checks were detected for this repo. Register its tests, build or type check with `add` so they count toward proof.',
           ].join('\n');
         }
-        const names = Array.isArray(args.names) ? args.names.map(String) : [];
+        // Adding a check runs that check, not the whole suite: on a big repo a pass takes minutes.
+        const names = Array.isArray(args.names) ? args.names.map(String) : added;
         const selected = names.length
           ? ctx.checks.filter((check) => names.includes(check.name))
           : ctx.checks;
         if (selected.length === 0) {
           return `no check matches ${names.join(', ')}. Available: ${ctx.checks.map((c) => c.name).join(', ')}`;
         }
-        const runs = await runChecks(sandbox, selected);
-        await ctx.onChecksRun?.(runs);
+        // What already passed on this exact code needn't run again.
+        const passed = (await ctx.passedOnThisCode?.()) ?? [];
+        const fresh = await runChecks(
+          sandbox,
+          selected.filter((check) => !passed.some((run) => run.name === check.name)),
+        );
+        await ctx.onChecksRun?.(fresh);
+        const kept = passed.filter((run) => selected.some((check) => check.name === run.name));
+        const runs = [...kept, ...fresh];
         const report = runs
           .map((run) => {
             const head = `## ${run.name}: ${run.ok ? 'pass' : 'fail'}\ncommand: ${run.command}`;

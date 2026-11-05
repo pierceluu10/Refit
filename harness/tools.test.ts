@@ -176,6 +176,28 @@ describe('shell, install and checks', () => {
     expect(await call('install')).toMatch(/no lockfile or manifest/);
   });
 
+  it('run_checks runs only a check it just added, and skips what passed on this code', async () => {
+    const run = (name: string) => ({ name, command: name, ok: true, output: '', failures: [] });
+    const checks = [{ name: 'build', command: 'echo build >> ran.txt' }];
+    const { call } = setup({
+      checks,
+      addCheck: async (check) => {
+        checks.push(check);
+        return { ...run(check.name), ok: false };
+      },
+      passedOnThisCode: async () => [run('build')],
+    });
+    const ran = () => readFile(path.join(dir, 'ran.txt'), 'utf8');
+
+    await call('run_checks', { add: [{ name: 'proof', command: 'echo proof >> ran.txt' }] });
+    expect(await ran()).toBe('proof\n');
+
+    const out = await call('run_checks');
+    expect(await ran()).toBe('proof\nproof\n');
+    expect(out).toContain('## build: pass');
+    expect(out).toContain('## proof: pass');
+  });
+
   it('run_checks explains when nothing was detected, and reports failures', async () => {
     expect(await setup().call('run_checks')).toMatch(/no checks were detected/);
     const { call } = setup({

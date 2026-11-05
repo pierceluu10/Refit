@@ -315,6 +315,8 @@ export async function runTask(
     let finishedThisIteration = false;
     // Checks that passed on the working copy as it stands. On a big repo a pass takes minutes.
     let passed: { diff: string; runs: CheckRun[] } | undefined;
+    const passedOnThisCode = async () =>
+      passed?.diff === (await sandbox.diff()) ? passed.runs : [];
     const validatorRuns: ValidatorRun[] = [];
     // Every tool call of the current iteration, for the run summary.
     let steps: Step[] = [];
@@ -336,6 +338,7 @@ export async function runTask(
         const kept = passed?.diff === diff ? passed.runs : [];
         passed = { diff, runs: [...kept, ...runs.filter((run) => run.ok)] };
       },
+      passedOnThisCode,
       onToolPackCall: (run) => validatorRuns.push(run),
       fetch: deps.fetch,
     }).map((tool) => ({
@@ -452,7 +455,7 @@ export async function runTask(
       sessionId = result.sessionId ?? sessionId;
       const checksStarted = Date.now();
       timing.sessionMs += checksStarted - sessionStarted;
-      const same = passed?.diff === (await sandbox.diff()) ? passed.runs : [];
+      const same = await passedOnThisCode();
       const rest = checks.filter((check) => !same.some((run) => run.name === check.name));
       after = [...same, ...(await runChecksAfter(sandbox, rest, before))];
       timing.checksMs += Date.now() - checksStarted;
