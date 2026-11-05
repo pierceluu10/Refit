@@ -39,7 +39,7 @@ export const stages = [
     description:
       'Get a pull request marked verified or needs-review, with the proof and what is still unproven.',
     artifact: 'GitHub / pull request',
-    detail: 'Aptitude never merges and never pushes to your default branch.',
+    detail: 'Refit never merges and never pushes to your default branch.',
   },
 ] as const;
 

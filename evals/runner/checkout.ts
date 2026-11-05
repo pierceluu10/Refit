@@ -23,7 +23,7 @@ const SAFE_GIT = [
 /** Shallow-fetches github.com/<repo> at the frozen commit into a temp directory. */
 export function gitCheckout(baseUrl = 'https://github.com'): CheckoutRepo {
   return async (entry) => {
-    const repoDir = mkdtempSync(join(tmpdir(), 'aptitude-eval-'));
+    const repoDir = mkdtempSync(join(tmpdir(), 'refit-eval-'));
     const cleanup = async () => rmSync(repoDir, { recursive: true, force: true });
     try {
       const git = (args: string[]) =>
@@ -47,7 +47,7 @@ export function fixtureCheckout(
   dirFor: (repo: string) => string,
 ): CheckoutRepo {
   return async (entry) => {
-    const repoDir = mkdtempSync(join(tmpdir(), 'aptitude-smoke-'));
+    const repoDir = mkdtempSync(join(tmpdir(), 'refit-smoke-'));
     cpSync(join(fixturesDir, dirFor(entry.repo)), repoDir, { recursive: true });
     return { repoDir, cleanup: async () => rmSync(repoDir, { recursive: true, force: true }) };
   };

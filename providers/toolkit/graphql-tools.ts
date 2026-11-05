@@ -19,7 +19,7 @@ import { bool, defineTool, num, obj, str } from './tool.ts';
 // GraphQL gateways enforce (they answer 413 "Query depth limit exceeded").
 const TYPE_REF = 'kind name ofType { kind name ofType { kind name ofType { kind name } } }';
 
-export const INTROSPECTION_QUERY = `query AptitudeIntrospection {
+export const INTROSPECTION_QUERY = `query RefitIntrospection {
   __schema {
     queryType { name } mutationType { name } subscriptionType { name }
     types {

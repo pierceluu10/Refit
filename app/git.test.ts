@@ -9,7 +9,7 @@ let repo: string;
 const git = (...args: string[]) => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
 
 beforeEach(() => {
-  repo = mkdtempSync(join(tmpdir(), 'aptitude-git-'));
+  repo = mkdtempSync(join(tmpdir(), 'refit-git-'));
   git('init', '-q');
   git('config', 'user.name', 'Test');
   git('config', 'user.email', 'test@localhost');

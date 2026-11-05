@@ -13,7 +13,7 @@ const PROMOTED_AT = new Date('2026-11-02T00:00:00.000Z');
 const now = () => PROMOTED_AT;
 
 async function tempStore() {
-  return new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-skills-')));
+  return new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'refit-skills-')));
 }
 
 function fakeModel(json: Model['json']): Model {

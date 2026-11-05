@@ -59,7 +59,7 @@ const tokens: InstallationTokens = { token: async () => 'inst-token' };
 
 const input = (overrides: Partial<OpenPullRequestInput> = {}): OpenPullRequestInput => ({
   repo: 'acme/shop',
-  branch: 'aptitude/stripe-2026-10',
+  branch: 'refit/stripe-2026-10',
   title: 'Upgrade Stripe API version',
   body: 'Illustrative body',
   commitMessage: 'chore: upgrade stripe',
@@ -79,7 +79,7 @@ describe('openPullRequest', () => {
     expect(opened).toEqual({
       url: 'https://github.com/acme/shop/pull/9',
       number: 9,
-      branch: 'aptitude/stripe-2026-10',
+      branch: 'refit/stripe-2026-10',
       sha: 'new-commit',
     });
     expect(token).toHaveBeenCalledWith(INSTALLATION);
@@ -111,11 +111,11 @@ describe('openPullRequest', () => {
       tree: 'new-tree',
       parents: ['base-sha'],
     });
-    expect(bodies[5]).toEqual({ ref: 'refs/heads/aptitude/stripe-2026-10', sha: 'new-commit' });
+    expect(bodies[5]).toEqual({ ref: 'refs/heads/refit/stripe-2026-10', sha: 'new-commit' });
     expect(bodies[6]).toEqual({
       title: 'Upgrade Stripe API version',
       body: 'Illustrative body',
-      head: 'aptitude/stripe-2026-10',
+      head: 'refit/stripe-2026-10',
       base: 'main',
       draft: true,
     });
@@ -139,10 +139,10 @@ describe('openPullRequest', () => {
 
   it.each([
     ['branch without the prefix', input({ branch: 'stripe-upgrade' }), UnsafeBranchError],
-    ['the prefix only as a substring', input({ branch: 'x/aptitude/y' }), UnsafeBranchError],
+    ['the prefix only as a substring', input({ branch: 'x/refit/y' }), UnsafeBranchError],
     [
       'branch equal to the base',
-      input({ branch: 'aptitude/main', base: 'aptitude/main' }),
+      input({ branch: 'refit/main', base: 'refit/main' }),
       UnsafeBranchError,
     ],
     ['no files', input({ files: [] }), EmptyChangeError],
@@ -156,7 +156,7 @@ describe('openPullRequest', () => {
 
   it('rejects a branch equal to the default branch before any write', async () => {
     const github = fakeGitHub({
-      [`GET ${REPO}`]: { body: { default_branch: 'aptitude/stripe-2026-10' } },
+      [`GET ${REPO}`]: { body: { default_branch: 'refit/stripe-2026-10' } },
     });
     await expect(
       openPullRequest(tokens, INSTALLATION, input(), github.fetchImpl),
@@ -179,16 +179,16 @@ describe('openPullRequest', () => {
 });
 
 describe('branchFor', () => {
-  it('slugs the task id under aptitude/', () => {
+  it('slugs the task id under refit/', () => {
     expect(branchFor('acme/shop:Stripe 2026-10 / api_version')).toBe(
-      'aptitude/acme-shop-stripe-2026-10-api-version',
+      'refit/acme-shop-stripe-2026-10-api-version',
     );
-    expect(branchFor('x'.repeat(200))).toHaveLength('aptitude/'.length + 80);
+    expect(branchFor('x'.repeat(200))).toHaveLength('refit/'.length + 80);
   });
 });
 
 describe('createOpenPullRequest', () => {
-  const OPEN_PULLS = `GET ${REPO}/pulls?state=open&head=${encodeURIComponent('acme:aptitude/task-1')}`;
+  const OPEN_PULLS = `GET ${REPO}/pulls?state=open&head=${encodeURIComponent('acme:refit/task-1')}`;
   const TASK = {
     id: 'task-1',
     repo: 'acme/shop',
@@ -205,7 +205,7 @@ describe('createOpenPullRequest', () => {
   } satisfies MigrationTask;
 
   function checkout() {
-    const dir = mkdtempSync(join(tmpdir(), 'aptitude-pr-'));
+    const dir = mkdtempSync(join(tmpdir(), 'refit-pr-'));
     const git = (...args: string[]) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' });
     git('init', '-q');
     git('config', 'user.name', 'Test');
@@ -219,7 +219,7 @@ describe('createOpenPullRequest', () => {
     return { dir, diff };
   }
 
-  it("opens a draft on aptitude/<slug> with the record's diff and prBody", async () => {
+  it("opens a draft on refit/<slug> with the record's diff and prBody", async () => {
     const { dir, diff } = checkout();
     try {
       const github = fakeGitHub({ [OPEN_PULLS]: { body: [] } });
@@ -240,13 +240,13 @@ describe('createOpenPullRequest', () => {
         tree: [{ path: 'billing.ts', content: 'new\n' }],
       });
       expect(body('POST', '/git/refs')).toEqual({
-        ref: 'refs/heads/aptitude/task-1',
+        ref: 'refs/heads/refit/task-1',
         sha: 'new-commit',
       });
       expect(body('POST', '/pulls')).toEqual({
         title: 'Upgrade Stripe API version',
         body: 'Illustrative PR body from the harness.',
-        head: 'aptitude/task-1',
+        head: 'refit/task-1',
         base: 'main',
         draft: true,
       });

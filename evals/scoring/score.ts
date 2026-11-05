@@ -188,7 +188,7 @@ export function formatCostByPart(score: Score): string[] {
   ];
 }
 
-export function formatReport(score: Score, title = 'Aptitude eval'): string {
+export function formatReport(score: Score, title = 'Refit eval'): string {
   const lines = [
     `# ${title}`,
     '',

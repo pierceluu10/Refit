@@ -1,5 +1,5 @@
 // The self-eval as one command, run from the repo root:
-//   APTITUDE_AI_BUDGET_USD=<cap> node memory/scripts/selfeval.ts [--size <n>]
+//   REFIT_AI_BUDGET_USD=<cap> node memory/scripts/selfeval.ts [--size <n>]
 // Reruns the fixed set of stored tasks through the loop's own task path (today's memory, the harness,
 // the provider tool packs) and prints whether the verified rate moved. Reruns open no PR and are not
 // recorded as runs; the report is saved with the store's self-evals.
@@ -27,11 +27,11 @@ export type SelfEvalParts = {
   checkout: CheckoutRepo;
 };
 
-// The real parts: the store APTITUDE_MEMORY_DIR names, a run budget (createBudget refuses to build
-// one without APTITUDE_AI_BUDGET_USD) and the loop's runTask, which picks recipes from that store.
+// The real parts: the store REFIT_MEMORY_DIR names, a run budget (createBudget refuses to build
+// one without REFIT_AI_BUDGET_USD) and the loop's runTask, which picks recipes from that store.
 async function realParts(): Promise<SelfEvalParts> {
   // Reruns run stored repos' code, so in Docker only, never the harness's fallback to this host.
-  process.env.APTITUDE_SANDBOX = 'docker';
+  process.env.REFIT_SANDBOX = 'docker';
   const budget = createBudget();
   await promisify(execFile)('docker', ['info'], { timeout: 20_000 }).catch(() => {
     throw new Error('start Docker first: reruns run repo code, and only in a Docker sandbox');
@@ -119,7 +119,7 @@ export async function main(
 
 function format(report: SelfEvalReport, budget: Budget): string {
   return [
-    `Aptitude self-eval ${report.ranAt}`,
+    `Refit self-eval ${report.ranAt}`,
     `  ${report.summary}`,
     ...report.results.map((r) => `  ${r.taskId}: ${r.before} -> ${r.after}`),
     `  AI spent: $${budget.spentUsd().toFixed(4)} of the $${budget.capUsd} cap`,

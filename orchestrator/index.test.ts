@@ -146,7 +146,7 @@ describe('runRepoJob', () => {
 
   it('runs offline end to end on the stubs', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', '');
-    const dir = await mkdtemp(join(tmpdir(), 'aptitude-job-'));
+    const dir = await mkdtemp(join(tmpdir(), 'refit-job-'));
     const out = join(dir, 'runs.jsonl');
     const openPullRequest = opener();
     try {
@@ -167,7 +167,7 @@ describe('runRepoJob', () => {
   it('builds one run budget for the process and shares it across jobs', async () => {
     vi.resetModules();
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
-    vi.stubEnv('APTITUDE_AI_BUDGET_USD', '8');
+    vi.stubEnv('REFIT_AI_BUDGET_USD', '8');
     const budgets: unknown[] = [];
     vi.doMock('./deps.ts', () => ({
       createDeps: ({ budget }: { budget: unknown }) => {

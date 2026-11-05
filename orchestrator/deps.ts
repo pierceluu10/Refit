@@ -37,11 +37,11 @@ import {
   stubWatcher,
 } from './stubs.ts';
 
-// Run records go outside the target repo; Aptitude never writes into a repo except through a PR.
-export const defaultOut = join(tmpdir(), 'aptitude-runs.jsonl');
+// Run records go outside the target repo; Refit never writes into a repo except through a PR.
+export const defaultOut = join(tmpdir(), 'refit-runs.jsonl');
 
 // Provider changelogs change at most daily, so one read per provider per UTC day serves every run.
-export const defaultWatchCache = join(tmpdir(), 'aptitude-watch');
+export const defaultWatchCache = join(tmpdir(), 'refit-watch');
 
 // Below this, a harness run cannot get past its overshoot reserve (TURN_RESERVE_USD) to edit.
 export const MIN_TASK_USD = 2;

@@ -34,7 +34,7 @@ async function setup(
     humanVerdict?: 'merged' | 'closed' | 'edited';
   } = {},
 ) {
-  const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-extract-')));
+  const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'refit-extract-')));
   const run = await store.recordRun({
     task: makeTask({ repo: overrides.repo ?? 'example-org/shop' }),
     record: makeRecord({

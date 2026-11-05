@@ -3,9 +3,9 @@ import { budgetFromEnv, usageCostUsd } from './ledger.ts';
 
 describe('budgetFromEnv', () => {
   it('takes only a positive, finite dollar cap', () => {
-    expect(budgetFromEnv({ APTITUDE_AI_BUDGET_USD: '6' })).toBe(6);
+    expect(budgetFromEnv({ REFIT_AI_BUDGET_USD: '6' })).toBe(6);
     for (const raw of [undefined, '', '0', '-1', 'Infinity', 'six']) {
-      expect(() => budgetFromEnv({ APTITUDE_AI_BUDGET_USD: raw }), String(raw)).toThrow(
+      expect(() => budgetFromEnv({ REFIT_AI_BUDGET_USD: raw }), String(raw)).toThrow(
         /positive dollar cap/,
       );
     }

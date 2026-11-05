@@ -15,7 +15,7 @@ import { Workflow } from '../components/Workflow';
 
 const questions = [
   {
-    question: 'What does Aptitude actually change?',
+    question: 'What does Refit actually change?',
     answer:
       'The application code an API change affects, not just a dependency version. It edits the affected call sites in a sandbox, runs your checks before and after, and opens a pull request with the proof.',
   },
@@ -25,9 +25,9 @@ const questions = [
       'The agent records any external API it finds in your code: SDKs, raw HTTP, GraphQL and webhooks. The first provider watchers are planned for Stripe, Shopify, Meta Graph, OpenAI and Twilio. None of this is live yet.',
   },
   {
-    question: 'Will Aptitude merge changes automatically?',
+    question: 'Will Refit merge changes automatically?',
     answer:
-      'No. Aptitude only opens pull requests. It never merges and never pushes to your default branch. Your team reviews the proof and decides.',
+      'No. Refit only opens pull requests. It never merges and never pushes to your default branch. Your team reviews the proof and decides.',
   },
   {
     question: 'What happens when tests fail?',
@@ -42,7 +42,7 @@ const questions = [
   {
     question: 'Can I connect my repository today?',
     answer:
-      'Not yet. Aptitude is in development and has no GitHub connection. You can explore sample migrations and the sample dashboard. Nothing here requests GitHub permissions or reads your code.',
+      'Not yet. Refit is in development and has no GitHub connection. You can explore sample migrations and the sample dashboard. Nothing here requests GitHub permissions or reads your code.',
   },
 ];
 
@@ -68,7 +68,7 @@ export function Landing() {
               <span>Your code keeps up.</span>
             </h1>
             <p>
-              Aptitude learns every API your code uses and watches them for changes.
+              Refit learns every API your code uses and watches them for changes.
               <br className="desktop-break" /> When one affects you, it migrates the code, proves
               it, and opens a pull request.
             </p>
@@ -110,7 +110,7 @@ export function Landing() {
             </h2>
             <p>
               The busywork between an API update and a safe migration.
-              <br className="desktop-break" /> That’s where Aptitude comes in.
+              <br className="desktop-break" /> That’s where Refit comes in.
             </p>
           </div>
           <div className="process-grid">
@@ -144,7 +144,7 @@ export function Landing() {
               <p>
                 A migration should earn your trust.
                 <br />
-                Aptitude is designed to show its work.
+                Refit is designed to show its work.
               </p>
               <ul>
                 <li>
@@ -182,7 +182,7 @@ export function Landing() {
               </div>
               <pre>
                 <code>
-                  <span className="code-comment"># What every Aptitude PR tells you.</span>
+                  <span className="code-comment"># What every Refit PR tells you.</span>
                   {'\n\n'}
                   {pullRequestNote.split('\n').map((line, index) => (
                     <span className="config-line" key={index}>
@@ -230,7 +230,7 @@ export function Landing() {
                 <Mark />
               </span>
               <div>
-                <strong>Aptitude</strong>
+                <strong>Refit</strong>
                 <span>Migration summary · illustrative example</span>
               </div>
               <span className="draft-badge">Verified</span>

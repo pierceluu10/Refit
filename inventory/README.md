@@ -1,6 +1,6 @@
 # inventory
 
-Aptitude's codebase-understanding agent (P2). `inventoryRepo(repoDir, repo)` returns `ApiUsage[]`:
+Refit's codebase-understanding agent (P2). `inventoryRepo(repoDir, repo)` returns `ApiUsage[]`:
 every external API the repository talks to, its channel (SDK, HTTP, GraphQL, webhook), the pinned
 version and where it lives, and every call site with what it sends and what the code does with the
 response.
@@ -27,8 +27,8 @@ response.
   (`node_modules/*/package.json`, `.venv`/`venv` METADATA); a fresh checkout usually has neither.
   Which hints to record is the agent's call, guided by `prompt.ts`. Hints are unmeasured on real
   repositories: the `EVALUATION.md` runs predate them.
-- `budget.ts` is the hard dollar cap. Runs fail closed without `APTITUDE_AI_BUDGET_USD`, and every
-  run's cost is appended to `APTITUDE_SPEND_LOG` as a JSON line.
+- `budget.ts` is the hard dollar cap. Runs fail closed without `REFIT_AI_BUDGET_USD`, and every
+  run's cost is appended to `REFIT_SPEND_LOG` as a JSON line.
 
 Watchers should read `usage.hints` as leads, not facts: `packages` to look up registry releases,
 `hosts` to match a provider's API surface, `docsUrls` (often a source repository) to read docs,
@@ -37,7 +37,7 @@ changelogs and GitHub releases. Any field can be missing.
 ## Run it
 
 ```sh
-APTITUDE_AI_BUDGET_USD=1 APTITUDE_SPEND_LOG=~/.aptitude/spend.jsonl \
+REFIT_AI_BUDGET_USD=1 REFIT_SPEND_LOG=~/.refit/spend.jsonl \
   node inventory/cli.ts <repoDir> <owner/name> --out <dir> --run-cap 0.4
 ```
 

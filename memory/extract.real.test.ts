@@ -8,8 +8,8 @@ import { extractRecipe } from './extract.ts';
 import { makeRecord, makeTask } from './fixtures/tasks.ts';
 import { JsonMemoryStore } from './store.ts';
 
-// Real model calls on illustrative transcripts, run only with APTITUDE_REAL_AI=1. One cap for the whole
-// file, from APTITUDE_AI_BUDGET_USD; unset, nothing is spent.
+// Real model calls on illustrative transcripts, run only with REFIT_REAL_AI=1. One cap for the whole
+// file, from REFIT_AI_BUDGET_USD; unset, nothing is spent.
 const budget = Budget.fromEnv();
 
 // Illustrative changes matching the transcript fixtures; not real customer tasks.
@@ -70,7 +70,7 @@ const cases: {
   },
 ];
 
-describe.skipIf(process.env.APTITUDE_REAL_AI !== '1')('extractRecipe with the real model', () => {
+describe.skipIf(process.env.REFIT_REAL_AI !== '1')('extractRecipe with the real model', () => {
   // An API key when present, else the logged-in Claude Code credentials through the Agent SDK.
   const model = process.env.ANTHROPIC_API_KEY
     ? new AnthropicModel(budget)
@@ -86,7 +86,7 @@ describe.skipIf(process.env.APTITUDE_REAL_AI !== '1')('extractRecipe with the re
         join(import.meta.dirname, 'fixtures/transcripts', file),
         'utf8',
       );
-      const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-extract-real-')));
+      const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'refit-extract-real-')));
       const task = makeTask({
         id: `task-${change.id}`,
         repo,

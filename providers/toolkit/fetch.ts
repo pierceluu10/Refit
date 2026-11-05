@@ -39,7 +39,7 @@ export type PageRequest = NetworkOptions & {
   body?: string;
 };
 
-const USER_AGENT = 'aptitude-toolpack/0.1';
+const USER_AGENT = 'refit-toolpack/0.1';
 const MAX_REDIRECTS = 5;
 
 const cache = new Map<string, PageResult>();
@@ -57,7 +57,7 @@ export function remember<K, V>(memo: Map<K, V>, key: K, value: V, max = CACHE_EN
 
 export function resolveFetch(options?: NetworkOptions): FetchLike | null {
   if (options && options.fetch !== undefined) return options.fetch;
-  if (process.env.APTITUDE_OFFLINE === '1') return null;
+  if (process.env.REFIT_OFFLINE === '1') return null;
   return typeof globalThis.fetch === 'function'
     ? (globalThis.fetch.bind(globalThis) as unknown as FetchLike)
     : null;

@@ -28,7 +28,7 @@ const MAX_TOKENS = 16000;
 // Changes per match call: 50 verdicts fit well inside MAX_TOKENS, and 160 in one call may not.
 export const MATCH_BATCH = 50;
 
-export const SYSTEM_PROMPT = `You are Aptitude's match agent. Aptitude keeps codebases working as the external APIs they call change.
+export const SYSTEM_PROMPT = `You are Refit's match agent. Refit keeps codebases working as the external APIs they call change.
 
 You receive a list of provider changes (each with a quote from its source) and the repository's API usage map: every external API the repo calls, how (SDK, HTTP, GraphQL, webhook), pinned versions, and every call site with the operation and fields it uses.
 

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 import { copyForReading, readOnlyInRepo } from './agent-sdk.ts';
 
-const base = mkdtempSync(join(tmpdir(), 'aptitude-agent-sdk-'));
+const base = mkdtempSync(join(tmpdir(), 'refit-agent-sdk-'));
 const repo = join(base, 'repo');
 mkdirSync(join(repo, 'src'), { recursive: true });
 writeFileSync(join(repo, 'src', 'pay.ts'), '');

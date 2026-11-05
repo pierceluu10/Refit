@@ -24,7 +24,7 @@ export function createRunRepoJob(
 
 let shared: RunRepoJob | undefined;
 
-// Every job in this process shares one run budget (APTITUDE_AI_BUDGET_USD) and one queue, so jobs
+// Every job in this process shares one run budget (REFIT_AI_BUDGET_USD) and one queue, so jobs
 // the app runs at once can never each spend the cap. Without ANTHROPIC_API_KEY, offline stubs stand in.
 export const runRepoJob: RunRepoJob = (input) => {
   if (!shared) {

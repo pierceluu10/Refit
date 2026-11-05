@@ -67,7 +67,7 @@ export function toSdkTool(agentTool: AgentTool, repoDir: string) {
 export const claudeAgentSession: AgentSession = async (input) => {
   input.ledger.assertCanSpend();
   const server = createSdkMcpServer({
-    name: 'aptitude',
+    name: 'refit',
     version: '1.0.0',
     tools: input.tools.map((agentTool) => toSdkTool(agentTool, input.sandbox.dir)),
   });
@@ -85,7 +85,7 @@ export const claudeAgentSession: AgentSession = async (input) => {
         systemPrompt: input.systemPrompt,
         // Built-in file and shell tools stay off: repo code runs only through the sandboxed tools.
         tools: ['WebSearch'],
-        mcpServers: { aptitude: server },
+        mcpServers: { refit: server },
         permissionMode: 'bypassPermissions',
         allowDangerouslySkipPermissions: true,
         settingSources: [],

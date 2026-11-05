@@ -135,7 +135,7 @@ export function Workspace() {
             <GithubLogo /> Source code <ArrowUpRight />
           </a>
           <Link to="/">
-            <ArrowLeft /> Back to Aptitude
+            <ArrowLeft /> Back to Refit
           </Link>
         </div>
       </aside>

@@ -1,6 +1,6 @@
 # harness
 
-Aptitude's migration agent. `runTask(task, repoDir)` runs a Claude agent on the Claude Agent SDK
+Refit's migration agent. `runTask(task, repoDir)` runs a Claude agent on the Claude Agent SDK
 (`claude-sonnet-5-5`, escalating to `claude-opus-5-5` when the session fails or new failures don't go
 down; never just to get the report, since Opus re-reads the whole session uncached) in a
 sandboxed copy of the repo and returns a `RunRecord` plus the PR body.
@@ -19,7 +19,7 @@ sandboxed copy of the repo and returns a `RunRecord` plus the PR body.
 | `secrets.ts`      | Redaction and a scrubbed env for untrusted code                                                                               |
 
 The only hard limits, enforced in code: repo code runs only in the sandbox; the
-`APTITUDE_AI_BUDGET_USD` cap; no pushing (the sandbox's git has no remotes, the PR is opened by
+`REFIT_AI_BUDGET_USD` cap; no pushing (the sandbox's git has no remotes, the PR is opened by
 `app/`); secrets are redacted from tool output, the transcript, the diff and the PR body. Nothing
 else refuses or gates the agent: tools only return information, and every run ends as verified,
 needs-review or not-affected (`failed` only when the sandbox cannot be created).
@@ -57,5 +57,5 @@ Real-repo tasks for hand-checking live in `evaluation/`; `scripts/run-evaluation
 one batch cap. One run by hand (writes `transcript.jsonl`, `diff.patch`, `pr-body.md`, `record.json`):
 
 ```sh
-APTITUDE_AI_BUDGET_USD=5 node harness/scripts/run-task.ts task.json /path/to/clone ./out
+REFIT_AI_BUDGET_USD=5 node harness/scripts/run-task.ts task.json /path/to/clone ./out
 ```

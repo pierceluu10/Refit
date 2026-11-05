@@ -96,7 +96,7 @@ export const branchFor = (taskId: string) =>
 // The harness writes prBody beside RunRecord's own fields (HarnessRunRecord).
 type WrittenRecord = RunRecord & { prBody?: string };
 
-// The shared OpenPullRequest for one installation: the record's diff on aptitude/<task-slug>, as a draft.
+// The shared OpenPullRequest for one installation: the record's diff on refit/<task-slug>, as a draft.
 // A task that already has an open PR (the same change seen on a later push) gets that PR back.
 export function createOpenPullRequest(
   tokens: InstallationTokens,

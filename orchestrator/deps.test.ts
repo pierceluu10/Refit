@@ -232,7 +232,7 @@ describe('recordRun', () => {
   it('stores a record that was never attempted without holding any of the run', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
     const budget = createBudget(3);
-    const out = join(await mkdtemp(join(tmpdir(), 'aptitude-deps-')), 'runs.jsonl');
+    const out = join(await mkdtemp(join(tmpdir(), 'refit-deps-')), 'runs.jsonl');
     const deps = createDeps({ budget, out, log: () => {} });
     // Every dollar of the run is held by a running task.
     const running = await budget.reserve('a task', 3);
@@ -251,10 +251,10 @@ describe('recordRun', () => {
   it('holds its share of the run to learn from an attempt', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
     const budget = createBudget(3);
-    const out = join(await mkdtemp(join(tmpdir(), 'aptitude-deps-')), 'runs.jsonl');
+    const out = join(await mkdtemp(join(tmpdir(), 'refit-deps-')), 'runs.jsonl');
     const deps = createDeps({ budget, out, log: () => {} });
     const attempt = { ...ran(task('c'), 1), transcriptPath: '/nonexistent/transcript.jsonl' };
-    const checkout = await mkdtemp(join(tmpdir(), 'aptitude-checkout-'));
+    const checkout = await mkdtemp(join(tmpdir(), 'refit-checkout-'));
     const git = (...args: string[]) =>
       execFileSync('git', ['-C', checkout, ...args], { encoding: 'utf8' }).trim();
     git('init', '-q');
@@ -290,7 +290,7 @@ describe('recordRun', () => {
 describe('anyWatcher', () => {
   it('watches a provider with no folder from its hints, settles to what it spent, and reads once a day', async () => {
     const budget = createBudget(3);
-    const cache = await mkdtemp(join(tmpdir(), 'aptitude-watch-test-'));
+    const cache = await mkdtemp(join(tmpdir(), 'refit-watch-test-'));
     const watch = anyWatcher('resend', { packages: ['resend'] }, budget, cache);
     const changes = await watch();
     expect(changes.map((change) => change.id)).toEqual(['resend:example-change']);
@@ -305,7 +305,7 @@ describe('anyWatcher', () => {
 
 describe('cachedChanges', () => {
   it('runs the watcher once and serves later reads from the cache', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'aptitude-watch-test-'));
+    const dir = await mkdtemp(join(tmpdir(), 'refit-watch-test-'));
     const change = { provider: 'stripe', id: 'c1' } as never;
     const watch = vi.fn(async () => [change]);
 
@@ -315,7 +315,7 @@ describe('cachedChanges', () => {
   });
 
   it('shares one read between calls that start together', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'aptitude-watch-test-'));
+    const dir = await mkdtemp(join(tmpdir(), 'refit-watch-test-'));
     const watch = vi.fn(async () => {
       await new Promise((resolve) => setTimeout(resolve, 5));
       return [];
@@ -325,7 +325,7 @@ describe('cachedChanges', () => {
   });
 
   it('caches nothing when the watcher fails', async () => {
-    const dir = await mkdtemp(join(tmpdir(), 'aptitude-watch-test-'));
+    const dir = await mkdtemp(join(tmpdir(), 'refit-watch-test-'));
     const failing = vi.fn(async () => {
       throw new Error('changelog unreachable');
     });
