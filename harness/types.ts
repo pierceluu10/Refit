@@ -125,6 +125,8 @@ export type HarnessRunRecord = RunRecord & {
   agentChecks: { name: string; command: string; before: string; after: string }[];
   // Input tokens by how they were billed: a healthy session reads far more than it writes.
   cache?: CacheTally;
+  // Where the time went: install to baseline, the agent, and the re-checks after it.
+  timing?: { setupMs: number; sessionMs: number; checksMs: number };
   // Every tool call in order with what it returned, and the checks after each iteration: a short
   // stand-in for the transcript, for memory's recipe extraction.
   summary: string;

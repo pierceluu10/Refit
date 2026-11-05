@@ -14,7 +14,7 @@ import {
   runChecks,
   runChecksAfter,
 } from './checks.ts';
-import { isRepoTask } from './findings.ts';
+import { isRepoTask, providersOf } from './findings.ts';
 import { installWithLayer } from './install-layers.ts';
 import { BudgetLedger, budgetFromEnv } from './ledger.ts';
 import { filesFromDiff, writePrBody } from './pr.ts';
@@ -60,6 +60,16 @@ const emptyToolPack = async (provider: string): Promise<ToolPack> => ({
   playbooks: {},
 });
 const noRecipes: RetrieveRecipes = async () => [];
+
+// A repo session works from the list, so it takes each provider's tools but no playbook.
+function mergePacks(packs: ToolPack[]): ToolPack {
+  const tools = new Map(packs.flatMap((pack) => pack.tools.map((tool) => [tool.name, tool])));
+  return {
+    provider: packs.length === 1 && packs[0] ? packs[0].provider : 'list',
+    tools: [...tools.values()],
+    playbooks: {},
+  };
+}
 
 // Install layers stay within one owner.
 const ownerOf = (repo: string) => repo.split('/')[0] ?? '';
@@ -165,6 +175,8 @@ export async function runTask(
       redactSecrets(JSON.stringify({ at: new Date().toISOString(), event })) + '\n',
     );
   const models: string[] = [];
+  const timing = { setupMs: 0, sessionMs: 0, checksMs: 0 };
+  const started = Date.now();
   let sandbox: Sandbox;
   try {
     sandbox = await (deps.createSandbox ?? createSandbox)(repoDir);
@@ -191,9 +203,11 @@ export async function runTask(
   let baselineSandbox: Promise<Sandbox> | undefined;
   const agentChecks: CheckCommand[] = [];
   try {
-    const toolPack = await (deps.loadToolPack ?? emptyToolPack)(task.change.provider).catch(() =>
-      emptyToolPack(task.change.provider),
-    );
+    const loadPack = (provider: string) =>
+      (deps.loadToolPack ?? emptyToolPack)(provider).catch(() => emptyToolPack(provider));
+    const toolPack = isRepoTask(task)
+      ? mergePacks(await Promise.all(providersOf(task).map(loadPack)))
+      : await loadPack(task.change.provider);
     const retrieveRecipes = deps.retrieveRecipes ?? noRecipes;
     const recipes = await retrieveRecipes(task).catch(() => []);
 
@@ -292,6 +306,7 @@ export async function runTask(
     });
     const installOutput = install && `${install.stdout}\n${install.stderr}`.trim();
 
+    timing.setupMs = Date.now() - started;
     const session = deps.session ?? claudeAgentSession;
     let model = MODEL;
     let prompt = buildKickoffMessage(
@@ -316,6 +331,7 @@ export async function runTask(
       finishedThisIteration = false;
       steps = [];
       const spentBefore = ledger.spentUsd;
+      const sessionStarted = Date.now();
       let result: SessionResult;
       try {
         result = await session({
@@ -334,7 +350,10 @@ export async function runTask(
         result = { finalText: '', stopReason: 'error', error: String(error) };
       }
       sessionId = result.sessionId ?? sessionId;
+      const checksStarted = Date.now();
+      timing.sessionMs += checksStarted - sessionStarted;
       after = await runChecksAfter(sandbox, checks, before);
+      timing.checksMs += Date.now() - checksStarted;
       comparisons = compareChecks(before, after);
       const newFailures = newFailureCount(comparisons);
       log({ type: 'harness', phase: 'iteration', iteration, model, result, after, comparisons });
@@ -421,6 +440,7 @@ export async function runTask(
       summary,
       preparation,
       cache: ledger.cache,
+      timing,
     };
     log({ type: 'harness', phase: 'done', outcome, ledger: ledger.entries });
     await writeFile(join(outDir, 'diff.patch'), diff);

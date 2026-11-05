@@ -3,6 +3,7 @@
 // missing and its checks fail before any edit. A model reads the repo's scripts and config and names
 // the steps and any placeholder env its checks need; the harness runs them inside the sandbox, and
 // the PR lists them.
+import { query } from '@anthropic-ai/claude-agent-sdk';
 import Anthropic from '@anthropic-ai/sdk';
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
@@ -123,9 +124,47 @@ const SCHEMA = {
   additionalProperties: false,
 };
 
+const planFromAnswer = (answer: {
+  steps?: PlannedStep[];
+  env?: { name: string; value: string }[];
+  reasoning?: string;
+}): Plan => ({
+  steps: answer.steps ?? [],
+  env: Object.fromEntries((answer.env ?? []).map(({ name, value }) => [name, value])),
+  reasoning: answer.reasoning ?? '',
+});
+
+// With no API key, the same call through the Agent SDK on the machine's logged-in credentials. The
+// charge is the SDK's own estimate.
+async function loginPlan(evidence: string, ledger: BudgetLedger): Promise<Plan> {
+  for await (const message of query({
+    prompt: evidence,
+    options: {
+      model: PREPARE_MODEL,
+      systemPrompt: SYSTEM,
+      tools: [],
+      outputFormat: { type: 'json_schema', schema: SCHEMA },
+      maxBudgetUsd: Math.max(ledger.remainingUsd, 0.01),
+      settingSources: [],
+      persistSession: false,
+    },
+  })) {
+    if (message.type !== 'result') continue;
+    ledger.charge({
+      model: PREPARE_MODEL,
+      costUsd: message.total_cost_usd,
+      note: 'codegen plan',
+    });
+    if (message.subtype !== 'success') throw new Error(`plan ended with ${message.subtype}`);
+    return planFromAnswer(message.structured_output as Parameters<typeof planFromAnswer>[0]);
+  }
+  throw new Error('plan returned no result');
+}
+
 // The real planner: one Messages API call, charged to the task's ledger.
 export const modelPlan: PlanPreparation = async (evidence, ledger) => {
   ledger.assertCanSpend();
+  if (!process.env.ANTHROPIC_API_KEY) return loginPlan(evidence, ledger);
   const client = new Anthropic({ maxRetries: 2 });
   const response = await client.messages.create({
     model: PREPARE_MODEL,
@@ -140,16 +179,7 @@ export const modelPlan: PlanPreparation = async (evidence, ledger) => {
     note: 'codegen plan',
   });
   const text = response.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('');
-  const parsed = JSON.parse(text) as {
-    steps: PlannedStep[];
-    env: { name: string; value: string }[];
-    reasoning: string;
-  };
-  return {
-    steps: parsed.steps,
-    env: Object.fromEntries(parsed.env.map(({ name, value }) => [name, value])),
-    reasoning: parsed.reasoning,
-  };
+  return planFromAnswer(JSON.parse(text));
 };
 
 const VALID_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
