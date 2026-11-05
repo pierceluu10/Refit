@@ -82,7 +82,7 @@ const prompt = buildSystemPrompt({
 
 describe('buildSystemPrompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-05.rebuild-6');
+    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-05.rebuild-7');
   });
 
   it('puts the sections in the plan order', () => {

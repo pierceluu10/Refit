@@ -678,6 +678,8 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
           (_, index) => !['done', 'not-applicable'].includes(String(answerOf(index))),
         );
         if (left.length) report.requirementsLeft = left;
+        const done = requirements.filter((_, index) => answerOf(index) === 'done');
+        if (done.length) report.requirementsDone = done;
         // Two refusals at most, so an agent that can't satisfy them still ends with a report.
         const problems =
           report.verdict === 'migrated' && refusals < 2

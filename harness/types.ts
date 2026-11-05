@@ -64,6 +64,7 @@ export type FinishReport = {
   falseAlarms?: { entryId: string; file: string; why: string }[];
   // What an entry's `requires` lines ask of this code that the session left undone.
   requirementsLeft?: string[];
+  requirementsDone?: string[];
   // The registered check that tests this change, or why no test of it can be written.
   proofTest?: string;
   noProofTestReason?: string;
