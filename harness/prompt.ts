@@ -6,7 +6,7 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-05.rebuild-5';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-05.rebuild-6';
 
 // The day the run happens, so the agent can tell a change in effect from a later one.
 const today = () => new Date().toISOString().slice(0, 10);
@@ -158,7 +158,7 @@ const LIST_WORKFLOW = [
     '3. Edit the code.',
     "4. Write one small test that proves the live path now uses the replacement, inside the repo's test setup, and register it with `run_checks` `add`. When the repo has no test setup, put a plain node or python script under `.refit-proof/`: the harness runs it but keeps it out of the PR. Mock the provider; the sandbox has no credentials.",
     '5. Run the checks. Iterate until they are no worse than the baseline.',
-    '6. Go through the numbered requirements one by one against this code, and do every one that applies. In `finish`, answer each by id in `requirements`: `done`, `not-applicable` or `left`. `left` puts the PR under Needs a look, so say `left` rather than leaving it to `unproven`.',
+    "6. Go through the numbered requirements one by one against this code, and do every one that applies. In `finish`, answer each by id in `requirements`: `done`, `not-applicable` or `left`. `left` is for something this code needs to keep working that no code change here can do, and it puts the PR under Needs a look. Tuning or review advice the code doesn't depend on is `not-applicable`: say it in your summary.",
     '7. Call `finish`. The harness then re-scans the repo with the same plain code. An entry still found comes back to you.',
   ].join('\n'),
 ].join('\n\n');
@@ -347,6 +347,7 @@ export function buildRetryMessage(input: {
   left?: string[]; // what the rescan still finds
   majors?: string[]; // major upgrades no list entry asks for
   documents?: string[]; // what the provider's validator still rejects
+  requirementsLeft?: string[]; // what the session answered `left`
 }): string {
   const parts = ['The harness re-ran the checks after your changes.'];
   if (input.left?.length) {
@@ -354,6 +355,14 @@ export function buildRetryMessage(input: {
       [
         'The rescan still finds these. Fix each one, or list it in `falseAlarms` with your evidence, then call `finish` again:',
         ...input.left.map((line) => `- ${line}`),
+      ].join('\n'),
+    );
+  }
+  if (input.requirementsLeft?.length) {
+    parts.push(
+      [
+        'You answered these `left`. Each is part of the fix, so do each one now if a code change can, then call `finish` again. Keep `left` only for what no code change here can do. Tuning or review advice is `not-applicable`:',
+        ...input.requirementsLeft.map((line) => `- ${line}`),
       ].join('\n'),
     );
   }

@@ -429,6 +429,7 @@ export async function runTask(
     let rescanRetries = 0;
     let majorsTold = false;
     let documentsTold = false;
+    let requirementsTold = false;
     if (provenDone) {
       report = {
         verdict: 'migrated',
@@ -505,7 +506,12 @@ export async function runTask(
       const majors: string[] =
         isRepoTask(task) && !majorsTold ? unneededMajors(await sandbox.diff(), task.entries) : [];
       const documents: string[] = documentsTold ? [] : await documentsLeft();
-      const retryFix = retryRescan || majors.length > 0 || documents.length > 0;
+      // One push back: an answer of `left` must not become the easy way out of the work.
+      const undone: string[] = requirementsTold
+        ? []
+        : ((report as FinishReport | undefined)?.requirementsLeft ?? []);
+      const retryFix =
+        retryRescan || majors.length > 0 || documents.length > 0 || undone.length > 0;
       if (newFailures === 0 && report && !retryFix) break;
       const finished = report as FinishReport | undefined;
       // Plain code feeds a failure back at least once: a session rarely runs the checks itself.
@@ -529,6 +535,7 @@ export async function runTask(
       if (retryFix) report = undefined;
       majorsTold ||= majors.length > 0;
       documentsTold ||= documents.length > 0;
+      requirementsTold ||= undone.length > 0;
       prompt = buildRetryMessage({
         comparisons,
         after,
@@ -539,6 +546,7 @@ export async function runTask(
           : [],
         majors,
         documents,
+        requirementsLeft: undone,
       });
     }
 
