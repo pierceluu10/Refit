@@ -9,5 +9,5 @@ const SETS_SAMPLING =
 
 // Benchmark-only so far: its evidence is locked tests, not merged PRs.
 export const provenFixes: ProvenFix[] = [
-  modelSwap('gemini-1', 'gemini-2.0-flash', 'gemini-3.6-flash', SETS_SAMPLING),
+  modelSwap('GE-1.gemini-2.0-flash', 'gemini-2.0-flash', 'gemini-3.6-flash', SETS_SAMPLING),
 ];

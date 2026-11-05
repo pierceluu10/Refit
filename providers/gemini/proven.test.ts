@@ -33,8 +33,10 @@ describe('the gemini-2.0-flash proven fix', () => {
   });
 
   it('is found by its provider and entry, and only when the ladder allows it', async () => {
-    expect(await loadProvenFixes(['gemini'], ['gemini-1'])).toHaveLength(1);
+    expect(await loadProvenFixes(['gemini'], ['GE-1.gemini-2.0-flash'])).toHaveLength(1);
     expect(await loadProvenFixes(['gemini'], [])).toEqual([]);
-    expect(await loadProvenFixes(['../gemini', 'no-such-provider'], ['gemini-1'])).toEqual([]);
+    expect(
+      await loadProvenFixes(['../gemini', 'no-such-provider'], ['GE-1.gemini-2.0-flash']),
+    ).toEqual([]);
   });
 });

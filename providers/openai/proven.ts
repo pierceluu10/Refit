@@ -10,5 +10,11 @@ const TEMPERATURE_LINE = /^[ \t]*temperature\s*:\s*[\d.]+,?[ \t]*(?:\/\/.*)?\r?\
 
 // Benchmark-only so far: its evidence is locked tests, not merged PRs.
 export const provenFixes: ProvenFix[] = [
-  modelSwap('openai-1', 'gpt-3.5-turbo', 'gpt-5.6-terra', NEEDS_READING, TEMPERATURE_LINE),
+  modelSwap(
+    'OA-1.gpt-3.5-turbo',
+    'gpt-3.5-turbo',
+    'gpt-5.6-terra',
+    NEEDS_READING,
+    TEMPERATURE_LINE,
+  ),
 ];

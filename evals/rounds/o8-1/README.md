@@ -10,7 +10,7 @@ Locked before any paid run. It runs the whole product from `rebuild/integration`
 
 These are harder than O2 and O3: an image model that takes a different call, Universal Analytics to GA4 where a secret must come from config, built files tracked next to their source, and an allow-list.
 
-**Scan:** the labelled stand-in, because P4 isn't up. **Memory:** starts empty for this round.
+**Scan:** the labelled stand-in, on Pierce's real list (P2), because P4 isn't up. **Memory:** starts empty for this round.
 
 **No-match cost:** `no-match.json` holds 3 clean repos from the same screen, to confirm a clean repo stops at $0.
 
