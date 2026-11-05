@@ -594,6 +594,25 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
           type: 'string',
           description: 'Only when no test of this change can be written: why not.',
         },
+        personMustDo: {
+          type: 'array',
+          items: { type: 'string' },
+          description:
+            'What a person must set or decide for the fix to work, such as a new env var. Leave it empty when there is nothing.',
+        },
+        falseAlarms: {
+          type: 'array',
+          description: 'Findings you left alone because they are not the dead API, with evidence.',
+          items: {
+            type: 'object',
+            properties: {
+              entryId: { type: 'string' },
+              file: { type: 'string' },
+              why: { type: 'string' },
+            },
+            required: ['entryId', 'file', 'why'],
+          },
+        },
       },
       ['verdict', 'summary', 'why', 'validators', 'unproven', 'behaviourChanges'],
       async (args) => {
@@ -613,6 +632,19 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
             : {}),
           ...(typeof args.noProofTestReason === 'string' && args.noProofTestReason.trim()
             ? { noProofTestReason: text(args.noProofTestReason) }
+            : {}),
+          ...(Array.isArray(args.personMustDo) ? { personMustDo: strings(args.personMustDo) } : {}),
+          ...(Array.isArray(args.falseAlarms)
+            ? {
+                falseAlarms: args.falseAlarms.map((item) => {
+                  const alarm = item && typeof item === 'object' ? (item as Args) : {};
+                  return {
+                    entryId: text(alarm.entryId),
+                    file: text(alarm.file),
+                    why: text(alarm.why),
+                  };
+                }),
+              }
             : {}),
         };
         // Two refusals at most, so an agent that can't satisfy them still ends with a report.

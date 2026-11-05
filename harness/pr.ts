@@ -1,6 +1,8 @@
 // The PR body: change, why, proof, unproven, behaviour changes. It states only facts passed in.
 import type { MigrationTask, RunRecord } from '../shared/types.ts';
+import { isRepoTask, liveFindings, type RepoTask, type ScanResult } from './findings.ts';
 import { redactSecrets } from './secrets.ts';
+import type { SmokeResult } from './smoke.ts';
 import type { CheckCommand, CheckComparison, FinishReport, ValidatorRun } from './types.ts';
 import {
   claimMatches,
@@ -24,6 +26,9 @@ export type PrBodyInput = {
   notes?: string[]; // harness facts a reviewer must know, listed under Unproven
   prepared?: string[]; // the codegen and placeholder env the harness used before the baseline
   proofTest?: string; // the registered check that tests the change
+  rescan?: ScanResult; // a repo session's proof
+  labelReason?: string; // why it got its label
+  smoke?: SmokeResult[]; // the optional live smoke calls
 };
 
 const BADGE: Record<RunRecord['outcome'], string> = {
@@ -37,6 +42,13 @@ export function filesFromDiff(diff: string): string[] {
   const files = [...diff.matchAll(/^diff --git a\/.+? b\/(.+)$/gm)].map((match) => match[1]);
   return [...new Set(files)];
 }
+
+const LABEL: Record<RunRecord['outcome'], string> = {
+  verified: 'Fixed',
+  'needs-review': 'Needs a look',
+  'not-affected': 'Not affected',
+  failed: "Couldn't fix",
+};
 
 const isPass = (summary: string) => /^pass/i.test(summary.trim());
 const notRun = (summary: string) => /not run/i.test(summary);
@@ -81,6 +93,75 @@ function unprovenItems(input: PrBodyInput, grades: ValidatorGrade[]): string[] {
     }
   }
   return items;
+}
+
+// A repo session's PR, built to be easy to accept: what died, the source, what changed, what was
+// proven, and what a person must do.
+function writeRepoBody(input: PrBodyInput, task: RepoTask, proof: string[], unproven: string[]) {
+  const { report } = input;
+  const left = input.rescan ? liveFindings(input.rescan) : [];
+  const died = task.entries.map((entry) => {
+    const found = task.findings.filter((finding) => finding.entryId === entry.id);
+    return `| ${cell(entry.what)} | ${entry.diedOn} | ${entry.source.url} (checked ${entry.source.checkedOn}) | ${found.length} |`;
+  });
+  const files = filesFromDiff(input.diff);
+  const rescan = input.rescan
+    ? [
+        left.length
+          ? `Rescan: ${left.length} use${left.length === 1 ? '' : 's'} still found:\n${list(left.map(({ entryId, file, line }) => `${entryId} at \`${file}:${line}\``))}`
+          : 'Rescan: clean. The same scan that found these no longer finds them.',
+        'A clean rescan shows the dead thing is gone, not that a live call succeeds.',
+      ]
+    : ['No rescan ran.'];
+  const smoke = input.smoke?.length
+    ? list(
+        input.smoke.map(({ model, outcome, detail }) =>
+          outcome === 'answered'
+            ? `Live smoke: \`${model}\` answered a one-line call (${detail}). This shows the model is live, not that this code's call works.`
+            : outcome === 'refused'
+              ? `Live smoke: \`${model}\` refused a one-line call (${detail}).`
+              : `Live smoke for \`${model}\` didn't run: ${detail}.`,
+        ),
+      )
+    : 'No live provider call was made.';
+  const mustDo = report?.personMustDo ?? [];
+  const alarms = report?.falseAlarms ?? [];
+  return [
+    `## ${task.change.title} [${LABEL[input.outcome]}]`,
+    input.labelReason ?? '',
+    [
+      '### What died',
+      '| What | Died | Source | Uses found |',
+      '| --- | --- | --- | --- |',
+      ...died,
+    ].join('\n'),
+    [
+      '### What changed',
+      report?.summary ?? 'The session did not report a summary.',
+      files.length
+        ? `Files touched:\n${list(files.map((file) => `\`${file}\``))}`
+        : 'No files changed.',
+    ].join('\n\n'),
+    ['### What was proven', ...rescan, smoke, ...proof.filter(Boolean)].join('\n\n'),
+    ['### What a person must do', mustDo.length ? list(mustDo) : 'Nothing to set.'].join('\n\n'),
+    alarms.length
+      ? [
+          '### Findings left alone as false alarms',
+          list(alarms.map(({ entryId, file, why }) => `${entryId} in \`${file}\`: ${why}`)),
+        ].join('\n\n')
+      : '',
+    ['### Unproven', unproven.length ? list(unproven) : 'Nothing known.'].join('\n\n'),
+    [
+      '### Behaviour changes',
+      report?.behaviourChanges.length ? list(report.behaviourChanges) : 'None intended.',
+    ].join('\n\n'),
+    [
+      '---',
+      `Prompt ${input.promptVersion} · Models: ${input.models.join(', ') || 'none'} · AI cost: $${input.costUsd.toFixed(4)}`,
+    ].join('\n\n'),
+  ]
+    .filter(Boolean)
+    .join('\n\n');
 }
 
 export function writePrBody(input: PrBodyInput): string {
@@ -141,6 +222,10 @@ export function writePrBody(input: PrBodyInput): string {
       : '',
     `Where checks ran: ${input.sandboxNote}`,
   ];
+
+  if (isRepoTask(task)) {
+    return redactSecrets(`${writeRepoBody(input, task, proof, unproven)}\n`);
+  }
 
   const sections = [
     `## ${task.change.title} [${BADGE[input.outcome]}]`,

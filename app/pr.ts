@@ -125,7 +125,8 @@ export function createOpenPullRequest(
         body: record.prBody ?? `${title}\n\nSource: ${task.change.source.url}`,
         commitMessage: `chore(${task.change.provider}): ${title}`,
         files: await filesFromDiff(repoDir, record.diff),
-        draft: true,
+        // Fixed gets a normal PR; needs-a-look stays a draft that says so.
+        draft: record.outcome !== 'verified',
       },
       fetchImpl,
     );

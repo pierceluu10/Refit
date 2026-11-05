@@ -14,7 +14,14 @@ import {
   runChecks,
   runChecksAfter,
 } from './checks.ts';
-import { isRepoTask, providersOf } from './findings.ts';
+import {
+  checksTouchChange,
+  isRepoTask,
+  labelFix,
+  liveFindings,
+  providersOf,
+  type ScanResult,
+} from './findings.ts';
 import { installWithLayer } from './install-layers.ts';
 import { BudgetLedger, budgetFromEnv } from './ledger.ts';
 import { filesFromDiff, writePrBody } from './pr.ts';
@@ -52,6 +59,8 @@ export const ESCALATION_MODEL = 'claude-opus-5-5';
 export const TURN_RESERVE_USD = 0.15;
 // Opus costs twice as much per token and re-reads the session uncached, so its call needs more room.
 const ESCALATED_RESERVE_FACTOR = 3;
+// How many times a rescan that still finds something goes back to the session.
+const MAX_RESCAN_RETRIES = 2;
 
 // shortcut: stubs until providers/ (F2) and memory/ (O3) land; the orchestrator passes the real ones.
 const emptyToolPack = async (provider: string): Promise<ToolPack> => ({
@@ -321,6 +330,8 @@ export async function runTask(
     let comparisons = compareChecks(before, after);
     let previousNewFailures = Infinity;
     let silentErrors = 0;
+    let rescan: ScanResult | undefined;
+    let rescanRetries = 0;
 
     // Ends when the checks pass, the agent finishes with an explanation, or the budget runs out.
     const reserveUsd = deps.turnReserveUsd ?? TURN_RESERVE_USD;
@@ -356,11 +367,30 @@ export async function runTask(
       timing.checksMs += Date.now() - checksStarted;
       comparisons = compareChecks(before, after);
       const newFailures = newFailureCount(comparisons);
-      log({ type: 'harness', phase: 'iteration', iteration, model, result, after, comparisons });
+      rescan = await deps.rescan?.(sandbox.dir);
+      const left = (rescan ? liveFindings(rescan) : []).filter(
+        (finding) =>
+          !(report as FinishReport | undefined)?.falseAlarms?.some(
+            (alarm) => alarm.entryId === finding.entryId && alarm.file === finding.file,
+          ),
+      );
+      log({
+        type: 'harness',
+        phase: 'iteration',
+        iteration,
+        model,
+        result,
+        after,
+        comparisons,
+        rescan,
+      });
       iterations.push({ model, stopReason: result.stopReason, steps, comparisons });
-      if (newFailures === 0 && report) break;
+      const retryRescan = left.length > 0 && rescanRetries < MAX_RESCAN_RETRIES;
+      if (newFailures === 0 && report && !retryRescan) break;
       const finished = report as FinishReport | undefined;
-      if (finishedThisIteration && finished && finished.unproven.length > 0) break;
+      // Plain code feeds a failure back at least once: a session rarely runs the checks itself.
+      const toldOnce = iteration > 0 || newFailures === 0;
+      if (toldOnce && !retryRescan && finishedThisIteration && finished?.unproven.length) break;
       // Loop-safety net: a model call that keeps erroring without spending anything is down, not stuck.
       silentErrors =
         result.stopReason === 'error' && ledger.spentUsd === spentBefore ? silentErrors + 1 : 0;
@@ -374,17 +404,56 @@ export async function runTask(
       const escalated = stuck && model === MODEL;
       if (escalated) model = ESCALATION_MODEL;
       previousNewFailures = newFailures;
+      if (retryRescan) {
+        rescanRetries += 1;
+        report = undefined;
+      }
       prompt = buildRetryMessage({
         comparisons,
         after,
         hasReport: report !== undefined,
         escalated,
+        left: retryRescan
+          ? left.map(({ entryId, file, line }) => `${entryId} at ${file}:${line}`)
+          : [],
       });
     }
 
     const diff = redactSecrets(await sandbox.diff());
     const finalReport = report as FinishReport | undefined;
-    const outcome = decideOutcome({ diff, report: finalReport, comparisons, after, validatorRuns });
+    const proofTest =
+      finalReport?.proofTest && after.some((run) => run.name === finalReport.proofTest)
+        ? finalReport.proofTest
+        : undefined;
+    const fixLabel =
+      rescan && isRepoTask(task) && !(finalReport?.verdict === 'not-affected' && !diff.trim())
+        ? labelFix({
+            findings: task.findings,
+            rescan,
+            newFailures: newFailureCount(comparisons),
+            changed: diff.trim() !== '',
+            touched: checksTouchChange(
+              filesFromDiff(diff),
+              after.filter((run) => run.ok).map((run) => run.name),
+              proofTest,
+            ),
+          })
+        : undefined;
+    const smoke =
+      isRepoTask(task) && fixLabel && fixLabel.outcome !== 'failed'
+        ? await deps.smoke?.(task).catch(() => undefined)
+        : undefined;
+    const refused = smoke?.filter((result) => result.outcome === 'refused') ?? [];
+    const label =
+      fixLabel?.outcome === 'verified' && refused.length
+        ? {
+            outcome: 'needs-review' as const,
+            reason: `The rescan is clean, but ${refused.map((r) => r.model).join(', ')} refused a live call.`,
+          }
+        : fixLabel;
+    const outcome =
+      label?.outcome ??
+      decideOutcome({ diff, report: finalReport, comparisons, after, validatorRuns });
     const notes =
       ledger.remainingUsd <= reserveUsd
         ? [`The run hit its AI budget of $${ledger.capUsd.toFixed(2)} before the agent finished.`]
@@ -403,10 +472,10 @@ export async function runTask(
       sandboxNote,
       notes,
       prepared: preparationNotes(preparation),
-      proofTest:
-        finalReport?.proofTest && after.some((run) => run.name === finalReport.proofTest)
-          ? finalReport.proofTest
-          : undefined,
+      proofTest,
+      rescan,
+      labelReason: label?.reason,
+      smoke,
     });
     const summary = summarizeRun({
       task,
@@ -439,6 +508,9 @@ export async function runTask(
       }),
       summary,
       preparation,
+      ...(label ? { note: label.reason } : {}),
+      ...(rescan ? { rescan } : {}),
+      ...(smoke?.length ? { smoke } : {}),
       cache: ledger.cache,
       timing,
     };

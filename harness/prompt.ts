@@ -327,8 +327,17 @@ export function buildRetryMessage(input: {
   after: CheckRun[];
   hasReport: boolean;
   escalated: boolean;
+  left?: string[]; // what the rescan still finds
 }): string {
   const parts = ['The harness re-ran the checks after your changes.'];
+  if (input.left?.length) {
+    parts.push(
+      [
+        'The rescan still finds these. Fix each one, or list it in `falseAlarms` with your evidence, then call `finish` again:',
+        ...input.left.map((line) => `- ${line}`),
+      ].join('\n'),
+    );
+  }
   if (input.escalated)
     parts.push('You are now on a stronger model. Take a fresh look at the problem.');
 

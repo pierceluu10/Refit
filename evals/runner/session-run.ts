@@ -7,6 +7,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, cpSync, writeFileSync } f
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { repoTask } from '../../harness/findings.ts';
+import { liveSmoke } from '../../harness/smoke.ts';
 import { budgetFromEnv, runTask } from '../../harness/index.ts';
 import type { HarnessRunRecord } from '../../harness/index.ts';
 import { REPO_USD } from '../../orchestrator/deps.ts';
@@ -64,6 +65,8 @@ export async function runRepoLock(lock: RepoLock, outDir: string): Promise<Sessi
       budgetUsd: REPO_USD,
       outDir: path.join(outDir, lock.repo.replace('/', '__')),
       loadToolPack: (provider) => loadToolPack(provider, {}),
+      rescan: async (dir) => standinScan(dir, list),
+      smoke: (task) => liveSmoke(task),
     });
     return {
       ...base,

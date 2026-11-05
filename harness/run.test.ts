@@ -4,6 +4,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { MigrationTask, ToolPack } from '../shared/types.ts';
 import { scriptedSession, type ScriptedTurn } from './fake-session.ts';
+import {
+  checksTouchChange,
+  labelFix,
+  repoTask,
+  type DeadApiEntry,
+  type Finding,
+  type ScanResult,
+} from './findings.ts';
 import { ESCALATION_MODEL, MODEL, decideOutcome, runTask } from './run.ts';
 import { createSandbox } from './sandbox.ts';
 import type { Plan } from './prepare.ts';
@@ -219,7 +227,7 @@ describe('runTask with a fake model', () => {
     expect(record.prBody).toContain('- test, added by the agent: `true` (pass → pass)');
   });
 
-  it('ends when the agent finishes with an explanation of what is still failing', async () => {
+  it('feeds a failure back once, then ends when the agent explains what still fails', async () => {
     const explain: ScriptedTurn = async (call, input) => {
       await breakIt(call, input);
       await call('finish', {
@@ -234,7 +242,7 @@ describe('runTask with a fake model', () => {
     };
     const record = await runTask(task, fixtureRepo(), deps([explain]));
     expect(record.outcome).toBe('needs-review');
-    expect(record.costUsd).toBeCloseTo(0.01);
+    expect(record.costUsd).toBeCloseTo(0.02);
   });
 
   it('has no fixed iteration cap: it keeps going until the budget runs out', async () => {
@@ -456,5 +464,152 @@ describe('decideOutcome', () => {
   it('verifies a proven change the agent still lists caveats for: those go to the PR', () => {
     const caveats = { ...report, unproven: ['The Dashboard webhook version is not checked.'] };
     expect(decideOutcome({ ...input, report: caveats, after: [check(true)] })).toBe('verified');
+  });
+});
+
+describe('a repo session', () => {
+  const entry: DeadApiEntry = {
+    id: 'stripe-charges',
+    provider: 'stripe',
+    what: 'the Charges API',
+    diedOn: '2026-01-01',
+    source: { url: 'https://example.com/changelog', checkedOn: '2026-11-04' },
+    lookFor: ['charges.create'],
+    replacement: 'paymentIntents.create',
+    requires: [],
+  };
+  const live = (file: string, line = 2): Finding => ({
+    entryId: entry.id,
+    file,
+    line,
+    matchClass: 'live',
+  });
+  const scanOf = (findings: Finding[]): ScanResult => ({
+    findings,
+    unlistedProviders: [],
+    clean: findings.length === 0,
+  });
+  const repoTaskFor = (findings: Finding[]) =>
+    repoTask('example/fixture-shop', scanOf(findings), [entry]);
+  // What a scan of the working copy finds: the dead call, in src/pay.js, until it's gone.
+  const rescan = async (dir: string) =>
+    scanOf(
+      readFileSync(join(dir, 'src/pay.js'), 'utf8').includes('charges') ? [live('src/pay.js')] : [],
+    );
+  const fix: ScriptedTurn = async (call) => {
+    await call('edit_file', {
+      path: 'src/pay.js',
+      old: 'stripe.charges.create',
+      new: 'stripe.paymentIntents.create',
+    });
+  };
+  const finish =
+    (extra: Record<string, unknown> = {}): ScriptedTurn =>
+    async (call) => {
+      await call('finish', {
+        verdict: 'migrated',
+        summary: 'Moved to paymentIntents.create.',
+        why: 'Charges died.',
+        validators: [],
+        unproven: [],
+        behaviourChanges: [],
+        noProofTestReason: 'A smoke fixture.',
+        ...extra,
+      });
+    };
+  const both =
+    (...turns: ScriptedTurn[]): ScriptedTurn =>
+    async (call, input) => {
+      for (const turn of turns) await turn(call, input);
+    };
+
+  it('labels a clean rescan with checks no worse as fixed, and says what it proves', async () => {
+    const record = await runTask(repoTaskFor([live('src/pay.js')]), fixtureRepo(), {
+      ...deps([both(fix, finish({ personMustDo: ['Set STRIPE_PRICE_ID.'] }))]),
+      rescan,
+    });
+    expect(record.outcome).toBe('verified');
+    expect(record.prBody).toContain('[Fixed]');
+    expect(record.prBody).toContain('### What died');
+    expect(record.prBody).toContain('https://example.com/changelog');
+    expect(record.prBody).toContain(
+      'A clean rescan shows the dead thing is gone, not that a live call succeeds.',
+    );
+    expect(record.prBody).toContain('Set STRIPE_PRICE_ID.');
+  });
+
+  it('sends what the rescan still finds back to the session', async () => {
+    const seen: string[] = [];
+    const record = await runTask(repoTaskFor([live('src/pay.js')]), fixtureRepo(), {
+      ...deps([]),
+      session: scriptedSession([
+        async (call, input) => {
+          seen.push(input.prompt);
+          await finish()(call, input);
+        },
+        async (call, input) => {
+          seen.push(input.prompt);
+          await both(fix, finish())(call, input);
+        },
+      ]),
+      rescan,
+    });
+    expect(seen[1]).toContain('stripe-charges at src/pay.js:2');
+    expect(record.outcome).toBe('verified');
+  });
+
+  it("calls it couldn't fix when every use is still there", async () => {
+    const edit: ScriptedTurn = async (call) => {
+      await call('write_file', { path: 'README.md', content: 'notes' });
+    };
+    const record = await runTask(repoTaskFor([live('src/pay.js')]), fixtureRepo(), {
+      ...deps([both(edit, finish())]),
+      rescan,
+    });
+    expect(record.outcome).toBe('failed');
+    expect(record.note).toContain('still finds 1 of 1');
+  });
+
+  it('calls a partly clean rescan needs a look', () => {
+    const label = labelFix({
+      findings: [live('a.js'), live('b.js')],
+      rescan: scanOf([live('b.js')]),
+      newFailures: 0,
+      changed: true,
+      touched: true,
+    });
+    expect(label).toEqual({
+      outcome: 'needs-review',
+      reason: 'Partly clean: the rescan still finds 1 of 2 uses.',
+    });
+  });
+
+  it("calls new failures couldn't fix, even with a clean rescan", () => {
+    const label = labelFix({
+      findings: [live('a.js')],
+      rescan: scanOf([]),
+      newFailures: 2,
+      changed: true,
+      touched: true,
+    });
+    expect(label.outcome).toBe('failed');
+  });
+
+  it('calls a clean rescan needs a look when no passing check touches the change', () => {
+    const label = labelFix({
+      findings: [live('a.py')],
+      rescan: scanOf([]),
+      newFailures: 0,
+      changed: true,
+      touched: checksTouchChange(['a.py'], ['typecheck', 'build'], undefined),
+    });
+    expect(label.outcome).toBe('needs-review');
+  });
+
+  it('counts a passing proof test, or a check in the language that changed', () => {
+    expect(checksTouchChange(['a.py'], ['proof'], 'proof')).toBe(true);
+    expect(checksTouchChange(['a.py'], ['pytest'], undefined)).toBe(true);
+    expect(checksTouchChange(['a.ts'], ['build'], undefined)).toBe(true);
+    expect(checksTouchChange(['config.yaml'], ['build'], undefined)).toBe(false);
   });
 });

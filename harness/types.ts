@@ -7,7 +7,9 @@ import type {
   RunRecord,
   ToolPack,
 } from '../shared/types.ts';
+import type { RepoTask, ScanResult } from './findings.ts';
 import type { BudgetLedger, CacheTally, ChargeRun } from './ledger.ts';
+import type { SmokeResult } from './smoke.ts';
 import type { PlanPreparation, Preparation } from './prepare.ts';
 
 export type ExecResult = { code: number; stdout: string; stderr: string; timedOut: boolean };
@@ -53,6 +55,9 @@ export type FinishReport = {
   validators: { name: string; passed: boolean; detail: string }[];
   unproven: string[];
   behaviourChanges: string[];
+  // A repo session: what a person must set for the fix to work, and findings it read as false alarms.
+  personMustDo?: string[];
+  falseAlarms?: { entryId: string; file: string; why: string }[];
   // The registered check that tests this change, or why no test of it can be written.
   proofTest?: string;
   noProofTestReason?: string;
@@ -111,6 +116,10 @@ export type HarnessDeps = {
   turnReserveUsd?: number; // defaults to TURN_RESERVE_USD
   // Called for every model call's spend as it happens, so the run budget sees it even if the harness throws.
   chargeRun?: ChargeRun;
+  // A repo session's proof: the same plain-code scan, over the sandbox's working copy. It only reads.
+  rescan?: (dir: string) => Promise<ScanResult>;
+  // The optional live smoke call. It runs on the host, after the session.
+  smoke?: (task: RepoTask) => Promise<SmokeResult[]>;
   fetch?: typeof fetch;
   // Names the repo's codegen before the baseline; defaults to one Sonnet call (prepare.ts).
   planPreparation?: PlanPreparation;
@@ -123,6 +132,10 @@ export type HarnessRunRecord = RunRecord & {
   recipeIds: string[]; // the recipes injected into the prompt, for memory's learnFromRun
   // Checks the agent registered itself; they count toward proof, so reviewers see their exact commands.
   agentChecks: { name: string; command: string; before: string; after: string }[];
+  // Why a repo session got its label, in a line, and what the last rescan found.
+  note?: string;
+  rescan?: ScanResult;
+  smoke?: SmokeResult[];
   // Input tokens by how they were billed: a healthy session reads far more than it writes.
   cache?: CacheTally;
   // Where the time went: install to baseline, the agent, and the re-checks after it.

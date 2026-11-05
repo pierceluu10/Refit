@@ -82,3 +82,58 @@ export function renderList(task: RepoTask): string {
     )
     .join('\n\n');
 }
+
+// What a rescan still finds: only live code counts. A test that keeps the dead name is reported, not
+// held against the fix, unless the live path still has it too.
+export const liveFindings = (scan: ScanResult) =>
+  scan.findings.filter((finding) => finding.matchClass === 'live');
+
+const JS_CHECK = /^(typecheck|build|test)$/;
+const JS_FILE = /\.(ts|tsx|js|jsx|mjs|cjs|vue|svelte)$/;
+const PY_FILE = /\.py$/;
+
+// Did any passing check touch what changed? Its own test does; otherwise a check of the same language
+// as a changed file. shortcut: a language match, not coverage; a build can miss a changed file.
+export function checksTouchChange(
+  files: string[],
+  passing: string[],
+  proofTest: string | undefined,
+): boolean {
+  if (proofTest && passing.includes(proofTest)) return true;
+  const js = files.some((file) => JS_FILE.test(file)) && passing.some((n) => JS_CHECK.test(n));
+  const py = files.some((file) => PY_FILE.test(file)) && passing.includes('pytest');
+  return js || py;
+}
+
+export type FixLabel = { outcome: 'verified' | 'needs-review' | 'failed'; reason: string };
+
+// The label from plain facts: the rescan and the checks, never the session's own words.
+export function labelFix(input: {
+  findings: Finding[]; // what the first scan found
+  rescan: ScanResult;
+  newFailures: number;
+  changed: boolean;
+  touched: boolean;
+}): FixLabel {
+  const before = input.findings.filter((finding) => finding.matchClass === 'live').length;
+  const left = liveFindings(input.rescan).length;
+  const failures = `${input.newFailures} new check failure${input.newFailures === 1 ? '' : 's'}`;
+  if (!input.changed) return { outcome: 'failed', reason: 'The session changed nothing.' };
+  if (input.newFailures > 0) return { outcome: 'failed', reason: `The fix caused ${failures}.` };
+  if (left >= before) {
+    return { outcome: 'failed', reason: `The rescan still finds ${left} of ${before} uses.` };
+  }
+  if (left > 0) {
+    return {
+      outcome: 'needs-review',
+      reason: `Partly clean: the rescan still finds ${left} of ${before} uses.`,
+    };
+  }
+  if (!input.touched) {
+    return {
+      outcome: 'needs-review',
+      reason: 'The rescan is clean, but no check that passes touches the changed code.',
+    };
+  }
+  return { outcome: 'verified', reason: 'The rescan is clean and the checks are no worse.' };
+}
