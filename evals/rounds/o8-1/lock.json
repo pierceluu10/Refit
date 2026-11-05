@@ -1,0 +1,224 @@
+[
+  {
+    "repo": "rainmana/cursorify",
+    "commit": "464d61f74e76b5397c401b8de8119f213c9d3ecf",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "anthropic-5",
+        "file": "src/providers/anthropic-provider.ts",
+        "dead": "claude-3-5-sonnet-20241022",
+        "alive": ["claude-sonnet-5-5"],
+        "proof": [
+          {
+            "from": "claude-3-5-sonnet-20241022",
+            "to": "claude-sonnet-5-5"
+          }
+        ]
+      },
+      {
+        "id": "R2",
+        "entryId": "anthropic-4",
+        "file": "src/llmGenerator.ts",
+        "dead": "claude-3-7-sonnet",
+        "alive": ["claude-sonnet-5-5"],
+        "proof": [
+          {
+            "from": "claude-3-7-sonnet-latest",
+            "to": "claude-sonnet-5-5"
+          },
+          {
+            "from": "claude-3-7-sonnet-20250219",
+            "to": "claude-sonnet-5-5"
+          }
+        ]
+      },
+      {
+        "id": "R3",
+        "entryId": "openai-1",
+        "file": "src/providers/openai-provider.ts",
+        "dead": "'gpt-3\\.5-turbo'",
+        "alive": ["gpt-5\\.6-terra"],
+        "proof": [
+          {
+            "from": "'gpt-3.5-turbo'",
+            "to": "'gpt-5.6-terra'"
+          }
+        ]
+      },
+      {
+        "id": "R4",
+        "entryId": "anthropic-5",
+        "file": "lib/providers/anthropic-provider.js",
+        "dead": "claude-3-5-sonnet-20241022",
+        "alive": ["claude-sonnet-5-5"],
+        "proof": [
+          {
+            "from": "claude-3-5-sonnet-20241022",
+            "to": "claude-sonnet-5-5"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "repo": "vadik88888-prog/beauty-saas",
+    "commit": "ed948ce4eeb901db6d2bfe42ad8b1c6ba6674f87",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "openai-6",
+        "file": "src/app/api/admin/ai-settings/route.ts",
+        "dead": "'o3-mini'",
+        "alive": [],
+        "proof": [
+          {
+            "from": "'o3-mini'",
+            "to": "'gpt-5.6-sol'"
+          }
+        ]
+      },
+      {
+        "id": "R2",
+        "entryId": "openai-20",
+        "file": "src/app/api/admin/ai-settings/route.ts",
+        "dead": "'o1-mini'",
+        "alive": [],
+        "proof": [
+          {
+            "from": "'o1-mini'",
+            "to": "'gpt-5.6-sol'"
+          }
+        ]
+      },
+      {
+        "id": "R3",
+        "entryId": "openai-6",
+        "file": "src/app/(admin)/ai-settings/page.tsx",
+        "dead": "value=\"o3-mini\"",
+        "alive": [],
+        "proof": [
+          {
+            "from": "value=\"o3-mini\"",
+            "to": "value=\"gpt-5.6-sol\""
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "repo": "djnightmare9909/Dungeon-master-OS-WFGY",
+    "commit": "c684edaa0df21272fd65954be3255fa33996354b",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "gemini-13",
+        "file": "features.ts",
+        "dead": "model: 'imagen-4\\.0-generate-001'",
+        "alive": ["gemini-nano-banana-2\\.1"],
+        "proof": [
+          {
+            "from": "imagen-4.0-generate-001",
+            "to": "gemini-nano-banana-2.1"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "repo": "jasperapp/jasper",
+    "commit": "a7cbefefaa79dd764099217a3946b8210423b0ed",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "GA-1",
+        "file": "src/Renderer/Repository/GARepo.ts",
+        "dead": "google-analytics\\.com/collect",
+        "alive": ["mp/collect"],
+        "proof": [
+          {
+            "from": "google-analytics.com/collect",
+            "to": "google-analytics.com/mp/collect"
+          }
+        ]
+      },
+      {
+        "id": "R2",
+        "entryId": "GA-1",
+        "file": "src/Renderer/Repository/GARepo.ts",
+        "dead": "UA-77734098-2",
+        "alive": [],
+        "proof": [
+          {
+            "from": "UA-77734098-2",
+            "to": "G-PLACEHOLDER"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "repo": "edwinsatya/llm-output-guard",
+    "commit": "8538718cdeca93f3e58f0da62f49aa34fe7b1904",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "groq-2",
+        "file": "scripts/generate-fixtures.mjs",
+        "dead": "llama-3\\.1-8b-instant",
+        "alive": ["openai/gpt-oss-20b"],
+        "proof": [
+          {
+            "from": "llama-3.1-8b-instant",
+            "to": "openai/gpt-oss-20b"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "repo": "XDTerminated/t2-chat-t3c-2025",
+    "commit": "89102edbbb3f10dd78f1483cfb5aa3dba73880ed",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "gemini-5",
+        "file": "src/lib/api/gemini-api.ts",
+        "dead": "gemini-2\\.0-flash-preview-image-generation",
+        "alive": ["gemini-nano-banana-2\\.1"],
+        "proof": [
+          {
+            "from": "gemini-2.0-flash-preview-image-generation",
+            "to": "gemini-nano-banana-2.1"
+          }
+        ]
+      },
+      {
+        "id": "R2",
+        "entryId": "gemini-6",
+        "file": "src/app/api/chat/route.ts",
+        "dead": "gemini-2\\.5-flash-preview-05-20",
+        "alive": ["gemini-3\\.6-flash"],
+        "proof": [
+          {
+            "from": "gemini-2.5-flash-preview-05-20",
+            "to": "gemini-3.6-flash"
+          }
+        ]
+      },
+      {
+        "id": "R3",
+        "entryId": "groq-10",
+        "file": "src/app/api/chat/route.ts",
+        "dead": "deepseek-r1-distill-llama-70b",
+        "alive": ["openai/gpt-oss-120b"],
+        "proof": [
+          {
+            "from": "deepseek-r1-distill-llama-70b",
+            "to": "openai/gpt-oss-120b"
+          }
+        ]
+      }
+    ]
+  }
+]

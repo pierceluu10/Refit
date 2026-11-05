@@ -64,3 +64,27 @@ The one "Needs a look" was also right: `EDD-Kafka-Rest-Api`'s only check fails b
 **Unneeded major upgrades: none** on all 12 repos, by `majorUpgrades`. **Live smoke:** no repo was sampled in this round, and no provider key is readable in this session, so nothing here is proven live.
 
 **Limit:** `jiro` and `Chat-Nest-AI` had a `build` that failed at baseline in this run, though the round-3 screen passed them with its placeholder env. Both still had a passing typecheck and proof test, so the labels stand, but they aren't strictly green repos on this run.
+
+## O4: memory and review off the fix path
+
+**When:** 2026-11-05, 02:03. **Commit:** `6ebda088`, then `1f695c79`. **Spend:** $0.06 on memory's own budget.
+
+| Per repo, 12 repos from O2 and O3 | Cost |
+| --- | --- |
+| Fix, average | $0.144 |
+| Fix, highest | $0.258 |
+| Learning, 5 runs on Haiku 5.5 | $0.012 |
+
+- **Target met:** about $0.50 a repo for the fix and never above $1. It's well under, in line with the $0.12 `LIST-TEST.md` measured.
+- **Learning cost:** full price, because this session's login path can't use the Batch API. With an API key the batch path halves it. `BatchModel` is tested on a fake client only, never on the real Batch API.
+- **Review:** the product loop has no review step. `evals/reviewer` runs from the eval pipeline and `rereview`, so it doesn't touch a fix.
+- **Haiku vs Sonnet:** I read one Haiku recipe and it kept the exact IDs and steps. One recipe isn't a test, and `LIST-TEST.md` says not to spend more on recipe text.
+
+## O5 and O6: what memory learns from, and the ladder
+
+**When:** 2026-11-05, 01:52 to 02:05. **Commits:** `d1c8b864`, `08e24105`. **Spend:** $0.
+
+No paid run. These are unit-tested, and fed real records from O2 and O3:
+
+- 12 runs went in. `gemini-1` reached `proven` on `benchmarkLevel` from 3 locked repos, and stayed `new` for customers.
+- `backend_AgentAi` counted for `gemini-1` but not for the header it missed, because a locked test only counts for the entries it covered.
