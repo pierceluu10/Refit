@@ -4,9 +4,11 @@ import {
   buildList,
   DeadApiListError,
   entriesInForce,
+  inForceVersion,
   listProblems,
   loadDeadApis,
   readProviderFiles,
+  shutdownsArrived,
   type ProviderFile,
 } from './list.ts';
 
@@ -216,5 +218,73 @@ describe('buildList and entriesInForce', () => {
     const arrived = entriesInForce(list, '2027-01-01');
     expect(arrived.map((one) => one.id)).toEqual(['AN-1.old', 'AN-9.soon']);
     expect(arrived[1].diedOn).toBe('2027-01-01');
+  });
+});
+
+describe('inForceVersion', () => {
+  const SOON = '2027-01-01';
+  const DAY_BEFORE = '2026-12-31';
+
+  it('moves when the list gains an entry', () => {
+    const before = inForceVersion(buildList([file([entry()])]), LIST_DATE);
+    const gained = entry({
+      id: 'AN-2.other',
+      matchers: [{ kind: 'string', value: 'other-model' }],
+    });
+    expect(inForceVersion(buildList([file([entry(), gained])]), LIST_DATE)).not.toBe(before);
+  });
+
+  it('moves on the day a shutdown arrives, and not the day before', () => {
+    const list = buildList([file([entry()], [future({ diesOn: SOON })])]);
+    expect(inForceVersion(list, DAY_BEFORE)).toBe(inForceVersion(list, LIST_DATE));
+    expect(inForceVersion(list, SOON)).not.toBe(inForceVersion(list, DAY_BEFORE));
+    expect(inForceVersion(list, '2027-06-01')).toBe(inForceVersion(list, SOON));
+  });
+
+  it('stays put for a date the provider calls earliest possible', () => {
+    const list = buildList([file([entry()], [future({ diesOn: SOON, earliest: true })])]);
+    expect(inForceVersion(list, '2030-01-01')).toBe(inForceVersion(list, LIST_DATE));
+  });
+
+  it("stays put for what can't change a scan today, though list.version moves", () => {
+    const base = buildList([file([entry()])]);
+    const withFuture = buildList([file([entry()], [future()])]);
+    expect(withFuture.version).not.toBe(base.version);
+    expect(inForceVersion(withFuture, LIST_DATE)).toBe(inForceVersion(base, LIST_DATE));
+
+    const source = { url: 'https://platform.claude.com/x', checkedOn: '2026-11-05' };
+    const rechecked = buildList([file([entry({ source })])]);
+    expect(rechecked.version).not.toBe(base.version);
+    expect(inForceVersion(rechecked, LIST_DATE)).toBe(inForceVersion(base, LIST_DATE));
+  });
+});
+
+describe('shutdownsArrived', () => {
+  const list = buildList([
+    file(
+      [entry()],
+      [
+        future({ id: 'AN-9.a', diesOn: '2026-11-10' }),
+        future({
+          id: 'AN-9.b',
+          diesOn: '2026-11-12',
+          matchers: [{ kind: 'string', value: 'b-model' }],
+        }),
+        future({
+          id: 'AN-9.c',
+          diesOn: '2026-11-12',
+          earliest: true,
+          matchers: [{ kind: 'string', value: 'c-model' }],
+        }),
+      ],
+    ),
+  ]);
+  const ids = (after: string, today: string) =>
+    shutdownsArrived(list, after, today).map((one) => one.id);
+
+  it('holds what came into force after one day, up to and including another', () => {
+    expect(ids('2026-11-09', '2026-11-10')).toEqual(['AN-9.a']);
+    expect(ids('2026-11-10', '2026-11-11')).toEqual([]);
+    expect(ids('2026-11-05', '2026-11-30')).toEqual(['AN-9.a', 'AN-9.b']);
   });
 });

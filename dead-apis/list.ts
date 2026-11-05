@@ -168,19 +168,21 @@ export function readProviderFiles(dir = DATA_DIR): ProviderFile[] {
     .map((name) => JSON.parse(readFileSync(path.join(dir, name), 'utf8')) as ProviderFile);
 }
 
+const hashOf = (value: unknown) =>
+  createHash('sha256').update(JSON.stringify(value)).digest('hex').slice(0, 16);
+
 export function buildList(files: ProviderFile[]): DeadApiList {
   const problems = listProblems(files);
   if (problems.length > 0) throw new DeadApiListError(problems);
   const entries = files.flatMap((file) => file.entries);
   const future = files.flatMap((file) => file.future);
-  const version = createHash('sha256')
-    .update(JSON.stringify({ entries, future }))
-    .digest('hex')
-    .slice(0, 16);
-  return { entries, future, version };
+  return { entries, future, version: hashOf({ entries, future }) };
 }
 
 export const loadDeadApis = (dir = DATA_DIR): DeadApiList => buildList(readProviderFiles(dir));
+
+const arrivedBy = (list: DeadApiList, today: string) =>
+  list.future.filter((shutdown) => shutdown.diesOn <= today && !shutdown.earliest);
 
 /**
  * The entries in force on a date: the list's dead entries, plus any future shutdown whose date has
@@ -188,22 +190,32 @@ export const loadDeadApis = (dir = DATA_DIR): DeadApiList => buildList(readProvi
  * provider calls the earliest possible waits for a source read to move it to the dead list.
  */
 export function entriesInForce(list: DeadApiList, today: string): DeadApiEntry[] {
-  const arrived = list.future
-    .filter((shutdown) => shutdown.diesOn <= today && !shutdown.earliest)
-    .map((shutdown): DeadApiEntry => ({
-      id: shutdown.id,
-      provider: shutdown.provider,
-      what: shutdown.what,
-      diedOn: shutdown.diesOn,
-      source: shutdown.source,
-      lookFor: shutdown.matchers.map((matcher) => matcher.value),
-      matchers: shutdown.matchers,
-      versions: shutdown.appliesTo?.describe,
-      appliesTo: shutdown.appliesTo,
-      replacement: shutdown.replacement ?? NO_REPLACEMENT,
-      replacementIds: shutdown.replacementIds,
-      requires: shutdown.requires ?? [],
-      context: shutdown.context,
-    }));
+  const arrived = arrivedBy(list, today).map((shutdown): DeadApiEntry => ({
+    id: shutdown.id,
+    provider: shutdown.provider,
+    what: shutdown.what,
+    diedOn: shutdown.diesOn,
+    source: shutdown.source,
+    lookFor: shutdown.matchers.map((matcher) => matcher.value),
+    matchers: shutdown.matchers,
+    versions: shutdown.appliesTo?.describe,
+    appliesTo: shutdown.appliesTo,
+    replacement: shutdown.replacement ?? NO_REPLACEMENT,
+    replacementIds: shutdown.replacementIds,
+    requires: shutdown.requires ?? [],
+    context: shutdown.context,
+  }));
   return [...list.entries, ...arrived];
 }
+
+/**
+ * What a scan on this date looks for, as a hash, so a repo can tell whether its last scan still holds.
+ * It moves when the list gains an entry or a shutdown's date arrives. A shutdown still in the future or
+ * a re-checked source date leaves it alone, since neither changes what a scan finds.
+ */
+export const inForceVersion = (list: DeadApiList, today: string): string =>
+  hashOf(entriesInForce(list, today).map(({ source: _source, ...entry }) => entry));
+
+/** The shutdowns that came into force after one day, up to and including another. */
+export const shutdownsArrived = (list: DeadApiList, after: string, today: string) =>
+  arrivedBy(list, today).filter((shutdown) => shutdown.diesOn > after);

@@ -7,6 +7,8 @@ const API_VERSION = '2022-11-28';
 const USER_AGENT = 'aptitude-app';
 const JSON_TYPE = 'application/json';
 const NO_CONTENT = 204;
+// GitHub's answer for a repo with no commits yet, or one it's still creating.
+const NO_COMMITS = 409;
 const SECOND_MS = 1000;
 const MINUTE_MS = 60 * SECOND_MS;
 // GitHub rejects app JWTs issued in the future or expiring more than 10 minutes out.
@@ -144,6 +146,52 @@ export async function listInstallationRepos(
     fetchImpl,
   );
   return repos.map((repo) => repo.full_name);
+}
+
+/** Every installation of this App that can still be read. A suspended one refuses tokens. */
+export async function listInstallationIds(
+  appId: string,
+  privateKey: string,
+  fetchImpl: typeof fetch = fetch,
+  now: () => number = Date.now,
+): Promise<number[]> {
+  const ids: number[] = [];
+  for (let page = 1; ; page++) {
+    const batch = await githubRequest<{ id: number; suspended_at: string | null }[]>(
+      createAppJwt(appId, privateKey, now()),
+      'GET',
+      `/app/installations?per_page=${PER_PAGE}&page=${page}`,
+      undefined,
+      fetchImpl,
+    );
+    ids.push(...batch.filter((item) => !item.suspended_at).map((item) => item.id));
+    if (batch.length < PER_PAGE) return ids;
+  }
+}
+
+/**
+ * The tree of the default branch's newest commit: one call and no clone. Always the branch as it is
+ * now, never a push's own commit, so a late webhook can't make an old tree look current. Undefined
+ * when there are no commits. `HEAD` isn't one of the ref forms GitHub documents, but it resolves.
+ */
+export async function headTree(
+  token: string,
+  repo: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<string | undefined> {
+  try {
+    const head = await githubRequest<{ commit: { tree: { sha: string } } }>(
+      token,
+      'GET',
+      `/repos/${repo}/commits/HEAD`,
+      undefined,
+      fetchImpl,
+    );
+    return head.commit.tree.sha;
+  } catch (error) {
+    if (error instanceof GitHubApiError && error.status === NO_COMMITS) return undefined;
+    throw error;
+  }
 }
 
 // Every repo the signed-in user can reach through this App's installations. Needs a user-to-server

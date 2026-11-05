@@ -131,4 +131,19 @@ describe('createFileQueue', () => {
     await writeFile(corrupt, '[{"kind":');
     await expect(createFileQueue(corrupt, async () => {})).rejects.toThrow(SyntaxError);
   });
+
+  it('reports a job merged into a waiting one, and only that', async () => {
+    const runner = gatedRunner();
+    const merged: UnderstandJob[] = [];
+    const queue = await createFileQueue(file, runner.run, async (job) => void merged.push(job));
+    await queue.enqueue(understand('org/a', 'first'));
+    await vi.waitFor(() => expect(runner.ran).toHaveLength(1));
+    await queue.enqueue(understand('org/a', 'second')); // the first is running, so this one waits
+    expect(merged).toEqual([]);
+    await queue.enqueue(understand('org/a', 'third'));
+    expect(merged).toEqual([understand('org/a', 'third')]);
+    await runner.release();
+    await runner.release();
+    await queue.idle();
+  });
 });

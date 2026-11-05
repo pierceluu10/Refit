@@ -60,6 +60,9 @@ export async function cloneRepo(token: string, repo: string, dir: string): Promi
   );
 }
 
+export const treeOfCheckout = async (dir: string): Promise<string> =>
+  (await git(['rev-parse', 'HEAD^{tree}'], { cwd: dir })).trim();
+
 // Applies the harness's diff to a scratch index, never the checkout's files, and reads back each file.
 // shortcut: text files only; a binary or mode-only change needs `git diff --binary` from the harness first.
 export async function filesFromDiff(repoDir: string, diff: string): Promise<FileChange[]> {

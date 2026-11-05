@@ -8,12 +8,14 @@ export type AppJob =
       kind: 'understand';
       installationId: number;
       repo: string;
-      reason: 'install' | 'repos-added' | 'push';
+      reason: 'install' | 'repos-added' | 'push' | 'clock' | 'manual';
       sha?: string;
     }
   | { kind: 'forget'; installationId: number; repo: string };
 
 export type UnderstandJob = Extract<AppJob, { kind: 'understand' }>;
+
+export type ForgetJob = Extract<AppJob, { kind: 'forget' }>;
 
 export type JobQueue = { enqueue: (job: AppJob) => Promise<void> };
 

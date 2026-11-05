@@ -35,6 +35,7 @@ function fakeDeps(compared: ComparedCommit[] = []) {
   const listedWith: string[] = [];
   const deps: WebhookDeps = {
     queue: { enqueue: async (job) => void jobs.push(job) },
+    forgetRepo: async () => {},
     recordVerdict: async (pr, verdict) => void verdicts.push([pr, verdict]),
     tokens: {
       token: async (id) => {

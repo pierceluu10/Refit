@@ -6,6 +6,8 @@ import {
   createAppJwt,
   createInstallationTokens,
   githubRequest,
+  headTree,
+  listInstallationIds,
   listInstallationRepos,
   listViewerRepos,
 } from './github.ts';
@@ -201,5 +203,56 @@ describe('listViewerRepos', () => {
       'org/mine',
     ]);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('headTree', () => {
+  const TOKEN = 'ghs_test';
+
+  it('reads the tree of the branch as it is now, with one call', async () => {
+    const fetchImpl = vi.fn(async () => json({ sha: 'commit', commit: { tree: { sha: 'tree' } } }));
+    expect(await headTree(TOKEN, 'org/repo', fetchImpl as unknown as typeof fetch)).toBe('tree');
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect((fetchImpl.mock.calls[0] as unknown[])[0]).toBe(
+      `${GITHUB_API}/repos/org/repo/commits/HEAD`,
+    );
+  });
+
+  it('answers undefined for a repo with no commits', async () => {
+    const fetchImpl = vi.fn(async () => json({ message: 'Git Repository is empty.' }, 409));
+    expect(
+      await headTree(TOKEN, 'org/empty', fetchImpl as unknown as typeof fetch),
+    ).toBeUndefined();
+  });
+
+  it.each([403, 404, 500])(
+    'throws on %i, so a failed read can never pass as a tree',
+    async (status) => {
+      const fetchImpl = vi.fn(async () => json({ message: 'nope' }, status));
+      await expect(
+        headTree(TOKEN, 'org/repo', fetchImpl as unknown as typeof fetch),
+      ).rejects.toBeInstanceOf(GitHubApiError);
+    },
+  );
+});
+
+describe('listInstallationIds', () => {
+  it('pages through every installation and leaves out the suspended ones', async () => {
+    const full: { id: number; suspended_at: string | null }[] = Array.from(
+      { length: 100 },
+      (_, index) => ({ id: index, suspended_at: null }),
+    );
+    full[1] = { id: 1, suspended_at: '2026-11-01T00:00:00Z' };
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(json(full))
+      .mockResolvedValueOnce(json([{ id: 500, suspended_at: null }]));
+    const ids = await listInstallationIds(APP_ID, privateKey, fetchImpl, () => NOW);
+    expect(ids).toHaveLength(100);
+    expect(ids).not.toContain(1);
+    expect(ids).toContain(500);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl.mock.calls[1][0]).toBe(`${GITHUB_API}/app/installations?per_page=100&page=2`);
+    expect(headersOf(fetchImpl).Authorization).toMatch(/^Bearer .+\..+\..+$/);
   });
 });

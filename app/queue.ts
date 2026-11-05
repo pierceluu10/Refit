@@ -25,6 +25,7 @@ async function load(file: string): Promise<UnderstandJob[]> {
 export async function createFileQueue(
   file: string,
   run: (job: UnderstandJob) => Promise<void>,
+  onMerged?: (job: UnderstandJob) => Promise<void>,
 ): Promise<FileQueue> {
   let jobs = await load(file);
   let running: UnderstandJob | undefined;
@@ -70,7 +71,9 @@ export async function createFileQueue(
         // memory/ has no forget yet; a removed repo just stops waiting to be read.
         jobs = jobs.filter((other) => !waiting(other));
       } else if (jobs.some(waiting)) {
-        return; // a read of this repo is already waiting and will see the newest code
+        // A read of this repo is already waiting and will see the newest code.
+        await onMerged?.(job);
+        return;
       } else {
         jobs.push(job);
       }
