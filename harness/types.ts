@@ -27,6 +27,9 @@ export type Sandbox = {
   snapshot?(): Promise<void>;
   // Puts the working copy back to the last snapshot (or creation): edits undone, new files removed.
   reset?(): Promise<void>;
+  // Keeps files out of the diff, and takes one back when the session edits it.
+  leaveOut?(files: string[]): void;
+  keep?(file: string): void;
   dispose(): Promise<void>;
 };
 

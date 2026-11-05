@@ -192,6 +192,12 @@ export function unneededMajors(diff: string, entries: DeadApiEntry[]): string[] 
   return majorUpgrades(diff).filter((move) => !asked(move.split(' ')[0] as string));
 }
 
+// Entries the list names nothing to move to, so what took their place is a person's call.
+export const withoutSuccessor = (entries: DeadApiEntry[]) =>
+  entries
+    .filter((entry) => /^(None listed|No replacement)/i.test(entry.replacement))
+    .map((entry) => entry.id);
+
 export type FixLabel = { outcome: 'verified' | 'needs-review' | 'failed'; reason: string };
 
 // The label from plain facts: the rescan and the checks, never the session's own words.
@@ -205,6 +211,7 @@ export function labelFix(input: {
   codeRan?: boolean; // a passing check imports the code that changed
   stillSet?: string[]; // what the entry says to remove and a changed file still has
   majors?: string[]; // major moves no entry asks for
+  noSuccessor?: string[]; // entries with nothing named to move to
 }): FixLabel {
   const before = input.findings.filter(counts).length;
   const left = leftOf(input.findings, input.rescan).length;
@@ -242,6 +249,12 @@ export function labelFix(input: {
     return {
       outcome: 'needs-review',
       reason: `The rescan is clean, but the list doesn't ask for these major upgrades: ${input.majors.join(', ')}.`,
+    };
+  }
+  if (input.noSuccessor?.length) {
+    return {
+      outcome: 'needs-review',
+      reason: `The rescan is clean, but the list names no replacement for ${input.noSuccessor.join(', ')}, so a person should confirm what took its place.`,
     };
   }
   return { outcome: 'verified', reason: 'The rescan is clean and the checks are no worse.' };

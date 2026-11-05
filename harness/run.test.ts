@@ -11,6 +11,7 @@ import {
   repoTask,
   requiredRemovals,
   unneededMajors,
+  withoutSuccessor,
   type DeadApiEntry,
   type Finding,
   type ScanResult,
@@ -702,6 +703,47 @@ describe('a repo session', () => {
     });
     expect(retry).toContain('No list entry asks for these major upgrades');
     expect(retry).toContain('- prisma ^5.0.0 -> ^6.0.0');
+  });
+
+  it('leaves a person to confirm a swap the list names no replacement for', () => {
+    const none = { ...entry, id: 'gone', replacement: 'None listed on the provider page.' };
+    expect(withoutSuccessor([entry, none])).toEqual(['gone']);
+    const label = labelFix({
+      findings: [live('a.js')],
+      rescan: scanOf([]),
+      newFailures: 0,
+      changed: true,
+      touched: true,
+      noSuccessor: ['gone'],
+    });
+    expect(label.outcome).toBe('needs-review');
+    expect(label.reason).toContain('no replacement for gone');
+  });
+
+  it('keeps what the checks rewrite out of the diff, unless the session edits it', async () => {
+    const script = 'node check.js && touch dev.db && echo "// $$" >> src/built.js';
+    const repo = fixtureRepo({ test: script });
+    writeFileSync(join(repo, 'src/built.js'), '// built\n');
+    const record = await runTask(repoTaskFor([live('src/pay.js')]), repo, {
+      ...deps([both(fix, finish())]),
+      rescan,
+    });
+    expect(record.diff).toContain('src/pay.js');
+    expect(record.diff).not.toContain('dev.db');
+    expect(record.diff).not.toContain('src/built.js');
+    expect(record.prBody).toContain("The repo's own checks rewrite src/built.js");
+    expect(record.prBody).not.toContain('dev.db');
+
+    const edit: ScriptedTurn = async (call) => {
+      await call('write_file', { path: 'src/built.js', content: '// mine\n' });
+    };
+    const again = fixtureRepo({ test: script });
+    writeFileSync(join(again, 'src/built.js'), '// built\n');
+    const kept = await runTask(repoTaskFor([live('src/pay.js')]), again, {
+      ...deps([both(fix, edit, finish())]),
+      rescan,
+    });
+    expect(kept.diff).toContain('src/built.js');
   });
 
   it('calls a partly clean rescan needs a look', () => {

@@ -371,3 +371,47 @@ The locks can't see what went wrong here. They show a name moved, and every lock
 3. **The sandbox hid an env template.** It now lets in `.env.production.template` and the like. Real env files stay out.
 
 **A bug that would have lost a PR:** the secret scrubber let a value start on the next line, so an empty `GITHUB_TOKEN=` in a diff ate the following line, and with it the line's diff marker. `git apply` then called the patch corrupt, in the grader here and, in production, in the PR opener, so a finished fix would never have become a PR. A value must now sit on its name's line. Separately, a redacted context line could stop a patch applying, which round 3 of the old plan had seen too, so the PR opener and the grader now restore context and removed lines from the repo's own file. Records stay redacted. A grader failure also no longer loses a paid run's result.
+
+## O8 round 5: the new rules, on fresh repos
+
+**When:** 2026-11-05, 07:54 to 08:17. **Commit:** `06410b9d` on `rebuild/integration`. **Locks:** `evals/rounds/o8-5/`. **Spend:** $0.94 of a $9 cap.
+
+| Repo | Required fixed | Label | Cost | Time |
+| --- | --- | --- | --- | --- |
+| `lnmjkessel-code/v13` | 2 of 2 | Fixed | $0.1168 | 97 s |
+| `Naqi-Haider/Hype-Counter` | 2 of 2 | Fixed | $0.1172 | 224 s |
+| `AB-Insightful/ab-insightful` | 4 of 4 | Needs a look | $0.1909 | 300 s |
+| `stellalphatic/voiceify` | 1 of 1 | Fixed | $0.0805 | 140 s |
+| `saurabhbisht95/ai-career-coach` | 4 of 5, a lock artefact | Fixed | $0.1017 | 131 s |
+| `ownerofstudio37/websitefors37` | 1 of 1 | Fixed | $0.0608 | 213 s |
+| `AmandaOrg/udara` | 2 of 2 | Fixed, **I disagree** | $0.1324 | 123 s |
+| `ingridandrade-ctrl/arthea` | 2 of 2 | Fixed | $0.1425 | 162 s |
+| **Total** | **18 of 19** | | **$0.9430** | |
+
+| Target | Result |
+| --- | --- |
+| Required changes fixed, at least 70% | 18 of 19, 95%, by static locks |
+| "Fixed" a hand-check agrees with, at least 90% | **Missed: 6 of 7, 86%** |
+| Cost with matches, about $0.50, never above $1 | $0.12 on average, $0.19 at most |
+| Time with matches, under 5 minutes | 7 of 8. `ab-insightful` took 300 s, right on the line |
+| Unneeded major upgrades, none | **Met** |
+
+**Reading every result:**
+
+- **`ai-career-coach`, R3 failed. The fix is right.** My lock's regex also matches a commented-out `gemini-1.5` line in `actions/interview.js`, which the session rightly left. A locked test stays as written, so the count stays 18 of 19. The live line moved, and I agree with Fixed.
+- **`udara`, Fixed. I disagree.** The list names no replacement for the dead free model, so the session chose the paid `meta-llama/llama-3.3-70b-instruct` itself. OpenRouter now bills for it. The session said so, but that's a person's call, and the label said Fixed.
+- **`ab-insightful`, Needs a look. I agree.** It moved 3 versions, plus 4 webhook versions in its config files, and replaced the dead `_shopify_y` read with its own visitor cookie. That's a sensible move, and it says visitor ids restart. The label comes from 2 rescan hits in a recorded browser cookie dump, a false alarm the session reported, and it goes to Pierce.
+- **`arthea`, Fixed. I agree, narrowly.** The default and the picker moved, and it reads text blocks by type. It says rows already saved with the old model need an admin to re-select them, and that `max_tokens` 1024 may be tight now that thinking is on. Both belong in front of a person, and they're under Unproven.
+- **`v13`, `Hype-Counter`, Fixed. I agree.** Both passed a string, and their only `requires` hit, `productVariantsBulkUpdate`, sends no quantities. `Hype-Counter` also left patch bumps in `package-lock.json`, which it didn't need.
+- **`voiceify`, Fixed. I agree.** The URLs are examples a user copies, so the change is harmless.
+- **`websitefors37`, Fixed. I agree.** The fix is one line, but the diff also carries a rebuilt `public/sw.js`.
+
+**Junk in the diff.** Hand-reading rounds 4 and 5 showed what running the checks leaves behind: an empty `prisma/dev.db` in `ab-insightful`, `public/sw.js` in `websitefors37`, and 12 rebuilt `dist` files in `AdReplica`. The cause is simple: the harness snapshots before the baseline checks, so whatever those checks write looks like the fix. Worse, a patch against rewritten output might not apply to the real repo.
+
+**What changed:**
+
+- What the baseline's checks write now stays out of the diff, unless the session edits it. The PR names any tracked file this leaves stale. Build output that doesn't change at baseline still comes through, so a rebuilt `build/` that's reproducible stays in the PR.
+- An entry with no named replacement now gets Needs a look, whatever the rescan says. Replayed over this round, that changes `udara`'s label and no other.
+
+**The prompt rules from round 4:** no unneeded major upgrades across 3 more Shopify repos. `ab-insightful` reported its false alarm rather than editing a cookie dump. No session deleted a strip of a dead field or moved an extension's pin, though this round's repos gave little chance to.
+
