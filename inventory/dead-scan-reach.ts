@@ -28,6 +28,18 @@ const LOOK_BACK_CHARS = 200;
 const MAX_READS_SHOWN = 5;
 const SELECT_VALUE =
   /<[A-Za-z.]*[sS]elect\b[^<]*?\bvalue=\{([\w$.]+)\}[^<]*>(?:(?!<\/[A-Za-z.]*[sS]elect)[\s\S])*$/;
+// A controlled input's value only says what it shows. What's sent is what its change handler stored.
+const CONTROLLED_VALUE =
+  /<([A-Za-z.]*(?:[sS]elect|[iI]nput|[cC]ombobox|[tT]extarea|[rR]adioGroup)[A-Za-z.]*)\b[^<]*?\bvalue=$/;
+const HIDDEN_INPUT = /\btype=["']hidden["']/;
+const NAME_KEY_BEFORE = /(?:^|[\s{,])["']?name["']?\s*:\s*$/;
+const ID_KEY = /(?:^|[\s{,])["']?id["']?\s*:/;
+const LOCAL_NAMED_IMPORT =
+  /\bimport\s+(?!type\b)(?:[\w$]+\s*,\s*)?\{([^}]*)\}\s*from\s+["']((?:\.{1,2}\/|[@~]\/)[^"']+)["']/g;
+const IMPORT_ALIAS = /\s+as\s+/;
+const PICKER_PROP = /[\w-]+=\{\s*$/;
+const MAPPED_AFTER = /^\s*\??\.map\s*\(/;
+const PICKER_SIGN = /\bon(?:Click|Select|ValueChange|Change)\b|<(?:option|SelectItem|MenuItem)\b/;
 const FUNCTION_LOOK_BACK_CHARS = 2_000;
 const RETURN_BEFORE = /\breturn\s*$/;
 const FUNCTION_HEAD =
@@ -783,6 +795,65 @@ function bookkeepingReach(source: Source, offset: number): Reach | undefined {
   return undefined;
 }
 
+/** The fallback in `<Select value={saved ?? 'x'}>`, which is only shown until someone picks. */
+function controlledValueReach(source: Source, offset: number): Reach | undefined {
+  if (source.mode !== JS_MODE) return undefined;
+  const open = enclosing(source.code, offset);
+  if (open?.char !== '{') return undefined;
+  const control = CONTROLLED_VALUE.exec(
+    source.text.slice(Math.max(0, open.open - LOOK_BACK_CHARS), open.open),
+  );
+  return control && !HIDDEN_INPUT.test(control[0])
+    ? {
+        kind: 'catalog',
+        reason: `only what ${control[1]} shows, and the picked value is what's kept`,
+      }
+    : undefined;
+}
+
+function importedAs(readers: Readers, importer: Source, target: Source, name: string) {
+  for (const match of importer.text.matchAll(LOCAL_NAMED_IMPORT)) {
+    if (isComment(importer, match.index)) continue;
+    if (localModule(readers, importer, match[2]) !== target) continue;
+    for (const one of match[1].split(',')) {
+      const [original, alias] = one.trim().split(IMPORT_ALIAS);
+      if (original === name) return alias ?? original;
+    }
+  }
+  return undefined;
+}
+
+/** Why a model record's list is what users pick from: a file with a handler maps it or passes it as a prop. */
+export function recordPicker(readers: Readers, source: Source, offset: number): string | undefined {
+  const record = enclosing(source.code, offset);
+  const list = record && enclosing(source.code, record.open);
+  if (!record || list?.char !== '[') return undefined;
+  // Beside an id, a record's name is its label, whatever it spells.
+  const key = source.code.slice(record.open, offset - 1);
+  if (
+    NAME_KEY_BEFORE.test(key) &&
+    ID_KEY.test(source.code.slice(record.open, closeOf(source.code, record.open)))
+  ) {
+    return undefined;
+  }
+  const name = listName(source, list).split('.').at(-1);
+  if (!name) return undefined;
+  for (const one of packageOf(readers, source.file)) {
+    const local = one === source ? name : importedAs(readers, one, source, name);
+    if (!local || !PICKER_SIGN.test(one.text)) continue;
+    const fed = readsIn(readers, one, local).find(
+      (read) =>
+        !isImportOf(read) &&
+        (PICKER_PROP.test(
+          one.code.slice(Math.max(0, read.offset - LOOK_BACK_CHARS), read.offset),
+        ) ||
+          MAPPED_AFTER.test(one.code.slice(read.offset + local.length))),
+    );
+    if (fed) return `a model record in ${name}, which ${one.file} offers to users as ${local}`;
+  }
+  return undefined;
+}
+
 function routesOf(readers: Readers): string[][] {
   readers.routes ??= readers.sources.flatMap((one) => {
     const page = PAGES_ROUTE.exec(one.file)?.[1];
@@ -1122,6 +1193,7 @@ export function reachOf(readers: Readers, input: ReachInput): Reach | undefined 
   if (span?.kind !== 'string') return undefined;
   return (
     deadBranchReach(readers, source, offset) ??
+    controlledValueReach(source, offset) ??
     unreadKeyReach(readers, source, offset) ??
     facadeReach(readers, source, packages) ??
     wrapperReach(readers, source, offset) ??

@@ -1,0 +1,391 @@
+{
+  "provider": "perplexity",
+  "officialHosts": ["docs.perplexity.ai"],
+  "entries": [
+    {
+      "id": "PX-1.codellama-70b-instruct",
+      "provider": "perplexity",
+      "what": "Model name codellama-70b-instruct is no longer available through the API.",
+      "diedOn": "2024-05-14",
+      "source": {
+        "url": "https://docs.perplexity.ai/changelog/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "as of May 14, several models and model name aliases will no longer be accessible"
+      },
+      "lookFor": ["The model id or literal string codellama-70b-instruct"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "codellama-70b-instruct",
+          "bare": true
+        }
+      ],
+      "replacement": "The page recommends the Llama-3 family, itself removed later. Use Sonar or Sonar Pro.",
+      "requires": [],
+      "context": {
+        "hosts": ["api.perplexity.ai"]
+      }
+    },
+    {
+      "id": "PX-1.mixtral-8x22b-instruct",
+      "provider": "perplexity",
+      "what": "Model name mixtral-8x22b-instruct is no longer available through the API.",
+      "diedOn": "2024-05-14",
+      "source": {
+        "url": "https://docs.perplexity.ai/changelog/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "as of May 14, several models and model name aliases will no longer be accessible"
+      },
+      "lookFor": ["The model id or literal string mixtral-8x22b-instruct"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mixtral-8x22b-instruct",
+          "bare": true
+        }
+      ],
+      "replacement": "The page recommends the Llama-3 family, itself removed later. Use Sonar or Sonar Pro.",
+      "requires": [],
+      "context": {
+        "hosts": ["api.perplexity.ai"]
+      }
+    },
+    {
+      "id": "PX-1.pplx-7b-chat",
+      "provider": "perplexity",
+      "what": "Model name pplx-7b-chat is no longer available through the API.",
+      "diedOn": "2024-05-14",
+      "source": {
+        "url": "https://docs.perplexity.ai/changelog/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "as of May 14, several models and model name aliases will no longer be accessible"
+      },
+      "lookFor": ["The model id or literal string pplx-7b-chat"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "pplx-7b-chat",
+          "bare": true
+        }
+      ],
+      "replacement": "The page recommends the Llama-3 family, itself removed later. Use Sonar or Sonar Pro.",
+      "requires": [],
+      "context": {
+        "hosts": ["api.perplexity.ai"]
+      }
+    },
+    {
+      "id": "PX-1.pplx-7b-online",
+      "provider": "perplexity",
+      "what": "Model name pplx-7b-online is no longer available through the API.",
+      "diedOn": "2024-05-14",
+      "source": {
+        "url": "https://docs.perplexity.ai/changelog/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "as of May 14, several models and model name aliases will no longer be accessible"
+      },
+      "lookFor": ["The model id or literal string pplx-7b-online"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "pplx-7b-online",
+          "bare": true
+        }
+      ],
+      "replacement": "The page recommends the Llama-3 family, itself removed later. Use Sonar or Sonar Pro.",
+      "requires": [],
+      "context": {
+        "hosts": ["api.perplexity.ai"]
+      }
+    },
+    {
+      "id": "PX-2.llama-3-sonar-small-32k-online",
+      "provider": "perplexity",
+      "what": "Model name llama-3-sonar-small-32k-online is no longer available through the API.",
+      "diedOn": "2024-08-12",
+      "source": {
+        "url": "https://docs.perplexity.ai/changelog/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "several models will no longer be accessible effective 8/12/2024"
+      },
+      "lookFor": ["The model id or literal string llama-3-sonar-small-32k-online"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3-sonar-small-32k-online",
+          "bare": true
+        }
+      ],
+      "replacement": "The page recommends the Llama-3.1 family, whose online names were removed in turn on 2025-02-22. Use Sonar or Sonar Pro.",
+      "requires": [],
+      "context": {
+        "hosts": ["api.perplexity.ai"]
+      }
+    },
+    {
+      "id": "PX-2.llama-3-sonar-large-32k-online",
+      "provider": "perplexity",
+      "what": "Model name llama-3-sonar-large-32k-online is no longer available through the API.",
+      "diedOn": "2024-08-12",
+      "source": {
+        "url": "https://docs.perplexity.ai/changelog/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "several models will no longer be accessible effective 8/12/2024"
+      },
+      "lookFor": ["The model id or literal string llama-3-sonar-large-32k-online"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3-sonar-large-32k-online",
+          "bare": true
+        }
+      ],
+      "replacement": "The page recommends the Llama-3.1 family, whose online names were removed in turn on 2025-02-22. Use Sonar or Sonar Pro.",
+      "requires": [],
+      "context": {
+        "hosts": ["api.perplexity.ai"]
+      }
+    },
+    {
+      "id": "PX-2.llama-3-sonar-small-32k-chat",
+      "provider": "perplexity",
+      "what": "Model name llama-3-sonar-small-32k-chat is no longer available through the API.",
+      "diedOn": "2024-08-12",
+      "source": {
+        "url": "https://docs.perplexity.ai/changelog/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "several models will no longer be accessible effective 8/12/2024"
+      },
+      "lookFor": ["The model id or literal string llama-3-sonar-small-32k-chat"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3-sonar-small-32k-chat",
+          "bare": true
+        }
+      ],
+      "replacement": "The page recommends the Llama-3.1 family, whose online names were removed in turn on 2025-02-22. Use Sonar or Sonar Pro.",
+      "requires": [],
+      "context": {
+        "hosts": ["api.perplexity.ai"]
+      }
+    },
+    {
+      "id": "PX-2.llama-3-sonar-large-32k-chat",
+      "provider": "perplexity",
+      "what": "Model name llama-3-sonar-large-32k-chat is no longer available through the API.",
+      "diedOn": "2024-08-12",
+      "source": {
+        "url": "https://docs.perplexity.ai/changelog/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "several models will no longer be accessible effective 8/12/2024"
+      },
+      "lookFor": ["The model id or literal string llama-3-sonar-large-32k-chat"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3-sonar-large-32k-chat",
+          "bare": true
+        }
+      ],
+      "replacement": "The page recommends the Llama-3.1 family, whose online names were removed in turn on 2025-02-22. Use Sonar or Sonar Pro.",
+      "requires": [],
+      "context": {
+        "hosts": ["api.perplexity.ai"]
+      }
+    },
+    {
+      "id": "PX-2.llama-3-8b-instruct",
+      "provider": "perplexity",
+      "what": "Model name llama-3-8b-instruct is no longer available through the API.",
+      "diedOn": "2024-08-12",
+      "source": {
+        "url": "https://docs.perplexity.ai/changelog/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "several models will no longer be accessible effective 8/12/2024"
+      },
+      "lookFor": ["The model id or literal string llama-3-8b-instruct"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3-8b-instruct",
+          "bare": true
+        }
+      ],
+      "replacement": "The page recommends the Llama-3.1 family, whose online names were removed in turn on 2025-02-22. Use Sonar or Sonar Pro.",
+      "requires": [],
+      "context": {
+        "hosts": ["api.perplexity.ai"]
+      }
+    },
+    {
+      "id": "PX-2.llama-3-70b-instruct",
+      "provider": "perplexity",
+      "what": "Model name llama-3-70b-instruct is no longer available through the API.",
+      "diedOn": "2024-08-12",
+      "source": {
+        "url": "https://docs.perplexity.ai/changelog/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "several models will no longer be accessible effective 8/12/2024"
+      },
+      "lookFor": ["The model id or literal string llama-3-70b-instruct"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3-70b-instruct",
+          "bare": true
+        }
+      ],
+      "replacement": "The page recommends the Llama-3.1 family, whose online names were removed in turn on 2025-02-22. Use Sonar or Sonar Pro.",
+      "requires": [],
+      "context": {
+        "hosts": ["api.perplexity.ai"]
+      }
+    },
+    {
+      "id": "PX-2.mistral-7b-instruct",
+      "provider": "perplexity",
+      "what": "Model name mistral-7b-instruct is no longer available through the API.",
+      "diedOn": "2024-08-12",
+      "source": {
+        "url": "https://docs.perplexity.ai/changelog/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "several models will no longer be accessible effective 8/12/2024"
+      },
+      "lookFor": ["The model id or literal string mistral-7b-instruct"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-7b-instruct",
+          "bare": true
+        }
+      ],
+      "replacement": "The page recommends the Llama-3.1 family, whose online names were removed in turn on 2025-02-22. Use Sonar or Sonar Pro.",
+      "requires": [],
+      "context": {
+        "hosts": ["api.perplexity.ai"]
+      }
+    },
+    {
+      "id": "PX-2.mixtral-8x7b-instruct",
+      "provider": "perplexity",
+      "what": "Model name mixtral-8x7b-instruct is no longer available through the API.",
+      "diedOn": "2024-08-12",
+      "source": {
+        "url": "https://docs.perplexity.ai/changelog/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "several models will no longer be accessible effective 8/12/2024"
+      },
+      "lookFor": ["The model id or literal string mixtral-8x7b-instruct"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mixtral-8x7b-instruct",
+          "bare": true
+        }
+      ],
+      "replacement": "The page recommends the Llama-3.1 family, whose online names were removed in turn on 2025-02-22. Use Sonar or Sonar Pro.",
+      "requires": [],
+      "context": {
+        "hosts": ["api.perplexity.ai"]
+      }
+    },
+    {
+      "id": "PX-3.llama-3.1-sonar-small-128k-online",
+      "provider": "perplexity",
+      "what": "Model name llama-3.1-sonar-small-128k-online is no longer available through the API.",
+      "diedOn": "2025-02-22",
+      "source": {
+        "url": "https://docs.perplexity.ai/changelog/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "as of February 22, 2025, several models and model name aliases will no longer be accessible"
+      },
+      "lookFor": ["The model id or literal string llama-3.1-sonar-small-128k-online"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3.1-sonar-small-128k-online",
+          "bare": true
+        }
+      ],
+      "replacement": "Sonar or Sonar Pro",
+      "requires": [],
+      "context": {
+        "hosts": ["api.perplexity.ai"]
+      }
+    },
+    {
+      "id": "PX-3.llama-3.1-sonar-large-128k-online",
+      "provider": "perplexity",
+      "what": "Model name llama-3.1-sonar-large-128k-online is no longer available through the API.",
+      "diedOn": "2025-02-22",
+      "source": {
+        "url": "https://docs.perplexity.ai/changelog/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "as of February 22, 2025, several models and model name aliases will no longer be accessible"
+      },
+      "lookFor": ["The model id or literal string llama-3.1-sonar-large-128k-online"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3.1-sonar-large-128k-online",
+          "bare": true
+        }
+      ],
+      "replacement": "Sonar or Sonar Pro",
+      "requires": [],
+      "context": {
+        "hosts": ["api.perplexity.ai"]
+      }
+    },
+    {
+      "id": "PX-3.llama-3.1-sonar-huge-128k-online",
+      "provider": "perplexity",
+      "what": "Model name llama-3.1-sonar-huge-128k-online is no longer available through the API.",
+      "diedOn": "2025-02-22",
+      "source": {
+        "url": "https://docs.perplexity.ai/changelog/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "as of February 22, 2025, several models and model name aliases will no longer be accessible"
+      },
+      "lookFor": ["The model id or literal string llama-3.1-sonar-huge-128k-online"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "llama-3.1-sonar-huge-128k-online",
+          "bare": true
+        }
+      ],
+      "replacement": "Sonar or Sonar Pro",
+      "requires": [],
+      "context": {
+        "hosts": ["api.perplexity.ai"]
+      }
+    },
+    {
+      "id": "PX-4.sonar-reasoning",
+      "provider": "perplexity",
+      "what": "Model name sonar-reasoning is no longer available through the API.",
+      "diedOn": "2025-12-15",
+      "source": {
+        "url": "https://docs.perplexity.ai/changelog/changelog",
+        "checkedOn": "2026-11-05",
+        "quote": "the sonar-reasoning model has been deprecated and removed from the API"
+      },
+      "lookFor": ["The model id or literal string sonar-reasoning"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "sonar-reasoning",
+          "bare": true
+        }
+      ],
+      "replacement": "sonar-reasoning-pro",
+      "requires": [],
+      "context": {
+        "hosts": ["api.perplexity.ai"]
+      }
+    }
+  ],
+  "future": []
+}

@@ -3463,3 +3463,221 @@ describe('P5 round 3: providers the report should name', () => {
     );
   });
 });
+
+describe('P5 round 4: a model record a picker offers', () => {
+  it('flags the records a file hands to a picker, under an import alias', async () => {
+    const report = await scanFixture('atrueempire__yk');
+    const file = 'config/provider/anthropic.ts';
+    const live = report.details.filter((one) => one.file === file && one.matchClass === 'live');
+    expect(
+      live.map((one) => one.entryId),
+      explain(report),
+    ).toEqual(['AN-1.claude-3-sonnet-20240229', 'AN-1.claude-2.1']);
+    expect(live[0].reason).toContain('components/layout/model-select.tsx');
+  });
+
+  it('keeps a record whose only importer is commented out as catalog', async () => {
+    const report = await scanFixture('atrueempire__yk');
+    expect(
+      classesOf(report, 'AN-1.claude-2.0', 'config/provider/azure.ts'),
+      explain(report),
+    ).toEqual(['catalog']);
+  });
+
+  it("doesn't count a record's label, beside its id, as a second use", async () => {
+    const report = await scanFixture('atrueempire__yk');
+    expect(
+      classesOf(report, 'MI-1.open-mistral-7b', 'config/provider/mistral.ts'),
+      explain(report),
+    ).toEqual(['live', 'catalog']);
+  });
+
+  it('keeps a price table only looked up by id as catalog, with a handler in the same file', async () => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      'src/lib/models.ts':
+        "import OpenAI from 'openai';\nexport const client = OpenAI;\nexport const MODELS = [\n  { id: 'gpt-4', contextWindow: 8192 },\n];\n",
+      'src/app/page.tsx':
+        "import { MODELS } from '../lib/models';\nexport const Cost = ({ id }) => <a onClick={() => {}}>{MODELS.find((one) => one.id === id)?.contextWindow}</a>;\n",
+    });
+    expect(classesOf(report, 'OA-1.gpt-4', 'src/lib/models.ts'), explain(report)).toEqual([
+      'catalog',
+    ]);
+  });
+
+  it('flags a list mapped into options in its own file', async () => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      'src/app/page.tsx':
+        "import OpenAI from 'openai';\nexport const client = OpenAI;\nconst MODELS = [\n  { id: 'gpt-4', contextWindow: 8192 },\n];\nexport const Pick = () => <select>{MODELS.map((one) => <option value={one.id} />)}</select>;\n",
+    });
+    expect(classesOf(report, 'OA-1.gpt-4', 'src/app/page.tsx'), explain(report)).toEqual(['live']);
+  });
+});
+
+describe('P5 round 4: what is shown and never sent', () => {
+  it("treats a controlled Select's fallback as display, and keeps its options live", async () => {
+    const report = await scanFixture('swharr__TrailblazerAI');
+    const lines = report.details.filter(
+      (one) =>
+        one.entryId === 'AN-1.claude-sonnet-4-20250514' && one.file.endsWith('admin/page.tsx'),
+    );
+    expect(
+      lines.map((one) => one.matchClass),
+      explain(report),
+    ).toEqual(['catalog', 'live']);
+  });
+
+  it.each([
+    ['a hidden input, which a form posts', '<input type="hidden" value={saved ?? \'gpt-4\'} />'],
+    ['a context provider, which hands it on', "<Ctx.Provider value={saved ?? 'gpt-4'} />"],
+    ['an uncontrolled default, which is the value', "<Select defaultValue={saved ?? 'gpt-4'} />"],
+  ])('keeps %s live', async (_what, jsx) => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      'src/a.tsx': `import OpenAI from 'openai';\nexport const client = OpenAI;\nexport const A = ({ saved }) => ${jsx};\n`,
+    });
+    expect(classesOf(report, 'OA-1.gpt-4', 'src/a.tsx'), explain(report)).toEqual(['live']);
+  });
+
+  it("doesn't read an option's label as its value", async () => {
+    const report = await scanFixture('swharr__TrailblazerAI');
+    const lines = report.details.filter((one) => one.entryId === 'OA-1.o1');
+    expect(
+      lines.map((one) => one.line),
+      explain(report),
+    ).toEqual([17]);
+    expect(classesOf(report, 'OA-1.o1-mini'), explain(report)).toEqual(['live', 'live']);
+  });
+
+  it('still reads the text of an option with no value, and an HTML option', async () => {
+    const report = await scan({
+      ...OPENAI_PACKAGE,
+      'src/a.tsx':
+        "import OpenAI from 'openai';\nexport const client = OpenAI;\nexport const A = () => <select><option>gpt-4</option></select>;\n",
+      'public/a.html': '<select><option value="gpt-4">Four</option></select>\n',
+    });
+    expect(classesOf(report, 'OA-1.gpt-4', 'src/a.tsx'), explain(report)).toEqual(['live']);
+    expect(classesOf(report, 'OA-1.gpt-4', 'public/a.html'), explain(report)).toEqual(['live']);
+  });
+});
+
+describe('P5 round 4: endpoints an SDK hides', () => {
+  it('flags a method of the old SDK that sends a dead path', async () => {
+    const report = await scanFixture('MRwangqi__chatGPT-nodejs');
+    expect(classesOf(report, 'OA-3.v1-engines', 'index.js'), explain(report)).toEqual(['live']);
+  });
+
+  it('reads the Python names too, and leaves the same method on an app object alone', async () => {
+    const report = await scan({
+      'requirements.txt': 'openai==0.28.0\n',
+      'a.py': 'import openai\nprint(openai.Edit.create(model="x"))\n',
+      'quiz.ts':
+        'export const answer = quiz.createAnswer(1);\nexport const edit = doc.createEdit();\n',
+    });
+    expect(classesOf(report, 'OA-3.v1-edits', 'a.py'), explain(report)).toEqual(['live']);
+    expect(classesOf(report, 'OA-3.v1-answers'), explain(report)).toEqual([]);
+    expect(classesOf(report, 'OA-3.v1-edits', 'quiz.ts'), explain(report)).toEqual([]);
+  });
+
+  const HF_CALL = {
+    'route.ts':
+      "import { HfInference } from '@huggingface/inference';\nconst hf = new HfInference('k');\nexport const go = () => hf.textGenerationStream({ model: 'x', inputs: 'y' });\n",
+  };
+
+  it('flags an old SDK whose default host is gone, by its lock', async () => {
+    const report = await scanFixture('atrueempire__yk');
+    expect(
+      classesOf(report, 'HF-1.sdk-default-host', 'app/api/chat/messages/huggingface/route.ts'),
+      explain(report),
+    ).toEqual(['live']);
+  });
+
+  it.each([
+    ['^3.5.0', undefined],
+    ['^2.6.7', 'live'],
+    ['^3.0.0', 'unclear'],
+  ])('reads @huggingface/inference %s as %s', async (range, expected) => {
+    const report = await scan({
+      ...HF_CALL,
+      'package.json': manifest({ '@huggingface/inference': range }),
+    });
+    expect(classesOf(report, 'HF-1.sdk-default-host'), explain(report)).toEqual(
+      expected ? [expected] : [],
+    );
+    if (!expected)
+      expect(report.quiet.map((one) => one.entryId)).toContain('HF-1.sdk-default-host');
+  });
+
+  it('flags a removed static method only past its removal', async () => {
+    const report = await scanFixture('Brettjo77__YTAstroAssistant');
+    expect(classesOf(report, 'YT-1.static-methods'), explain(report)).toEqual(['unclear']);
+    const call = {
+      'a.py':
+        'from youtube_transcript_api import YouTubeTranscriptApi\nYouTubeTranscriptApi.get_transcript("x")\nYouTubeTranscriptApi().fetch("x")\n',
+    };
+    const old = await scan({ ...call, 'requirements.txt': 'youtube-transcript-api==0.6.2\n' });
+    expect(classesOf(old, 'YT-1.static-methods'), explain(old)).toEqual([]);
+    const fresh = await scan({ ...call, 'requirements.txt': 'youtube-transcript-api==1.2.0\n' });
+    expect(classesOf(fresh, 'YT-1.static-methods'), explain(fresh)).toEqual(['live']);
+    expect(fresh.details.map((one) => one.line)).toEqual([2]);
+  });
+});
+
+describe('P5 round 4: providers the list had no file for', () => {
+  it('flags a Mistral and a Perplexity name, and not a router or another host of the same name', async () => {
+    const report = await scanFixture('atrueempire__yk');
+    expect(
+      classesOf(report, 'PX-2.mistral-7b-instruct', 'config/provider/perplexity.ts'),
+      explain(report),
+    ).toEqual(['live']);
+    expect(classesOf(report, 'PX-2.mixtral-8x7b-instruct'), explain(report)).toEqual([]);
+    const slug = await scan({
+      'package.json': manifest({ openai: '^4.0.0' }),
+      'a.ts': "export const model = 'mistralai/mistral-7b-instruct';\n",
+    });
+    expect(classesOf(slug, 'PX-2.mistral-7b-instruct'), explain(slug)).toEqual([]);
+  });
+
+  it('flags a dead host with a path after it', async () => {
+    const literal = await scan({
+      'a.py':
+        'import requests\nrequests.post("https://api-inference.huggingface.co/models/gpt2")\nrequests.post("https://router.huggingface.co/hf-inference/models/gpt2")\n',
+    });
+    expect(classesOf(literal, 'HF-1.api-inference-host'), explain(literal)).toEqual(['live']);
+  });
+
+  it('holds the new files to their sources', () => {
+    const list = loadDeadApis();
+    const ids = list.entries.map((one) => one.id);
+    expect(ids).toEqual(
+      expect.arrayContaining([
+        'MI-1.open-mistral-7b',
+        'PX-2.mixtral-8x7b-instruct',
+        'HF-1.sdk-default-host',
+        'YT-1.static-methods',
+      ]),
+    );
+    const fresh = list.entries.filter((one) => /^(?:MI|PX|HF|YT)-/.test(one.id));
+    for (const entry of fresh) {
+      expect(entry.source.checkedOn, entry.id).toBe(TODAY);
+      expect(entry.source.quote, entry.id).toBeTruthy();
+    }
+  });
+});
+
+describe('P5 round 4: providers the report should name', () => {
+  it('names a client with no host, and a sign-in provider Auth.js holds', async () => {
+    const report = await scan({
+      'package.json': manifest({ '@tavily/core': '^0.5.0', 'duck-duck-scrape': '^2.2.0' }),
+      'requirements.txt': 'youtube-transcript-api>=0.6.2\n',
+      'auth.ts':
+        "import Google from 'next-auth/providers/google';\nimport Apple from 'next-auth/providers/apple';\nimport GitHub from 'next-auth/providers/github';\nimport Credentials from 'next-auth/providers/credentials';\nexport const providers = [Google, Apple, GitHub, Credentials];\n",
+    });
+    expect(report.unlistedProviders).toEqual(
+      expect.arrayContaining(['apple-oauth', 'duckduckgo', 'google-oauth', 'tavily']),
+    );
+    expect(report.unlistedProviders).not.toContain('credentials-oauth');
+    expect(report.unlistedProviders).not.toContain('github-oauth');
+  });
+});

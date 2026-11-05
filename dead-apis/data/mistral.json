@@ -1,0 +1,1443 @@
+{
+  "provider": "mistral",
+  "officialHosts": ["docs.mistral.ai"],
+  "entries": [
+    {
+      "id": "MI-1.zai-glm-5-2",
+      "provider": "mistral",
+      "what": "Model zai-glm-5-2 (Z.ai GLM 5.2 5.2) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-10-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Z.ai GLM 5.2 5.2 zai-glm-5-2 9/29/2026 10/31/2026 Z.ai GLM 5.3"
+      },
+      "lookFor": ["The model id or literal string zai-glm-5-2"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "zai-glm-5-2"
+        }
+      ],
+      "replacement": "Z.ai GLM 5.3",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.labs-leanstral-1-5",
+      "provider": "mistral",
+      "what": "Model labs-leanstral-1-5 (Leanstral 1.5 1.5) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-09-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Leanstral 1.5 1.5 labs-leanstral-1-5 9/29/2026 9/30/2026 "
+      },
+      "lookFor": ["The model id or literal string labs-leanstral-1-5"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "labs-leanstral-1-5"
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.labs-leanstral-2603",
+      "provider": "mistral",
+      "what": "Model labs-leanstral-2603 (Leanstral 26.03) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-06-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Leanstral 26.03 labs-leanstral-2603 5/22/2026 6/30/2026 Leanstral 1.5"
+      },
+      "lookFor": ["The model id or literal string labs-leanstral-2603"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "labs-leanstral-2603"
+        }
+      ],
+      "replacement": "Leanstral 1.5",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.mistral-medium-2508",
+      "provider": "mistral",
+      "what": "Model mistral-medium-2508 (Mistral Medium 3.1 25.08) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-08-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Medium 3.1 25.08 mistral-medium-2508 5/22/2026 8/31/2026 Mistral Medium 3.5"
+      },
+      "lookFor": ["The model id or literal string mistral-medium-2508"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-medium-2508"
+        }
+      ],
+      "replacement": "Mistral Medium 3.5",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.mistral-small-2506",
+      "provider": "mistral",
+      "what": "Model mistral-small-2506 (Mistral Small 3.2 25.06) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-07-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Small 3.2 25.06 mistral-small-2506 4/30/2026 7/31/2026 Mistral Small 4"
+      },
+      "lookFor": ["The model id or literal string mistral-small-2506"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-small-2506"
+        }
+      ],
+      "replacement": "Mistral Small 4",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.mistral-ocr-4-0",
+      "provider": "mistral",
+      "what": "Model mistral-ocr-4-0 (OCR 4.0 4.0) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-09-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "OCR 4.0 4.0 mistral-ocr-4-0 9/29/2026 9/30/2026 OCR 4.1"
+      },
+      "lookFor": ["The model id or literal string mistral-ocr-4-0"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-ocr-4-0"
+        }
+      ],
+      "replacement": "OCR 4.1",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.voxtral-mini-2507",
+      "provider": "mistral",
+      "what": "Model voxtral-mini-2507 (Voxtral Mini Transcribe 25.07) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-05-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Voxtral Mini Transcribe 25.07 voxtral-mini-2507 2/27/2026 5/31/2026 Voxtral Mini Transcribe 2"
+      },
+      "lookFor": ["The model id or literal string voxtral-mini-2507"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "voxtral-mini-2507"
+        }
+      ],
+      "replacement": "Voxtral Mini Transcribe 2",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.devstral-2512",
+      "provider": "mistral",
+      "what": "Model devstral-2512 (Devstral 2 25.12) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-07-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Devstral 2 25.12 devstral-2512 5/22/2026 7/31/2026 Mistral Medium 3.5"
+      },
+      "lookFor": ["The model id or literal string devstral-2512"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "devstral-2512"
+        }
+      ],
+      "replacement": "Mistral Medium 3.5",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.magistral-medium-2507",
+      "provider": "mistral",
+      "what": "Model magistral-medium-2507 (Magistral Medium 1.1 25.07) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-11-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Magistral Medium 1.1 25.07 magistral-medium-2507 10/31/2025 11/30/2025 Mistral Medium 3.5"
+      },
+      "lookFor": ["The model id or literal string magistral-medium-2507"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "magistral-medium-2507"
+        }
+      ],
+      "replacement": "Mistral Medium 3.5",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.labs-mistral-small-creative",
+      "provider": "mistral",
+      "what": "Model labs-mistral-small-creative (Mistral Small Creative 25.12) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-04-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Small Creative 25.12 labs-mistral-small-creative 3/31/2026 4/30/2026 Ministral 3 8B"
+      },
+      "lookFor": ["The model id or literal string labs-mistral-small-creative"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "labs-mistral-small-creative"
+        }
+      ],
+      "replacement": "Ministral 3 8B",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.labs-devstral-small-2512",
+      "provider": "mistral",
+      "what": "Model labs-devstral-small-2512 (Devstral Small 2 25.12) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-03-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Devstral Small 2 25.12 labs-devstral-small-2512 2/27/2026 3/31/2026 Mistral Medium 3.5"
+      },
+      "lookFor": ["The model id or literal string labs-devstral-small-2512"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "labs-devstral-small-2512"
+        }
+      ],
+      "replacement": "Mistral Medium 3.5",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.magistral-medium-2509",
+      "provider": "mistral",
+      "what": "Model magistral-medium-2509 (Magistral Medium 1.2 25.09) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-07-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Magistral Medium 1.2 25.09 magistral-medium-2509 5/22/2026 7/31/2026 Mistral Medium 3.5"
+      },
+      "lookFor": ["The model id or literal string magistral-medium-2509"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "magistral-medium-2509"
+        }
+      ],
+      "replacement": "Mistral Medium 3.5",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.magistral-small-2509",
+      "provider": "mistral",
+      "what": "Model magistral-small-2509 (Magistral Small 1.2 25.09) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-07-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Magistral Small 1.2 25.09 magistral-small-2509 4/30/2026 7/31/2026 Mistral Small 4"
+      },
+      "lookFor": ["The model id or literal string magistral-small-2509"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "magistral-small-2509"
+        }
+      ],
+      "replacement": "Mistral Small 4",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.magistral-small-2507",
+      "provider": "mistral",
+      "what": "Model magistral-small-2507 (Magistral Small 1.1 25.07) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-11-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Magistral Small 1.1 25.07 magistral-small-2507 10/31/2025 11/30/2025 Mistral Small 4"
+      },
+      "lookFor": ["The model id or literal string magistral-small-2507"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "magistral-small-2507"
+        }
+      ],
+      "replacement": "Mistral Small 4",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.devstral-medium-2507",
+      "provider": "mistral",
+      "what": "Model devstral-medium-2507 (Devstral Medium 1.0 25.07) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-05-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Devstral Medium 1.0 25.07 devstral-medium-2507 2/27/2026 5/31/2026 Mistral Medium 3.5"
+      },
+      "lookFor": ["The model id or literal string devstral-medium-2507"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "devstral-medium-2507"
+        }
+      ],
+      "replacement": "Mistral Medium 3.5",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.devstral-small-2507",
+      "provider": "mistral",
+      "what": "Model devstral-small-2507 (Devstral Small 1.1 25.07) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-05-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Devstral Small 1.1 25.07 devstral-small-2507 2/27/2026 5/31/2026 Mistral Small 4"
+      },
+      "lookFor": ["The model id or literal string devstral-small-2507"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "devstral-small-2507"
+        }
+      ],
+      "replacement": "Mistral Small 4",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.magistral-medium-2506",
+      "provider": "mistral",
+      "what": "Model magistral-medium-2506 (Magistral Medium 1.0 25.06) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-11-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Magistral Medium 1.0 25.06 magistral-medium-2506 10/31/2025 11/30/2025 Mistral Medium 3.5"
+      },
+      "lookFor": ["The model id or literal string magistral-medium-2506"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "magistral-medium-2506"
+        }
+      ],
+      "replacement": "Mistral Medium 3.5",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.magistral-small-2506",
+      "provider": "mistral",
+      "what": "Model magistral-small-2506 (Magistral Small 1.0 25.06) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-11-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Magistral Small 1.0 25.06 magistral-small-2506 10/31/2025 11/30/2025 Mistral Small 4"
+      },
+      "lookFor": ["The model id or literal string magistral-small-2506"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "magistral-small-2506"
+        }
+      ],
+      "replacement": "Mistral Small 4",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.mistral-ocr-2505",
+      "provider": "mistral",
+      "what": "Model mistral-ocr-2505 (OCR 2 25.05) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-05-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "OCR 2 25.05 mistral-ocr-2505 2/27/2026 5/31/2026 OCR 4.1"
+      },
+      "lookFor": ["The model id or literal string mistral-ocr-2505"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-ocr-2505"
+        }
+      ],
+      "replacement": "OCR 4.1",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.devstral-small-2505",
+      "provider": "mistral",
+      "what": "Model devstral-small-2505 (Devstral Small 1.0 25.05) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-11-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Devstral Small 1.0 25.05 devstral-small-2505 10/31/2025 11/30/2025 Mistral Medium 3.5"
+      },
+      "lookFor": ["The model id or literal string devstral-small-2505"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "devstral-small-2505"
+        }
+      ],
+      "replacement": "Mistral Medium 3.5",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.mistral-medium-2505",
+      "provider": "mistral",
+      "what": "Model mistral-medium-2505 (Mistral Medium 3 25.05) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-08-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Medium 3 25.05 mistral-medium-2505 5/22/2026 8/31/2026 Mistral Medium 3.5"
+      },
+      "lookFor": ["The model id or literal string mistral-medium-2505"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-medium-2505"
+        }
+      ],
+      "replacement": "Mistral Medium 3.5",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.mistral-small-2503",
+      "provider": "mistral",
+      "what": "Model mistral-small-2503 (Mistral Small 3.1 25.03) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-11-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Small 3.1 25.03 mistral-small-2503 11/6/2025 11/30/2025 Mistral Small 4"
+      },
+      "lookFor": ["The model id or literal string mistral-small-2503"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-small-2503"
+        }
+      ],
+      "replacement": "Mistral Small 4",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.mistral-ocr-2503",
+      "provider": "mistral",
+      "what": "Model mistral-ocr-2503 (OCR 25.03) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-12-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "OCR 25.03 mistral-ocr-2503 12/2/2025 12/31/2025 OCR 4.1"
+      },
+      "lookFor": ["The model id or literal string mistral-ocr-2503"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-ocr-2503"
+        }
+      ],
+      "replacement": "OCR 4.1",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.mistral-saba-2502",
+      "provider": "mistral",
+      "what": "Model mistral-saba-2502 (Mistral Saba 25.02) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-09-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Saba 25.02 mistral-saba-2502 6/10/2025 9/30/2025 Mistral Small 4"
+      },
+      "lookFor": ["The model id or literal string mistral-saba-2502"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-saba-2502"
+        }
+      ],
+      "replacement": "Mistral Small 4",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.mistral-small-2501",
+      "provider": "mistral",
+      "what": "Model mistral-small-2501 (Mistral Small 3.0 25.01) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-11-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Small 3.0 25.01 mistral-small-2501 11/6/2025 11/30/2025 Mistral Small 4"
+      },
+      "lookFor": ["The model id or literal string mistral-small-2501"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-small-2501"
+        }
+      ],
+      "replacement": "Mistral Small 4",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.codestral-2501",
+      "provider": "mistral",
+      "what": "Model codestral-2501 (Codestral 25.01) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-11-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Codestral 25.01 codestral-2501 11/6/2025 11/30/2025 Codestral"
+      },
+      "lookFor": ["The model id or literal string codestral-2501"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "codestral-2501"
+        }
+      ],
+      "replacement": "Codestral",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.mistral-large-2411",
+      "provider": "mistral",
+      "what": "Model mistral-large-2411 (Mistral Large 2.1 24.11) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-05-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Large 2.1 24.11 mistral-large-2411 2/27/2026 5/31/2026 Mistral Medium 3.5"
+      },
+      "lookFor": ["The model id or literal string mistral-large-2411"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-large-2411"
+        }
+      ],
+      "replacement": "Mistral Medium 3.5",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.pixtral-large-2411",
+      "provider": "mistral",
+      "what": "Model pixtral-large-2411 (Pixtral Large 24.11) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-05-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Pixtral Large 24.11 pixtral-large-2411 2/27/2026 5/31/2026 Mistral Medium 3.5"
+      },
+      "lookFor": ["The model id or literal string pixtral-large-2411"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "pixtral-large-2411"
+        }
+      ],
+      "replacement": "Mistral Medium 3.5",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.mistral-moderation-2411",
+      "provider": "mistral",
+      "what": "Model mistral-moderation-2411 (Mistral Moderation 24.11) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-06-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Moderation 24.11 mistral-moderation-2411 3/31/2026 6/30/2026 Mistral Moderation 2"
+      },
+      "lookFor": ["The model id or literal string mistral-moderation-2411"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-moderation-2411"
+        }
+      ],
+      "replacement": "Mistral Moderation 2",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.ministral-3b-2410",
+      "provider": "mistral",
+      "what": "Model ministral-3b-2410 (Ministral 3B 24.1) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-12-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Ministral 3B 24.1 ministral-3b-2410 12/2/2025 12/31/2025 Ministral 3 3B"
+      },
+      "lookFor": ["The model id or literal string ministral-3b-2410"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "ministral-3b-2410"
+        }
+      ],
+      "replacement": "Ministral 3 3B",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.ministral-8b-2410",
+      "provider": "mistral",
+      "what": "Model ministral-8b-2410 (Ministral 8B 24.1) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-12-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Ministral 8B 24.1 ministral-8b-2410 12/2/2025 12/31/2025 Ministral 3 8B"
+      },
+      "lookFor": ["The model id or literal string ministral-8b-2410"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "ministral-8b-2410"
+        }
+      ],
+      "replacement": "Ministral 3 8B",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.mistral-small-2409",
+      "provider": "mistral",
+      "what": "Model mistral-small-2409 (Mistral Small 2.0 24.09) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-11-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Small 2.0 24.09 mistral-small-2409 11/6/2025 11/30/2025 Mistral Small 4"
+      },
+      "lookFor": ["The model id or literal string mistral-small-2409"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-small-2409"
+        }
+      ],
+      "replacement": "Mistral Small 4",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.pixtral-12b-2409",
+      "provider": "mistral",
+      "what": "Model pixtral-12b-2409 (Pixtral 12B 24.09) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-12-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Pixtral 12B 24.09 pixtral-12b-2409 12/2/2025 12/31/2025 Ministral 3 14B"
+      },
+      "lookFor": ["The model id or literal string pixtral-12b-2409"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "pixtral-12b-2409"
+        }
+      ],
+      "replacement": "Ministral 3 14B",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.mistral-large-2407",
+      "provider": "mistral",
+      "what": "Model mistral-large-2407 (Mistral Large 2.0 24.07) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-03-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Large 2.0 24.07 mistral-large-2407 11/30/2024 3/30/2025 Mistral Large 3"
+      },
+      "lookFor": ["The model id or literal string mistral-large-2407"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-large-2407"
+        }
+      ],
+      "replacement": "Mistral Large 3",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.open-mistral-nemo-2407",
+      "provider": "mistral",
+      "what": "Model open-mistral-nemo-2407 (Mistral Nemo 12B 24.07) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2026-07-31",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Nemo 12B 24.07 open-mistral-nemo-2407 5/22/2026 7/31/2026 Ministral 3 8B"
+      },
+      "lookFor": ["The model id or literal string open-mistral-nemo-2407"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "open-mistral-nemo-2407"
+        }
+      ],
+      "replacement": "Ministral 3 8B",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.open-codestral-mamba",
+      "provider": "mistral",
+      "what": "Model open-codestral-mamba (Codestral Mamba 7B 0.1) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-06-06",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Codestral Mamba 7B 0.1 open-codestral-mamba 6/6/2025 6/6/2025 Codestral"
+      },
+      "lookFor": ["The model id or literal string open-codestral-mamba"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "open-codestral-mamba"
+        }
+      ],
+      "replacement": "Codestral",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.codestral-2405",
+      "provider": "mistral",
+      "what": "Model codestral-2405 (Codestral 24.05) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-06-16",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Codestral 24.05 codestral-2405 12/2/2024 6/16/2025 Codestral"
+      },
+      "lookFor": ["The model id or literal string codestral-2405"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "codestral-2405"
+        }
+      ],
+      "replacement": "Codestral",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.open-mistral-7b",
+      "provider": "mistral",
+      "what": "Model open-mistral-7b (Mistral 7B 0.3) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-03-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral 7B 0.3 open-mistral-7b 11/30/2024 3/30/2025 Ministral 3 8B"
+      },
+      "lookFor": ["The model id or literal string open-mistral-7b"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "open-mistral-7b"
+        }
+      ],
+      "replacement": "Ministral 3 8B",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.open-mixtral-8x22b",
+      "provider": "mistral",
+      "what": "Model open-mixtral-8x22b (Mixtral 8x22B 0.1-0.3) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-03-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mixtral 8x22B 0.1-0.3 open-mixtral-8x22b 11/30/2024 3/30/2025 Mistral Small 4"
+      },
+      "lookFor": ["The model id or literal string open-mixtral-8x22b"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "open-mixtral-8x22b"
+        }
+      ],
+      "replacement": "Mistral Small 4",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.mistral-small-2402",
+      "provider": "mistral",
+      "what": "Model mistral-small-2402 (Mistral Small 1.0 24.02) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-06-16",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Small 1.0 24.02 mistral-small-2402 11/30/2024 6/16/2025 Mistral Small 4"
+      },
+      "lookFor": ["The model id or literal string mistral-small-2402"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-small-2402"
+        }
+      ],
+      "replacement": "Mistral Small 4",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.mistral-large-2402",
+      "provider": "mistral",
+      "what": "Model mistral-large-2402 (Mistral Large 1.0 24.02) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-06-16",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Large 1.0 24.02 mistral-large-2402 11/30/2024 6/16/2025 Mistral Large 3"
+      },
+      "lookFor": ["The model id or literal string mistral-large-2402"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-large-2402"
+        }
+      ],
+      "replacement": "Mistral Large 3",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.mistral-medium-2312",
+      "provider": "mistral",
+      "what": "Model mistral-medium-2312 (Mistral Medium 1.0 23.12) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-06-16",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Medium 1.0 23.12 mistral-medium-2312 11/30/2024 6/16/2025 Mistral Medium 3.5"
+      },
+      "lookFor": ["The model id or literal string mistral-medium-2312"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-medium-2312"
+        }
+      ],
+      "replacement": "Mistral Medium 3.5",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-1.open-mixtral-8x7b",
+      "provider": "mistral",
+      "what": "Model open-mixtral-8x7b (Mixtral 8x7B 0.1) retired on the date in the page's \"Deprecated & retired models\" table.",
+      "diedOn": "2025-03-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mixtral 8x7B 0.1 open-mixtral-8x7b 11/30/2024 3/30/2025 Mistral Small 4"
+      },
+      "lookFor": ["The model id or literal string open-mixtral-8x7b"],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "open-mixtral-8x7b"
+        }
+      ],
+      "replacement": "Mistral Small 4",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    }
+  ],
+  "future": [
+    {
+      "id": "MI-2.mistral-medium-3-5",
+      "provider": "mistral",
+      "what": "Model mistral-medium-3-5 (Mistral Medium 3.5 26.04) retires on the date in the page's \"Deprecated & retired models\" table.",
+      "diesOn": "2027-04-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Medium 3.5 26.04 mistral-medium-3-5 10/31/2026 4/30/2027 Mistral Large 4"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-medium-3-5"
+        }
+      ],
+      "replacement": "Mistral Large 4",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-2.voxtral-mini-tts-2603",
+      "provider": "mistral",
+      "what": "Model voxtral-mini-tts-2603 (Voxtral TTS 26.03) retires on the date in the page's \"Deprecated & retired models\" table.",
+      "diesOn": "2027-04-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Voxtral TTS 26.03 voxtral-mini-tts-2603 10/31/2026 4/30/2027 Voxtral TTS 3"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "voxtral-mini-tts-2603"
+        }
+      ],
+      "replacement": "Voxtral TTS 3",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-2.mistral-large-2512",
+      "provider": "mistral",
+      "what": "Model mistral-large-2512 (Mistral Large 3 25.12) retires on the date in the page's \"Deprecated & retired models\" table.",
+      "diesOn": "2027-04-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Mistral Large 3 25.12 mistral-large-2512 10/31/2026 4/30/2027 Mistral Large 4"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "mistral-large-2512"
+        }
+      ],
+      "replacement": "Mistral Large 4",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-2.voxtral-mini-2602",
+      "provider": "mistral",
+      "what": "Model voxtral-mini-2602 (Voxtral Mini Transcribe 2 26.02) retires on the date in the page's \"Deprecated & retired models\" table.",
+      "diesOn": "2027-04-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Voxtral Mini Transcribe 2 26.02 voxtral-mini-2602 10/31/2026 4/30/2027 Voxtral Mini Transcribe 3"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "voxtral-mini-2602"
+        }
+      ],
+      "replacement": "Voxtral Mini Transcribe 3",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    },
+    {
+      "id": "MI-2.voxtral-mini-transcribe-realtime-2602",
+      "provider": "mistral",
+      "what": "Model voxtral-mini-transcribe-realtime-2602 (Voxtral Mini Transcribe Realtime 26.02) retires on the date in the page's \"Deprecated & retired models\" table.",
+      "diesOn": "2027-04-30",
+      "source": {
+        "url": "https://docs.mistral.ai/getting-started/models",
+        "checkedOn": "2026-11-05",
+        "quote": "Voxtral Mini Transcribe Realtime 26.02 voxtral-mini-transcribe-realtime-2602 10/31/2026 4/30/2027 Voxtral Mini Transcribe Realtime 3"
+      },
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "voxtral-mini-transcribe-realtime-2602"
+        }
+      ],
+      "replacement": "Voxtral Mini Transcribe Realtime 3",
+      "requires": [],
+      "context": {
+        "packages": [
+          "@mistralai/mistralai",
+          "@ai-sdk/mistral",
+          "mistralai",
+          "langchain-mistralai",
+          "@langchain/mistralai"
+        ],
+        "hosts": ["api.mistral.ai"]
+      }
+    }
+  ]
+}

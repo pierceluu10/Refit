@@ -318,6 +318,33 @@ export const CATALOG: CatalogEntry[] = [
     hosts: ['api.whop.com'],
     docsUrls: ['https://docs.whop.com/developer/api/migrate-from-previous-versions'],
   },
+  {
+    provider: 'perplexity',
+    hosts: ['api.perplexity.ai'],
+    docsUrls: ['https://docs.perplexity.ai/changelog/changelog'],
+    models: true,
+  },
+  {
+    provider: 'youtube-transcript-api',
+    python: { packages: ['youtube-transcript-api'], modules: ['youtube_transcript_api'] },
+    docsUrls: ['https://github.com/jdepoix/youtube-transcript-api/releases'],
+  },
+  {
+    provider: 'bitpanda',
+    hosts: ['api.exchange.bitpanda.com', 'api.bitpanda.com'],
+    docsUrls: ['https://docs.onetrading.com/rest/public/candlesticks'],
+  },
+  {
+    provider: 'tavily',
+    npm: ['@tavily/core'],
+    python: { packages: ['tavily-python'], modules: ['tavily'] },
+    hosts: ['api.tavily.com'],
+  },
+  {
+    provider: 'duckduckgo',
+    npm: ['duck-duck-scrape'],
+    python: { packages: ['duckduckgo-search', 'ddgs'], modules: ['duckduckgo_search', 'ddgs'] },
+  },
   { provider: 'convex', npm: ['convex'], hosts: ['convex.cloud'] },
   { provider: 'kakao', hosts: ['kapi.kakao.com', 'kauth.kakao.com', 'dapi.kakao.com'] },
   { provider: 'strapi', npm: ['@strapi/strapi', '@strapi/client'] },
