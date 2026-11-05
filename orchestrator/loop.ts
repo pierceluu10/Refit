@@ -12,6 +12,7 @@ import type {
   ScanResult,
   WatchProvider,
 } from '../shared/types.ts';
+import { redactSecrets } from '../harness/secrets.ts';
 import { repoTask } from '../harness/findings.ts';
 import { MATCH_BATCH, type MatchChanges, type MatchedTask } from './match.ts';
 import type { Queue } from './queue.ts';
@@ -56,7 +57,8 @@ export type RunSummary = {
   errors: string[];
 };
 
-const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
+const errorText = (error: unknown) =>
+  redactSecrets(error instanceof Error ? error.message : String(error));
 
 const record = (taskId: string, outcome: RunRecord['outcome'], note: string): LoopRecord => ({
   taskId,

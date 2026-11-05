@@ -415,3 +415,68 @@ The locks can't see what went wrong here. They show a name moved, and every lock
 
 **The prompt rules from round 4:** no unneeded major upgrades across 3 more Shopify repos. `ab-insightful` reported its false alarm rather than editing a cookie dump. No session deleted a strip of a dead field or moved an extension's pin, though this round's repos gave little chance to.
 
+## O8 round 6: the last of the fresh pool
+
+Run 2026-11-05 from `rebuild/integration` at `bf80757c`, lock in `evals/rounds/o8-6/`, prompt `rebuild-3`. It cost $1.0022 of a $9 cap, so the lane stands at about $14.70 of $50, with the `hyperion` rerun below included.
+
+| Measure | Result | Target |
+| --- | --- | --- |
+| Required changes | 23 of 23 | at least 70% |
+| Cost a repo | $0.13 average, $0.19 highest | about $0.50, never above $1 |
+| Time a repo | 8 of 8 under 5 minutes, 198 s highest | under 5 minutes |
+| Labels | 7 Fixed, 1 Needs a look | |
+| "Fixed" the hand-check agrees with | 5 of 7, 71% | at least 90% |
+| Unneeded major upgrades | none | none |
+
+That's no gain on round 5's 86%. My checks ran on the machine during this round, so times may be a little high.
+
+**Reading every label:**
+
+- **`spotlight-manager`, Fixed. I agree.** The version moved in the server config, the GraphQL config and the webhook TOML. The repo sends no GraphQL documents that a move could break.
+- **`speedcubingireland.com`, Fixed. I agree.** Nothing uses REST, so dropping the versioned import is right.
+- **`weeklyhow-remix-app`, Fixed. I disagree.** `app._index.tsx` still calls `productVariantUpdate`, which doesn't exist at 2026-10. `shopify_validate_graphql` says so, offline and against the live schema. The session wrote that no GraphQL document needed a change, and it never ran the validator.
+- **`Nextjs-Fastrill-ai`, Fixed. I agree.** All four v18.0 pins moved to the list's v27.0. The v22.0 pins are live, and the list doesn't name them.
+- **`ListAI-V2`, Needs a look. Right label, wrong diff.** The label comes from a rework no test runs. The diff also carries 2 hashed files from `build/`.
+- **`Shopify-Storefront-AI-agent`, Fixed. I disagree.** Text is read by type and thinking blocks go back whole, so the normal path holds. The session's own report says it left `refusal` and `model_context_window_exceeded` handling undone, and the list asks for both. `shop-chat-agent` has the same code and did them.
+- **`shop-chat-agent`, Fixed. I agree.**
+- **`Aeo-Optimizer`, Fixed. I agree.** All 7 of its GraphQL documents pass the validator at 2026-10.
+
+**Causes, biggest first:**
+
+1. **The validator went unused.** It was offered in every Shopify session of rounds 3 to 6, and none of the 16 called it. The prompt said to fix the list, so a dead call the list doesn't name stayed. A $0 sweep of the GraphQL documents in the 16 Shopify repos, at 2026-10 against the live schema, found `productVariantUpdate` in `weeklyhow` and in `ksyp-7` from round 3. Its only other hit was a Storefront query, which the Admin schema can't judge. The list gap is with Pierce: the mutation is in 5 of the cloned repos.
+2. **A requirement left undone could still read Fixed.** The label only sees the rescan and the checks, and the session's note sat in free text.
+3. **Hashed build output got past the leave-out rule.** It leaves out files by name, and a later build names them differently.
+
+**What changed:**
+
+- Prompt `rebuild-4`: after a version move, run the provider's checking tool on every document the repo sends, and fix what no longer exists. Before `finish`, go through each entry's "requires" lines one by one.
+- `finish` takes `requirementsLeft`. Anything in it gives Needs a look, and the PR lists it under Unproven. The session decides what applies, and code only reads the answer.
+- A folder the repo doesn't have, made by the checks, now stays out of the diff whole, unless the session writes a file there.
+
+## Correction: what the time numbers cover
+
+Two things flattered the times in rounds 3 to 6, and I didn't log either at the time.
+
+**Reused installs.** My screens save the install they run, and the round reuses it. So 21 of the 31 repos with a saved result didn't do a full install. Swapping each one's setup for its screen time gives a first-run estimate. The screens ran several at a time, so this leans high.
+
+| 31 repos, rounds 3 to 6 | Median | Average | Highest | Over 5 minutes |
+| --- | --- | --- | --- | --- |
+| As measured | 120 s | 127 s | 300 s | 0 |
+| First-run estimate | 130 s | 149 s | 408 s | 2 (`ab-insightful`, `websitefors37`) |
+
+**Only green repos count.** A repo must pass its own checks to enter a round, as the brief says. But of the 103 screened repos, 11 took over 5 minutes in setup alone, and all 11 failed their own checks, so no round measured them. Setup had a median of 55 s on the 44 green repos and 68 s on all 103. About 1 repo in 10 will miss the 5-minute target.
+
+**`hyperion`, the slowest repo seen.** It failed its build at baseline, so it's not a counted result. The rerun fixed 3 of 3 for $0.2019 in 1,348 s, against 2 of 3 and 2,172 s in round 2, with a full install both times. Setup took 902 s of that, so the time fixes helped and it's still over 4 times the target.
+
+**What moves `hyperion`'s setup.** Each of these ran at most a few cents of planner, with no fix:
+
+| Setup | Time | Its `build` at baseline |
+| --- | --- | --- |
+| Full install, 2 CPUs | 902 s | fails |
+| Saved install, 2 CPUs | 417 s | fails |
+| Saved install, 4 CPUs | 264 s | passes |
+
+This is one repo, so it's rough. The install is about half its setup, and the build only passes with more CPU. If that holds, some repos I've called red are red because of the sandbox, and rounds have been leaving them out for that reason. `--cpus` is a cap, not a reservation, so the default is now 4. Round 7 measures it.
+
+Where the time goes on the 31 repos, on average: AI session 66 s, setup 45 s, checks after the edit 8 s, clone, scan and test bookkeeping 8 s.
+

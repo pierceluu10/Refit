@@ -45,12 +45,25 @@ const verdictEvidence = (verdict: HumanVerdict, at = new Date().toISOString()): 
       ? { closed: { at } }
       : { edited: true };
 
-// Fields that may move on after they were first set: a later revert, a merge that now has its diff.
-const keepNew = (old: FixEvidence = {}, fresh: FixEvidence): FixEvidence => ({
-  ...(fresh.reverted ? { reverted: fresh.reverted } : {}),
-  ...(fresh.merged?.humanDiff && !old.merged?.humanDiff ? { merged: fresh.merged } : {}),
-  ...(fresh.closed?.comment && !old.closed?.comment ? { closed: fresh.closed } : {}),
-});
+// A merge or close happens once, at the earliest time anyone reports, since a webhook can arrive late.
+// Its diff or comment can come later, and a plain verdict never wipes one.
+function sameEvent<T extends { at: string }>(old?: T, fresh?: T): T | undefined {
+  if (!old || !fresh) return old ?? fresh;
+  return { ...fresh, ...old, at: old.at < fresh.at ? old.at : fresh.at };
+}
+
+// What's known so far plus what just arrived. A later revert replaces an earlier one.
+function withEvidence(old: FixEvidence = {}, fresh: FixEvidence): FixEvidence {
+  const merged = sameEvent(old.merged, fresh.merged);
+  const closed = sameEvent(old.closed, fresh.closed);
+  return {
+    ...fresh,
+    ...old,
+    ...(fresh.reverted ? { reverted: fresh.reverted } : {}),
+    ...(merged ? { merged } : {}),
+    ...(closed ? { closed } : {}),
+  };
+}
 
 // A repo session's record carries its last rescan.
 const rescanEvidence = (record: RunRecord) => {
@@ -116,7 +129,7 @@ export class JsonMemoryStore implements MemoryStore {
       return {
         ...latest,
         record: { ...latest.record, humanVerdict: verdict },
-        evidence: { ...latest.evidence, ...verdictEvidence(verdict) },
+        evidence: withEvidence(latest.evidence, verdictEvidence(verdict)),
       };
     });
   }
@@ -124,10 +137,9 @@ export class JsonMemoryStore implements MemoryStore {
   async addEvidence(runIdOrPr: string, evidence: FixEvidence) {
     const run = await this.findRun(runIdOrPr);
     if (!run) return undefined;
-    // A close or merge is once; a redelivered webhook keeps the first.
     return this.update<StoredRun>('runs', run.id, (latest = run) => ({
       ...latest,
-      evidence: { ...evidence, ...latest.evidence, ...keepNew(latest.evidence, evidence) },
+      evidence: withEvidence(latest.evidence, evidence),
     }));
   }
 

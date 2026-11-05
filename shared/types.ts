@@ -101,6 +101,7 @@ export type RunRepoJob = (input: {
   dir: string; // a fresh checkout to read; repo code never runs on the host
   openPullRequest: OpenPullRequest;
   dryRun?: boolean; // stop before opening PRs
+  scan?: ScanResult; // this checkout's scan, when the caller already ran it
 }) => Promise<RunRecord[]>;
 
 // Where to look for a provider's changes. The inventory fills it (P5); the watchers read it (F4).

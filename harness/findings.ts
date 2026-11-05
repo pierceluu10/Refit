@@ -212,6 +212,7 @@ export function labelFix(input: {
   stillSet?: string[]; // what the entry says to remove and a changed file still has
   majors?: string[]; // major moves no entry asks for
   noSuccessor?: string[]; // entries with nothing named to move to
+  requirementsLeft?: string[]; // what the session says it left undone
 }): FixLabel {
   const before = input.findings.filter(counts).length;
   const left = leftOf(input.findings, input.rescan).length;
@@ -243,6 +244,13 @@ export function labelFix(input: {
     return {
       outcome: 'needs-review',
       reason: `The rescan is clean, but the list says to remove what's still here: ${input.stillSet.join(', ')}.`,
+    };
+  }
+  if (input.requirementsLeft?.length) {
+    const left = input.requirementsLeft.length;
+    return {
+      outcome: 'needs-review',
+      reason: `The rescan is clean, but the session left ${left} list requirement${left === 1 ? '' : 's'} undone.`,
     };
   }
   if (input.majors?.length) {

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { makeRecipe } from './fixtures/tasks.ts';
 import type { LadderEntry } from './ladder.ts';
-import { scrubText, shareLearning, sharedRecipe, sharedStore } from './shared.ts';
+import { scrubFor, scrubText, shareLearning, sharedRecipe, sharedStore } from './shared.ts';
 import { SqliteMemoryStore } from './sqlite-store.ts';
 
 const scrub = {
@@ -24,6 +24,14 @@ const LEAKY = [
   'The "Enterprise Gold" plan in config.yaml reads ACME_PRICE_ID and my_custom_flag.',
   'Move the model to claude-sonnet-5-5 and read subscription.current_period_end from the first item.',
 ].join('\n');
+
+describe('scrubFor', () => {
+  it("takes out a PR's owner and repo, and keeps the providers", () => {
+    const scrub = scrubFor('https://github.com/acme/shop/pull/7', ['stripe']);
+    expect(scrub).toEqual({ names: ['acme', 'shop'], keep: ['stripe'] });
+    expect(scrubText('acme moved shop off stripe', scrub)).not.toMatch(/acme|shop/);
+  });
+});
 
 describe('scrubText', () => {
   const out = scrubText(LEAKY, scrub);

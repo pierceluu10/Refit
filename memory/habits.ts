@@ -12,6 +12,8 @@ export type RepoHabits = {
   // Checks a session added that passed.
   checks: { name: string; command: string }[];
   rejected: { why: string; at: string }[];
+  // Files people keep changing on our merged PRs.
+  repeatedEdits?: string[];
 };
 
 type HarnessFields = {
@@ -54,6 +56,7 @@ export function mergeHabits(old: RepoHabits | undefined, run: StoredRun, at: str
         ? [{ why: closed.comment, at: closed.at }]
         : []),
     ],
+    ...(old?.repeatedEdits ? { repeatedEdits: old.repeatedEdits } : {}),
   };
 }
 
@@ -71,5 +74,8 @@ export function habitNotes(habits: RepoHabits | undefined): string[] {
   return [
     ...habits.checks.map((check) => `An earlier run's check passed here: \`${check.command}\``),
     ...habits.rejected.map((item) => `The team rejected an earlier PR here: ${item.why}`),
+    ...(habits.repeatedEdits ?? []).map(
+      (file) => `People keep changing this file after our PRs, so read it closely: \`${file}\``,
+    ),
   ];
 }

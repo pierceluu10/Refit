@@ -10,10 +10,10 @@ export function createRunRepoJob(
   deps: Omit<LoopDeps, 'openPullRequest'>,
   capUsd?: number,
 ): RunRepoJob {
-  return async ({ repo, dir, openPullRequest, dryRun }) => {
+  return async ({ repo, dir, openPullRequest, dryRun, scan }) => {
     const summary = await runOrg(
       { name: repo, repos: [{ repo, dir }] },
-      { ...deps, openPullRequest },
+      { ...deps, openPullRequest, ...(scan && { scan: async () => scan }) },
       { dryRun, capUsd },
     );
     // No records and errors would read as "nothing changed", so the job fails with the errors instead.

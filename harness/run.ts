@@ -209,7 +209,7 @@ export async function prepareBaseline(
   // What the checks write (build output, a dev database) isn't the fix, and a patch against it
   // wouldn't apply to the repo, so it stays out of the diff unless the session edits it.
   const wrote = (await sandbox.diff().catch(() => '')).split(/^(?=diff --git )/m);
-  sandbox.leaveOut?.(filesFromDiff(wrote.join('')));
+  await sandbox.leaveOut?.(filesFromDiff(wrote.join('')));
   const rebuilt = filesFromDiff(wrote.filter((part) => !/^new file mode/m.test(part)).join(''));
   if (rebuilt.length > 0) preparation.rebuiltFiles = rebuilt;
   return { pm, pmVersion, install, checks, preparation, before };
@@ -556,6 +556,7 @@ export async function runTask(
             stillSet: requiredRemovals(task.entries, diff),
             majors: unneededMajors(diff, task.entries),
             noSuccessor: withoutSuccessor(task.entries),
+            requirementsLeft: finalReport?.requirementsLeft,
           })
         : undefined;
     const smoke =

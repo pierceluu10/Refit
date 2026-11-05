@@ -56,7 +56,11 @@ const cell = (text: string) => text.replace(/\|/g, '\\|').replace(/\n/g, ' ');
 const list = (items: string[]) => items.map((item) => `- ${item}`).join('\n');
 
 function unprovenItems(input: PrBodyInput, grades: ValidatorGrade[]): string[] {
-  const items = [...(input.report?.unproven ?? []), ...(input.notes ?? [])];
+  const items = [
+    ...(input.report?.requirementsLeft ?? []).map((item) => `Left undone from the list: ${item}`),
+    ...(input.report?.unproven ?? []),
+    ...(input.notes ?? []),
+  ];
   if (!input.report) items.push('The agent did not call finish, so there is no report from it.');
   if (input.report && input.outcome !== 'not-affected' && !input.proofTest) {
     items.push(

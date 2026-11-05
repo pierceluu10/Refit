@@ -760,6 +760,21 @@ describe('a repo session', () => {
     });
   });
 
+  it('calls a clean rescan needs a look when the session left a list requirement undone', () => {
+    const label = labelFix({
+      findings: [live('a.js')],
+      rescan: scanOf([]),
+      newFailures: 0,
+      changed: true,
+      touched: true,
+      requirementsLeft: ['Handle stop_reason refusal in the chat loop.'],
+    });
+    expect(label).toEqual({
+      outcome: 'needs-review',
+      reason: 'The rescan is clean, but the session left 1 list requirement undone.',
+    });
+  });
+
   it("calls new failures couldn't fix, even with a clean rescan", () => {
     const label = labelFix({
       findings: [live('a.js')],

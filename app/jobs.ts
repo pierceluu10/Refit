@@ -95,6 +95,7 @@ export function createJobRunner(deps: JobRunnerDeps) {
             repo: job.repo,
             dir,
             openPullRequest: deps.openPullRequestFor(job.installationId),
+            scan: report,
           });
           fixCostUsd = records.reduce((sum, record) => sum + record.costUsd, 0);
           fix = 'ran';

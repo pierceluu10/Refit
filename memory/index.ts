@@ -19,6 +19,7 @@ export { ladderFrom, provenAllowed, type LadderEntry, type Level } from './ladde
 export { lessonsFrom, type DetectionLesson } from './lessons.ts';
 export { learningMetrics, type LearningMetrics } from './metrics.ts';
 export { createRetriever, recipesForEntries, renderMemoryForPrompt } from './retrieve.ts';
+export { scrubFor, shareLearning, sharedStore } from './shared.ts';
 export { promoteSkills, recordRecipeOutcome } from './skills.ts';
 export { customerStores, SqliteMemoryStore } from './sqlite-store.ts';
 export { JsonMemoryStore, type MemoryStore } from './store.ts';
@@ -139,6 +140,23 @@ export async function recordEvidence(
     await keepHabits(run, deps.store);
     const demoted = await recordRecipeOutcome(run, deps);
     return { run, promoted: await promoteSkills(deps), demoted };
+  });
+}
+
+// What a repo's team keeps doing to our PRs, from the GitHub App, for the customer's own store. A
+// rejection's reason already arrives with its evidence, so only the repeated edits are new here.
+export async function recordHabits(
+  { repo, edits }: { repo: string; edits: { repeatedFiles: string[] } },
+  deps: Pick<MemoryDeps, 'store'> = defaultMemory(repo),
+): Promise<void> {
+  const old = await deps.store.getHabits(repo);
+  await deps.store.saveHabits({
+    repo,
+    checks: [],
+    rejected: [],
+    ...old,
+    updatedAt: new Date().toISOString(),
+    repeatedEdits: edits.repeatedFiles,
   });
 }
 

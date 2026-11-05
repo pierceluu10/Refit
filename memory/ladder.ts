@@ -63,7 +63,8 @@ export function evidenceOf(run: StoredRun): LadderEvidence[] {
   if (evidence.lockedTest && evidence.rescanClean) {
     items.push({ ...base, kind: 'locked-test', at: recordedAt });
   }
-  if (evidence.closed) items.push({ ...base, kind: 'closed', at: evidence.closed.at });
+  // Closed, reopened and merged ends up merged.
+  if (evidence.closed && !merged) items.push({ ...base, kind: 'closed', at: evidence.closed.at });
   if (evidence.reverted) items.push({ ...base, kind: 'reverted', at: evidence.reverted.at });
   return items;
 }

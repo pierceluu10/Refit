@@ -5,6 +5,17 @@ import { BudgetLedger } from '../inventory/budget.ts';
 import { checkUnclear } from '../inventory/dead-check.ts';
 import { scanDeadApis } from '../inventory/dead-scan.ts';
 import { SCANNER_VERSION } from '../inventory/scanner-version.ts';
+import {
+  Budget,
+  defaultAi,
+  defaultMemory,
+  memoryDir,
+  recordEvidence,
+  recordHabits,
+  scrubFor,
+  shareLearning,
+  sharedStore,
+} from '../memory/index.ts';
 import { runRepoJob } from '../orchestrator/index.ts';
 import type { Finding } from '../shared/types.ts';
 import type { ConsentStore } from './consent.ts';
@@ -32,14 +43,24 @@ const openLedger = () => (ledger ??= BudgetLedger.fromEnv());
 const scan = async (dir: string, repo: string) =>
   checkUnclear(await scanDeadApis(dir, repo, { storeDir: PROPOSED_DIR }), dir, { openLedger });
 
-// shortcut: memory's recordEvidence and shareLearning are on rebuild/otabek, so until they land the
-// app's own fact files hold the evidence and these two only log it. They are the only lines to swap.
+// A send can trigger a model call, so each gets its own cap, as a verdict does.
+const EVIDENCE_BUDGET_USD = 1;
+
 const sendEvidence: RecordEvidence = async (pr, evidence, { consented }) => {
-  console.log(`evidence ${pr}: ${Object.keys(evidence).join(', ')} (shareLearning ${consented})`);
+  const memory = {
+    ...defaultMemory(pr),
+    ...defaultAi(process.env, new Budget(EVIDENCE_BUDGET_USD)),
+  };
+  await recordEvidence(pr, evidence, memory);
+  const providers = [...new Set(loadDeadApis().entries.map((entry) => entry.provider))];
+  await shareLearning({
+    store: memory.store,
+    shared: sharedStore(memoryDir()),
+    consented,
+    scrub: scrubFor(pr, providers),
+  });
 };
-const sendHabits: RecordHabits = async ({ repo, rejections, edits }) => {
-  console.log(`habits ${repo}: ${rejections.count} rejected, ${edits.count} edited`);
-};
+const sendHabits: RecordHabits = (habits) => recordHabits(habits);
 
 /** The real evidence, for the server and for a manual rescan, so a PR either one opens is remembered. */
 export const createAppEvidence = (
