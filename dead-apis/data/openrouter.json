@@ -318,6 +318,59 @@
         "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
         "hosts": ["openrouter.ai"]
       }
+    },
+    {
+      "id": "OR-2.anthropic-claude-4-sonnet",
+      "provider": "openrouter",
+      "what": "OpenRouter does not know the id anthropic/claude-4-sonnet, so requests with it fail. Checked on 2026-11-05: its endpoints path returns 404 and /api/v1/models does not list it. OpenRouter published no notice and no chat call was made, and the id may never have been valid, so the date is only the day it was checked.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/anthropic/claude-4-sonnet/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"message\":\"Not Found\",\"code\":404"
+      },
+      "lookFor": [
+        "The model ID anthropic/claude-4-sonnet in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "anthropic/claude-4-sonnet"
+        }
+      ],
+      "replacement": "anthropic/claude-sonnet-4, which still answers on the same endpoint.",
+      "replacementIds": ["anthropic/claude-sonnet-4"],
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
+    },
+    {
+      "id": "OR-2.deepseek-deepseek-r1-qwen3-8b",
+      "provider": "openrouter",
+      "what": "OpenRouter does not know the id deepseek/deepseek-r1-qwen3-8b, so requests with it fail. Checked on 2026-11-05: its endpoints path returns 404 and /api/v1/models does not list it. OpenRouter published no notice and no chat call was made, and the id may never have been valid, so the date is only the day it was checked.",
+      "diedOn": "2026-11-05",
+      "source": {
+        "url": "https://openrouter.ai/api/v1/models/deepseek/deepseek-r1-qwen3-8b/endpoints",
+        "checkedOn": "2026-11-05",
+        "quote": "\"message\":\"Not Found\",\"code\":404"
+      },
+      "lookFor": [
+        "The model ID deepseek/deepseek-r1-qwen3-8b in a request to OpenRouter (openrouter.ai, or an OpenAI client pointed at it)"
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "deepseek/deepseek-r1-qwen3-8b"
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "packages": ["@openrouter/ai-sdk-provider", "@openrouter/sdk"],
+        "hosts": ["openrouter.ai"]
+      }
     }
   ],
   "future": []

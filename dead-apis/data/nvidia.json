@@ -1,0 +1,32 @@
+{
+  "provider": "nvidia",
+  "officialHosts": ["build.nvidia.com", "integrate.api.nvidia.com"],
+  "entries": [
+    {
+      "id": "NV-1.llama-3.3-70b-instruct",
+      "provider": "nvidia",
+      "what": "NVIDIA's hosted meta/llama-3.3-70b-instruct has reached end of life, so requests to integrate.api.nvidia.com with it return HTTP 410. The model page gives 08/25/2026, and the API's own answer says 2026-08-26T09:00:00Z.",
+      "diedOn": "2026-08-26",
+      "source": {
+        "url": "https://build.nvidia.com/meta/llama-3_3-70b-instruct",
+        "checkedOn": "2026-11-05",
+        "quote": "It will no longer be supported after 08/25/2026."
+      },
+      "lookFor": [
+        "The model ID meta/llama-3.3-70b-instruct in a request to integrate.api.nvidia.com. Not the same weights served by another host."
+      ],
+      "matchers": [
+        {
+          "kind": "string",
+          "value": "meta/llama-3.3-70b-instruct"
+        }
+      ],
+      "replacement": "None listed on the provider page when this was added",
+      "requires": [],
+      "context": {
+        "hosts": ["integrate.api.nvidia.com"]
+      }
+    }
+  ],
+  "future": []
+}

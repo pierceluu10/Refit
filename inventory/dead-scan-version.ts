@@ -417,7 +417,11 @@ function sdkGate(entry: DeadApiEntry, source: Source, facts: VersionFacts): Gate
       return [
         {
           state: 'unknown',
-          reason: `the range can install either side of the removal: ${compared}`,
+          reason: `the range can install either side of the removal: ${compared}${
+            bounds?.top === undefined
+              ? `; it has no top, so a fresh install takes the newest, past ${spec.version}`
+              : ''
+          }`,
         },
       ];
     }

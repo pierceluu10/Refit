@@ -1,0 +1,4 @@
+{
+  "name": "excerpt-of-mohammadpurl-next-livekit-streaming-seen-in-p5",
+  "dependencies": { "next": "15.3.3", "openai": "^4.0.0", "@heygen/streaming-avatar": "2.0.16" }
+}

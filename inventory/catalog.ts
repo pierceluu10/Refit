@@ -282,6 +282,12 @@ export const CATALOG: CatalogEntry[] = [
   { provider: 'paddle', npm: ['@paddle/'] },
   { provider: 'livekit', npm: ['livekit-server-sdk', 'livekit-client', '@livekit/'] },
   { provider: 'heygen', npm: ['@heygen/'], hosts: ['api.heygen.com'] },
+  {
+    provider: 'jira',
+    npm: ['jira.js', 'jira-client'],
+    python: { packages: ['jira', 'atlassian-python-api'], modules: ['jira', 'atlassian'] },
+    hosts: ['atlassian.net'],
+  },
   { provider: 'pusher', npm: ['pusher', 'pusher-js'] },
   { provider: 'ably', npm: ['ably'] },
   { provider: 'liveblocks', npm: ['@liveblocks/'] },

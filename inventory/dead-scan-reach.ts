@@ -2,7 +2,14 @@
 // rules can't settle stays as it was: they only speak up when the code plainly shows the value stops here.
 import path from 'node:path';
 import { escapeRegex } from '../dead-apis/match.ts';
-import { lineIndexAt, reportedLine, spanAt, type Source, type Span } from './dead-scan-lex.ts';
+import {
+  innerText,
+  lineIndexAt,
+  reportedLine,
+  spanAt,
+  type Source,
+  type Span,
+} from './dead-scan-lex.ts';
 import { closeOf, enclosing, listName, wordPattern } from './dead-scan-place.ts';
 import type { Manifest } from './scanners.ts';
 
@@ -36,9 +43,15 @@ const NAME_KEY_BEFORE = /(?:^|[\s{,])["']?name["']?\s*:\s*$/;
 const ID_KEY = /(?:^|[\s{,])["']?id["']?\s*:/;
 const LOCAL_NAMED_IMPORT =
   /\bimport\s+(?!type\b)(?:[\w$]+\s*,\s*)?\{([^}]*)\}\s*from\s+["']((?:\.{1,2}\/|[@~]\/)[^"']+)["']/g;
+// A barrel passes a name on with `export { X } from './y'`, so an import can reach its module through one.
+const LOCAL_NAMED_REEXPORT =
+  /\bexport\s+\{([^}]*)\}\s*from\s+["']((?:\.{1,2}\/|[@~]\/)[^"']+)["']/g;
 const IMPORT_ALIAS = /\s+as\s+/;
+const LINE_COMMENT = /\/\/[^\n]*/g;
 const PICKER_PROP = /[\w-]+=\{\s*$/;
 const MAPPED_AFTER = /^\s*\??\.map\s*\(/;
+const WALKED_BEFORE = /\bObject\.(?:entries|values)\(\s*$/;
+const WALKED_AFTER = /^\s*\)\s*\??\.(?:map|flatMap)\s*\(/;
 const PICKER_SIGN = /\bon(?:Click|Select|ValueChange|Change)\b|<(?:option|SelectItem|MenuItem)\b/;
 const FUNCTION_LOOK_BACK_CHARS = 2_000;
 const RETURN_BEFORE = /\breturn\s*$/;
@@ -151,7 +164,9 @@ const OBJECT_OR_PLAIN_CLASS = /(?:(?<![=!<>])=|\bclass\s+[\w$]+)\s*$/;
 const ARROW_MEMBER =
   /(?:^|[\s{,])([\w$]+)\s*:\s*(?:async\s*)?(?:\([^()]*\)|[\w$]+)\s*(?::[^=\n]+)?=>\s*$/;
 const METHOD_MEMBER =
-  /(?:^|[\s{,])(?:async\s+)?(?!(?:if|for|while|switch|catch|function|return)\b)([\w$]+)\s*\([^()]*\)\s*(?::[^{\n]+)?$/;
+  /(?:^|[\s{,])(?:async\s+)?(?!(?:if|for|while|switch|catch|function|return)\b)([\w$]+)\s*\([^()]*\)\s*(?::[^\n]+)?$/;
+const ARROW_CONST =
+  /\b(?:const|let|var)\s+([\w$]+)\s*(?::[^=\n]+)?=\s*(?:async\s*)?(?:\([^()]*\)|[\w$]+)\s*(?::[^=\n]+)?=>\s*$/;
 const TRAILING_CALLEE = /[\w$.]+\s*$/;
 // A Convex function runs when a client names it, so one nobody names is left over.
 const CONVEX_FILE = /(?:^|\/)convex\//;
@@ -162,6 +177,19 @@ const NOT_A_VALUE_READ = /\btypeof\b|\bimport\s*\(|\brequire\s*\(/;
 const OBJECT_ASSIGNED = /([\w$]+)\s*(?::[^=\n]*)?=\s*$/;
 const GUARD_OPEN = /\bif\s*\(\s*([\w$]+)\s*\)\s*$/;
 const MAX_GUARD_WALK = 12;
+// In a Next.js app folder only these names are served: anything else there runs once it's imported.
+const NEXT_APP_FOLDER = /^(?:src\/)?app\//;
+const NEXT_SERVED_NAME =
+  /^(?:template|default|global-error|not-found|forbidden|unauthorized|sitemap|robots|manifest|icon|apple-icon|opengraph-image|twitter-image)$/;
+const NEXT_PACKAGE = 'next';
+const NOT_A_FUNCTION = /^(?:if|for|while|switch|catch|return|elif|with)$/;
+const BODY_OPENS_LINE = /^[^\n;]*?(?:=>\s*)?\{[ \t]*(?:\n|$)/;
+const USES_ALL_ARGUMENTS = /\b(?:arguments|locals|eval)\b/;
+const PYTHON_ENUM_CLASS = /^\s*class\s+(\w+)\s*\([^)]*\b\w*Enum\b[^)]*\)\s*:/;
+const CLASS_NAME_BEFORE = /\bclass\s+([\w$]+)\s*$/;
+const RECEIVER_BEFORE = /([\w$]+)\??\.\s*$/;
+const INSIDE_A_CALL = /[(,]\s*$/;
+const STATEMENT_START = /^[^\s})\]]/;
 const ENTRY_FOLDER =
   /(?:^|\/)(?:app|pages|api|functions|routes|scripts?|bin|cli|tools|commands|lambdas?|handlers|workers|jobs|migrations|plugins|bench|benchmarks|convex|prisma)\//;
 
@@ -170,6 +198,13 @@ const isComment = (source: Source, offset: number) =>
 
 const lineAt = (source: Source, offset: number) =>
   source.lines[lineIndexAt(source, offset)].slice(0, MAX_LINE_CHARS);
+
+function lastLineBefore(source: Source, offset: number, wanted: (line: string) => boolean) {
+  for (let index = lineIndexAt(source, offset) - 1; index >= 0; index -= 1) {
+    if (wanted(source.lines[index])) return source.lines[index];
+  }
+  return undefined;
+}
 
 function isDefinition(line: string, word: string): boolean {
   const name = escapeRegex(word);
@@ -220,12 +255,16 @@ function readsIn(readers: Readers, source: Source, word: string): Read[] {
   return reads;
 }
 
-function packageOf(readers: Readers, file: string): Source[] {
+function packageFolder(readers: Readers, file: string): string {
   const folders = readers.manifests
     .map((manifest) => path.posix.dirname(manifest.file))
     .filter((folder) => folder === '.' || file.startsWith(`${folder}/`))
     .sort((a, b) => b.length - a.length);
-  const folder = folders[0] ?? '.';
+  return folders[0] ?? '.';
+}
+
+function packageOf(readers: Readers, file: string): Source[] {
+  const folder = packageFolder(readers, file);
   return readers.sources.filter((source) => folder === '.' || source.file.startsWith(`${folder}/`));
 }
 
@@ -521,8 +560,24 @@ function isLibraryFolder(
 // The folder as a path or module part. A short name such as `ai` turns up inside any other word.
 const folderMention = (folder: string) => new RegExp(`["'\`/.]${escapeRegex(folder)}["'\`/.]`);
 
-function isImportedModule(source: Source): boolean {
+function inNextAppFolder(readers: Readers, file: string): boolean {
+  const folder = packageFolder(readers, file);
+  const inside = folder === '.' ? file : file.slice(folder.length + 1);
+  return (
+    NEXT_APP_FOLDER.test(inside) &&
+    readers.manifests.some(
+      (manifest) =>
+        path.posix.dirname(manifest.file) === folder &&
+        manifest.dependencies.some((one) => one.name === NEXT_PACKAGE),
+    )
+  );
+}
+
+function isImportedModule(readers: Readers, source: Source): boolean {
   const name = moduleName(source.file);
+  if (source.mode === JS_MODE && inNextAppFolder(readers, source.file)) {
+    return !ENTRY_NAME.test(name) && !NEXT_SERVED_NAME.test(name);
+  }
   if (!source.file.includes('/') || ENTRY_FOLDER.test(source.file)) return false;
   if (source.mode === JS_MODE) return !ENTRY_NAME.test(name);
   // A package's __init__ is what importers see from outside the repo, and top-level calls are a script.
@@ -573,7 +628,9 @@ function orphansOf(readers: Readers): Set<string> {
   const graph = hasGraph(readers, python);
   const waiting = new Set(
     readers.sources.filter((one) => {
-      if (!isImportedModule(one) || !(one.mode === JS_MODE ? graph.js : graph.python)) return false;
+      if (!isImportedModule(readers, one) || !(one.mode === JS_MODE ? graph.js : graph.python)) {
+        return false;
+      }
       if (one.mode === JS_MODE) return true;
       return (
         !PYTHON_MAIN_GUARD.test(one.code) || isLibraryFolder(one, python, mentionsFor, readers)
@@ -646,6 +703,15 @@ function passesParameter(read: Read, word: string, parameter: string, index: num
   );
 }
 
+// The name inside an error message, say: it calls nothing. A whole string can be a reference, as in
+// getattr(x, "f"), and an f-string can hold a real call, so neither of those is passed over.
+function isProseMention({ source, offset, line }: Read, word: string): boolean {
+  const span = spanAt(source.spans, offset);
+  if (span?.kind !== 'string' || innerText(source, span).trim() === word) return false;
+  const at = line.search(wordPattern(word)) + word.length;
+  return line[at] !== '(';
+}
+
 const isTypeAnnotation = ({ source, offset }: Read) =>
   ANNOTATION_BEFORE.test(source.code.slice(Math.max(0, offset - LOOK_BACK_CHARS), offset));
 
@@ -684,7 +750,9 @@ function defaultReach(readers: Readers, source: Source, span: Span): Reach | und
   const callers = readers.sources.filter(
     (one) => one === source || !(orphans.has(one.file) || definedHere.test(one.text)),
   );
-  const allReads = callers.flatMap((one) => readsIn(readers, one, word));
+  const allReads = callers
+    .flatMap((one) => readsIn(readers, one, word))
+    .filter((read) => !isProseMention(read, word));
   const called = allReads.filter((read) => moduleName(read.source.file) !== PYTHON_INIT);
   const reads = called.filter((read) => !isImportOf(read) && !(isInit && isTypeAnnotation(read)));
   if (reads.length === 0) return undefined;
@@ -702,6 +770,49 @@ function defaultReach(readers: Readers, source: Source, span: Span): Reach | und
         reason: `the default of ${parameter}: every call of ${word} passes its own, so this one is never sent`,
       }
     : undefined;
+}
+
+function bodyOf(source: Source, closeParen: number, defLine: number): string | undefined {
+  if (source.mode === PYTHON_MODE) {
+    const depth = source.lines[defLine].search(/\S/);
+    const after = lineIndexAt(source, closeParen) + 1;
+    const end = source.lines.findIndex(
+      (line, index) => index >= after && line.trim() !== '' && line.search(/\S/) <= depth,
+    );
+    return source.lines.slice(after, end === -1 ? undefined : end).join('\n');
+  }
+  const rest = source.code.slice(closeParen + 1);
+  if (!BODY_OPENS_LINE.test(rest)) return undefined;
+  const open = closeParen + 1 + rest.indexOf('\n') - 1;
+  const brace = source.code.lastIndexOf('{', open);
+  return source.text.slice(brace, closeOf(source.code, brace));
+}
+
+/** A parameter's default in a function whose body never reads that parameter, so it goes nowhere. */
+function ignoredDefaultReach(source: Source, span: Span): Reach | undefined {
+  const { code } = source;
+  const open = enclosing(code, span.start);
+  if (open?.char !== '(') return undefined;
+  const callee = CALL_WORD.exec(code.slice(Math.max(0, open.open - LOOK_BACK_CHARS), open.open));
+  if (!callee || NOT_A_FUNCTION.test(callee[1])) return undefined;
+  const parameter = PARAMETER_DEFAULT.exec(code.slice(open.open + 1, span.start + 1))?.[1];
+  if (!parameter) return undefined;
+  if (source.mode === PYTHON_MODE) {
+    if (!DEF_BEFORE.test(code.slice(Math.max(0, open.open - LOOK_BACK_CHARS), open.open))) {
+      return undefined;
+    }
+  } else if (source.mode !== JS_MODE) {
+    return undefined;
+  }
+  const body = bodyOf(source, closeOf(code, open.open), lineIndexAt(source, open.open));
+  // No lines under the def means a one-liner, whose body this can't see.
+  if (!body?.trim() || USES_ALL_ARGUMENTS.test(body) || wordPattern(parameter).test(body)) {
+    return undefined;
+  }
+  return {
+    kind: 'catalog',
+    reason: `the default of ${parameter}, which ${callee[1]} never reads, so it's never sent`,
+  };
 }
 
 function enclosingTopLevelDef(source: Source, offset: number): string | undefined {
@@ -776,6 +887,32 @@ function brokenImportReach(readers: Readers, source: Source): Reach | undefined 
   return undefined;
 }
 
+/** A Python enum's value that a `case` turns into the id it sends: the enum only holds a label. */
+function enumLabelReach(readers: Readers, source: Source, span: Span): Reach | undefined {
+  if (source.mode !== PYTHON_MODE) return undefined;
+  const depth = lineAt(source, span.start).search(/\S/);
+  const owner = lastLineBefore(
+    source,
+    span.start,
+    (line) => line.trim() !== '' && line.search(/\S/) < depth,
+  );
+  const name = owner && PYTHON_ENUM_CLASS.exec(owner)?.[1];
+  if (!name) return undefined;
+  const arm = new RegExp(
+    `\\bcase\\s+["']${escapeRegex(innerText(source, span))}["']\\s*:\\s*[\\w$.]*model[\\w$.]*\\s*=(?!=)`,
+    'i',
+  );
+  const mapper = packageOf(readers, source.file).find(
+    (one) => one !== source && arm.test(one.text),
+  );
+  return mapper
+    ? {
+        kind: 'catalog',
+        reason: `a label in the enum ${name}: ${mapper.file} maps it to the id it sends`,
+      }
+    : undefined;
+}
+
 /** A value handed to the app's own usage or cost record, which stays local. */
 function bookkeepingReach(source: Source, offset: number): Reach | undefined {
   let at = offset;
@@ -811,16 +948,64 @@ function controlledValueReach(source: Source, offset: number): Reach | undefined
     : undefined;
 }
 
+const namedSpecifiers = (names: string) =>
+  names
+    .replace(LINE_COMMENT, '')
+    .split(',')
+    .map((one) => one.trim().split(IMPORT_ALIAS) as [string, string?]);
+
+function leadsTo(
+  readers: Readers,
+  module: Source | undefined,
+  target: Source,
+  name: string,
+  hops = MAX_HOPS,
+): boolean {
+  if (!module || module === target) return module === target;
+  if (hops === 0) return false;
+  return [...module.text.matchAll(LOCAL_NAMED_REEXPORT)].some(
+    ([, names, specifier]) =>
+      namedSpecifiers(names).some(([original]) => original === name) &&
+      leadsTo(readers, localModule(readers, module, specifier), target, name, hops - 1),
+  );
+}
+
 function importedAs(readers: Readers, importer: Source, target: Source, name: string) {
   for (const match of importer.text.matchAll(LOCAL_NAMED_IMPORT)) {
     if (isComment(importer, match.index)) continue;
-    if (localModule(readers, importer, match[2]) !== target) continue;
-    for (const one of match[1].split(',')) {
-      const [original, alias] = one.trim().split(IMPORT_ALIAS);
-      if (original === name) return alias ?? original;
+    const found = namedSpecifiers(match[1]).find(([original]) => original === name);
+    if (found && leadsTo(readers, localModule(readers, importer, match[2]), target, name)) {
+      return found[1] ?? name;
     }
   }
   return undefined;
+}
+
+// What a file gathers a list into, so it's offered under that name: MODEL_GROUPS = { free: FREE_MODELS }.
+function gatheredInto(source: Source, name: string): string[] {
+  const names = [...source.code.matchAll(wordPattern(name))].flatMap((match) => {
+    const around = enclosing(source.code, match.index);
+    if (around?.char !== '{' && around?.char !== '[') return [];
+    return listName(source, around).split('.').at(-1) || [];
+  });
+  return [...new Set(names)].filter((one) => one !== name);
+}
+
+function offeredAs(readers: Readers, one: Source, target: Source, name: string) {
+  const local = one === target ? name : importedAs(readers, one, target, name);
+  if (!local || !PICKER_SIGN.test(one.text)) return undefined;
+  return readsIn(readers, one, local).find((read) => {
+    if (isImportOf(read)) return false;
+    const ahead = one.code.slice(Math.max(0, read.offset - LOOK_BACK_CHARS), read.offset);
+    const behind = one.code.slice(read.offset + local.length);
+    return (
+      PICKER_PROP.test(ahead) ||
+      MAPPED_AFTER.test(behind) ||
+      (WALKED_BEFORE.test(ahead) && WALKED_AFTER.test(behind))
+    );
+  })
+    ? local
+    : undefined;
 }
 
 /** Why a model record's list is what users pick from: a file with a handler maps it or passes it as a prop. */
@@ -838,18 +1023,11 @@ export function recordPicker(readers: Readers, source: Source, offset: number): 
   }
   const name = listName(source, list).split('.').at(-1);
   if (!name) return undefined;
-  for (const one of packageOf(readers, source.file)) {
-    const local = one === source ? name : importedAs(readers, one, source, name);
-    if (!local || !PICKER_SIGN.test(one.text)) continue;
-    const fed = readsIn(readers, one, local).find(
-      (read) =>
-        !isImportOf(read) &&
-        (PICKER_PROP.test(
-          one.code.slice(Math.max(0, read.offset - LOOK_BACK_CHARS), read.offset),
-        ) ||
-          MAPPED_AFTER.test(one.code.slice(read.offset + local.length))),
-    );
-    if (fed) return `a model record in ${name}, which ${one.file} offers to users as ${local}`;
+  for (const held of [name, ...gatheredInto(source, name)]) {
+    for (const one of packageOf(readers, source.file)) {
+      const local = offeredAs(readers, one, source, held);
+      if (local) return `a model record in ${name}, which ${one.file} offers to users as ${local}`;
+    }
   }
   return undefined;
 }
@@ -950,16 +1128,39 @@ function ownerMember(source: Source, offset: number): { name: string; open: numb
     const open = enclosing(source.code, at);
     if (!open) return undefined;
     at = open.open;
-    const ahead = source.code.slice(Math.max(0, at - LOOK_BACK_CHARS), at);
+    const ahead = source.code.slice(Math.max(0, at - FUNCTION_LOOK_BACK_CHARS), at);
     const name =
       open.char === '{'
-        ? (ARROW_MEMBER.exec(ahead) ?? METHOD_MEMBER.exec(ahead))?.[1]
+        ? (ARROW_MEMBER.exec(ahead) ?? METHOD_MEMBER.exec(ahead) ?? ARROW_CONST.exec(ahead))?.[1]
         : open.char === '('
           ? ARROW_MEMBER.exec(ahead.replace(TRAILING_CALLEE, ''))?.[1]
           : undefined;
     if (name) return { name, open: at };
   }
   return undefined;
+}
+
+// A definition split over lines, which a line's own text can't show: `async f(\n a,\n): T {`.
+function isMethodHead({ source, offset }: Read, word: string): boolean {
+  const open = offset + word.length;
+  if (source.code[open] !== '(' || source.code[offset - 1] === '.') return false;
+  return BODY_OPENS_LINE.test(source.code.slice(closeOf(source.code, open) + 1));
+}
+
+// The class a method is called on, when the file constructs what it's called on: x = new K(). A class
+// that inherits may be running the method it's asked about, so that one doesn't count as another class.
+function receiverClass({ source, offset }: Read, own: string | undefined): string | undefined {
+  const ahead = source.code.slice(0, offset);
+  const receiver = RECEIVER_BEFORE.exec(ahead.slice(-LOOK_BACK_CHARS))?.[1];
+  if (!receiver) return undefined;
+  const made = new RegExp(
+    `(?<![\\w$])${escapeRegex(receiver)}\\s*(?::[^=\\n]*)?=\\s*(?:await\\s+)?new\\s+([\\w$]+)`,
+    'g',
+  );
+  const found = [...ahead.matchAll(made)].at(-1)?.[1];
+  if (!found || !own) return found;
+  const inherits = new RegExp(`\\bclass\\s+${escapeRegex(found)}\\s+extends\\b`);
+  return source.text.match(inherits) ? own : found;
 }
 
 /** A member of an object or class that nothing here ever names outside its own definition. */
@@ -976,13 +1177,25 @@ function uncalledMemberReach(readers: Readers, source: Source, offset: number): 
   ) {
     return undefined;
   }
-  const scope = packageOf(readers, source.file);
-  return scope.some((one) => readsIn(readers, one, member.name).length > 0)
-    ? undefined
-    : {
-        kind: 'unclear',
-        reason: `inside ${member.name}, which nothing in this repo calls, so it may never run`,
-      };
+  const calls = packageOf(readers, source.file)
+    .flatMap((one) => readsIn(readers, one, member.name))
+    .filter((read) => !isMethodHead(read, member.name));
+  if (calls.length === 0) {
+    return {
+      kind: 'unclear',
+      reason: `inside ${member.name}, which nothing in this repo calls, so it may never run`,
+    };
+  }
+  const own = CLASS_NAME_BEFORE.exec(
+    source.code.slice(Math.max(0, owner.open - LOOK_BACK_CHARS), owner.open),
+  )?.[1];
+  const others = calls.map((read) => receiverClass(read, own));
+  return own && others.every((other) => other !== undefined && other !== own)
+    ? {
+        kind: 'catalog',
+        reason: `inside ${own}.${member.name}, and nothing calls it on ${own}: every call of ${member.name} here is on ${others[0]}, another class`,
+      }
+    : undefined;
 }
 
 function uncalledConvexReach(readers: Readers, source: Source, offset: number): Reach | undefined {
@@ -1152,18 +1365,56 @@ export function holderReads(readers: Readers, source: Source, offset: number): s
   const picked = SELECT_VALUE.exec(
     source.text.slice(Math.max(0, offset - FUNCTION_LOOK_BACK_CHARS), offset),
   )?.[1];
+  const named = list && (returnedBy(source, list.open) ?? listName(source, list));
+  // client.messages.create({...}) names a method every client has, which says nothing about this one.
+  const isMethodArgument =
+    list !== undefined &&
+    named?.includes('.') &&
+    INSIDE_A_CALL.test(source.code.slice(Math.max(0, list.open - LOOK_BACK_CHARS), list.open));
   const word =
-    picked?.split('.').at(-1) ??
-    (list && (returnedBy(source, list.open) ?? listName(source, list).split('.').at(-1)));
-  if (!word) return [];
-  const scope = picked ? [source] : packageOf(readers, source.file);
-  return scope
-    .flatMap((one) => readsIn(readers, one, word))
-    .slice(0, MAX_READS_SHOWN)
-    .map(
-      (read) =>
-        `${read.source.file}:${reportedLine(read.source, lineIndexAt(read.source, read.offset))}: ${read.line.trim()}`,
+    picked?.split('.').at(-1) ?? (isMethodArgument ? undefined : named?.split('.').at(-1));
+  if (word) {
+    const scope = picked ? [source] : packageOf(readers, source.file);
+    const reads = scope.flatMap((one) => readsIn(readers, one, word));
+    return reads.slice(0, MAX_READS_SHOWN).map(shownRead);
+  }
+  return callerReads(readers, source, offset);
+}
+
+const shownRead = (read: Read) =>
+  `${read.source.file}:${reportedLine(read.source, lineIndexAt(read.source, read.offset))}: ${read.line.trim()}`;
+
+// The statement a call sits in at the file's top: a route, a job or a loop says who starts it.
+function startedIn({ source, offset }: Read): string | undefined {
+  return lastLineBefore(source, offset, (one) => STATEMENT_START.test(one))?.trim();
+}
+
+// The function a line sits inside, by its braces in JS and its indent in Python.
+function holdingFunction(source: Source, offset: number): string | undefined {
+  if (source.mode === PYTHON_MODE) {
+    const depth = lineAt(source, offset).search(/\S/);
+    const above = lastLineBefore(
+      source,
+      offset,
+      (line) => line.trim() !== '' && line.search(/\S/) < depth,
     );
+    return above && TOP_LEVEL_DEF.exec(above.trim())?.[1];
+  }
+  return ownerMember(source, offset)?.name;
+}
+
+/** Who calls the function holding this line, for a value that goes straight to a request from there. */
+function callerReads(readers: Readers, source: Source, offset: number): string[] {
+  const name = holdingFunction(source, offset);
+  if (!name) return [];
+  return packageOf(readers, source.file)
+    .flatMap((one) => readsIn(readers, one, name))
+    .filter((read) => !isMethodHead(read, name))
+    .slice(0, MAX_READS_SHOWN)
+    .map((read) => {
+      const start = startedIn(read);
+      return start ? `${shownRead(read)} (in ${start})` : shownRead(read);
+    });
 }
 
 export type ReachInput = {
@@ -1197,7 +1448,9 @@ export function reachOf(readers: Readers, input: ReachInput): Reach | undefined 
     unreadKeyReach(readers, source, offset) ??
     facadeReach(readers, source, packages) ??
     wrapperReach(readers, source, offset) ??
+    ignoredDefaultReach(source, span) ??
     defaultReach(readers, source, span) ??
+    enumLabelReach(readers, source, span) ??
     bookkeepingReach(source, offset) ??
     missingRouteReach(readers, source, offset) ??
     fallbackReach(readers, source, span) ??
