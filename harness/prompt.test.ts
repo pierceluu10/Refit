@@ -269,6 +269,23 @@ describe('buildRetryMessage', () => {
   });
 });
 
+describe('renderRecipes', () => {
+  it('marks a recipe no merged PR backs yet', () => {
+    const recipe = {
+      id: 'r1',
+      provider: 'openai',
+      kind: 'other' as const,
+      preconditions: '',
+      steps: '',
+      pitfalls: '',
+      sourceRuns: [],
+      verifiedRepos: 0,
+      confidence: 'low' as const,
+    };
+    expect(renderRecipes([recipe])).toContain('low confidence: no merged PR backs it yet');
+  });
+});
+
 describe('a repo session', () => {
   const entry = (id: string): DeadApiEntry => ({
     id,

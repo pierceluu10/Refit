@@ -20,6 +20,7 @@ type MemoryRecipe = Recipe & {
   diffSketch?: string;
   skill?: { status: string; prompt: string };
   failedRunIds?: string[]; // runs shown this recipe whose PR a human closed
+  confidence?: 'low' | 'merged';
 };
 
 // Proven skills first, then recipes with their diff sketches, each with how it has fared so far.
@@ -29,7 +30,11 @@ export function renderRecipes(recipes: Recipe[]): string {
     const against = closed
       ? `; ${closed} later run${closed === 1 ? '' : 's'} that used it did not verify or had its PR closed without merging`
       : '';
-    return `${recipe.provider} / ${recipe.kind}, verified on ${recipe.verifiedRepos} repos${against}`;
+    const backing =
+      recipe.confidence === 'low'
+        ? 'low confidence: no merged PR backs it yet'
+        : `verified on ${recipe.verifiedRepos} repos`;
+    return `${recipe.provider} / ${recipe.kind}, ${backing}${against}`;
   };
   const all = recipes as MemoryRecipe[];
   const isSkill = (recipe: MemoryRecipe) => recipe.skill?.status === 'active';
