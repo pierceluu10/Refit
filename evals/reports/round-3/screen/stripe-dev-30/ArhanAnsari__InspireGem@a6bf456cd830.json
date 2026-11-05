@@ -1,0 +1,62 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "ArhanAnsari/InspireGem",
+  "commit": "a6bf456cd830a5f5d7267d69407c5c0a5fcc8336",
+  "provider": "stripe",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export NEXT_PUBLIC_FIREBASE_API_KEY='placeholder' NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN='placeholder.firebaseapp.com' NEXT_PUBLIC_FIREBASE_PROJECT_ID='placeholder' NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET='placeholder.appspot.com' NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID='placeholder' NEXT_PUBLIC_FIREBASE_APP_ID='placeholder' NEXTAUTH_SECRET='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' GEMINI_API_KEY='placeholder' GOOGLE_CLIENT_ID='placeholder' GOOGLE_CLIENT_SECRET='placeholder' GITHUB_CLIENT_ID='placeholder' GITHUB_CLIENT_SECRET='placeholder' FIREBASE_SERVICE_ACCOUNT_KEY='{\"type\":\"service_account\",\"project_id\":\"placeholder\",\"private_key_id\":\"placeholder\",\"private_key\":\"-----BEGIN PRIVATE KEY-----\\nplaceholder\\n-----END PRIVATE KEY-----\\n\",\"client_email\":\"placeholder@placeholder.iam.gserviceaccount.com\",\"client_id\":\"placeholder\"}'; npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "app/api/auth/[...nextauth]/route.ts: error TS18048: 'userData' is possibly 'undefined'.",
+        "app/api/auth/[...nextauth]/route.ts: error TS18047: 'account' is possibly 'null'.",
+        "components/MathRenderer.tsx: error TS7016: Could not find a declaration file for module 'react-katex'. '/work/node_modules/react-katex/dist/react-katex.js' implicitly has an 'any' type."
+      ],
+      "tail": "app/api/auth/[...nextauth]/route.ts(30,13): error TS18048: 'userData' is possibly 'undefined'.\napp/api/auth/[...nextauth]/route.ts(31,13): error TS18048: 'userData' is possibly 'undefined'.\napp/api/auth/[...nextauth]/route.ts(31,35): error TS18047: 'account' is possibly 'null'.\napp/api/auth/[...nextauth]/route.ts(32,14): error TS18048: 'userData' is possibly 'undefined'.\napp/api/auth/[...nextauth]/route.ts(32,49): error TS18047: 'account' is possibly 'null'.\napp/api/auth/[...nextauth]/route.ts(37,16): error TS18048: 'userData' is possibly 'undefined'.\napp/api/auth/[...nextauth]/route.ts(37,51): error TS18047: 'account' is possibly 'null'.\napp/api/auth/[...nextauth]/route.ts(39,37): error TS18048: 'userData' is possibly 'undefined'.\napp/api/auth/[...nextauth]/route.ts(39,70): error TS18047: 'account' is possibly 'null'.\napp/api/auth/[...nextauth]/route.ts(49,23): error TS18047: 'account' is possibly 'null'.\napp/api/auth/[...nextauth]/route.ts(50,31): error TS18047: 'account' is possibly 'null'.\ncomponents/MathRenderer.tsx(4,39): error TS7016: Could not find a declaration file for module 'react-katex'. '/work/node_modules/react-katex/dist/react-katex.js' implicitly has an 'any' type.\n  Try `npm i --save-dev @types/react-katex` if it exists or add a new declaration (.d.ts) file containing `declare module 'react-katex';`"
+    },
+    {
+      "name": "build",
+      "command": "export NEXT_PUBLIC_FIREBASE_API_KEY='placeholder' NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN='placeholder.firebaseapp.com' NEXT_PUBLIC_FIREBASE_PROJECT_ID='placeholder' NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET='placeholder.appspot.com' NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID='placeholder' NEXT_PUBLIC_FIREBASE_APP_ID='placeholder' NEXTAUTH_SECRET='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' GEMINI_API_KEY='placeholder' GOOGLE_CLIENT_ID='placeholder' GOOGLE_CLIENT_SECRET='placeholder' GITHUB_CLIENT_ID='placeholder' GITHUB_CLIENT_SECRET='placeholder' FIREBASE_SERVICE_ACCOUNT_KEY='{\"type\":\"service_account\",\"project_id\":\"placeholder\",\"private_key_id\":\"placeholder\",\"private_key\":\"-----BEGIN PRIVATE KEY-----\\nplaceholder\\n-----END PRIVATE KEY-----\\n\",\"client_email\":\"placeholder@placeholder.iam.gserviceaccount.com\",\"client_id\":\"placeholder\"}'; npm run build",
+      "ok": false,
+      "failures": [
+        "Error: Failed to parse private key: Error: Too few bytes to read ASN.1 value.",
+        "Error: Failed to collect page data for /webhook"
+      ],
+      "tail": " next build\n\n   ▲ Next.js 15.0.3\n\n   Creating an optimized production build ...\n ✓ Compiled successfully\n   Skipping validation of types\n   Skipping linting\n   Collecting page data ...\n\nBrowserslist: caniuse-lite is outdated. Please run:\n  npx update-browserslist-db@latest\n  Why you should do it regularly: https://github.com/browserslist/update-db#readme\nError: Failed to parse private key: Error: Too few bytes to read ASN.1 value.\n    at new ServiceAccount (/work/node_modules/firebase-admin/lib/app/credential-internal.js:153:19)\n    at new ServiceAccountCredential (/work/node_modules/firebase-admin/lib/app/credential-internal.js:70:15)\n    at cert (/work/node_modules/firebase-admin/lib/app/credential-factory.js:103:54)\n    at <unknown> (/work/.next/server/app/webhook/route.js:1:3547) {\n  errorInfo: [Object],\n  codePrefix: 'app'\n}\nError: Failed to parse private key: Error: Too few bytes to read ASN.1 value.\n    at new ServiceAccount (/work/node_modules/firebase-admin/lib/app/credential-internal.js:153:19)\n    at new ServiceAccountCredential (/work/node_modules/firebase-admin/lib/app/credential-internal.js:70:15)\n    at cert (/work/node_modules/firebase-admin/lib/app/credential-factory.js:103:54)\n    at <unknown> (/work/.next/server/app/api/updateUserData/route.js:1:2260) {\n  errorInfo: [Object],\n  codePrefix: 'app'\n}\n\n> Build error occurred\nError: Failed to collect page data for /webhook\n    at <unknown> (/work/node_modules/next/dist/build/utils.js:1234:15) {\n  type: 'Error'\n}"
+    }
+  ],
+  "costUsd": 0.151192,
+  "durationMs": 234493,
+  "install": {
+    "code": 0,
+    "tail": "al|peer> [--include <prod|dev|optional|peer> ...]]\nnpm error [--strict-peer-deps] [--foreground-scripts] [--ignore-scripts] [--no-audit]\nnpm error [--no-bin-links] [--no-fund] [--dry-run]\nnpm error [-w|--workspace <workspace-name> [-w|--workspace <workspace-name> ...]]\nnpm error [-ws|--workspaces] [--include-workspace-root] [--install-links]\nnpm error\nnpm error aliases: clean-install, ic, install-clean, isntall-clean\nnpm error\nnpm error Run \"npm help ci\" for more info\nnpm error A complete log of this run can be found in: /tmp/.npm/_logs/2026-11-03T18_53_19_281Z-debug-0.log\nnpm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated @humanwhocodes/config-array@0.11.14: Use @eslint/config-array instead\nnpm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported\nnpm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead\nnpm warn deprecated glob@8.1.0: Glob versions prior to v9 are no longer supported\nnpm warn deprecated google-p12-pem@4.0.1: Package is no longer maintained\nnpm warn deprecated next@15.0.3: This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/CVE-2025-66478 for more details."
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "NEXT_PUBLIC_FIREBASE_API_KEY",
+      "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN",
+      "NEXT_PUBLIC_FIREBASE_PROJECT_ID",
+      "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET",
+      "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID",
+      "NEXT_PUBLIC_FIREBASE_APP_ID",
+      "NEXTAUTH_SECRET",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "GEMINI_API_KEY",
+      "GOOGLE_CLIENT_ID",
+      "GOOGLE_CLIENT_SECRET",
+      "GITHUB_CLIENT_ID",
+      "GITHUB_CLIENT_SECRET",
+      "FIREBASE_SERVICE_ACCOUNT_KEY"
+    ]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "typecheck (tsc --noEmit) fails on the repo's own code: possibly-undefined/null errors in app/api/auth/[...nextauth]/route.ts and a missing react-katex type declaration in components/MathRenderer.tsx, which need no external service to fix."
+  }
+}

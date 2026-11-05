@@ -55,10 +55,11 @@ export interface Embedder {
   embed(texts: string[]): Promise<number[][]>;
 }
 
-export const MODEL = 'claude-opus-5-5';
-// Source: Claude API pricing for claude-opus-5-5, $4 / $20 per million tokens, 2026-10-06.
-const INPUT_USD_PER_TOKEN = 4 / 1_000_000;
-const OUTPUT_USD_PER_TOKEN = 20 / 1_000_000;
+// Sonnet, not Opus: distilling a transcript into a recipe was 41% of round 3's first iteration on Opus.
+export const MODEL = 'claude-sonnet-5-5';
+// Source: Claude API pricing for claude-sonnet-5-5, $2 / $10 per million tokens (harness/ledger.ts, 2026-10-06).
+const INPUT_USD_PER_TOKEN = 2 / 1_000_000;
+const OUTPUT_USD_PER_TOKEN = 10 / 1_000_000;
 
 // Plain fields, not parameter properties: node runs these files by stripping types, and can't strip those.
 export class AnthropicModel implements Model {

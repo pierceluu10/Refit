@@ -1,0 +1,19 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "LeviathanLevi/Coinbase-Pro-Crypto-Trading-Bot-CrypFinder",
+  "commit": "37c52520126a1ad98e54915c7410aa28c4d0094d",
+  "provider": "coinbase-pro",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.007434000000000003,
+  "durationMs": 24899,
+  "install": {
+    "code": 0,
+    "tail": "added 191 packages in 3s\n\nnpm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.\nnpm warn deprecated request@2.88.2: request has been deprecated, see https://github.com/request/request/issues/3142\nnpm warn deprecated har-validator@5.1.5: this library is no longer supported\nnpm warn deprecated bignumber.js@6.0.0: Custom ALPHABET bug fixed in v7.0.2\nnpm warn deprecated @types/form-data@2.5.0: This is a stub types definition. form-data provides its own type definitions, so you do not need this installed."
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

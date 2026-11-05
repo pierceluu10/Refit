@@ -1,0 +1,33 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "MFaizanali2/Code-Review-Agent",
+  "commit": "32fd5bb17d89cf9678d3f88802a074d08798e0ae",
+  "provider": "anthropic",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "pytest",
+      "command": "export LLM_PROVIDER='mock' GEMINI_API_KEY='placeholder' OPENAI_API_KEY='placeholder'; (python3 -m pytest --version >/dev/null 2>&1 || python3 -m pip install -q --only-binary=:all: pytest) && python3 -m pytest -q",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.041807999999999845,
+  "durationMs": 69639,
+  "install": {
+    "code": 0,
+    "tail": " is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script watchfiles is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script httpx2 is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script httpx is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script jsonschema is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script fastapi is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script streamlit is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "python3 -m pip install -q --only-binary=:all: GitPython",
+        "why": "agent/tools/builtin/github_tool.py imports `git` (GitPython), which is missing from the environment, so tests/test_builtin_tools.py fails at collection with ModuleNotFoundError",
+        "code": 0
+      }
+    ],
+    "env": ["LLM_PROVIDER", "GEMINI_API_KEY", "OPENAI_API_KEY"]
+  }
+}

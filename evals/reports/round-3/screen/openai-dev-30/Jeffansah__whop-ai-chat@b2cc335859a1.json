@@ -1,0 +1,43 @@
+{
+  "set": "openai-dev-30",
+  "repo": "Jeffansah/whop-ai-chat",
+  "commit": "b2cc335859a12d359ac662e3ff3f10b8b6bfe227",
+  "provider": "openai",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export NEXT_PUBLIC_WHOP_APP_ID='app_placeholder' WHOP_API_KEY='placeholder' NEXT_PUBLIC_WHOP_AGENT_USER_ID='user_placeholder' NEXT_PUBLIC_WHOP_COMPANY_ID='biz_placeholder' NEXT_PUBLIC_CONVEX_URL='https://placeholder.convex.cloud' OPENAI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export NEXT_PUBLIC_WHOP_APP_ID='app_placeholder' WHOP_API_KEY='placeholder' NEXT_PUBLIC_WHOP_AGENT_USER_ID='user_placeholder' NEXT_PUBLIC_WHOP_COMPANY_ID='biz_placeholder' NEXT_PUBLIC_CONVEX_URL='https://placeholder.convex.cloud' OPENAI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.02690199999999998,
+  "durationMs": 185886,
+  "install": {
+    "code": 0,
+    "tail": "alpha.1\" from react-aria-components@1.2.1\nnpm warn     node_modules/@whop/react/node_modules/frosted-ui/node_modules/react-aria-components\nnpm warn ERESOLVE overriding peer dependency\nnpm warn While resolving: @react-types/color@3.0.0-beta.25\nnpm warn Found: react@19.1.0\nnpm warn node_modules/react\nnpm warn   react@\"19.1.0\" from the root project\nnpm warn   188 more (@floating-ui/react-dom, ...)\nnpm warn\nnpm warn Could not resolve dependency:\nnpm warn peer react@\"^16.8.0 || ^17.0.0-rc.1 || ^18.0.0\" from @react-types/color@3.0.0-beta.25\nnpm warn node_modules/@whop/react/node_modules/frosted-ui/node_modules/react-aria-components/node_modules/@react-types/color\nnpm warn   @react-types/color@\"3.0.0-beta.25\" from react-aria-components@1.2.1\nnpm warn   node_modules/@whop/react/node_modules/frosted-ui/node_modules/react-aria-components\nnpm warn   1 more (@react-aria/color)\nnpm warn\nnpm warn Conflicting peer dependency: react@18.3.1\nnpm warn node_modules/react\nnpm warn   peer react@\"^16.8.0 || ^17.0.0-rc.1 || ^18.0.0\" from @react-types/color@3.0.0-beta.25\nnpm warn   node_modules/@whop/react/node_modules/frosted-ui/node_modules/react-aria-components/node_modules/@react-types/color\nnpm warn     @react-types/color@\"3.0.0-beta.25\" from react-aria-components@1.2.1\nnpm warn     node_modules/@whop/react/node_modules/frosted-ui/node_modules/react-aria-components\nnpm warn     1 more (@react-aria/color)\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead"
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "NEXT_PUBLIC_WHOP_APP_ID",
+      "WHOP_API_KEY",
+      "NEXT_PUBLIC_WHOP_AGENT_USER_ID",
+      "NEXT_PUBLIC_WHOP_COMPANY_ID",
+      "NEXT_PUBLIC_CONVEX_URL",
+      "OPENAI_API_KEY",
+      "UPLOADTHING_TOKEN"
+    ]
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "set": "openai-dev-30",
+  "repo": "adeojoemmanuel/EDD-Kafka-Rest-Api",
+  "commit": "55e43330f26066273a71b0563e301bf8d6343420",
+  "provider": "openai",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "node_modules/kafka-node/types/index.d.ts: error TS2416: Property '_write' in type 'ProducerStream' is not assignable to the same property in base type 'Writable'.",
+        "src/__test__/users.test.ts: error TS2305: Module '\"./../user-service/src/service/user.service\"' has no exported member 'getUser'.",
+        "src/__test__/users.test.ts: error TS2305: Module '\"./../user-service/src/service/user.service\"' has no exported member 'createUser'.",
+        "src/auth-service/routes/auth.route.ts: error TS2307: Cannot find module './../middleWare/authMiddleware' or its corresponding type declarations.",
+        "src/auth-service/src/oauth2-server.ts: error TS7016: Could not find a declaration file for module 'oauth2-server'. '/work/node_modules/oauth2-server/index.js' implicitly has an 'any' type.",
+        "src/auth-service/src/type-interface/auth.interface.ts: error TS7016: Could not find a declaration file for module 'oauth2-server'. '/work/node_modules/oauth2-server/index.js' implicitly has an 'any' type.",
+        "src/auth-service/src/utils/utility.ts: error TS7016: Could not find a declaration file for module 'oauth2-server'. '/work/node_modules/oauth2-server/index.js' implicitly has an 'any' type.",
+        "src/blockchain-service/src/index.ts: error TS2307: Cannot find module './../routes/blockchain-service' or its corresponding type declarations.",
+        "src/blockchain-service/src/kafka.ts: error TS18047: 'message.value' is possibly 'null'.",
+        "src/blockchain-service/src/oauth2-server.ts: error TS7016: Could not find a declaration file for module 'oauth2-server'. '/work/node_modules/oauth2-server/index.js' implicitly has an 'any' type."
+      ],
+      "tail": "eCustomer'. Did you mean 'createServiceCustomer'?\nsrc/user-service/index.ts(3,10): error TS2305: Module '\"./src/service/user.service\"' has no exported member 'getUser'.\nsrc/user-service/index.ts(3,19): error TS2305: Module '\"./src/service/user.service\"' has no exported member 'createUser'.\nsrc/user-service/index.ts(4,46): error TS2307: Cannot find module './kafka' or its corresponding type declarations.\nsrc/user-service/src/middle-ware/auth.ts(5,24): error TS2307: Cannot find module '../config/env' or its corresponding type declarations.\nsrc/user-service/src/service/user.service.ts(2,10): error TS2724: '\"./../../../common/kafka/node.kafka.service\"' has no exported member named 'creatServiceCustomer'. Did you mean 'createServiceCustomer'?\nsrc/user-service/src/utils/transform.ts(1,25): error TS2307: Cannot find module '../models/client' or its corresponding type declarations.\nsrc/user-service/src/utils/transform.ts(2,23): error TS2307: Cannot find module '../models/user' or its corresponding type declarations.\nsrc/user-service/src/utils/transform.ts(3,24): error TS2307: Cannot find module '../models/token' or its corresponding type declarations.\nsrc/user-service/src/utils/transform.ts(4,37): error TS7016: Could not find a declaration file for module 'oauth2-server'. '/work/node_modules/oauth2-server/index.js' implicitly has an 'any' type.\n  Try `npm i --save-dev @types/oauth2-server` if it exists or add a new declaration (.d.ts) file containing `declare module 'oauth2-server';`"
+    }
+  ],
+  "costUsd": 0.014507999999999965,
+  "durationMs": 29515,
+  "install": {
+    "code": 0,
+    "tail": "added 715 packages in 13s\n\nnpm warn deprecated rimraf@2.7.1: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated npmlog@4.1.2: This package is no longer supported.\nnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported\nnpm warn deprecated gauge@2.7.4: This package is no longer supported.\nnpm warn deprecated are-we-there-yet@1.1.7: This package is no longer supported.\nnpm warn deprecated @types/mongoose@5.11.97: Mongoose publishes its own types, so you do not need to install this package.\nnpm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details."
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

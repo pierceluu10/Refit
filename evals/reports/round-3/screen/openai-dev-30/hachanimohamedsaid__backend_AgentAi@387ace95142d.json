@@ -1,0 +1,42 @@
+{
+  "set": "openai-dev-30",
+  "repo": "hachanimohamedsaid/backend_AgentAi",
+  "commit": "387ace95142de78a7d8dd3a1378b9aba5aeb3048",
+  "provider": "openai",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export MONGO_URI='mongodb://user:pass@localhost:27017/db' JWT_SECRET='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export MONGO_URI='mongodb://user:pass@localhost:27017/db' JWT_SECRET='placeholder'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "test",
+      "command": "export MONGO_URI='mongodb://user:pass@localhost:27017/db' JWT_SECRET='placeholder'; npm run test",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.04982799999999987,
+  "durationMs": 91874,
+  "install": {
+    "code": 0,
+    "tail": "added 885 packages in 36s\n\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead"
+  },
+  "preparation": {
+    "steps": [],
+    "env": ["MONGO_URI", "JWT_SECRET"]
+  }
+}

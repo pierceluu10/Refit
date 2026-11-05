@@ -1,0 +1,64 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "PRIYESHSINGH24/buddy_connect",
+  "refit": {
+    "checks": "passes",
+    "costUsd": 1.3832766,
+    "tasks": 4,
+    "verified": 4
+  },
+  "claude": {
+    "checks": "passes",
+    "costUsd": 0.1042045,
+    "prepCostUsd": 0.014942,
+    "diffLines": 69,
+    "finalText": "I changed one thing: the Gemini model names. I didn't check any other API or SDK, and I didn't run a build, lint or test.\n\n**What the repo uses:** Google Gemini (through `@google/generative-ai`, plus a raw REST call), the Vercel AI SDK, LinkedIn OAuth, Cloudflare R2/S3, Pusher, Resend, Upstash/Redis, Prisma 7 and Next 16. I only searched the Google deprecations page, which is where the breakage was.\n\n**What broke now:** Google's deprecations page lists `gemini-2.0-flash` as shut down on 2026-06-01. The code defaulted to that model in five places, so those calls fail today. Google names `gemini-3.6-flash` as the replacement. The match-teams route also tried `gemini-1.5-flash` and `gemini-1.5-pro`, which were retired long ago.\n\n**What I changed:**\n- `lib/ai-client.ts`, `lib/ai-utils.ts`, `lib/ai-advanced-utils.ts` and `app/api/ai/chat/route.ts` now use `gemini-3.6-flash` instead of `gemini-2.0-flash`.\n- `app/api/hackathon/match-teams/route.ts` now tries `gemini-3.6-flash`, then `gemini-2.5-flash-lite`. I dropped the 1.5 models. `gemini-2.5-flash-lite` has no announced shutdown date.\n\n**Later deprecations, not edited:**\n- `gemini-2.5-flash` and `gemini-2.5-pro` start auto-routing to other models on 2026-12-01. The repo doesn't use either.\n- Google lists no shutdown date for `gemini-3.6-flash`. Its newer sibling `gemini-3.8-flash` also has none.\n\n**Problems I noticed but didn't fix:**\n- `@google/generative-ai` is the older Google SDK, and I didn't check whether it has a retirement date.\n- `match-teams/route.ts` has an SDK call and a REST fallback that look wrong: it calls `/v1/...:generate` with a `prompt` body. It also falls back to `openai/gpt-4-turbo` through the Vercel AI Gateway. I didn't check whether that model is still available.\n- Several packages are pinned to `latest`.",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-PRIYESHSINGH24-buddy_connect/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "gemini-2.0-flash shut down 2026-06-01; 1.5 models retired",
+          "correct": true,
+          "note": "Replaced every use with gemini-2.5-flash-lite, which is not deprecated, and collapsed the match-teams fallback list to that one model. The calls will work."
+        },
+        {
+          "change": "@aws-sdk/client-s3 >=3.729.0 sends default CRC32 checksums, which R2 rejects",
+          "correct": true,
+          "note": "Set requestChecksumCalculation and responseChecksumValidation to WHEN_REQUIRED on the R2 S3Client. This is the documented fix and stops R2 uploads failing now."
+        },
+        {
+          "change": "pusher-js authEndpoint deprecated in favour of channelAuthorization",
+          "correct": true,
+          "note": "Moved to channelAuthorization with the same endpoint and ajax transport. The behaviour is equivalent. This is a deprecation, not a breakage, so it was optional."
+        },
+        {
+          "change": "@upstash/redis 1.40 responseEncoding default change",
+          "correct": true,
+          "note": "Pins responseEncoding to base64 explicitly, which keeps the old behaviour if the package goes to 1.40+. This is harmless and guards against a future break."
+        },
+        {
+          "change": "@upstash/redis 1.38 auto-pipeline read/write split",
+          "correct": true,
+          "note": "Checked the call sites and correctly found no read-after-write dependency, so no edit was needed."
+        }
+      ],
+      "breaks": []
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "gemini-2.0-flash shut down 2026-06-01; 1.5-flash/1.5-pro already retired",
+          "correct": true,
+          "note": "Replaced every gemini-2.0-flash use with gemini-3.6-flash, the replacement it cites. That fits its source. The 1.5 entries are dropped from the match-teams list and gemini-2.5-flash-lite, which has no shutdown date, is kept as a fallback."
+        }
+      ],
+      "breaks": []
+    },
+    "better": "refit",
+    "why": "Both fix the Gemini 2.0 shutdown correctly. B also finds and fixes the S3 SDK checksum default that breaks Cloudflare R2 calls now, which A never checked. B's other changes are correct and harmless.",
+    "costUsd": 0.048324
+  }
+}

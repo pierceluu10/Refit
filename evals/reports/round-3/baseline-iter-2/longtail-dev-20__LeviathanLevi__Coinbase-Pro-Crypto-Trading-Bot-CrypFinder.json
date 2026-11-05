@@ -1,0 +1,53 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "LeviathanLevi/Coinbase-Pro-Crypto-Trading-Bot-CrypFinder",
+  "refit": {
+    "checks": "no-repo-checks",
+    "costUsd": 0.1326397,
+    "tasks": 1,
+    "verified": 1
+  },
+  "claude": {
+    "checks": "no-repo-checks",
+    "costUsd": 0.1197177,
+    "prepCostUsd": 0.007434,
+    "diffLines": 68,
+    "finalText": "I changed the Coinbase endpoint URLs and two README links. I haven't run the bot, and I didn't test any of the new URLs, so please check them against your own API keys before trading with real money.\n\n**What the repo uses:** the Coinbase Pro API (a REST and WebSocket trading API), through the deprecated `coinbase-pro` npm package and a hand-written client in `coinbaseProLibrary.js`. It also uses `axios`, `pino`, `dotenv` and the CSV libraries, and I found nothing affecting those.\n\n**What changed:**\n- Coinbase retired the Pro API and its `*.pro.coinbase.com` hosts. The API is now Coinbase Exchange, which is documented at docs.cdp.coinbase.com.\n- The old URLs in the three strategy files are replaced with the Exchange ones. The sandbox URLs come from Coinbase's docs page. The production URLs, `https://api.exchange.coinbase.com` and `wss://ws-feed.exchange.coinbase.com`, I took from search results and Coinbase's naming pattern. I couldn't open the production runbook page to confirm them.\n\n| | Old | New |\n|---|---|---|\n| Production REST | `https://api.pro.coinbase.com` | `https://api.exchange.coinbase.com` |\n| Production WebSocket | `wss://ws-feed.pro.coinbase.com` | `wss://ws-feed.exchange.coinbase.com` |\n| Sandbox REST | `https://api-public.sandbox.pro.coinbase.com` | `https://api-public.sandbox.exchange.coinbase.com` |\n| Sandbox WebSocket | `wss://ws-feed-public.sandbox.pro.coinbase.com` | `wss://ws-feed-public.sandbox.exchange.coinbase.com` |\n\n- The URLs are in `momentumTrading.js`, `momentumTradingWithStopLoss.js` and `reverseMomentumTrading.js`.\n- In `README.md` I updated the sandbox and API docs links. The README still says \"Coinbase Pro\" in several places and links to the old `pro.coinbase.com` site and its API-key help page.\n\n**What I left alone:**\n- The `coinbase-pro` package has been deprecated since 2020. It still accepts the URIs you pass in, so the new hosts should work with it. I didn't swap it out.\n- The code still signs requests with the key, secret and passphrase, and still calls `/profiles`, `/fees` and `/profiles/transfer`. I didn't confirm that the Exchange API accepts all three unchanged.\n- Your existing Pro API keys may not work on Exchange. You may need to create new keys, and sandbox keys are separate from production ones.\n\nSources:\n- [Coinbase Exchange Sandbox docs](https://docs.cdp.coinbase.com/exchange/introduction/sandbox.md)",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-LeviathanLevi-Coinbase-Pro-Crypto-Trading-Bot-CrypFinder/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "Coinbase Pro API retired; REST and WebSocket hosts (production and sandbox) moved to *.exchange.coinbase.com",
+          "correct": true,
+          "note": "The host swap in the three strategy files is identical to A's. The README links point to slightly different doc paths, which is minor."
+        },
+        {
+          "change": "Profile transfer response now includes transfer_id",
+          "correct": true,
+          "note": "Only a logging change: the transfer result is now logged as JSON plus transfer_id. The original string concatenation would have printed [object Object], so this is harmless and marginally useful. No functional fix was needed. B doesn't say what changed in the API to require it."
+        }
+      ],
+      "breaks": [
+        "Adds test_hosts.js, an ad-hoc static check at the repo root. It isn't wired into any test runner, and it asserts on a log string in buyAndSell.js.",
+        "The edited logger line in buyAndSell.js has an indentation off by one space.",
+        "B claims '10 changes' but explains almost none of them."
+      ]
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "Coinbase Pro API retired; REST and WebSocket hosts (production and sandbox) moved to *.exchange.coinbase.com",
+          "correct": true,
+          "note": "All four URIs are swapped in all three strategy files. These constants feed both the SDK clients and the axios helper. The README docs links are updated. A is open about what it didn't verify: the production hosts, auth, and API key migration."
+        }
+      ],
+      "breaks": []
+    },
+    "better": "claude",
+    "why": "Both make the same essential fix: replacing the Pro hosts with Exchange hosts everywhere they are used. B adds a cosmetic logging tweak and a brittle stray test file that no API change required, and its explanation is vague about the claimed changes. A makes the same substantive fix with less noise and clearly flags what it couldn't verify.",
+    "costUsd": 0.046264
+  }
+}

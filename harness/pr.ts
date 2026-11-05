@@ -22,6 +22,8 @@ export type PrBodyInput = {
   promptVersion: string;
   sandboxNote: string;
   notes?: string[]; // harness facts a reviewer must know, listed under Unproven
+  prepared?: string[]; // the codegen and placeholder env the harness used before the baseline
+  proofTest?: string; // the registered check that tests the change
 };
 
 const BADGE: Record<RunRecord['outcome'], string> = {
@@ -44,6 +46,13 @@ const list = (items: string[]) => items.map((item) => `- ${item}`).join('\n');
 function unprovenItems(input: PrBodyInput, grades: ValidatorGrade[]): string[] {
   const items = [...(input.report?.unproven ?? []), ...(input.notes ?? [])];
   if (!input.report) items.push('The agent did not call finish, so there is no report from it.');
+  if (input.report && input.outcome !== 'not-affected' && !input.proofTest) {
+    items.push(
+      input.report.noProofTestReason
+        ? `No test of this change was written: ${input.report.noProofTestReason}`
+        : 'The agent wrote no test of this change and gave no reason why none can be written.',
+    );
+  }
   if (!input.comparisons.length) items.push('No checks were run.');
   for (const c of input.comparisons) {
     if (notRun(c.before)) items.push(`${c.name} was not run before the change.`);
@@ -123,6 +132,12 @@ export function writePrBody(input: PrBodyInput): string {
             ),
           ),
         ].join('\n')
+      : '',
+    input.prepared?.length
+      ? ['Prepared before the baseline:', list(input.prepared)].join('\n')
+      : '',
+    input.proofTest
+      ? `Test of this change: \`${input.proofTest}\`, written by the agent and run with the checks.`
       : '',
     `Where checks ran: ${input.sandboxNote}`,
   ];

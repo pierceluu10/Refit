@@ -1,0 +1,77 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "nielspac177/massmonitor",
+  "taskId": "nielspac177/massmonitor:anthropic:2026-10-21-sdk-typescript-1-0-0",
+  "title": "npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too",
+  "refit": {
+    "outcome": "verified",
+    "passesChecks": true,
+    "costUsd": 0.11454490000000002,
+    "diffLines": 132,
+    "review": {
+      "opinion": "looks-right",
+      "summary": "The PR bumps @anthropic-ai/sdk from ^0.125.0 to ^1.0.0 in package.json and the lockfile. It also adds a vitest test that drives `buildRequest` from harvest/lib/extract through a mocked fetch, asserting the `anthropic-version: 2026-10-21` header and the absence of temperature/top_p/top_k. The repo has no Bedrock/Vertex/Foundry SDK packages, so that part of the change does not apply. Typecheck, build and tests pass after the change, and the new sdk1-proof check moves from fail to pass, which fits a 'verified' grade for the dependency bump. I could not see harvest/lib/extract.ts, harvest/eval-extract.ts or harvest/console/server.ts, and the match agent named no call sites. So whether every request builder avoids the removed sampling params and the new MessageParam union rests on typecheck covering those files. The proof is mock-only: no live call under 2026-10-21, and response parsing is exercised only with an empty `content` array. Other lockfile noise (dropped `peer: true` flags, the new @opentelemetry/api transitive dependency) looks like a regenerated lockfile and is harmless.",
+      "concerns": [
+        {
+          "file": "tests/anthropicSdk1.test.ts",
+          "issue": "The test covers only `buildRequest` with an empty input. Other call sites may build requests themselves, such as harvest/eval-extract.ts (`eval:extract`) and harvest/console/server.ts (`console`). Those are not exercised, so any temperature/top_p/top_k there would only be caught if tsc type-checks those files.",
+          "severity": "medium"
+        },
+        {
+          "file": "tests/anthropicSdk1.test.ts",
+          "issue": "The mocked response has `content: []`. The extraction code that reads tool_use or text blocks from responses under API version 2026-10-21 is not tested. If the new version changes response shapes, the checks would not catch it.",
+          "severity": "low"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "The SDK license changes from MIT to Apache-2.0, and @opentelemetry/api is added as a new transitive dependency. It is a devDependency, so the impact is low, but worth a human acknowledging.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Confirm that tsconfig.json `include` covers harvest/** so typecheck actually validates every messages.create call against SDK 1.0 types.",
+        "Grep harvest/ for temperature, top_p, top_k and any hand-built MessageParam objects outside buildRequest.",
+        "Run `npm run eval:extract` (live) once to confirm that responses under 2026-10-21 parse correctly."
+      ],
+      "costUsd": 0.045132,
+      "model": "claude-opus-5-5"
+    }
+  },
+  "claude": {
+    "passesChecks": true,
+    "costUsd": 0.0247838,
+    "prepCostUsd": 0.007742,
+    "diffLines": 102,
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-nielspac177-massmonitor-anthropic-2026-10-21-sdk-typescript-1-0-0/transcript.jsonl",
+    "stopReason": "done",
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "The diff only bumps @anthropic-ai/sdk from ^0.125.0 to ^1.0.0 in package.json and the lockfile, which resolves to 1.4.0. No source files change, and the match agent named no call sites. The repo does appear to use the SDK in dev tooling: `eval:extract` (harvest/eval-extract.ts) and `console` (harvest/console/server.ts) are likely consumers, but I could not see those files. The green typecheck is the only evidence that removed fields (temperature/top_p/top_k) and the new MessageParam union don't break those callers. That evidence only counts if tsconfig includes the harvest/ directory and the callers use typed object literals rather than spreads, casts or `any`. None of the checks make a live call, so the move to API version 2026-10-21 is unexercised. 'Verified' is plausible for a dev-only dependency, but it is stronger than the checks prove. Two lockfile side effects are also worth a look: the SDK's license changes from MIT to Apache-2.0, and @opentelemetry/api is pulled in as a new transitive dependency.",
+      "concerns": [
+        {
+          "file": "harvest/eval-extract.ts",
+          "issue": "This is a likely SDK consumer that was not shown or listed as a call site. If it passes temperature/top_p/top_k (for example through a config object, a spread or an `any`-typed params object), typecheck may not flag it, and the request would fail or behave differently at runtime against API 2026-10-21. I could not confirm whether this file is covered by tsconfig.",
+          "severity": "medium"
+        },
+        {
+          "file": "harvest/console/server.ts",
+          "issue": "This is likely another SDK consumer. The new default API version 2026-10-21 may change response shapes or defaults (for example the MessageParam union, or content block handling). No test or live call exercises this path, so 'verified' rests on typecheck alone.",
+          "severity": "medium"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "The caret range resolves to 1.4.0 rather than 1.0.0. This pulls in four extra minor releases plus a new transitive dependency (@opentelemetry/api 1.10.0), and the SDK's license changes from MIT to Apache-2.0. The lockfile also drops the `peer: true` flags on several unrelated packages. These are probably harmless npm churn but go beyond what the change forces.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Grep the repo for '@anthropic-ai/sdk' imports (especially under harvest/) and check each messages.create call for temperature/top_p/top_k and hand-built MessageParam objects.",
+        "Confirm that tsconfig.json's include covers harvest/**; if it does not, the passing typecheck says nothing about the SDK callers.",
+        "Run `npm run eval:extract` (or one console request) against the live API with SDK 1.4.0 and confirm the outputs match the previous behaviour.",
+        "Confirm the Apache-2.0 license change for the SDK is acceptable for this MIT project (it is a dev dependency only)."
+      ],
+      "costUsd": 0.043452,
+      "model": "claude-opus-5-5"
+    }
+  }
+}

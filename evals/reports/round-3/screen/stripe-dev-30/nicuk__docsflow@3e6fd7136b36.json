@@ -1,0 +1,67 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "nicuk/docsflow",
+  "commit": "3e6fd7136b36f30fe6ef70ff4a2ebf3b3de4343a",
+  "provider": "stripe",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='pk_test_Y2xlcmsuZXhhbXBsZS5jb20k' CLERK_SECRET_KEY='sk_test_placeholder' OPENAI_API_KEY='placeholder' OPENROUTER_API_KEY='placeholder' GOOGLE_GENERATIVE_AI_API_KEY='placeholder' PINECONE_API_KEY='placeholder' PINECONE_INDEX='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' NEXT_PUBLIC_APP_URL='http://localhost:3000'; npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "app/api/onboarding/complete/route.test.ts: error TS2307: Cannot find module './route' or its corresponding type declarations.",
+        "app/api/onboarding/complete/route.test.ts: error TS2304: Cannot find name 'jest'.",
+        "app/api/onboarding/complete/route.test.ts: error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.",
+        "app/api/onboarding/complete/route.test.ts: error TS2304: Cannot find name 'beforeEach'.",
+        "app/api/onboarding/complete/route.test.ts: error TS2304: Cannot find name 'afterAll'.",
+        "app/api/onboarding/complete/route.test.ts: error TS2582: Cannot find name 'test'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.",
+        "app/api/onboarding/complete/route.test.ts: error TS2304: Cannot find name 'expect'.",
+        "lib/ai/providers.test.ts: error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.",
+        "lib/ai/providers.test.ts: error TS2304: Cannot find name 'beforeEach'.",
+        "lib/ai/providers.test.ts: error TS2304: Cannot find name 'jest'."
+      ],
+      "tail": "r TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.\ntest/rag-multimodal-parser.test.ts(156,5): error TS2304: Cannot find name 'jest'.\ntest/rag-multimodal-parser.test.ts(159,5): error TS2304: Cannot find name 'expect'.\ntest/rag-multimodal-parser.test.ts(160,5): error TS2304: Cannot find name 'expect'.\ntest/rag-multimodal-parser.test.ts(161,5): error TS2304: Cannot find name 'expect'.\ntest/rag-multimodal-parser.test.ts(164,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.\ntest/rag-multimodal-parser.test.ts(168,5): error TS2304: Cannot find name 'jest'.\ntest/rag-multimodal-parser.test.ts(177,5): error TS2304: Cannot find name 'expect'.\ntest/rag-multimodal-parser.test.ts(178,5): error TS2304: Cannot find name 'expect'.\ntest/rag-multimodal-parser.test.ts(181,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.\ntest/rag-multimodal-parser.test.ts(190,5): error TS2304: Cannot find name 'jest'.\ntest/rag-multimodal-parser.test.ts(195,5): error TS2304: Cannot find name 'expect'.\ntest/rag-multimodal-parser.test.ts(196,5): error TS2304: Cannot find name 'expect'.\ntest/rag-multimodal-parser.test.ts(197,5): error TS2304: Cannot find name 'expect'."
+    },
+    {
+      "name": "build",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='pk_test_Y2xlcmsuZXhhbXBsZS5jb20k' CLERK_SECRET_KEY='sk_test_placeholder' OPENAI_API_KEY='placeholder' OPENROUTER_API_KEY='placeholder' GOOGLE_GENERATIVE_AI_API_KEY='placeholder' PINECONE_API_KEY='placeholder' PINECONE_INDEX='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' NEXT_PUBLIC_APP_URL='http://localhost:3000'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "test",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='pk_test_Y2xlcmsuZXhhbXBsZS5jb20k' CLERK_SECRET_KEY='sk_test_placeholder' OPENAI_API_KEY='placeholder' OPENROUTER_API_KEY='placeholder' GOOGLE_GENERATIVE_AI_API_KEY='placeholder' PINECONE_API_KEY='placeholder' PINECONE_INDEX='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' NEXT_PUBLIC_APP_URL='http://localhost:3000'; npm run test",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.14647799999999994,
+  "durationMs": 169045,
+  "install": {
+    "code": 0,
+    "tail": "added 897 packages in 45s\n\nnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead\nnpm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead\nnpm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported\nnpm warn deprecated glob@7.1.7: Glob versions prior to v9 are no longer supported\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead\nnpm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options."
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY",
+      "CLERK_SECRET_KEY",
+      "OPENAI_API_KEY",
+      "OPENROUTER_API_KEY",
+      "GOOGLE_GENERATIVE_AI_API_KEY",
+      "PINECONE_API_KEY",
+      "PINECONE_INDEX",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "NEXT_PUBLIC_APP_URL"
+    ]
+  }
+}

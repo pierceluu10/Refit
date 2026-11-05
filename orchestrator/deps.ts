@@ -3,7 +3,7 @@ import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { runTask, type HarnessRunRecord } from '../harness/index.ts';
+import { runTask, TURN_RESERVE_USD, type HarnessRunRecord } from '../harness/index.ts';
 import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
 import { BudgetLedger as InventoryLedger, runInventory } from '../inventory/index.ts';
 import {
@@ -43,17 +43,19 @@ export const defaultOut = join(tmpdir(), 'aptitude-runs.jsonl');
 // Provider changelogs change at most daily, so one read per provider per UTC day serves every run.
 export const defaultWatchCache = join(tmpdir(), 'aptitude-watch');
 
-// Below this, a harness run cannot get past its overshoot reserve (TURN_RESERVE_USD) to edit.
-export const MIN_TASK_USD = 2;
 // The most one task holds of a small run, so several tasks run at once. In a big run a task may hold
 // a fair share of what is free instead: a CONCURRENCY-th of it. What it leaves goes back to the run.
 export const TASK_USD = 5;
+// The most one task holds of any run: about 50 times what a task cost in the first benchmark
+// ($0.31 to $0.47), so it decides nothing normal and only bounds an agent loop that never ends.
+export const MAX_TASK_USD = 25;
 // One provider read. The six folder reads cost about $2.60 together on 2026-11-01's dev run.
 export const WATCH_USD = 1.5;
 // A watcher's ledger checks its cap only before a call, so its hold keeps one call's worst case spare.
 const WATCH_CALL_USD = 0.5;
-// One recipe retrieval or extraction; memory refuses an Opus call whose worst case (about $0.40) passes its cap.
-export const MEMORY_USD = 1;
+// One recipe retrieval or extraction; memory refuses an Opus call whose worst case passes its cap. A
+// 150KB transcript's worst case was $1.06 in round 3's first iteration, so $1 lost that recipe.
+export const MEMORY_USD = 2;
 // Parts in flight at once. The run budget's holds, not this, keep the spend under the cap.
 const CONCURRENCY = 4;
 
@@ -242,6 +244,8 @@ export function createDeps({
       providerIds.map((id) => [id, providerWatcher(id, budget, watchCache)]),
     ),
     watchAny: (provider, hints) => anyWatcher(provider, hints, budget, watchCache),
+    // Opus: on Sonnet, round 3's second iteration missed dota2-helper's stripe-node 23 upgrade and
+    // over-matched the Coinbase bot (10 changes, where Opus found 4), to save about $0.07 a repo.
     match: createMatchAgent({ budget }),
     runTask: async (task, dir) => {
       const freeUsd = budget.capUsd - budget.spentUsd() - budget.heldUsd();
@@ -249,8 +253,9 @@ export function createDeps({
       try {
         hold = await budget.reserve(
           `task ${task.id}`,
-          Math.max(TASK_USD, freeUsd / CONCURRENCY),
-          MIN_TASK_USD,
+          Math.min(Math.max(TASK_USD, freeUsd / CONCURRENCY), MAX_TASK_USD),
+          // A task starts whenever the run has room for the harness's overshoot reserve.
+          TURN_RESERVE_USD,
         );
       } catch (error) {
         if (!(error instanceof BudgetExceededError)) throw error;
@@ -258,14 +263,14 @@ export function createDeps({
         return failed(
           task.id,
           0,
-          `not attempted: $${leftUsd.toFixed(2)} of the run cap left, below the $${MIN_TASK_USD} a task needs`,
+          `not attempted: $${leftUsd.toFixed(2)} of the run cap left, below the $${TURN_RESERVE_USD} overshoot reserve a task needs`,
         );
       }
       let spentUsd = 0;
       try {
-        // Recipes come first, from what the hold has above the harness's minimum.
+        // Recipes come first, from what the hold has above the harness's overshoot reserve.
         const ai = memory(
-          new MemoryBudget(Math.max(Math.min(MEMORY_USD, hold.usd - MIN_TASK_USD), 0)),
+          new MemoryBudget(Math.max(Math.min(MEMORY_USD, hold.usd - TURN_RESERVE_USD), 0)),
         );
         const recipes = await createRetriever(ai)(task).catch((error) => {
           log(`memory: no recipes for ${task.id}: ${error}`);

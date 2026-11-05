@@ -1,0 +1,44 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "adamhitzger/financehb",
+  "commit": "6b409f3db888e0792800d10942ea361e0a338500",
+  "provider": "stripe",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export NEXT_PUBLIC_SANITY_PROJECT_ID='placeholder' NEXT_PUBLIC_SANITY_DATASET='production' NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export NEXT_PUBLIC_SANITY_PROJECT_ID='placeholder' NEXT_PUBLIC_SANITY_DATASET='production' NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder'; npm run build",
+      "ok": false,
+      "failures": ["Error: Turbopack build failed with 2 errors:"],
+      "tail": "[32m\"@sanity/icons\"\u001b[39m\u001b[33m;\u001b[39m\n \u001b[90m 8 |\u001b[39m \u001b[36mimport\u001b[39m { detectOverflow\u001b[33m,\u001b[39m autoPlacement\u001b[33m,\u001b[39m flip\u001b[33m,\u001b[39m offset\u001b[33m,\u001b[39m shift\u001b[33m,\u001b[39m arrow\u001b[33m,\u001b[39m hide\u001b[33m,\u001b[39m useFloating\u001b[33m,\u001b[39m autoUpdate } \u001b[36mfrom\u001b[39m \u001b[32m\"@floating-ui/react-dom\"\u001b[39m\u001b[33m;\u001b[39m\n \u001b[90m 9 |\u001b[39m \u001b[36mimport\u001b[39m { motion\u001b[33m,\u001b[39m \u001b[33mAnimatePresence\u001b[39m } \u001b[36mfrom\u001b[39m \u001b[32m\"framer-motion\"\u001b[39m\u001b[33m;\u001b[39m\u001b[0m\n\n\n\nImport traces:\n  Client Component Browser:\n    ./node_modules/@sanity/ui/dist/_chunks-es/_visual-editing.mjs [Client Component Browser]\n    ./node_modules/sanity/lib/_chunks-es/pane.mjs [Client Component Browser]\n    ./sanity.config.ts [Client Component Browser]\n    ./app/studio/[[...index]]/page.tsx [Client Component Browser]\n    ./app/studio/[[...index]]/page.tsx [Server Component]\n\n  Client Component SSR:\n    ./node_modules/@sanity/ui/dist/_chunks-es/_visual-editing.mjs [Client Component SSR]\n    ./node_modules/sanity/lib/index.mjs [Client Component SSR]\n    ./sanity.config.ts [Client Component SSR]\n    ./app/studio/[[...index]]/page.tsx [Client Component SSR]\n    ./app/studio/[[...index]]/page.tsx [Server Component]\n\nhttps://nextjs.org/docs/messages/module-not-found\n\n\n    at ./node_modules/ (sanity/insert-menu/dist/index.js:7:1)\n    at <unknown> (https://nextjs.org/docs/messages/module-not-found)\n    at ./node_modules/ (sanity/ui/dist/_chunks-es/_visual-editing.mjs:6:1)\n    at <unknown> (https://nextjs.org/docs/messages/module-not-found)"
+    }
+  ],
+  "costUsd": 0.105734,
+  "durationMs": 224981,
+  "install": {
+    "code": 0,
+    "tail": "by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated grecaptcha@1.0.3: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.\nnpm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead\nnpm warn deprecated are-we-there-yet@2.0.0: This package is no longer supported.\nnpm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported\nnpm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead\nnpm warn deprecated gauge@3.0.2: This package is no longer supported.\nnpm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported\nnpm warn deprecated debug@4.1.1: Debug versions >=3.2.0 <3.2.7 || >=4 <4.3.1 have a low-severity ReDos regression when used in a Node.js environment. It is recommended you upgrade to 3.2.7 or 4.3.1. (https://github.com/visionmedia/debug/issues/797)\nnpm warn deprecated uuid@3.3.2: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead\nnpm warn deprecated @sanity/next-loader@1.7.5: This package is deprecated. Please use 'next-sanity/live' instead.\nnpm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options."
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "NEXT_PUBLIC_SANITY_PROJECT_ID",
+      "NEXT_PUBLIC_SANITY_DATASET",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY"
+    ]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "npm run build fails with Turbopack module-not-found errors: @sanity/ui and sanity/insert-menu cannot resolve imports such as @sanity/icons and @floating-ui/react-dom when bundling the studio page. This is a dependency or config problem in the repo, not a missing credential or external service."
+  }
+}

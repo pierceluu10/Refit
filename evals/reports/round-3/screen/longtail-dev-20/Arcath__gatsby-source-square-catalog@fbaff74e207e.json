@@ -1,0 +1,42 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "Arcath/gatsby-source-square-catalog",
+  "commit": "fbaff74e207e28f464388987fc7c3f97c388374b",
+  "provider": "square",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "test",
+      "command": "npm run test",
+      "ok": false,
+      "failures": [
+        "FAIL src/index.spec.ts",
+        "src/index.spec.ts: error TS2322: Type 'string | undefined' is not assignable to type 'string'."
+      ],
+      "tail": "> gatsby-source-square-catalog@0.0.4 test\n> tsc & jest\n\n----------|----------|----------|----------|----------|-------------------|\nFile      |  % Stmts | % Branch |  % Funcs |  % Lines | Uncovered Line #s |\n----------|----------|----------|----------|----------|-------------------|\nAll files |        0 |        0 |        0 |        0 |                   |\n----------|----------|----------|----------|----------|-------------------|\n\nFAIL src/index.spec.ts\n  ● Test suite failed to run\n\n    TypeScript diagnostics (customize using `[jest-config].globals.ts-jest.diagnostics` option):\n    \u001b[96msrc/index.spec.ts\u001b[0m:\u001b[93m17\u001b[0m:\u001b[93m70\u001b[0m - \u001b[91merror\u001b[0m\u001b[90m TS2322: \u001b[0mType 'string | undefined' is not assignable to type 'string'.\n      Type 'undefined' is not assignable to type 'string'.\n\n    \u001b[7m17\u001b[0m     await sourceNodes({actions, createNodeId, createContentDigest}, {token: process.env['GSSC_TOKEN']})\n    \u001b[7m  \u001b[0m \u001b[91m                                                                     ~~~~~\u001b[0m\n\n      \u001b[96msrc/index.ts\u001b[0m:\u001b[93m21\u001b[0m:\u001b[93m3\u001b[0m\n        \u001b[7m21\u001b[0m   token: string\n        \u001b[7m  \u001b[0m \u001b[96m  ~~~~~\u001b[0m\n        The expected type comes from property 'token' which is declared here on type 'GatsbySourceSquareConfig'\n\nTest Suites: 1 failed, 1 total\nTests:       0 total\nSnapshots:   0 total\nTime:        11.287s\nRan all test suites."
+    }
+  ],
+  "costUsd": 0.013212000000000002,
+  "durationMs": 50492,
+  "install": {
+    "code": 0,
+    "tail": "added 493 packages in 10.9s\n\n(node:48) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "npm run test (tsc & jest) fails with TS2322 in src/index.spec.ts: process.env['GSSC_TOKEN'] is 'string | undefined' but config token expects 'string'; this is a type error in the repo's own test code, before any credential would be used."
+  }
+}

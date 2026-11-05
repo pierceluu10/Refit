@@ -18,7 +18,7 @@ export class BudgetExceededError extends Error {
 }
 
 /** The parts of a repo's run that spend, as the cost breakdown names them. */
-export const PARTS = ['inventory', 'watch', 'match', 'harness', 'review'] as const;
+export const PARTS = ['inventory', 'watch', 'match', 'harness', 'review', 'memory'] as const;
 export type Part = (typeof PARTS)[number] | 'other';
 
 /** Which part a meter label belongs to: 'task <id>' is the harness, 'review <id>' the reviewer. */

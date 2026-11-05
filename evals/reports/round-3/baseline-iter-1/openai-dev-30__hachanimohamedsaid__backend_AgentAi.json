@@ -1,0 +1,74 @@
+{
+  "set": "openai-dev-30",
+  "repo": "hachanimohamedsaid/backend_AgentAi",
+  "refit": {
+    "checks": "passes",
+    "costUsd": 1.0368819,
+    "tasks": 4,
+    "verified": 4
+  },
+  "claude": {
+    "checks": "passes",
+    "costUsd": 0.21795540000000002,
+    "prepCostUsd": 0.01385,
+    "diffLines": 299,
+    "finalText": "I updated the repo for three retired or soon-to-be-retired models and the Realtime API beta. `tsc --noEmit` passes. I did not run the app or any live API calls. I did not check Stripe, Resend, Google OAuth/Sheets or Uber, and I did not touch `dist/`.\n\n**What changed and why**\n- **Gemini default model:** `gemini-2.0-flash` was shut down on 2026-06-01, and Google recommends `gemini-3.6-flash` as the replacement. I changed the defaults in `proposal-plan-generator`, `task-assignment-llm` and `dispatch-email-llm`, and in `.env.example`. The `gemini-1.5-flash` fallback mentioned in a comment is now `gemini-2.5-flash-lite`. `gemini-2.5-flash` is also deprecated and is due to be rerouted on 2026-12-01, so I did not use it.\n- **OpenAI Realtime voice (`src/realtime/realtime-voice.service.ts`):** `gpt-4o-realtime-preview` was removed on 2026-05-07, and the `OpenAI-Beta: realtime=v1` beta interface was removed on 2026-05-12. I made these changes:\n  - Switched the model to `gpt-realtime-1.5`.\n  - Dropped the beta header.\n  - Changed the `session.update` payload to `type: 'realtime'` with `audio.output.voice`.\n  - Renamed the `response.audio.delta` event to `response.output_audio.delta`. I took the new payload shape and event name from memory of the GA API, not from the migration guide. The docs page for it wouldn't load.\n  - Updated `docs/NESTJS_REALTIME_VOICE.md`.\n- **`gpt-4o-mini` default:** OpenAI removes it on 2027-01-14 and recommends `gpt-6-luna`. I changed the default in all 11 places in `src`, in `.env.example` and in two docs.\n- **`max_tokens`:** I renamed it to `max_completion_tokens` in the three OpenAI chat calls, because I assumed the new model needs the newer parameter name.\n\n**Please check**\n- **Chat Completions with `gpt-6-luna`:** the model page lists Chat Completions as supported. I couldn't confirm that it accepts a custom `temperature`, which several calls set. If those calls fail, remove `temperature` from them.\n- **`gemini-3.6-flash` and `@google/generative-ai`:** I didn't verify that the pinned SDK works with `gemini-3.6-flash`. The SDK may also be superseded by `@google/genai`. Test that.\n- **Realtime event names:** test the voice flow with a live session. Text deltas were left as `response.output_text.delta`.\n- **Environment variables:** if `GEMINI_MODEL` or `OPENAI_MODEL` is set in your deployment, it overrides these defaults. Update it there too.\n\nSources:\n- https://ai.google.dev/gemini-api/docs/deprecations\n- https://platform.openai.com/docs/deprecations\n- https://platform.openai.com/docs/models/gpt-6-luna",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-hachanimohamedsaid-backend_AgentAi/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "gpt-4o-realtime-preview removed and Realtime beta removed May 2026",
+          "correct": true,
+          "note": "Moved to the GA model gpt-realtime-2.1, removed the beta header, used the GA session shape with output_modalities ['audio'] and the new audio delta event, and added a test. The fourth PR adds a second, conflicting src/realtime/realtime-voice.service.spec.ts at the same path, and that diff is truncated."
+        },
+        {
+          "change": "openai npm 7.0.0 requires Node 22",
+          "correct": false,
+          "note": "The repo pins openai ^6, so no API change forced a major-version bump. B bumped to 7.49 anyway, which forces Node 22 on the Dockerfile and engines, adds a large lockfile churn, and adds a spec that fails on any Node below 22. This is an optional upgrade presented as a required one."
+        },
+        {
+          "change": "gpt-4o-mini shut down 2027-01-14 (migrate to gpt-6-luna)",
+          "correct": true,
+          "note": "Replaced all defaults and renamed max_tokens to max_completion_tokens. It also removed temperature from three calls with no cited requirement, which changes behavior on speculation."
+        },
+        {
+          "change": "whisper-1 / transcribe models and /v1/audio/translations retirement",
+          "correct": true,
+          "note": "Correctly found that the repo does not use these, so no change was needed."
+        }
+      ],
+      "breaks": [
+        "Missed the gemini-2.0-flash shutdown, so the Gemini defaults in task-assignment, dispatch-email and proposal-plan still point at a dead model.",
+        "Unrequired openai v7 bump and Node 22 requirement, a deployment risk on Node 20 hosts.",
+        "Removed temperature settings without a confirmed API requirement.",
+        "Two PRs create the same realtime spec file, which conflicts."
+      ]
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "gemini-2.0-flash shut down 2026-06-01 (replace with gemini-3.6-flash)",
+          "correct": true,
+          "note": "Updated all three Gemini default call sites, the .env.example and the fallback-model comment. It also deliberately avoided gemini-2.5-flash, which is itself deprecated. B missed this change, which is already in effect and breaks every Gemini path."
+        },
+        {
+          "change": "gpt-4o-realtime-preview removed and Realtime beta (OpenAI-Beta header) removed May 2026",
+          "correct": true,
+          "note": "Switched to the GA model gpt-realtime-1.5, dropped the beta header, moved session.update to the GA shape (type 'realtime', audio.output.voice), renamed the event to response.output_audio.delta and updated the docs. One possible weakness: B cites a later 2027-01-20 legacy-realtime removal that gpt-realtime-1.5 may fall under, while gpt-realtime-2.1 would be safer."
+        },
+        {
+          "change": "gpt-4o-mini shut down 2027-01-14 (migrate to gpt-6-luna)",
+          "correct": true,
+          "note": "Replaced all 11 defaults in src, .env.example and the docs. Renamed max_tokens to max_completion_tokens in the three calls. Kept temperature and told the user to verify it. A docs example still mentions gpt-4o, which is cosmetic."
+        }
+      ],
+      "breaks": []
+    },
+    "better": "claude",
+    "why": "A handles the Gemini 2.0 Flash shutdown that B misses, and that shutdown is already breaking the Gemini paths. Both migrate the realtime service and the gpt-4o-mini defaults comparably. B adds an unrequired SDK major bump and Node 22 requirement, removes temperature speculatively and creates a conflicting spec file.",
+    "costUsd": 0.141648
+  }
+}

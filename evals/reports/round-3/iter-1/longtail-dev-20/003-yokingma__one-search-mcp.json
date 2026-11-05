@@ -1,0 +1,142 @@
+{
+  "set": "longtail-dev-20",
+  "index": 3,
+  "repo": "yokingma/one-search-mcp",
+  "commit": "16eb424608888949165f6a668d476cbdf79afc20",
+  "provider": "bing-search",
+  "usages": 9,
+  "changes": 1,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "yokingma/one-search-mcp:bing-search:2025-08-11-bing-search-apis-retired",
+      "changeId": "bing-search:2025-08-11-bing-search-apis-retired",
+      "kind": "product-shutdown",
+      "change": {
+        "provider": "bing-search",
+        "id": "bing-search:2025-08-11-bing-search-apis-retired",
+        "kind": "product-shutdown",
+        "title": "All Bing Search APIs (Web, Image, News, Video, Custom Search etc., api.bing.microsoft.com) retired 2025-08-11; migrate to Grounding with Bing Search in Azure AI Agents",
+        "source": {
+          "url": "https://learn.microsoft.com/en-us/lifecycle/announcements/bing-search-api-retirement",
+          "quote": "Bing Search APIs will be retired on August 11, 2025. Any existing instances of Bing Search APIs will be decommissioned completely, and the product will no longer be available to be used or new customer signup."
+        },
+        "affects": {
+          "operations": ["https://api.bing.microsoft.com/v7.0/search"],
+          "versions": ["v7"]
+        },
+        "effectiveDate": "2025-08-11"
+      },
+      "reasoning": "The repo's bing provider (usage 2, recorded as 'bing' and reported here as 'bing-search') calls the Bing Web Search API v7.0 directly over HTTP at the default host api.bing.microsoft.com. Microsoft retired all Bing Search APIs on 2025-08-11 and fully decommissioned existing instances, so this search provider is already broken for any user who selects it. The string-overlap hint missed this; the endpoint and host match the change exactly. There is no drop-in replacement. Microsoft's suggested successor, Grounding with Bing Search in Azure AI Agents, is a different, agent-based product with a different auth model and response shape. The migration agent should take one of two paths. Option A: remove the bing provider, or mark it deprecated so selecting it fails with a clear error, and steer users to the other supported providers (tavily, google, exa, searxng and others). Option B: reimplement it on Azure AI Agents Grounding with Bing. Docs, README, env/config enums and any default-provider settings that reference bing should be updated as well. One thing to check: apiUrl is configurable, so a user could point it at a compatible proxy, but the default and the documented setup are dead.",
+      "callSites": [
+        {
+          "file": "src/search/bing.ts",
+          "line": 250,
+          "why": "Calls GET https://api.bing.microsoft.com/v7.0/search with Ocp-Apim-Subscription-Key. This is the Bing Web Search v7 API, which was decommissioned on 2025-08-11, so every request to it now fails."
+        },
+        {
+          "file": "src/search/bing.ts",
+          "line": 216,
+          "why": "Pins API version v7.0, the retired Bing Search API version. No newer Bing Search API version exists to bump to."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "yokingma/one-search-mcp:bing-search:2025-08-11-bing-search-apis-retired",
+        "outcome": "verified",
+        "diff": "diff --git a/README.md b/README.md\nindex 73ce271..2bddfab 100644\n--- a/README.md\n+++ b/README.md\n@@ -192,7 +192,7 @@ Use `ALLOW_PRIVATE_NETWORK=true` only in trusted deployments. When enabled, prom\n | `local` | No | No | Free, uses browser automation |\n | `duckduckgo` | No | No | Free, no API key needed |\n | `searxng` | Optional | Yes | Self-hosted meta search engine |\n-| `bing` | Yes | No | [Bing Search API](https://learn.microsoft.com/en-us/previous-versions/bing/search-apis/bing-web-search/create-bing-search-service-resource) |\n+| `bing` | Yes | Yes | **Deprecated**: the Bing Search API was [retired on 2025-08-11](https://learn.microsoft.com/en-us/lifecycle/announcements/bing-search-api-retirement). Only works with a user-supplied Bing-compatible `SEARCH_API_URL`; otherwise use another provider |\n | `tavily` | Yes | No | [Tavily API](https://tavily.com/) |\n | `google` | Yes | Yes (Search Engine ID) | [Google Custom Search](https://developers.google.com/custom-search/v1/overview) |\n | `zhipu` | Yes | No | [智谱 AI](https://bigmodel.cn/dev/api/search-tool/web-search) |\ndiff --git a/src/search/bing.ts b/src/search/bing.ts\nindex 41c02e7..030a772 100644\n--- a/src/search/bing.ts\n+++ b/src/search/bing.ts\n@@ -212,13 +212,22 @@ export interface BingSearchResponse {\n   [key: string]: any; // Allow other response fields\n }\n \n+export const BING_RETIRED_MESSAGE =\n+  'The Bing Search API was retired by Microsoft on 2025-08-11. Set SEARCH_API_URL to a Bing-compatible endpoint, or use another SEARCH_PROVIDER (tavily, google, exa, searxng, duckduckgo, ...).';\n+\n export async function bingSearch(options: ISearchRequestOptions, signal?: AbortSignal): Promise<ISearchResponse> {\n-  const { query, limit = 10, safeSearch = 0, page = 1, apiUrl = 'https://api.bing.microsoft.com/v7.0/search', apiKey, language } = options;\n+  const { query, limit = 10, safeSearch = 0, page = 1, apiUrl, apiKey, language } = options;\n \n   if (!query?.trim()) {\n     throw new Error('Query cannot be empty');\n   }\n \n+  // Bing Search APIs (api.bing.microsoft.com) were retired on 2025-08-11.\n+  // Only a user-supplied Bing-compatible endpoint (SEARCH_API_URL) can still work.\n+  if (!apiUrl) {\n+    throw new Error(BING_RETIRED_MESSAGE);\n+  }\n+\n   if (!apiKey) {\n     throw new Error('Bing API key is required');\n   }\ndiff --git a/test/bing.test.ts b/test/bing.test.ts\nnew file mode 100644\nindex 0000000..a61ae24\n--- /dev/null\n+++ b/test/bing.test.ts\n@@ -0,0 +1,21 @@\n+import { afterEach, describe, expect, it, vi } from 'vitest';\n+import { bingSearch } from '../src/search/bing.js';\n+\n+describe('bingSearch (retired API)', () => {\n+  afterEach(() => vi.unstubAllGlobals());\n+\n+  it('fails with a clear error and no request when no apiUrl is set', async () => {\n+    const fetchMock = vi.fn();\n+    vi.stubGlobal('fetch', fetchMock);\n+    await expect(bingSearch({ query: 'x', apiKey: 'k' })).rejects.toThrow(/retired/);\n+    expect(fetchMock).not.toHaveBeenCalled();\n+  });\n+\n+  it('still calls a custom apiUrl', async () => {\n+    const fetchMock = vi.fn(async () => ({ ok: true, json: async () => ({ webPages: { value: [] } }) }));\n+    vi.stubGlobal('fetch', fetchMock);\n+    const res = await bingSearch({ query: 'x', apiKey: 'k', apiUrl: 'https://proxy.example/search' });\n+    expect(res.success).toBe(true);\n+    expect(String((fetchMock.mock.calls[0] as unknown[])[0])).toContain('https://proxy.example/search?');\n+  });\n+});\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "test",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "bing-test",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.09977850000000002,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-yokingma-one-search-mcp-bing-search-2025-08-11-bing-search-apis-retired-UQj1AR/transcript.jsonl",
+        "prBody": "## All Bing Search APIs (Web, Image, News, Video, Custom Search etc., api.bing.microsoft.com) retired 2025-08-11; migrate to Grounding with Bing Search in Azure AI Agents [Verified]\n\n### Change\n\nRemoved the dead default Bing endpoint (api.bing.microsoft.com/v7.0/search). The bing provider now throws a clear \"retired\" error unless SEARCH_API_URL points at a Bing-compatible endpoint. The README marks bing as deprecated. Added test/bing.test.ts.\n\nFiles touched:\n- `README.md`\n- `src/search/bing.ts`\n- `test/bing.test.ts`\n\n### Why\n\nMicrosoft retired all Bing Search APIs on 2025-08-11. Grounding with Bing in Azure AI Agents uses a different auth model and response shape, so it is not a drop-in replacement. I chose the \"clear error\" path and did not reimplement the provider on Azure AI Agents.\n\n> Bing Search APIs will be retired on August 11, 2025. Any existing instances of Bing Search APIs will be decommissioned completely, and the product will no longer be available to be used or new customer signup.\n\nSource: https://learn.microsoft.com/en-us/lifecycle/announcements/bing-search-api-retirement\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| test | pass | pass | 0 |\n| bing-test | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- bing-test, added by the agent: `npx --no-install vitest run test/bing.test.ts` (fail (1) → pass)\n\nProvider validators: none run.\n\nTest of this change: `bing-test`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Grounding with Bing on Azure AI Agents was not implemented; that is a product decision for the maintainers.\n- I did not call any provider validators (openapi_check and the like) because the repo has no spec for the retired endpoint.\n- No provider validator was run.\n\n### Behaviour changes\n\n- SEARCH_PROVIDER=bing without SEARCH_API_URL now fails immediately with a clear 'retired' error. Before, it called the dead Microsoft endpoint.\n- A custom SEARCH_API_URL (a Bing-compatible proxy) still works as before.\n- I left the 'bing' value in the SearchProvider type, server.json and the agent-browser engines, so existing configs still parse.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0998\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [],
+        "agentChecks": [
+          {
+            "name": "bing-test",
+            "command": "npx --no-install vitest run test/bing.test.ts",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# yokingma/one-search-mcp:bing-search:2025-08-11-bing-search-apis-retired: verified, $0.0998\nChange: All Bing Search APIs (Web, Image, News, Video, Custom Search etc., api.bing.microsoft.com) retired 2025-08-11; migrate to Grounding with Bing Search in Azure AI Agents (bing-search, product-shutdown)\nBaseline checks: typecheck pass, build pass, test pass, bing-test fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=bing|BING glob=**/* → dist/index.cjs:2: \"use strict\";var Be=Object.create;var K=Object.defineProperty;var He=Object.getOwnPropertyDescriptor;var Ge=Object.getOwnPropertyNames;var Ne=Object.getPrototypeOf,Fe=Object.prototype.hasOwnProperty;var Y=(r,e,t,s)=>{if(e&…\n2. read_file path=src/search/bing.ts offset=205 → 205\t        resultIndex?: number; | 206\t        value: { | 207\t          id: string;\n3. search pattern=bing path=test/process-search.test.ts → test/process-search.test.ts:15:     bingSearch: vi.fn(async () => SEARCH_SUCCESS), | test/process-search.test.ts:41:     { provider: 'bing', handlerKey: 'bingSearch' },\n4. edit_file path=src/search/bing.ts old=<160 chars> new=<337 chars> → edited src/search/bing.ts (1 replacement)\n5. edit_file path=src/search/bing.ts old=export async function bingSearch( new=<265 chars> → edited src/search/bing.ts (1 replacement)\n6. shell command=sed -n 190,198p README.md; ls test → exit code: 0 | --- stdout --- | | Provider | API Key Required | API URL Required | Notes |\n7. edit_file path=README.md old=<163 chars> new=<272 chars> → edited README.md (1 replacement)\n8. write_file path=test/bing.test.ts content=<946 chars> → wrote test/bing.test.ts (946 bytes)\n9. run_checks  → ## typecheck: pass | command: npx --no-install tsc --noEmit | ## build: pass\n10. run_checks add=[{\"name\":\"bing-test\",\"command\":\"npx --no-install vitest run test/bing.test.ts\"}] → registered bing-test; on the original code it fails (1) | ## typecheck: pass | command: npx --no-install tsc --noEmit\n11. finish verdict=migrated summary=<251 chars> why=<264 chars> validators=[] unproven=<236 chars> behaviourChanges=<351 chars> proofTest=bing-test → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, test pass → pass, bing-test fail (1) → pass\n\n## Result\nFiles changed: README.md, src/search/bing.ts, test/bing.test.ts\nVerdict: migrated. Removed the dead default Bing endpoint (api.bing.microsoft.com/v7.0/search). The bing provider now throws a clear \"retired\" error unless SEARCH_API_URL points at a Bing-compatible endpoint. The README marks bing as deprecated. Added test/bing.test.ts.\nUnproven: Grounding with Bing on Azure AI Agents was not implemented; that is a product decision for the maintainers.; I did not call any provider validators (openapi_check and the like) because the repo has no spec for the retired endpoint.\n",
+        "preparation": {
+          "steps": [],
+          "env": {},
+          "reasoning": "No setup needed. The package.json has no postinstall, prepare, or codegen scripts, and the repo has no generated code. tsc, tsup and vitest run directly from the installed dependencies. The agent-browser and playwright-core install hooks only download browsers, which the checks do not need."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff removes the default `https://api.bing.microsoft.com/v7.0/search` URL in src/search/bing.ts and throws a clear 'retired' error unless a custom apiUrl is supplied. This is a reasonable minimal response to a product shutdown. Grounding with Bing in Azure AI Agents is not a drop-in replacement, and the PR rightly does not pretend it is. But this is a deprecation that switches the `bing` provider off for everyone without a custom URL, not a migration, which is a user-visible behaviour change. The new tests mock `fetch`, so nothing shows that a real 'Bing-compatible' endpoint exists or works. The 'verified' grade overstates what the checks show; this deserves human review of the product decision.",
+        "concerns": [
+          {
+            "file": "src/search/bing.ts",
+            "issue": "For every user without a custom URL, `SEARCH_PROVIDER=bing` now fails at call time with the retirement error. The API forced this, but it is a product decision, not a mechanical migration. Maintainers may prefer to fail at startup or config validation, or to fall back to another provider. Grade 'verified' hides that choice.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/search/bing.ts",
+            "issue": "The new guard depends on the caller passing `SEARCH_API_URL` through as `apiUrl` for the bing provider. The dispatch code (probably src/index.ts or src/search/index.ts) is not in the diff or the quoted files. If the caller never forwards apiUrl for bing, the 'custom endpoint' escape hatch in the README and error message does not exist. If it forwards a value meant for another provider, bing may call an unexpected URL.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/search/bing.ts",
+            "issue": "A user who explicitly sets `SEARCH_API_URL` to the old `api.bing.microsoft.com` endpoint gets past the guard and hits a decommissioned host, producing a generic HTTP or network error instead of the retirement message. Consider also rejecting that host explicitly.",
+            "severity": "low"
+          },
+          {
+            "file": "README.md",
+            "issue": "The table row is updated, but the Environment Variables section still describes `SEARCH_API_URL` as only for SearxNG or a Google CSE ID and lists bing as needing only `SEARCH_API_KEY`. The header `@reference` in bing.ts still points to the old create-resource docs. Docs are now inconsistent.",
+            "severity": "low"
+          },
+          {
+            "file": "test/bing.test.ts",
+            "issue": "Both tests stub `fetch`, so they prove only the guard and URL construction. No check covers a live or recorded response from any real Bing-compatible service, and 'Bing-compatible endpoint' is undefined. The second test's mock also lacks `status`/`statusText` and never exercises the error path.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Find where bingSearch is called (provider dispatch in src/index.ts or src/search/index.ts) and confirm SEARCH_API_URL is forwarded as apiUrl when SEARCH_PROVIDER=bing.",
+          "Decide whether maintainers want a runtime error, a startup or config error, or removal of the `bing` provider entirely. Re-grade to needs-review given this product choice.",
+          "Update the README Environment Variables section and the bing.ts @reference comment to match the new SEARCH_API_URL requirement for bing."
+        ],
+        "costUsd": 0.070452,
+        "model": "claude-opus-5-5"
+      }
+    }
+  ],
+  "costUsd": 0.5723022999999999,
+  "durationMs": 320893,
+  "matchReasoning": "yokingma/one-search-mcp:bing-search:2025-08-11-bing-search-apis-retired: The repo's bing provider (usage 2, recorded as 'bing' and reported here as 'bing-search') calls the Bing Web Search API v7.0 directly over HTTP at the default host api.bing.microsoft.com. Microsoft retired all Bing Search APIs on 2025-08-11 and fully decommissioned existing instances, so this search provider is already broken for any user who selects it. The string-overlap hint missed this; the endpoint and host match the change exactly. There is no drop-in replacement. Microsoft's suggested successor, Grounding with Bing Search in Azure AI Agents, is a different, agent-based product with a different auth model and response shape. The migration agent should take one of two paths. Option A: remove the bing provider, or mark it deprecated so selecting it fails with a clear error, and steer users to the other supported providers (tavily, google, exa, searxng and others). Option B: reimplement it on Azure AI Agents Grounding with Bing. Docs, README, env/config enums and any default-provider settings that reference bing should be updated as well. One thing to check: apiUrl is configurable, so a user could point it at a compatible proxy, but the default and the documented setup are dead.",
+  "costByPart": {
+    "inventory": 0.07521180000000001,
+    "watch": 0.063328,
+    "match": 0.031556,
+    "other": 0.23197600000000002,
+    "harness": 0.09977850000000002,
+    "review": 0.070452
+  }
+}

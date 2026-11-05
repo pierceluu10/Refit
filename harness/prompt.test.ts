@@ -81,7 +81,7 @@ const prompt = buildSystemPrompt({
 
 describe('buildSystemPrompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-01.10');
+    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-03.r3-5');
   });
 
   it('puts the sections in the plan order', () => {
@@ -110,7 +110,13 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('guidance, not rules');
     expect(prompt).toContain('Webhook handlers read the old name too');
     expect(prompt).toContain('verified on 3 repos');
-    expect(prompt).toContain('`fetch_url`: Fetch a docs page');
+    expect(prompt).toContain('`fetch_url`, `finish`');
+    expect(prompt).not.toContain('Fetch a docs page');
+    expect(prompt).toContain('within 90 days of today');
+    expect(prompt).toContain(
+      "A well-supported 'not affected' is as good an outcome as a migration",
+    );
+    expect(prompt).toContain('`.refit-proof/`');
     expect(prompt).toContain('Docker container, network off');
     expect(prompt).toContain('$5.00');
     expect(prompt).toContain("'not-affected'");
@@ -170,7 +176,7 @@ describe('buildSystemPrompt', () => {
     ).toBe(true);
     expect(rendered).toContain('Rename source everywhere, webhooks included.');
     expect(rendered).toContain(
-      '#### recipe-7 (stripe / field-renamed, verified on 3 repos; 1 later PR that used it closed by a human without merging)',
+      '#### recipe-7 (stripe / field-renamed, verified on 3 repos; 1 later run that used it did not verify or had its PR closed without merging)',
     );
     expect(rendered).toContain('```diff\n- source\n+ payment_source\n```');
   });

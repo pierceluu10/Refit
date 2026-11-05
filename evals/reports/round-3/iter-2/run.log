@@ -1,0 +1,145 @@
+stripe-dev-30: running 2 of 30 repos
+openai-dev-30: running 2 of 30 repos
+anthropic-dev-30: running 1 of 30 repos
+gemini-dev-15: running 3 of 15 repos
+longtail-dev-20: running 2 of 20 repos
+# longtail-dev-20
+
+Repos: 2: 2 started, 0 never started (dollar cap)
+Graded units: 2 (tasks, plus repos the match agent called not-affected)
+
+| Outcome | Units | Rate |
+| --- | --- | --- |
+| verified | 2 | 100.0% |
+| needs-review | 0 | 0.0% |
+| not-affected | 0 | 0.0% |
+| failed | 0 | 0.0% |
+
+Attempted: 100.0% (must be 100%)
+
+Cost: $0.5359 total, $0.2680 per repo
+
+Cost by part (from the meter labels):
+
+| Repo | match | harness | review | Total |
+| --- | --- | --- | --- | --- |
+| bcrant/Tableau2Slack | $0.0375 | $0.0985 | $0.0226 | $0.2566 |
+| LeviathanLevi/Coinbase-Pro-Crypto-Trading-Bot-CrypFinder | $0.0259 | $0.1068 | $0.0533 | $0.2793 |
+| All repos | $0.0634 | $0.2053 | $0.0759 | $0.5359 |
+
+AI reviewer (advisory, not counted): has-concerns 2
+PRs to hand-check in evals/reviews.json (verified and needs-review): 2
+
+Spent $0.5359 by the meter, $1.0057 by the run budget, of a $150 cap
+# anthropic-dev-30
+
+Repos: 1: 1 started, 0 never started (dollar cap)
+Graded units: 1 (tasks, plus repos the match agent called not-affected)
+
+| Outcome | Units | Rate |
+| --- | --- | --- |
+| verified | 1 | 100.0% |
+| needs-review | 0 | 0.0% |
+| not-affected | 0 | 0.0% |
+| failed | 0 | 0.0% |
+
+Attempted: 100.0% (must be 100%)
+
+Cost: $0.3446 total, $0.3446 per repo
+
+Cost by part (from the meter labels):
+
+| Repo | match | harness | review | Total |
+| --- | --- | --- | --- | --- |
+| saxllc/journey-intelligence | $0.0836 | $0.0831 | $0.0635 | $0.3446 |
+| All repos | $0.0836 | $0.0831 | $0.0635 | $0.3446 |
+
+AI reviewer (advisory, not counted): has-concerns 1
+PRs to hand-check in evals/reviews.json (verified and needs-review): 1
+
+Spent $0.3446 by the meter, $0.5797 by the run budget, of a $150 cap
+# stripe-dev-30
+
+Repos: 2: 2 started, 0 never started (dollar cap)
+Graded units: 2 (tasks, plus repos the match agent called not-affected)
+
+| Outcome | Units | Rate |
+| --- | --- | --- |
+| verified | 1 | 50.0% |
+| needs-review | 0 | 0.0% |
+| not-affected | 1 | 50.0% |
+| failed | 0 | 0.0% |
+
+Attempted: 100.0% (must be 100%)
+
+Cost: $0.6017 total, $0.3009 per repo
+
+Cost by part (from the meter labels):
+
+| Repo | match | harness | review | Total |
+| --- | --- | --- | --- | --- |
+| liamstamper/lamp-bot | $0.1032 | $0.1075 | $0.0833 | $0.4334 |
+| samiamjidkhan/dota2-helper | $0.0712 | $0.0972 | $0.0000 | $0.1684 |
+| All repos | $0.1743 | $0.2047 | $0.0833 | $0.6017 |
+
+AI reviewer (advisory, not counted): has-concerns 1
+PRs to hand-check in evals/reviews.json (verified and needs-review): 1
+
+Spent $0.6017 by the meter, $1.0698 by the run budget, of a $150 cap
+# openai-dev-30
+
+Repos: 2: 2 started, 0 never started (dollar cap)
+Graded units: 2 (tasks, plus repos the match agent called not-affected)
+
+| Outcome | Units | Rate |
+| --- | --- | --- |
+| verified | 2 | 100.0% |
+| needs-review | 0 | 0.0% |
+| not-affected | 0 | 0.0% |
+| failed | 0 | 0.0% |
+
+Attempted: 100.0% (must be 100%)
+
+Cost: $1.1416 total, $0.5708 per repo
+
+Cost by part (from the meter labels):
+
+| Repo | match | harness | review | Total |
+| --- | --- | --- | --- | --- |
+| hachanimohamedsaid/backend_AgentAi | $0.1486 | $0.2046 | $0.0719 | $0.6417 |
+| AyeletHillel/fine-tune | $0.0646 | $0.2196 | $0.0247 | $0.4999 |
+| All repos | $0.2132 | $0.4241 | $0.0966 | $1.1416 |
+
+AI reviewer (advisory, not counted): has-concerns 2
+PRs to hand-check in evals/reviews.json (verified and needs-review): 2
+
+Spent $1.1416 by the meter, $1.6121 by the run budget, of a $150 cap
+# gemini-dev-15
+
+Repos: 3: 3 started, 0 never started (dollar cap)
+Graded units: 3 (tasks, plus repos the match agent called not-affected)
+
+| Outcome | Units | Rate |
+| --- | --- | --- |
+| verified | 3 | 100.0% |
+| needs-review | 0 | 0.0% |
+| not-affected | 0 | 0.0% |
+| failed | 0 | 0.0% |
+
+Attempted: 100.0% (must be 100%)
+
+Cost: $1.6688 total, $0.5563 per repo
+
+Cost by part (from the meter labels):
+
+| Repo | match | harness | review | Total |
+| --- | --- | --- | --- | --- |
+| XDTerminated/t2-chat-t3c-2025 | $0.1268 | $0.2262 | $0.0440 | $0.6365 |
+| PRIYESHSINGH24/buddy_connect | $0.0989 | $0.1604 | $0.0652 | $0.5344 |
+| djnightmare9909/Dungeon-master-OS-WFGY | $0.0817 | $0.1651 | $0.0325 | $0.4979 |
+| All repos | $0.3074 | $0.5517 | $0.1417 | $1.6688 |
+
+AI reviewer (advisory, not counted): has-concerns 3
+PRs to hand-check in evals/reviews.json (verified and needs-review): 3
+
+Spent $1.6688 by the meter, $2.3702 by the run budget, of a $150 cap

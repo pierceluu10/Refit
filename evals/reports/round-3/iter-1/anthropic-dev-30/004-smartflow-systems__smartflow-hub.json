@@ -1,0 +1,130 @@
+{
+  "set": "anthropic-dev-30",
+  "index": 4,
+  "repo": "smartflow-systems/smartflow-hub",
+  "commit": "acfbd7674b90954d535c14f8a0e0102548029f50",
+  "provider": "anthropic",
+  "usages": 1,
+  "changes": 15,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "smartflow-systems/smartflow-hub:anthropic:2026-10-21-sdk-typescript-1-0-0",
+      "changeId": "anthropic:2026-10-21-sdk-typescript-1-0-0",
+      "kind": "sdk-major",
+      "change": {
+        "provider": "anthropic",
+        "id": "anthropic:2026-10-21-sdk-typescript-1-0-0",
+        "kind": "sdk-major",
+        "title": "npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too",
+        "source": {
+          "url": "https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/CHANGELOG.md",
+          "quote": "* **api:** add support for new API version 2026-10-21"
+        },
+        "affects": {
+          "fields": ["temperature", "top_p", "top_k", "MessageParam"],
+          "versions": ["<1.0.0", "1.0.0"],
+          "sdk": "@anthropic-ai/sdk"
+        }
+      },
+      "reasoning": "The repo pins @anthropic-ai/sdk 0.71.2 (<1.0.0) and calls messages.create with model, max_tokens and messages. SDK 1.0.0 is the move to API version 2026-10-21. Every behaviour change tied to that version, and the intermediate 0.134.0 OTel default, lands with this one bump. No retirement date for 2023-06-01 or for the 0.x SDK is given, so the current code keeps working. This is a planned upgrade, not an emergency. Response handling was not scanned, so the agent should check TypeScript types after the bump.\nThis task also resolves these changes. Handle each in the same change, and say in the PR how:\n- anthropic:2026-10-21-api-version-2026-10-21 (api-version): New Claude API version 2026-10-21 (anthropic-version header); SDKs older than the new majors keep sending 2023-06-01. The repo uses @anthropic-ai/sdk 0.71.2, which keeps sending anthropic-version 2023-06-01. It only moves to 2026-10-21 by bumping to SDK 1.0.0, so the version move happens in this upgrade.\n  Source: https://platform.claude.com/docs/en/api/migration-2026-10-21.md\n  \"This guide lists the code changes for moving from API version `2023-06-01` to `2026-10-21`.\"\n- anthropic:2026-10-21-sampling-params-removed (field-removed): In API version 2026-10-21, temperature, top_p and top_k in Messages and Batch requests return 400. The 400 on temperature/top_p/top_k only applies under API version 2026-10-21, which this upgrade adopts. The scanned call site sends only model, max_tokens and messages. The migration agent should confirm that no sampling params are passed anywhere else.\n  Source: https://platform.claude.com/docs/en/api/migration-2026-10-21.md\n  \"In `2026-10-21`, a request that sends `temperature`, `top_p`, or `top_k` returns a 400 error, even at the parameter’s default value.\"\n- anthropic:2026-10-21-document-citations-user-assistant-errors (other): In API version 2026-10-21, document blocks in assistant messages and citations on text blocks in user messages return 400. This only bites under API version 2026-10-21, which comes with the SDK 1.0.0 bump. The agent should check that messages built in src/lib/ai.ts put no document blocks in assistant turns and no citations on user text blocks.\n  Source: https://platform.claude.com/docs/en/api/migration-2026-10-21.md\n  \"In `2026-10-21`, a request that places a `document` block directly in an `assistant` message returns a 400 error.\"\n- anthropic:2026-10-14-ts-sdk-otel-default (other): TypeScript SDK 0.134.0 auto-creates OpenTelemetry spans and trace headers if a global tracer provider exists (unsure if affects; opt out with openTelemetry:false). OpenTelemetry auto-instrumentation arrives in SDK 0.134.0, which the jump from 0.71.2 to 1.0.0 passes through. During the upgrade, check for a global tracer provider and pass openTelemetry:false if spans are unwanted.\n  Source: https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/CHANGELOG.md\n  \"If your app registers a global tracer provider, the SDK will create spans with it after upgrading, and they'll be exported with the rest of your traces.\"",
+      "callSites": [
+        {
+          "file": "src/lib/ai.ts",
+          "line": 13,
+          "why": "messages.create runs through @anthropic-ai/sdk 0.71.2. Moving to 1.0.0 changes the default API version to 2026-10-21, turns MessageParam into a union (the messages typing may need adjusting), and removes temperature/top_p/top_k."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "smartflow-systems/smartflow-hub:anthropic:2026-10-21-sdk-typescript-1-0-0",
+        "outcome": "needs-review",
+        "diff": "diff --git a/package-lock.json b/package-lock.json\nindex dfc2fd0..4cfa59e 100644\n--- a/package-lock.json\n+++ b/package-lock.json\n@@ -8,7 +8,7 @@\n       \"name\": \"smartflow-hub-nextjs\",\n       \"version\": \"0.1.0\",\n       \"dependencies\": {\n-        \"@anthropic-ai/sdk\": \"^0.71.2\",\n+        \"@anthropic-ai/sdk\": \"^1.0.0\",\n         \"next\": \"^16.2.4\",\n         \"react\": \"19.2.3\",\n         \"react-dom\": \"19.2.3\"\n@@ -39,12 +39,14 @@\n       }\n     },\n     \"node_modules/@anthropic-ai/sdk\": {\n-      \"version\": \"0.71.2\",\n-      \"resolved\": \"https://registry.npmjs.org/@anthropic-ai/sdk/-/sdk-0.71.2.tgz\",\n-      \"integrity\": \"sha512-TGNDEUuEstk/DKu0/TflXAEt+p+p/WhTlFzEnoosvbaDU2LTjm42igSdlL0VijrKpWejtOKxX0b8A7uc+XiSAQ==\",\n-      \"license\": \"MIT\",\n+      \"version\": \"1.0.0\",\n+      \"resolved\": \"https://registry.npmjs.org/@anthropic-ai/sdk/-/sdk-1.0.0.tgz\",\n+      \"integrity\": \"sha512-I1KiDtqRl1F9mZgRJxTYiLxeM/jgLve/8YBeNpNBkPRttOFgABJQcDm70RFFGmOruTujiBbaCA+Vhx2Q8l0qPA==\",\n+      \"license\": \"Apache-2.0\",\n       \"dependencies\": {\n-        \"json-schema-to-ts\": \"^3.1.1\"\n+        \"@opentelemetry/api\": \"^1.4.1\",\n+        \"json-schema-to-ts\": \"^3.1.1\",\n+        \"standardwebhooks\": \"^1.0.0\"\n       },\n       \"bin\": {\n         \"anthropic-ai-sdk\": \"bin/cli\"\n@@ -1120,9 +1122,6 @@\n       \"cpu\": [\n         \"arm64\"\n       ],\n-      \"libc\": [\n-        \"glibc\"\n-      ],\n       \"license\": \"MIT\",\n       \"optional\": true,\n       \"os\": [\n@@ -1139,9 +1138,6 @@\n       \"cpu\": [\n         \"arm64\"\n       ],\n-      \"libc\": [\n-        \"musl\"\n-      ],\n       \"license\": \"MIT\",\n       \"optional\": true,\n       \"os\": [\n@@ -1158,9 +1154,6 @@\n       \"cpu\": [\n         \"x64\"\n       ],\n-      \"libc\": [\n-        \"glibc\"\n-      ],\n       \"license\": \"MIT\",\n       \"optional\": true,\n       \"os\": [\n@@ -1177,9 +1170,6 @@\n       \"cpu\": [\n         \"x64\"\n       ],\n-      \"libc\": [\n-        \"musl\"\n-      ],\n       \"license\": \"MIT\",\n       \"optional\": true,\n       \"os\": [\n@@ -1269,6 +1259,15 @@\n         \"node\": \">=12.4.0\"\n       }\n     },\n+    \"node_modules/@opentelemetry/api\": {\n+      \"version\": \"1.10.0\",\n+      \"resolved\": \"https://registry.npmjs.org/@opentelemetry/api/-/api-1.10.0.tgz\",\n+      \"integrity\": \"sha512-lMkyes8iHrG+mk6WH7X70MdCLI2RS0FwNBY1PyQ8UemaijE2m5mv5A0Niy3HtbYTFrgkUEQjFMXmSAk2hQDuPQ==\",\n+      \"license\": \"Apache-2.0\",\n+      \"engines\": {\n+        \"node\": \">=8.0.0\"\n+      }\n+    },\n     \"node_modules/@rtsao/scc\": {\n       \"version\": \"1.1.0\",\n       \"resolved\": \"https://registry.npmjs.org/@rtsao/scc/-/scc-1.1.0.tgz\",\n@@ -1276,6 +1275,12 @@\n       \"dev\": true,\n       \"license\": \"MIT\"\n     },\n+    \"node_modules/@stablelib/base64\": {\n+      \"version\": \"1.0.1\",\n+      \"resolved\": \"https://registry.npmjs.org/@stablelib/base64/-/base64-1.0.1.tgz\",\n+      \"integrity\": \"sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==\",\n+      \"license\": \"MIT\"\n+    },\n     \"node_modules/@swc/helpers\": {\n       \"version\": \"0.5.15\",\n       \"resolved\": \"https://registry.npmjs.org/@swc/helpers/-/helpers-0.5.15.tgz\",\n@@ -3551,6 +3556,12 @@\n       \"dev\": true,\n       \"license\": \"MIT\"\n     },\n+    \"node_modules/fast-sha256\": {\n+      \"version\": \"1.3.0\",\n+      \"resolved\": \"https://registry.npmjs.org/fast-sha256/-/fast-sha256-1.3.0.tgz\",\n+      \"integrity\": \"sha512-n11RGP/lrWEFI/bWdygLxhI+pVeo1ZYIVwvvPkW7azl/rOy+F3HYRZ2K5zeE9mmkhQppyv9sQFx0JM9UabnpPQ==\",\n+      \"license\": \"Unlicense\"\n+    },\n     \"node_modules/fastq\": {\n       \"version\": \"1.20.1\",\n       \"resolved\": \"https://registry.npmjs.org/fastq/-/fastq-1.20.1.tgz\",\n@@ -5888,6 +5899,16 @@\n       \"dev\": true,\n       \"license\": \"MIT\"\n     },\n+    \"node_modules/standardwebhooks\": {\n+      \"version\": \"1.1.1\",\n+      \"resolved\": \"https://registry.npmjs.org/standardwebhooks/-/standardwebhooks-1.1.1.tgz\",\n+      \"integrity\": \"sha512-bCbX9ZEyFkWPsRz7Bl3NuQUJohmwGSev/yhr7vhaGPlc4AfIrspIRa6cPTBuI1ItmrTDJ4d/S2hCsfe4+vQGnQ==\",\n+      \"license\": \"MIT\",\n+      \"dependencies\": {\n+        \"@stablelib/base64\": \"^1.0.0\",\n+        \"fast-sha256\": \"^1.3.0\"\n+      }\n+    },\n     \"node_modules/stop-iteration-iterator\": {\n       \"version\": \"1.1.0\",\n       \"resolved\": \"https://registry.npmjs.org/stop-iteration-iterator/-/stop-iteration-iterator-1.1.0.tgz\",\ndiff --git a/package.json b/package.json\nindex 3dc8f2e..eeec6fa 100644\n--- a/package.json\n+++ b/package.json\n@@ -9,7 +9,7 @@\n     \"lint\": \"eslint\"\n   },\n   \"dependencies\": {\n-    \"@anthropic-ai/sdk\": \"^0.71.2\",\n+    \"@anthropic-ai/sdk\": \"^1.0.0\",\n     \"next\": \"^16.2.4\",\n     \"react\": \"19.2.3\",\n     \"react-dom\": \"19.2.3\"\ndiff --git a/test/anthropic-request.test.mts b/test/anthropic-request.test.mts\nnew file mode 100644\nindex 0000000..d5dc113\n--- /dev/null\n+++ b/test/anthropic-request.test.mts\n@@ -0,0 +1,15 @@\n+import assert from 'node:assert/strict';\n+process.env.ANTHROPIC_API_KEY = 'x';\n+let body: any; let headers: Headers;\n+globalThis.fetch = (async (_u: any, init: any) => {\n+  body = JSON.parse(init.body); headers = new Headers(init.headers);\n+  return new Response(JSON.stringify({ id: 'm', type: 'message', role: 'assistant', model: 'x',\n+    content: [{ type: 'text', text: 'hi' }], stop_reason: 'end_turn', stop_sequence: null,\n+    usage: { input_tokens: 1, output_tokens: 1 } }), { headers: { 'content-type': 'application/json' } });\n+}) as any;\n+const { queryAI } = await import('../src/lib/ai.js');\n+const r = await queryAI([{ role: 'user', content: 'yo' }]);\n+assert.equal(r.reply, 'hi');\n+for (const k of ['temperature', 'top_p', 'top_k']) assert.ok(!(k in body));\n+assert.equal(headers!.get('anthropic-version'), '2026-10-21');\n+console.log('ok');\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "anthropic-request",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.0924815,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-smartflow-systems-smartflow-hub-anthropic-2026-10-21-sdk-typescript-1-0-0-EabaC3/transcript.jsonl",
+        "prBody": "## npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too [Needs review]\n\n### Change\n\nBumped @anthropic-ai/sdk 0.71.2 -> 1.0.0 via npm. No code changes were needed in src/lib/ai.ts. Added test/anthropic-request.test.mts, which stubs fetch and calls queryAI.\n\nFiles touched:\n- `package-lock.json`\n- `package.json`\n- `test/anthropic-request.test.mts`\n\n### Why\n\nSDK 1.0.0 sends anthropic-version 2026-10-21; sampling params, document/citation placement and the OTel default needed checking.\n\n> * **api:** add support for new API version 2026-10-21\n\nSource: https://raw.githubusercontent.com/anthropics/anthropic-sdk-typescript/HEAD/CHANGELOG.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| anthropic-request | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- anthropic-request, added by the agent: `export ANTHROPIC_API_KEY='placeholder' SmartFlow_Hub='placeholder'; ANTHROPIC_API_KEY=x npx tsx test/anthropic-request.test.mts` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Checks ran with placeholder env: ANTHROPIC_API_KEY, SmartFlow_Hub.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Real API behaviour at 2026-10-21 (no live call).\n- The npx-fetched tsx used by the test is not a devDependency.\n- The model claude-sonnet-4-20250514 may be retired; not checked.\n- No Bedrock, Vertex or Foundry SDK is used, so none needed to move.\n- The agent wrote no test of this change and gave no reason why none can be written.\n- No provider validator was run.\n\n### Behaviour changes\n\n- Requests now send anthropic-version 2026-10-21.\n- The call sends no temperature, top_p or top_k, and the repo has no document blocks or citations.\n- The repo has no OpenTelemetry tracer provider, so openTelemetry:false was not set.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.0925\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": ["recipe-anthropic-sdk-major-50cc7085", "recipe-openai-sdk-major-032de36f"],
+        "agentChecks": [
+          {
+            "name": "anthropic-request",
+            "command": "export ANTHROPIC_API_KEY='placeholder' SmartFlow_Hub='placeholder'; ANTHROPIC_API_KEY=x npx tsx test/anthropic-request.test.mts",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# smartflow-systems/smartflow-hub:anthropic:2026-10-21-sdk-typescript-1-0-0: needs-review, $0.0925\nChange: npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too (anthropic, sdk-major)\nBaseline checks: typecheck pass, build pass, anthropic-request fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. read_file path=src/lib/ai.ts → 1\timport Anthropic from '@anthropic-ai/sdk'; | 2\t | 3\tconst client = new Anthropic({\n2. search pattern=anthropic|temperature|top_p|top_k|opentelemetry path=src glob=**/*.{ts,tsx,js,json,mjs} → src/lib/ai.ts:1: import Anthropic from '@anthropic-ai/sdk';\n3. shell command=<226 chars> → exit code: 1 | --- stdout --- | To address all issues (including breaking changes), run:\n4. shell command=<1018 chars> → exit code: 0 | --- stdout --- | test/anthropic-request.test.ts(10,34): error TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled.\n5. shell command=<234 chars> → exit code: 0 | --- stdout --- | ok\n6. run_checks add=<102 chars> → registered anthropic-request; on the original code it fails (1) | ## typecheck: pass | command: export ANTHROPIC_API_KEY='placeholder' SmartFlow_Hub='placeholder'; npx --no-install tsc --noEmit\n7. finish verdict=migrated summary=<171 chars> why=<128 chars> validators=[] unproven=<250 chars> behaviourChanges=<235 chars> → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, anthropic-request fail (1) → pass\n\n## Result\nFiles changed: package-lock.json, package.json, test/anthropic-request.test.mts\nVerdict: migrated. Bumped @anthropic-ai/sdk 0.71.2 -> 1.0.0 via npm. No code changes were needed in src/lib/ai.ts. Added test/anthropic-request.test.mts, which stubs fetch and calls queryAI.\nUnproven: Real API behaviour at 2026-10-21 (no live call).; The npx-fetched tsx used by the test is not a devDependency.; The model claude-sonnet-4-20250514 may be retired; not checked.; No Bedrock, Vertex or Foundry SDK is used, so none needed to move.\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "ANTHROPIC_API_KEY": "placeholder",
+            "SmartFlow_Hub": "placeholder"
+          },
+          "reasoning": "No codegen or install-script-dependent steps: package.json has no postinstall/prepare/generate scripts, and Next.js build and tsc need no generated code. The Anthropic API key placeholders are set only in case route modules instantiate the SDK at build time."
+        }
+      },
+      "review": {
+        "opinion": "looks-right",
+        "summary": "The PR bumps @anthropic-ai/sdk from ^0.71.2 to ^1.0.0 and leaves src/lib/ai.ts unchanged. That is defensible. The single call site (ai.ts:13) never passed temperature, top_p or top_k, and there is no Bedrock, Vertex or Foundry client in the repo. Typecheck still passes with the cast to `Array<{role: 'user'|'assistant'; content: string}>`, so the MessageParam union change does not break it here. The new test proves three things against a mocked fetch: the request omits the removed sampling params, it sends anthropic-version 2026-10-21, and the old response shape still parses. It does not prove the real API accepts this request under 2026-10-21. It also does not prove the response shape is unchanged. The needs-review grade fits.",
+        "concerns": [
+          {
+            "file": "src/lib/ai.ts",
+            "issue": "Line 14 uses model 'claude-sonnet-4-20250514'. I could not confirm that this model is still accepted under API version 2026-10-21; check Anthropic's model deprecation and version docs. Also, every API error is caught and returned as a `reply` string (lines 21-24). A 400 or 404 from the new version would reach users as chat text rather than failing loudly, and only a live smoke call would reveal it.",
+            "severity": "medium"
+          },
+          {
+            "file": "test/anthropic-request.test.mts",
+            "issue": "The test mocks fetch and returns a hand-written response in the pre-1.0 shape. It confirms the SDK can parse that shape, not that the 2026-10-21 API still returns it. package.json also has no test script, so it is unclear how CI runs this check after merge.",
+            "severity": "low"
+          },
+          {
+            "file": "package-lock.json",
+            "issue": "The lockfile has churn unrelated to the SDK bump: the `libc` (glibc/musl) fields were removed from four optional native binary entries (around lines 1120-1180). This looks like a different npm version regenerating the lockfile. npm uses `libc` to choose platform binaries, so dropping it may change what gets installed on Linux/musl hosts such as Replit or Alpine.",
+            "severity": "low"
+          },
+          {
+            "file": "package-lock.json",
+            "issue": "The SDK license changes from MIT to Apache-2.0. The SDK also pulls in new runtime dependencies: @opentelemetry/api, standardwebhooks, @stablelib/base64 and fast-sha256 (Unlicense). This may matter for license policy and for the server bundle.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Make one live messages.create call with SDK 1.0.0, using the real key and model 'claude-sonnet-4-20250514', and confirm it succeeds under anthropic-version 2026-10-21.",
+          "Confirm in the SDK 1.0.0 types and changelog that the Message response content and text block shape is unchanged.",
+          "Regenerate package-lock.json with the repo's usual npm version so the `libc` fields are kept, or confirm their removal is harmless for the deploy target.",
+          "Decide whether the Apache-2.0 license and the new transitive dependencies are acceptable."
+        ],
+        "costUsd": 0.051716,
+        "model": "claude-opus-5-5"
+      }
+    }
+  ],
+  "costUsd": 0.413377,
+  "durationMs": 345050,
+  "matchReasoning": "smartflow-systems/smartflow-hub:anthropic:2026-10-21-sdk-typescript-1-0-0: The repo pins @anthropic-ai/sdk 0.71.2 (<1.0.0) and calls messages.create with model, max_tokens and messages. SDK 1.0.0 is the move to API version 2026-10-21. Every behaviour change tied to that version, and the intermediate 0.134.0 OTel default, lands with this one bump. No retirement date for 2023-06-01 or for the 0.x SDK is given, so the current code keeps working. This is a planned upgrade, not an emergency. Response handling was not scanned, so the agent should check TypeScript types after the bump.\nanthropic:2026-10-21-api-version-2026-10-21: not affected: No task of its own: resolved inside smartflow-systems/smartflow-hub:anthropic:2026-10-21-sdk-typescript-1-0-0 (npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too). The repo uses @anthropic-ai/sdk 0.71.2, which keeps sending anthropic-version 2023-06-01. It only moves to 2026-10-21 by bumping to SDK 1.0.0, so the version move happens in this upgrade.\nanthropic:2026-10-21-sampling-params-removed: not affected: No task of its own: resolved inside smartflow-systems/smartflow-hub:anthropic:2026-10-21-sdk-typescript-1-0-0 (npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too). The 400 on temperature/top_p/top_k only applies under API version 2026-10-21, which this upgrade adopts. The scanned call site sends only model, max_tokens and messages. The migration agent should confirm that no sampling params are passed anywhere else.\nanthropic:2026-10-21-document-citations-user-assistant-errors: not affected: No task of its own: resolved inside smartflow-systems/smartflow-hub:anthropic:2026-10-21-sdk-typescript-1-0-0 (npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too). This only bites under API version 2026-10-21, which comes with the SDK 1.0.0 bump. The agent should check that messages built in src/lib/ai.ts put no document blocks in assistant turns and no citations on user text blocks.\nanthropic:2026-10-14-ts-sdk-otel-default: not affected: No task of its own: resolved inside smartflow-systems/smartflow-hub:anthropic:2026-10-21-sdk-typescript-1-0-0 (npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too). OpenTelemetry auto-instrumentation arrives in SDK 0.134.0, which the jump from 0.71.2 to 1.0.0 passes through. During the upgrade, check for a global tracer provider and pass openTelemetry:false if spans are unwanted.\nanthropic:2026-10-21-admin-api-field-renames: not affected: The repo calls only messages.create. It never uses the Admin API or the Enterprise Analytics API, so the renamed response fields are never read.\nanthropic:2026-11-30-fast-mode-opus-4-8-removal: not affected: The repo uses claude-sonnet-4-20250514, not claude-opus-4-8, and does not send the speed field.\nanthropic:2026-11-30-retire-claude-sonnet-4-5: not affected: The retired model is claude-sonnet-4-5-20250929. The repo pins claude-sonnet-4-20250514, which is a different model that this notice does not name.\nanthropic:2026-10-07-haiku-5-5-breaking: not affected: The repo does not use claude-haiku-5-5 or any Haiku model; it uses claude-sonnet-4-20250514.\nanthropic:2026-09-28-sonnet-5-5-breaking: not affected: The repo does not use claude-sonnet-5-5. Its call site also sends no thinking or tool_choice.\nanthropic:2026-09-22-opus-5-5-breaking: not affected: The repo does not use claude-opus-5-5 and sends no thinking, tool_choice or computer-use tools.\nanthropic:2026-09-01-fable-5-1-tool-choice: not affected: The repo uses neither claude-fable-5-1 nor claude-mythos-5-1, and it sends no tool_choice.\nanthropic:2026-08-27-ts-sdk-beta-files-skills: not affected: The repo calls only messages.create. It does not use client.beta.files, client.beta.skills or the BetaSkill type.\nanthropic:2026-10-07-text-completions-deprecated: not affected: The repo uses the Messages API (messages.create), not client.completions.create.\nanthropic:2026-09-24-compliance-activity-names-removed: not affected: The repo does not call the Compliance API Activity Feed. It only calls messages.create.",
+  "costByPart": {
+    "inventory": 0.015083499999999998,
+    "match": 0.07666,
+    "other": 0.17743599999999998,
+    "harness": 0.0924815,
+    "review": 0.051716
+  }
+}

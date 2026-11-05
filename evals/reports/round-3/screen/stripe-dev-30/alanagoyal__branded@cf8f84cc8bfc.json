@@ -1,0 +1,54 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "alanagoyal/branded",
+  "commit": "cf8f84cc8bfc4b6fc35ae462deea9369ff7afc27",
+  "provider": "stripe",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "typecheck",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='http://localhost:54321' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' OPENAI_API_KEY='placeholder' BRAINTRUST_API_KEY='placeholder' WHOXY_API_KEY='placeholder' RAPID_API_KEY='placeholder' NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY='pk_test_placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_ENDPOINT_SECRET='whsec_placeholder' STRIPE_PRO_PRICE_ID='price_placeholder_pro' STRIPE_BUSINESS_PRICE_ID='price_placeholder_business'; npm run typecheck",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='http://localhost:54321' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' OPENAI_API_KEY='placeholder' BRAINTRUST_API_KEY='placeholder' WHOXY_API_KEY='placeholder' RAPID_API_KEY='placeholder' NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY='pk_test_placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_ENDPOINT_SECRET='whsec_placeholder' STRIPE_PRO_PRICE_ID='price_placeholder_pro' STRIPE_BUSINESS_PRICE_ID='price_placeholder_business'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "test",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='http://localhost:54321' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' OPENAI_API_KEY='placeholder' BRAINTRUST_API_KEY='placeholder' WHOXY_API_KEY='placeholder' RAPID_API_KEY='placeholder' NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY='pk_test_placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_ENDPOINT_SECRET='whsec_placeholder' STRIPE_PRO_PRICE_ID='price_placeholder_pro' STRIPE_BUSINESS_PRICE_ID='price_placeholder_business'; npm run test",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.078716,
+  "durationMs": 186185,
+  "install": {
+    "code": 0,
+    "tail": "added 681 packages in 1m\n\nnpm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.\nnpm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead\nnpm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead\nnpm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead\nnpm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options."
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "OPENAI_API_KEY",
+      "BRAINTRUST_API_KEY",
+      "WHOXY_API_KEY",
+      "RAPID_API_KEY",
+      "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_ENDPOINT_SECRET",
+      "STRIPE_PRO_PRICE_ID",
+      "STRIPE_BUSINESS_PRICE_ID"
+    ]
+  }
+}

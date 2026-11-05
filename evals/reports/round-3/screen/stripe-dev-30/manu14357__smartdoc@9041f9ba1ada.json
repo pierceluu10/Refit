@@ -1,0 +1,41 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "manu14357/smartdoc",
+  "commit": "9041f9ba1adac5d7f16ebf89967b0b7a91e5ee60",
+  "provider": "stripe",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.08433999999999997,
+  "durationMs": 169936,
+  "install": {
+    "code": 0,
+    "tail": "-11-03T19_00_55_141Z-eresolve-report.txt\nnpm error A complete log of this run can be found in: /tmp/.npm/_logs/2026-11-03T19_00_55_141Z-debug-0.log\nnpm warn deprecated har-validator@5.1.5: this library is no longer supported\nnpm warn deprecated abab@2.0.6: Use your platform's native atob() and btoa() methods instead\nnpm warn deprecated @humanwhocodes/config-array@0.13.0: Use @eslint/config-array instead\nnpm warn deprecated phantomjs-prebuilt@2.1.16: this package is now deprecated\nnpm warn deprecated @humanwhocodes/object-schema@2.0.3: Use @eslint/object-schema instead\nnpm warn deprecated domexception@4.0.0: Use your platform's native DOMException instead\nnpm warn deprecated request@2.88.2: request has been deprecated, see https://github.com/request/request/issues/3142\nnpm warn deprecated uuid@3.4.0: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.\nnpm warn deprecated html-pdf@3.0.1: Please migrate your projects to a newer library like puppeteer\nnpm warn deprecated dommatrix@1.0.3: dommatrix is no longer maintained. Please use @thednp/dommatrix.\nnpm warn deprecated draft-js-plugins-editor@3.0.0: use @draft-js-plugins/editor >=v4 instead\nnpm warn deprecated puppeteer@19.11.1: < 22.8.2 is no longer supported\nnpm warn deprecated eslint@8.57.1: This version is no longer supported. Please see https://eslint.org/version-support for other options."
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npx prisma generate",
+        "why": "The repo's postinstall runs prisma generate, which was skipped. It creates the Prisma client types that @prisma/client imports need for tsc and next build.",
+        "code": 0
+      }
+    ],
+    "env": ["DATABASE_URL"]
+  }
+}

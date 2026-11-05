@@ -1,0 +1,19 @@
+{
+  "set": "openai-dev-30",
+  "repo": "BahadirKarsli/Chatbot-Assistant",
+  "commit": "80037971dee2389edf344a4111acab27d3ddd939",
+  "provider": "openai",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.0038080000000000336,
+  "durationMs": 52447,
+  "install": {
+    "code": 0,
+    "tail": " not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n  WARNING: The script httpx2 is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\n  WARNING: The script normalizer is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\n  WARNING: The script waitress-serve is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip\n  WARNING: The script dotenv is installed in '/tmp/.local/bin' which is not on PATH.\n  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.3\n[notice] To update, run: pip install --upgrade pip"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "set": "openai-dev-30",
+  "repo": "goodreasonai/nichey",
+  "commit": "e48e3e737abfc9c0d0b603c1939b593da22bfa73",
+  "provider": "openai",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.005223999999999895,
+  "durationMs": 22515,
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

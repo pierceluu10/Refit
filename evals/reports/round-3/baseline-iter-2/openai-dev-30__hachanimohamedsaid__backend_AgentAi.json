@@ -1,0 +1,64 @@
+{
+  "set": "openai-dev-30",
+  "repo": "hachanimohamedsaid/backend_AgentAi",
+  "refit": {
+    "checks": "passes",
+    "costUsd": 0.35313930000000004,
+    "tasks": 1,
+    "verified": 1
+  },
+  "claude": {
+    "checks": "passes",
+    "costUsd": 0.18599259999999992,
+    "prepCostUsd": 0.01375,
+    "diffLines": 104,
+    "finalText": "I made two changes, both for models or interfaces that no longer work. Typecheck (`tsc --noEmit`) is clean, but I haven't run any live API calls.\n\n**What I changed**\n1. **OpenAI Realtime** (`src/realtime/realtime-voice.service.ts`). OpenAI's [deprecations page](https://developers.openai.com/api/docs/deprecations.md) says the `gpt-4o-realtime-preview` models were shut down on 2026-05-07. It also says the `OpenAI-Beta: realtime=v1` interface was removed on 2026-05-12. So the voice proxy can't connect as written. I switched it to the GA interface, following the [beta-to-GA guide](https://developers.openai.com/api/docs/guides/realtime):\n   - The model is now `gpt-realtime-2.1`.\n   - I removed the `OpenAI-Beta` header.\n   - `session.update` now sends `type: 'realtime'` and puts the voice under `audio.output.voice`.\n   - The audio event it listens for is now `response.output_audio.delta`, not `response.audio.delta`.\n2. **Gemini default model.** Google's [deprecations page](https://ai.google.dev/gemini-api/docs/deprecations) says `gemini-2.0-flash` was shut down on 2026-06-01 and recommends `gemini-3.6-flash`. I changed the default in three places: `proposal-plan-generator.service.ts`, `task-assignment-llm.service.ts` and `dispatch-email-llm.service.ts`. I also updated `.env.example` and the docs in `docs/`, and replaced the `gemini-1.5-flash` fallback example in a comment with `gemini-3.5-flash-lite`.\n\n**Flagged, not changed**\n- **`gpt-4o-mini` default.** It is used in many services and in `.env.example`. OpenAI [lists](https://developers.openai.com/api/docs/deprecations.md) `gpt-4o-mini-2024-07-18` for shutdown on 2027-01-14, with `gpt-6-luna` as the replacement. I left it alone because it still works today and `OPENAI_MODEL` can override it. The code also passes `max_tokens` and `temperature` to Chat Completions. I couldn't confirm that `gpt-6-luna` accepts them. The model page says it is a reasoning model, and that Chat Completions supports function calling only with `reasoning_effort` set to `none`. Test that swap before January.\n- **`@google/generative-ai` SDK.** I believe Google has superseded it with `@google/genai`, but I didn't check this. It still works with the new model names, so I didn't migrate it.\n\nSources:\n- [OpenAI deprecations](https://developers.openai.com/api/docs/deprecations.md)\n- [OpenAI Realtime guide](https://developers.openai.com/api/docs/guides/realtime)\n- [Gemini deprecations](https://ai.google.dev/gemini-api/docs/deprecations)",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-hachanimohamedsaid-backend_AgentAi/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "OpenAI Realtime GA migration and model retirement",
+          "correct": true,
+          "note": "Same core changes as A, plus explicit 24 kHz PCM input and output formats and output_modalities ['audio']. Consistent with the GA interface. Also adds a test."
+        },
+        {
+          "change": "gpt-4o-mini deprecation (shutdown 2027-01-14)",
+          "correct": true,
+          "note": "Switches every default to gpt-6-luna and renames max_tokens to max_completion_tokens in three calls. This is premature, since the model still works, but consistent with the notice. The swap to a reasoning model is unverified for the other call sites."
+        }
+      ],
+      "breaks": [
+        "Misses the gemini-2.0-flash shutdown: three services still default to a model that has already been shut down, so the primary Gemini path fails unless GEMINI_MODEL is set.",
+        "Removes temperature from three calls, which changes output behaviour. Combined with the forced move to a reasoning model before the current one retires, this may change latency and cost.",
+        "Changes .env.example and the docs so users are steered to gpt-6-luna before it is needed.",
+        "The added test asserts that no 'gpt-4o' string appears anywhere in src. This is a brittle repo-wide grep test."
+      ]
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "OpenAI Realtime: gpt-4o-realtime-preview shut down and the OpenAI-Beta realtime=v1 interface removed",
+          "correct": true,
+          "note": "Switches to gpt-realtime-2.1, drops the beta header, uses the GA session.update shape (type 'realtime', voice under audio.output) and renames the event to response.output_audio.delta. This matches the cited GA guide. Transcript and text event names in the unshown part of the handler may also need checking."
+        },
+        {
+          "change": "gemini-2.0-flash shut down on 2026-06-01",
+          "correct": true,
+          "note": "Updates the default model to gemini-3.6-flash in all three services that call Gemini, plus .env.example and the fallback example in a comment. This fixes a default that is already broken."
+        },
+        {
+          "change": "gpt-4o-mini-2024-07-18 scheduled for shutdown on 2027-01-14",
+          "correct": true,
+          "note": "Flagged rather than changed. That is reasonable: the model still works, OPENAI_MODEL can override it, and A correctly notes that the reasoning-model replacement may not accept max_tokens or temperature."
+        }
+      ],
+      "breaks": []
+    },
+    "better": "claude",
+    "why": "Both migrate the Realtime proxy correctly. A also fixes the gemini-2.0-flash defaults, which are already shut down and actively break the primary path in three services; B misses this entirely. B instead makes a premature, riskier swap of all gpt-4o-mini defaults to a reasoning model and drops temperature, while A sensibly flags that swap for later.",
+    "costUsd": 0.078904
+  }
+}

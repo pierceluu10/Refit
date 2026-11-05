@@ -154,6 +154,7 @@ describe('writePrBody', () => {
       },
       validatorRuns: [{ tool: 'stripe__v', output: 'ok', passed: true }],
       comparisons: [{ name: 'test', before: 'pass', after: 'pass', newFailures: [] }],
+      proofTest: 'test',
     });
     expect(clean).toContain('[Verified]');
     expect(clean).toContain('### Unproven\n\nNothing known.');

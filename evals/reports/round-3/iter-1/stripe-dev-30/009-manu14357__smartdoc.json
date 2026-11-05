@@ -1,0 +1,182 @@
+{
+  "set": "stripe-dev-30",
+  "index": 9,
+  "repo": "manu14357/smartdoc",
+  "commit": "9041f9ba1adac5d7f16ebf89967b0b7a91e5ee60",
+  "provider": "stripe",
+  "usages": 11,
+  "changes": 27,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "manu14357/smartdoc:stripe:node-23-0-0",
+      "changeId": "stripe:node-23-0-0",
+      "kind": "sdk-major",
+      "change": {
+        "provider": "stripe",
+        "id": "stripe:node-23-0-0",
+        "kind": "sdk-major",
+        "title": "stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields",
+        "source": {
+          "url": "https://raw.githubusercontent.com/stripe/stripe-node/HEAD/CHANGELOG.md",
+          "quote": "Removed the function `Stripe.constructEventWithoutVerification()` that was mistakenly added in version 22.5.0 of this package."
+        },
+        "affects": {
+          "versions": ["<23.0.0", "23.0.0"],
+          "sdk": "stripe"
+        },
+        "effectiveDate": "2026-09-30"
+      },
+      "reasoning": "The repo uses stripe-node 13.11.0 pinned to API version 2023-08-16. The 2026 SDK majors (19–23) and the Dahlia/Endive API versions are reached through one move: upgrade stripe-node to 23 and set apiVersion to 2026-09-30.endive. Within that move, the concrete break is checkout.sessions.create sending payment_method_types, which endive rejects. Indirect break: the jump passes 2025-03-31.basil, which removed Subscription.current_period_end in favor of item-level periods. The webhook and lib/stripe.ts code that computes stripeCurrentPeriodEnd from retrieved subscriptions likely reads it and must be checked. The migration agent should also check that the client is created with `new Stripe(...)` (22.0.0) and fix TypeScript type changes. It should align the webhook endpoint's API version in the Stripe dashboard with the new SDK version so constructEvent payloads match the types. Nothing breaks today, because the old pin keeps working, but the repo is many majors behind. The breaks only appear when bumping.\nThis task also resolves these changes. Handle each in the same change, and say in the PR how:\n- stripe:2026-09-30-endive-api-version (api-version): New API major 2026-09-30.endive carries breaking changes; pin it via Stripe-Version or upgrade SDKs (node 23, python 16, go v87), effective 2026-09-30. stripe-node 23 pins 2026-09-30.endive. Moving the apiVersion in src/lib/stripe.ts to endive is part of this same upgrade.\n  Source: https://docs.stripe.com/changelog/endive.md\n  \"As the first version in the Endive release, `2026-09-30.endive` introduces both breaking changes and new features.\"\n- stripe:2026-03-25-dahlia-api-version (api-version): API major 2026-03-25.dahlia with breaking changes (Checkout ui_mode enum values, events_from on event destinations, Capabilities risk requirements, Stripe.js method removals), effective 2026-03-25. Endive includes all Dahlia breaking changes. Jumping from 2023-08-16 to endive in this PR absorbs the Dahlia move; there is no separate step.\n  Source: https://docs.stripe.com/changelog/dahlia.md\n  \"As the first version in the Dahlia release, `2026-03-25.dahlia` introduces both breaking changes and new features\"\n- stripe:2026-09-30-remove-payment-method-types-checkout (field-removed): payment_method_types removed from Checkout Sessions create, and paymentMethodTypes option removed from Elements deferred intents (Stripe.js), effective 2026-09-30. checkout.sessions.create in src/trpc/index.ts:73 passes payment_method_types. That only fails once the API version is endive, so dropping the parameter (or relying on dynamic payment methods) belongs in this upgrade.\n  Source: https://docs.stripe.com/changelog/endive.md\n  \"We [removed the `payment_method_types` parameter from Checkout Sessions]\"\n- stripe:node-22-0-0 (sdk-major): stripe-node (npm) 22.0.0: Stripe is a true ES6 class (use new Stripe()), types reworked, per-request host override removed, effective 2026-04-02. This is an intermediate stripe-node major crossed when moving from 13.11.0 to 23. Stripe must be constructed with `new Stripe()`, and the types were reworked.\n  Source: https://raw.githubusercontent.com/stripe/stripe-node/HEAD/CHANGELOG.md\n  \"Stripe import is now a true ES6 class. Use `new Stripe()` to create a StripeClient instead of calling it:\"\n- stripe:node-21-0-0 (sdk-major): stripe-node (npm) 21.0.0: pins 2026-03-25.dahlia, drops Node 16, decimal_string fields become Stripe.Decimal, wrong webhook parsing method throws, effective 2026-03-25. This is an intermediate major crossed in the same upgrade. It pins dahlia, decimal_string fields become Stripe.Decimal, and the wrong webhook parsing method now throws; the repo uses constructEvent, which is correct.\n  Source: https://raw.githubusercontent.com/stripe/stripe-node/HEAD/CHANGELOG.md\n  \"All `decimal_string` fields changed type from `string` to `Stripe.Decimal` in both request params and response objects.\"\n- stripe:node-20-0-0 (sdk-major): stripe-node (npm) 20.0.0: pins 2025-11-17.clover; v2 array params use indexed serialization (may break mock-server tests), effective 2025-11-18. This is an intermediate major crossed in the same upgrade. It changes v2 array serialization; the repo has no v2 calls.\n  Source: https://raw.githubusercontent.com/stripe/stripe-node/HEAD/CHANGELOG.md\n  \"This may break any unit tests that expect the latter behavior when setting up a mock server.\"\n- stripe:node-19-0-0 (sdk-major): stripe-node (npm) 19.0.0: pins 2025-09-30.clover; parseThinEvent renamed parseEventNotification, v2 delete returns V2DeletedObject, v2 nullable props optional; 19.x deprecated (Files API timeout bug), effective 2025-09-30. This is an intermediate major crossed in the same upgrade. parseThinEvent was renamed; the repo doesn't use it.\n  Source: https://raw.githubusercontent.com/stripe/stripe-node/HEAD/CHANGELOG.md\n  \"Rename function `StripeClient.parseThinEvent` to `StripeClient.parseEventNotification` and remove the `Stripe.ThinEvent` interface.\"",
+      "callSites": [
+        {
+          "file": "src/lib/stripe.ts",
+          "line": 7,
+          "why": "The pinned apiVersion '2023-08-16' must change to '2026-09-30.endive' to match stripe-node 23's types. Also check that the client is created with `new Stripe(...)`, as required since 22.0.0."
+        },
+        {
+          "file": "src/trpc/index.ts",
+          "line": 73,
+          "why": "checkout.sessions.create passes payment_method_types, which is removed on endive and would make Checkout creation fail. Remove it."
+        },
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "line": 13,
+          "why": "webhooks.constructEvent stays available. The event payload shape follows the webhook endpoint's API version, and the Event types change with the SDK major."
+        },
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "line": 34,
+          "why": "subscriptions.retrieve response shape changes across basil→endive. current_period_end moved off Subscription onto subscription items in 2025-03-31.basil; check any reads of subscription.current_period_end and items."
+        },
+        {
+          "file": "src/app/api/webhooks/stripe/route.ts",
+          "line": 55,
+          "why": "subscriptions.retrieve: the same Subscription response-shape check applies (current_period_end and price fields)."
+        },
+        {
+          "file": "src/lib/stripe.ts",
+          "line": 51,
+          "why": "subscriptions.retrieve: the same Subscription response-shape check applies for the plan and period-end computation."
+        },
+        {
+          "file": "src/trpc/index.ts",
+          "line": 65,
+          "why": "billingPortal.sessions.create: verify params and types still compile after the SDK major; no known break."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "manu14357/smartdoc:stripe:node-23-0-0",
+        "outcome": "verified",
+        "diff": "diff --git a/package-lock.json b/package-lock.json\nindex 194fade..49e598c 100644\n--- a/package-lock.json\n+++ b/package-lock.json\n@@ -107,7 +107,7 @@\n         \"remark-gfm\": \"^4.0.0\",\n         \"sharp\": \"^0.33.5\",\n         \"simplebar-react\": \"^3.3.0\",\n-        \"stripe\": \"^13.7.0\",\n+        \"stripe\": \"^23.0.0\",\n         \"tailwind-merge\": \"^1.14.0\",\n         \"tailwindcss\": \"3.3.3\",\n         \"tailwindcss-animate\": \"^1.0.7\",\n@@ -15789,15 +15789,20 @@\n       }\n     },\n     \"node_modules/stripe\": {\n-      \"version\": \"13.11.0\",\n-      \"resolved\": \"https://registry.npmjs.org/stripe/-/stripe-13.11.0.tgz\",\n-      \"integrity\": \"sha512-yPxVJxUzP1QHhHeFnYjJl48QwDS1+5befcL7ju7+t+i88D5r0rbsL+GkCCS6zgcU+TiV5bF9eMGcKyJfLf8BZQ==\",\n-      \"dependencies\": {\n-        \"@types/node\": \">=8.1.0\",\n-        \"qs\": \"^6.11.0\"\n-      },\n+      \"version\": \"23.0.0\",\n+      \"resolved\": \"https://registry.npmjs.org/stripe/-/stripe-23.0.0.tgz\",\n+      \"integrity\": \"sha512-MDE2A5ZVVluYURORaZEVghSmnLJc3w6aHAlZSxDQMsOjOb3V0O6ro/CiaeFlJS4N7uIVmsg98ocRsPmUK6YfyA==\",\n+      \"license\": \"MIT\",\n       \"engines\": {\n-        \"node\": \">=12.*\"\n+        \"node\": \">=20\"\n+      },\n+      \"peerDependencies\": {\n+        \"@types/node\": \">=20\"\n+      },\n+      \"peerDependenciesMeta\": {\n+        \"@types/node\": {\n+          \"optional\": true\n+        }\n       }\n     },\n     \"node_modules/style-to-object\": {\ndiff --git a/package.json b/package.json\nindex c09db74..b6e83b6 100644\n--- a/package.json\n+++ b/package.json\n@@ -107,7 +107,7 @@\n     \"remark-gfm\": \"^4.0.0\",\n     \"sharp\": \"^0.33.5\",\n     \"simplebar-react\": \"^3.3.0\",\n-    \"stripe\": \"^13.7.0\",\n+    \"stripe\": \"^23.0.0\",\n     \"tailwind-merge\": \"^1.14.0\",\n     \"tailwindcss\": \"3.3.3\",\n     \"tailwindcss-animate\": \"^1.0.7\",\ndiff --git a/scripts/check-stripe-migration.js b/scripts/check-stripe-migration.js\nnew file mode 100644\nindex 0000000..a22cfcc\n--- /dev/null\n+++ b/scripts/check-stripe-migration.js\n@@ -0,0 +1,12 @@\n+const fs = require(\"fs\");\n+const assert = require(\"assert\");\n+const r = (p) => fs.readFileSync(p, \"utf8\");\n+const hook = r(\"src/app/api/webhooks/stripe/route.ts\");\n+assert(!/subscription\\.current_period_end/.test(hook));\n+assert(hook.includes(\"items.data[0]?.current_period_end\"));\n+assert(hook.includes(\"parent?.subscription_details\"));\n+assert(!/payment_method_types/.test(r(\"src/trpc/index.ts\")));\n+assert(r(\"src/lib/stripe.ts\").includes(\"2026-09-30.endive\"));\n+const v = JSON.parse(r(\"node_modules/stripe/package.json\")).version;\n+assert(v.startsWith(\"23.\"), v);\n+console.log(\"ok\");\ndiff --git a/src/app/api/webhooks/stripe/route.ts b/src/app/api/webhooks/stripe/route.ts\nindex 7656baf..1e4fb8a 100644\n--- a/src/app/api/webhooks/stripe/route.ts\n+++ b/src/app/api/webhooks/stripe/route.ts\n@@ -44,7 +44,7 @@ export async function POST(request: Request) {\n         stripeCustomerId: subscription.customer as string,\n         stripePriceId: subscription.items.data[0]?.price.id,\n         stripeCurrentPeriodEnd: new Date(\n-          subscription.current_period_end * 1000,\n+          (subscription.items.data[0]?.current_period_end ?? 0) * 1000,\n         ),\n       },\n     });\n@@ -52,9 +52,13 @@ export async function POST(request: Request) {\n \n   if (event.type === \"invoice.payment_succeeded\") {\n     // Retrieve the subscription details from Stripe.\n-    const subscription = await stripe.subscriptions.retrieve(\n-      session.subscription as string,\n-    );\n+    const invoice = event.data.object as unknown as Stripe.Invoice;\n+    const ref = invoice.parent?.subscription_details?.subscription;\n+    const subscriptionId = typeof ref === \"string\" ? ref : ref?.id;\n+    if (!subscriptionId) {\n+      return new Response(null, { status: 200 });\n+    }\n+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);\n \n     await db.user.update({\n       where: {\n@@ -63,7 +67,7 @@ export async function POST(request: Request) {\n       data: {\n         stripePriceId: subscription.items.data[0]?.price.id,\n         stripeCurrentPeriodEnd: new Date(\n-          subscription.current_period_end * 1000,\n+          (subscription.items.data[0]?.current_period_end ?? 0) * 1000,\n         ),\n       },\n     });\ndiff --git a/src/lib/stripe.ts b/src/lib/stripe.ts\nindex 0bac589..01c6e98 100644\n--- a/src/lib/stripe.ts\n+++ b/src/lib/stripe.ts\n@@ -3,8 +3,8 @@ import { db } from \"@/db\";\n import { getKindeServerSession } from \"@kinde-oss/kinde-auth-nextjs/server\";\n import Stripe from \"stripe\";\n \n-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? \"\", {\n-  apiVersion: \"2023-08-16\",\n+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || \"sk_missing_key\", {\n+  apiVersion: \"2026-09-30.endive\",\n   typescript: true,\n });\n \ndiff --git a/src/trpc/index.ts b/src/trpc/index.ts\nindex 87e4618..4ccf8e3 100644\n--- a/src/trpc/index.ts\n+++ b/src/trpc/index.ts\n@@ -73,7 +73,6 @@ export const appRouter = router({\n     const stripeSession = await stripe.checkout.sessions.create({\n       success_url: billingUrl,\n       cancel_url: billingUrl,\n-      payment_method_types: [\"card\", \"paypal\"],\n       mode: \"subscription\",\n       billing_address_collection: \"auto\",\n       line_items: [\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "stripe-migration",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.13385729999999998,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-manu14357-smartdoc-stripe-node-23-0-0-MtS186/transcript.jsonl",
+        "prBody": "## stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields [Verified]\n\n### Change\n\nUpgraded stripe to 23.0.0 (installed with --legacy-peer-deps because of existing peer conflicts). Pinned apiVersion to 2026-09-30.endive. Removed payment_method_types from checkout.sessions.create. The webhook now reads the period end from items.data[0].current_period_end. The invoice.payment_succeeded branch takes the subscription id from invoice.parent.subscription_details.subscription and returns 200 if it is absent. The Stripe client falls back to a placeholder key when STRIPE_SECRET_KEY is unset, because v23 throws on an empty key at construction and that broke next build. Added scripts/check-stripe-migration.js as a source-level check.\n\nFiles touched:\n- `package-lock.json`\n- `package.json`\n- `scripts/check-stripe-migration.js`\n- `src/app/api/webhooks/stripe/route.ts`\n- `src/lib/stripe.ts`\n- `src/trpc/index.ts`\n\n### Why\n\nv23 pins the endive API version. In endive, Checkout rejects payment_method_types, and since basil Subscription.current_period_end lives on the items. Invoice.subscription moved under parent.subscription_details. v22 and later throw on an empty API key.\n\n> Removed the function `Stripe.constructEventWithoutVerification()` that was mistakenly added in version 22.5.0 of this package.\n\nSource: https://raw.githubusercontent.com/stripe/stripe-node/HEAD/CHANGELOG.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| stripe-migration | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- stripe-migration, added by the agent: `export DATABASE_URL='postgresql://user:pass@localhost:5432/db'; node scripts/check-stripe-migration.js` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Before the baseline the harness ran `npx prisma generate` (The repo's postinstall hook runs prisma generate, which was skipped. It produces the @prisma/client types that tsc and next build need.); it exited 0.\n- Checks ran with placeholder env: DATABASE_URL.\n- Preparation changed repo files, kept out of this PR: package-lock.json.\n\nTest of this change: `stripe-migration`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Endive response shapes were not verified against live calls.\n- I did not run the provider validators (stripe_check_params and similar) on checkout.sessions.create.\n- The proof test is a source-level grep script, not a runtime test.\n- The existing early return on missing session.metadata.userId runs before the event branches, so invoice events (which usually carry no userId metadata) may be skipped. This predates the migration and I left it alone.\n- No provider validator was run.\n\n### Behaviour changes\n\n- Checkout no longer restricts payment methods to card and PayPal. Stripe's dynamic payment methods now decide which ones customers see.\n- A missing STRIPE_SECRET_KEY now fails at request time instead of at import time.\n- The period end comes from items.data[0] only, which assumes single-item subscriptions. A missing value is stored as epoch 0.\n- Align the dashboard webhook endpoint's API version to endive.\n- Confirm the deploy runtime is Node >=20.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.1339\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": ["recipe-stripe-sdk-major-4c09cc63"],
+        "agentChecks": [
+          {
+            "name": "stripe-migration",
+            "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db'; node scripts/check-stripe-migration.js",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# manu14357/smartdoc:stripe:node-23-0-0: verified, $0.1339\nChange: stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields (stripe, sdk-major)\nBaseline checks: typecheck pass, build pass, stripe-migration fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. read_file path=src/lib/stripe.ts → 1\timport { PLANS } from \"@/config/stripe\"; | 2\timport { db } from \"@/db\"; | 3\timport { getKindeServerSession } from \"@kinde-oss/kinde-auth-nextjs/server\";\n2. read_file path=src/app/api/webhooks/stripe/route.ts → 1\timport { db } from \"@/db\"; | 2\timport { stripe } from \"@/lib/stripe\"; | 3\timport { headers } from \"next/headers\";\n3. search pattern=payment_method_types|current_period_end|stripeCurrentPeriodEnd glob=src/** → src/app/api/webhooks/stripe/route.ts:46:         stripeCurrentPeriodEnd: new Date( | src/app/api/webhooks/stripe/route.ts:47:           subscription.current_period_end * 1000, | src/app/api/webhooks/stripe/route.ts:65:         stripeCurrent…\n4. shell command=<143 chars> → exit code: 0 | --- stdout --- | Some issues need review, and may require choosing\n5. edit_file path=src/trpc/index.ts old=      payment_method_types: [\"card\", \"paypal\"],\n new= → edited src/trpc/index.ts (1 replacement)\n6. edit_file path=src/lib/stripe.ts old=\"2023-08-16\" new=\"2026-09-30.endive\" → edited src/lib/stripe.ts (1 replacement)\n7. shell command=<973 chars> → exit code: 0 | --- stdout --- | --- stderr ---\n8. write_file path=scripts/check-stripe-migration.js content=<576 chars> → wrote scripts/check-stripe-migration.js (576 bytes)\n9. run_checks add=[{\"name\":\"stripe-migration\",\"command\":\"node scripts/check-stripe-migration.js\"}] → registered stripe-migration; on the original code it fails (1) | ## typecheck: pass | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db'; npx --no-install tsc --noEmit\n10. edit_file path=src/lib/stripe.ts old=STRIPE_SECRET_KEY ?? \"\" new=STRIPE_SECRET_KEY || \"sk_missing_key\" → edited src/lib/stripe.ts (1 replacement)\n11. run_checks  → ## typecheck: pass | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db'; npx --no-install tsc --noEmit | ## build: pass\n12. finish verdict=migrated summary=<649 chars> why=<253 chars> validators=[] unproven=<454 chars> behaviourChanges=<455 chars> proofTest=stripe-migration → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, stripe-migration fail (1) → pass\n\n## Result\nFiles changed: package-lock.json, package.json, scripts/check-stripe-migration.js, src/app/api/webhooks/stripe/route.ts, src/lib/stripe.ts, src/trpc/index.ts\nVerdict: migrated. Upgraded stripe to 23.0.0 (installed with --legacy-peer-deps because of existing peer conflicts). Pinned apiVersion to 2026-09-30.endive. Removed payment_method_types from checkout.sessions.create. The webhook now reads the period end from items.data[0].current_period_end. The invoice.payment_succeeded branch takes the subscription id from invoice.parent.subscription_details.subscription and returns 200 if it is absent. The Stripe client falls back to a placeholder key when STRIPE_SECRET_KEY is unset, because v23 throws on an empty key at construction and that broke next build. Added scripts/check-stripe-migration.js as a source-level check.\nUnproven: Endive response shapes were not verified against live calls.; I did not run the provider validators (stripe_check_params and similar) on checkout.sessions.create.; The proof test is a source-level grep script, not a runtime test.; The existing early return on missing session.metadata.userId runs before the event branches, so invoice events (which usually carry no userId metadata) may be skipped. This predates the migration and I left it alone.\n",
+        "preparation": {
+          "steps": [
+            {
+              "command": "npx prisma generate",
+              "why": "The repo's postinstall hook runs prisma generate, which was skipped. It produces the @prisma/client types that tsc and next build need.",
+              "code": 0,
+              "output": "Prisma schema loaded from prisma/schema.prisma\n\n✔ Generated Prisma Client (v5.22.0) to ./node_modules/@prisma/client in 76ms\n\nStart by importing your Prisma Client (See: https://pris.ly/d/importing-client)\n\nHelp us improve the Prisma ORM for everyone. Share your feedback in a short 2-min survey: https://pris.ly/orm/survey/release-5-22"
+            }
+          ],
+          "env": {
+            "DATABASE_URL": "postgresql://user:pass@localhost:5432/db"
+          },
+          "reasoning": "Install scripts were off, so the repo's postinstall (prisma generate) never ran. The Prisma client must be generated for typecheck and build. The schema reads DATABASE_URL, so a placeholder lets the generate step load the schema. No other codegen or workspace builds are visible.",
+          "changedFiles": ["package-lock.json"]
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The removed `constructEventWithoutVerification` is never used, so the quoted change needs no code edit. The real work is the jump from SDK 13 / API 2023-08-16 to 23 / 2026-09-30.endive. The diff handles the Basil-era moves: `current_period_end` now comes from subscription items, and the invoice's subscription is read via `parent.subscription_details`. It also makes behaviour changes the API does not force. The stripe-migration check only greps source strings and the installed version, so no webhook payload or live call was exercised. The renewal path depends on the webhook endpoint's configured API version, which nothing here verifies. 'verified' overstates what the checks prove.",
+        "concerns": [
+          {
+            "file": "src/app/api/webhooks/stripe/route.ts",
+            "issue": "Stripe renders webhook payloads with the endpoint's configured API version, not the SDK's `apiVersion`. If the Dashboard endpoint is still on 2023-08-16 or any pre-Basil version, `invoice.parent` is absent, so `subscriptionId` is undefined. The handler then returns 200 silently and renewals never update `stripeCurrentPeriodEnd`. The diff turns a crash into silent data loss. Confirm or upgrade the endpoint version, and consider logging or falling back to the legacy `invoice.subscription`.",
+            "severity": "high"
+          },
+          {
+            "file": "src/app/api/webhooks/stripe/route.ts",
+            "issue": "The rewritten invoice.payment_succeeded branch is still behind the existing `session?.metadata?.userId` guard (line ~27). That guard casts every event to a Checkout.Session. Invoices do not carry the checkout session's metadata, so this branch likely never runs. This is a pre-existing bug, but the new code is unreachable and untested, and the check only greps for the string.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/trpc/index.ts",
+            "issue": "Removing `payment_method_types: [\"card\",\"paypal\"]` is a behaviour change. Checkout will now offer whatever payment methods are enabled in the Dashboard (dynamic payment methods), so PayPal may disappear or other methods may appear. I could not confirm from the quoted changelog that this parameter was removed. Check the v23 `Checkout.SessionCreateParams` types before accepting this as forced.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/app/api/webhooks/stripe/route.ts",
+            "issue": "`(items.data[0]?.current_period_end ?? 0) * 1000` writes a 1970 date if the item is missing. `getUserSubscriptionPlan` would then mark a paying user as unsubscribed. Prefer failing loudly or skipping the update.",
+            "severity": "low"
+          },
+          {
+            "file": "src/lib/stripe.ts",
+            "issue": "Changing the fallback from `?? \"\"` to `|| \"sk_missing_key\"` is an unrelated behaviour change. It hides a missing secret at construction and defers the failure to an auth error at request time. Presumably this was done to make `next build` pass.",
+            "severity": "low"
+          },
+          {
+            "file": "src/lib/stripe.ts",
+            "issue": "Moving from 2023-08-16 to `2026-09-30.endive` crosses several breaking API releases, not just the one quoted. I could not confirm the `endive` version string from memory. Typecheck passing suggests it matches the SDK's pinned literal; check `ApiVersion` in node_modules/stripe types. Other fields read from API responses (`cancel_at_period_end`, `subscription.customer`) should be confirmed against that version.",
+            "severity": "medium"
+          },
+          {
+            "file": "package.json",
+            "issue": "stripe@23 requires Node >=20. Confirm the deployment runtime (Vercel or other) is on Node 20+.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Which API version is the production webhook endpoint configured with in the Stripe Dashboard? If it is pre-2025-03-31, the invoice branch silently no-ops.",
+          "Whether the `metadata.userId` guard means invoice.payment_succeeded was ever handled. If not, decide whether to fix the guard in this PR.",
+          "Whether dropping `payment_method_types` (and PayPal) is intended, and which methods are enabled in the Dashboard.",
+          "Run a test-mode checkout and renewal with `stripe trigger` / the Stripe CLI against the new SDK; the grep-based check proves none of this."
+        ],
+        "costUsd": 0.087228,
+        "model": "claude-opus-5-5"
+      }
+    }
+  ],
+  "costUsd": 0.8130770999999999,
+  "durationMs": 835205,
+  "matchReasoning": "manu14357/smartdoc:stripe:node-23-0-0: The repo uses stripe-node 13.11.0 pinned to API version 2023-08-16. The 2026 SDK majors (19–23) and the Dahlia/Endive API versions are reached through one move: upgrade stripe-node to 23 and set apiVersion to 2026-09-30.endive. Within that move, the concrete break is checkout.sessions.create sending payment_method_types, which endive rejects. Indirect break: the jump passes 2025-03-31.basil, which removed Subscription.current_period_end in favor of item-level periods. The webhook and lib/stripe.ts code that computes stripeCurrentPeriodEnd from retrieved subscriptions likely reads it and must be checked. The migration agent should also check that the client is created with `new Stripe(...)` (22.0.0) and fix TypeScript type changes. It should align the webhook endpoint's API version in the Stripe dashboard with the new SDK version so constructEvent payloads match the types. Nothing breaks today, because the old pin keeps working, but the repo is many majors behind. The breaks only appear when bumping.\nstripe:2026-09-30-endive-api-version: not affected: No task of its own: resolved inside manu14357/smartdoc:stripe:node-23-0-0 (stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields). stripe-node 23 pins 2026-09-30.endive. Moving the apiVersion in src/lib/stripe.ts to endive is part of this same upgrade.\nstripe:2026-03-25-dahlia-api-version: not affected: No task of its own: resolved inside manu14357/smartdoc:stripe:node-23-0-0 (stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields). Endive includes all Dahlia breaking changes. Jumping from 2023-08-16 to endive in this PR absorbs the Dahlia move; there is no separate step.\nstripe:2026-09-30-remove-payment-method-types-checkout: not affected: No task of its own: resolved inside manu14357/smartdoc:stripe:node-23-0-0 (stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields). checkout.sessions.create in src/trpc/index.ts:73 passes payment_method_types. That only fails once the API version is endive, so dropping the parameter (or relying on dynamic payment methods) belongs in this upgrade.\nstripe:node-22-0-0: not affected: No task of its own: resolved inside manu14357/smartdoc:stripe:node-23-0-0 (stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields). This is an intermediate stripe-node major crossed when moving from 13.11.0 to 23. Stripe must be constructed with `new Stripe()`, and the types were reworked.\nstripe:node-21-0-0: not affected: No task of its own: resolved inside manu14357/smartdoc:stripe:node-23-0-0 (stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields). This is an intermediate major crossed in the same upgrade. It pins dahlia, decimal_string fields become Stripe.Decimal, and the wrong webhook parsing method now throws; the repo uses constructEvent, which is correct.\nstripe:node-20-0-0: not affected: No task of its own: resolved inside manu14357/smartdoc:stripe:node-23-0-0 (stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields). This is an intermediate major crossed in the same upgrade. It changes v2 array serialization; the repo has no v2 calls.\nstripe:node-19-0-0: not affected: No task of its own: resolved inside manu14357/smartdoc:stripe:node-23-0-0 (stripe-node (npm) 23.0.0: pins 2026-09-30.endive; removes Stripe.constructEventWithoutVerification, ErrorType export, V2List V1-only fields). This is an intermediate major crossed in the same upgrade. parseThinEvent was renamed; the repo doesn't use it.\nstripe:2026-09-30-remove-payment-method-types-intents: not affected: The repo makes no PaymentIntent or SetupIntent calls. It only uses Checkout Sessions, Billing Portal, subscriptions.retrieve and webhooks; the Checkout payment_method_types removal is handled in the stripe-node 23 upgrade task.\nstripe:2026-09-30-billing-cycle-anchor-object: not affected: The repo never updates or resumes subscriptions and never creates preview invoices. It only retrieves subscriptions and does not send billing_cycle_anchor.\nstripe:2026-09-30-fc-countries-to-country: not affected: The repo makes no Financial Connections Sessions calls.\nstripe:2026-09-30-account-links-v2-configurations: not affected: The repo makes no Connect or Account Links v2 calls.\nstripe:2026-09-30-payto-fields-removed: not affected: The repo makes no PaymentMethod calls and uses no PayTo fields.\nstripe:2026-09-30-reserve-release-reason: not affected: The repo uses no Reserve Release objects and reads no reason enum.\nstripe:2026-09-30-other-breaking-endive: not affected: None of the listed items apply to this repo, which only does subscription Checkout, Billing Portal, subscriptions.retrieve and webhooks. The items are BLIK decline codes, Accounts requirement errors, Tax Calculation, SEPA settings on Accounts, Payment Evaluation, 3DS data share, dispute evidence and India mandates.\nstripe:2026-09-30-stripejs-payment-request-button: not affected: No Stripe.js or Elements call sites are recorded; the repo redirects to hosted Checkout. There is no paymentRequestButton or handleNextAction usage.\nstripe:2026-03-25-stripejs-removals: not affected: No Stripe.js call sites are recorded (no confirmCardPayment, Sources or initCheckout); payments go through server-created hosted Checkout Sessions.\nstripe:2026-03-25-checkout-ui-mode-enum: not affected: checkout.sessions.create at src/trpc/index.ts:73 does not set ui_mode, and no code reads it, so the enum renames don't touch the repo.\nstripe:2026-03-25-events-from-destinations: not affected: The repo does not manage event destinations via the API; it only verifies incoming webhooks.\nstripe:2026-08-26-preview-dahlia-pmt-removal: not affected: These are preview-channel v2 APIs (Financial Addresses, Received Credits, Payout Methods). The repo uses none of them and does not pin a preview version.\nstripe:runtime-go-1-24-drop: not affected: This notice targets stripe-go and stripe-python runtimes, which the repo doesn't use. The Node 20 drop lands in a September 2027 stripe-node major beyond the v23 upgrade, so it doesn't bite now.\nstripe:python-16-0-0: not affected: The repo is a Node/TypeScript project using the npm stripe package; stripe-python is not used.\nstripe:python-15-0-0: not affected: stripe-python is not used; the repo uses stripe-node.\nstripe:python-14-0-0: not affected: stripe-python is not used; the repo uses stripe-node.\nstripe:python-13-0-0: not affected: stripe-python is not used; the repo uses stripe-node.\nstripe:python-12-0-0: not affected: stripe-python is not used; the repo uses stripe-node.\nstripe:go-87-0-0: not affected: stripe-go is not used; the repo is Node/TypeScript with the npm stripe package.",
+  "costByPart": {
+    "inventory": 0.0694718,
+    "match": 0.1556,
+    "other": 0.36692,
+    "harness": 0.13385729999999998,
+    "review": 0.087228
+  }
+}

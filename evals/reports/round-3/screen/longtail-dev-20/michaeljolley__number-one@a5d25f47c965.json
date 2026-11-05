@@ -1,0 +1,76 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "michaeljolley/number-one",
+  "commit": "a5d25f47c965263101d8ad86e7b48eec2f9b7a46",
+  "provider": "twitch",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export TWITCH_CHANNEL_ID='placeholder' TWITCH_CLIENT_ID='placeholder' TWITCH_CLIENT_SECRET='placeholder' TWITCH_BOT_AUTH_TOKEN='placeholder' FAUNADB_SECRET='placeholder'; npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "node_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts: error TS1110: Type expected.",
+        "node_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts: error TS1005: '}' expected.",
+        "node_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts: error TS1128: Declaration or statement expected.",
+        "node_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts: error TS1005: ';' expected.",
+        "node_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts: error TS1005: ')' expected.",
+        "node_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts: error TS1005: '(' expected.",
+        "node_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts: error TS1109: Expression expected.",
+        "node_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts: error TS1160: Unterminated template literal."
+      ],
+      "tail": "xpected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1136,16): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1136,29): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1136,46): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1172,18): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1184,18): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1195,17): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1198,18): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1202,31): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1202,48): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1218,16): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1219,33): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1287,1): error TS1160: Unterminated template literal."
+    },
+    {
+      "name": "build",
+      "command": "export TWITCH_CHANNEL_ID='placeholder' TWITCH_CLIENT_ID='placeholder' TWITCH_CLIENT_SECRET='placeholder' TWITCH_BOT_AUTH_TOKEN='placeholder' FAUNADB_SECRET='placeholder'; npm run build",
+      "ok": false,
+      "failures": [
+        "node_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts: error TS1110: Type expected.",
+        "node_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts: error TS1005: '}' expected.",
+        "node_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts: error TS1128: Declaration or statement expected.",
+        "node_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts: error TS1005: ';' expected.",
+        "node_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts: error TS1005: ')' expected.",
+        "node_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts: error TS1005: '(' expected.",
+        "node_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts: error TS1109: Expression expected.",
+        "node_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts: error TS1160: Unterminated template literal."
+      ],
+      "tail": "xpected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1136,16): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1136,29): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1136,46): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1172,18): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1184,18): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1195,17): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1198,18): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1202,31): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1202,48): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1218,16): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1219,33): error TS1005: ';' expected.\nnode_modules/@types/express/node_modules/@types/express-serve-static-core/index.d.ts(1287,1): error TS1160: Unterminated template literal."
+    },
+    {
+      "name": "test",
+      "command": "export TWITCH_CHANNEL_ID='placeholder' TWITCH_CLIENT_ID='placeholder' TWITCH_CLIENT_SECRET='placeholder' TWITCH_BOT_AUTH_TOKEN='placeholder' FAUNADB_SECRET='placeholder'; npm run test",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.10185399999999999,
+  "durationMs": 163633,
+  "install": {
+    "code": 0,
+    "tail": ".1.1: Debug versions >=3.2.0 <3.2.7 || >=4 <4.3.1 have a low-severity ReDos regression when used in a Node.js environment. It is recommended you upgrade to 3.2.7 or 4.3.1. (https://github.com/visionmedia/debug/issues/797)\nnpm warn deprecated glob@7.1.6: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated uuid@2.0.3: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).\nnpm warn deprecated tar@2.2.2: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated sinon@9.2.4: 16.1.1\nnpm warn deprecated node-sass@4.14.1: Node Sass is no longer supported. Please use `sass` or `sass-embedded` instead.\nnpm warn deprecated eslint@7.32.0: This version is no longer supported. Please see https://eslint.org/version-support for other options."
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npm install --no-save --ignore-scripts @types/express-serve-static-core@4.17.13",
+        "why": "The repo pins TypeScript ^3.9.7, which cannot parse the template-literal types in the newer @types/express-serve-static-core that was resolved. Pinning an older types version (without saving) lets tsc parse it.",
+        "code": 0
+      }
+    ],
+    "env": [
+      "TWITCH_CHANNEL_ID",
+      "TWITCH_CLIENT_ID",
+      "TWITCH_CLIENT_SECRET",
+      "TWITCH_BOT_AUTH_TOKEN",
+      "FAUNADB_SECRET"
+    ]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "typecheck and build (tsc) fail parsing node_modules/@types/express-serve-static-core/index.d.ts because the installed type definitions use syntax newer than the repo's old TypeScript supports, a dependency/version mismatch in the repo's own setup that needs no outside access to fix."
+  }
+}

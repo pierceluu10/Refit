@@ -1,0 +1,89 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "PRIYESHSINGH24/buddy_connect",
+  "taskId": "PRIYESHSINGH24/buddy_connect:gemini:2026-06-01-gemini-2-0-shutdown",
+  "title": "gemini-2.0-flash and flash-lite models shut down June 1 2026",
+  "refit": {
+    "outcome": "verified",
+    "passesChecks": true,
+    "costUsd": 0.1573103,
+    "diffLines": 118,
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "The diff moves every hard-coded `gemini-2.0-flash` in the five touched files to one shared constant, `gemini-2.5-flash-lite` in `lib/ai-model.ts`. The mechanical change is clean and covers what it touches.\n\nThe checks do not prove much. Typecheck and build cannot validate a model string. The only check that flipped is `scripts/check-gemini-model.mjs`, a grep the agent wrote in this PR. It scans a hard-coded list of the same five files and asserts the agent's own constant exists, so it would pass whether or not `gemini-2.5-flash-lite` is accepted by the API. No live or mocked request exercises the new model. The match agent named no call sites, so nothing shows the repo was searched beyond these files. The `verified` grade overstates what the checks show; `needs-review` fits better.\n\nThe model choice also goes beyond what the shutdown forces: it moves from the Flash tier to Flash-Lite rather than to the nearest successor. That can change answer quality and JSON reliability for every AI feature.\n\nI could not confirm from memory that `gemini-2.5-flash-lite` is current and not itself scheduled for retirement. The same goes for the comment's claim that Gemini 3.6+ removed temperature/top_p/top_k. Check both against https://ai.google.dev/gemini-api/docs/deprecations and the models page.\n\nPre-existing, not caused by this PR: `app/api/hackathon/match-teams/route.ts` calls the legacy PaLM-style `generateText` on `@google-ai/generativelanguage` and the REST `v1/{model}:generate` endpoint. Neither serves Gemini models, so that route most likely always fell through to the `openai/gpt-4-turbo` gateway fallback. Changing its model list has little practical effect.",
+      "concerns": [
+        {
+          "file": "lib/ai-model.ts",
+          "issue": "The replacement is `gemini-2.5-flash-lite`, a lighter tier than the retired `gemini-2.0-flash`. A Flash-tier successor such as `gemini-2.5-flash` would be the closer match. This changes output quality and cost for chat, career analysis, post suggestions and the rest, which the shutdown does not force. I could not confirm this model's lifecycle status or the Gemini 3.6 parameter claim in the comment; verify both against the deprecations and models docs.",
+          "severity": "medium"
+        },
+        {
+          "file": "scripts/check-gemini-model.mjs",
+          "issue": "This is the only check that changed state, and it is a self-authored grep over a fixed list of the five edited files. It cannot detect retired model strings elsewhere in the repo (other routes, env defaults, callers passing `model:` to `generateContent`, docs/config). It also never confirms the new model ID is valid at runtime, so it does not support a `verified` grade.",
+          "severity": "medium"
+        },
+        {
+          "file": "app/api/hackathon/match-teams/route.ts",
+          "issue": "`modelsToTry` shrinks from three entries to a single `models/${GEMINI_MODEL}`. Dropping the 1.5 models is reasonable since they are retired, but it removes the fallback list entirely. The route still sends these IDs to the legacy PaLM `generateText` / `v1/...:generate` API, so the edit likely changes nothing in practice. It should not be read as fixing this route's Gemini path.",
+          "severity": "low"
+        },
+        {
+          "file": "lib/ai-client.ts",
+          "issue": "Only the default model changed. Any caller that passes `{ model: \"gemini-2.0-flash\" }` explicitly would still hit the retired model. No caller list was provided, so this is unverified.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Run `grep -rn \"gemini-2\\.0\\|gemini-1\\.5\" --exclude-dir=node_modules .` to confirm no other files, `generateContent({ model })` callers, env defaults or config still reference retired models.",
+        "Confirm on https://ai.google.dev/gemini-api/docs/deprecations that `gemini-2.5-flash-lite` is current and not scheduled for shutdown, and decide whether `gemini-2.5-flash` is the intended like-for-like replacement.",
+        "Make one live `generateContent` call with `gemini-2.5-flash-lite` using the project's key to prove the model ID is accepted.",
+        "Reconsider the `verified` grade: no check exercises a request against the new model."
+      ],
+      "costUsd": 0.104244,
+      "model": "claude-opus-5-5"
+    }
+  },
+  "claude": {
+    "passesChecks": true,
+    "costUsd": 0.016517199999999996,
+    "prepCostUsd": 0.015092,
+    "diffLines": 66,
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-PRIYESHSINGH24-buddy_connect-gemini-2026-06-01-gemini-2-0-shutdown/transcript.jsonl",
+    "stopReason": "done",
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "The diff replaces the retired `gemini-2.0-flash` with `gemini-2.5-flash` in five places: `app/api/ai/chat/route.ts`, `lib/ai-utils.ts`, `lib/ai-advanced-utils.ts`, the default in `lib/ai-client.ts`, and the first entry of `modelsToTry` in `app/api/hackathon/match-teams/route.ts`. That is the right kind of fix. The quoted changelog line names no replacement, though, and I could not confirm from it that `gemini-2.5-flash` is the intended successor or what its own retirement date is. Check that against the Gemini models and deprecations pages.\n\nThe grade 'verified' overstates what the checks show. Typecheck and build cannot fail on a model-name string. No check makes a live call, so nothing proves the new model ID resolves for this API key or that responses still parse.\n\nGemini 2.5 Flash is a thinking model by default. That brings three behaviour changes the retirement does not force:\n- higher latency;\n- different token accounting;\n- different pricing.\n\nPre-existing issues outside this change:\n- `match-teams/route.ts` calls the legacy PaLM-style `generateText` and the REST `v1/...:generate` endpoint, which Gemini models do not serve. That route most likely always falls through to `openai/gpt-4-turbo`, so the edit there is cosmetic. Its `gemini-1.5-*` fallbacks are also long retired.\n- In `lib/ai-client.ts` the `AbortController` is never passed to the request, so `timeoutMs` does not actually abort anything.",
+      "concerns": [
+        {
+          "file": "lib/ai-client.ts",
+          "issue": "Line 34 now defaults to `gemini-2.5-flash`. On that model, thinking tokens are believed to count against `maxOutputTokens`. Any caller passing a small `maxOutputTokens` could get empty or truncated text. `generateWithTimeout` then throws 'Empty response from AI model', and after retries `generateContent` returns null. Check the callers that pass `maxOutputTokens`, and consider setting a thinking budget or raising the limits.",
+          "severity": "medium"
+        },
+        {
+          "file": "app/api/ai/chat/route.ts",
+          "issue": "Thinking on 2.5 Flash raises latency per request for the synchronous chat route. The route has no timeout. Confirm it stays within the hosting platform's function time limit.",
+          "severity": "low"
+        },
+        {
+          "file": "(repo-wide)",
+          "issue": "The match agent listed no call sites, so it is unclear the five edits are complete. Something outside the diff could still pass `model: \"gemini-2.0-flash\"` (or 2.0-flash-lite) to `generateContent()` in `lib/ai-client.ts`, or set it in env/config. Those spots would still hit the shut-down model.",
+          "severity": "medium"
+        },
+        {
+          "file": "app/api/hackathon/match-teams/route.ts",
+          "issue": "The edit swaps the first entry of `modelsToTry`, but this route calls endpoints that do not serve Gemini models. The other two entries are retired 1.5 models. The change does not restore a working Gemini path here, so 'verified' should not be read as covering team matching.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Grep the whole repo (including .env*, config, and callers of `generateContent` with a `model` option) for `gemini-2.0` and `flash-lite`.",
+        "Make one live call with the production key to `gemini-2.5-flash` via `@google/generative-ai`. Confirm the model ID resolves, and check the latency and that the JSON-regex parsing still works.",
+        "Review callers of `lib/ai-client.ts` `generateContent` that set `maxOutputTokens`, for empty-response risk under 2.5 Flash thinking.",
+        "Confirm on ai.google.dev/gemini-api/docs/deprecations that `gemini-2.5-flash` is the recommended replacement and is not itself near shutdown.",
+        "Treat the grade as needs-review: no check exercises a model call."
+      ],
+      "costUsd": 0.099256,
+      "model": "claude-opus-5-5"
+    }
+  }
+}

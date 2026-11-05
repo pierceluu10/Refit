@@ -11,8 +11,8 @@ import {
 } from './checks.ts';
 import { renderRecipes } from './prompt.ts';
 import { redactSecrets } from './secrets.ts';
-import { runPassed } from './validators.ts';
-import type { ExecResult, FinishReport, ToolContext } from './types.ts';
+import { failingCheckers, gradeValidators, runPassed } from './validators.ts';
+import type { CheckCommand, ExecResult, FinishReport, ToolContext, ValidatorRun } from './types.ts';
 
 type Args = Record<string, unknown>;
 
@@ -130,8 +130,103 @@ function matchesGlob(relative: string, glob: string): boolean {
   return path.matchesGlob(glob.includes('/') ? relative : path.basename(relative), glob);
 }
 
+// What would quietly hold back verified, told to the agent while it can still act on it. The grade's
+// rules don't change; finish just refuses a report that would fail them for a fixable reason.
+export function finishProblems(
+  report: FinishReport,
+  checks: CheckCommand[],
+  runs: ValidatorRun[],
+): string[] {
+  const problems: string[] = [];
+  if (report.proofTest && !checks.some((check) => check.name === report.proofTest)) {
+    problems.push(
+      `proofTest "${report.proofTest}" is not a registered check (registered: ${checks.map((check) => check.name).join(', ')}). Register your test with run_checks add, or give the name you registered.`,
+    );
+  }
+  if (!report.proofTest && !report.noProofTestReason) {
+    problems.push(
+      'Name your test of the change as proofTest (register it with run_checks add first), or say in noProofTestReason why none can be written.',
+    );
+  }
+  for (const grade of gradeValidators(report.validators, runs)) {
+    if (!grade.ran && !grade.passed) {
+      problems.push(
+        `You list ${grade.name} as a validator, but no call of it was recorded. Call it, or leave it out.`,
+      );
+    } else if (grade.ran && !grade.passed) {
+      problems.push(
+        `You list ${grade.name} as a validator, but its latest call didn't pass ("${grade.detail}"). List only validators of your final code: run it on that, or leave out a lookup you made while exploring.`,
+      );
+    }
+  }
+  for (const tool of failingCheckers(runs)) {
+    const output = runs.filter((run) => run.tool === tool).at(-1)?.output ?? '';
+    problems.push(
+      `Your latest ${tool} call reported problems ("${output.trim().split('\n')[0]?.slice(0, 200)}"). Run it again on your final code; if the problem is real, fix it.`,
+    );
+  }
+  return problems;
+}
+
+// A .gitignore line that kept secrets out of git and no longer does: appending to a file with no
+// trailing newline once turned `.env` into `.envdist` (round 3, AyeletHillel/fine-tune).
+const SECRET_IGNORE = /env|secret|credential|\.pem|\.key|token/i;
+export function gitignoreProblems(diff: string): string[] {
+  const problems: string[] = [];
+  for (const file of diff.split(/(?=^diff --git )/m)) {
+    const path = file.match(/^diff --git a\/(\S+)/)?.[1];
+    if (!path || !/(^|\/)\.gitignore$/.test(path)) continue;
+    const lines = file.split('\n');
+    const removed = lines
+      .filter((l) => l.startsWith('-') && !l.startsWith('---'))
+      .map((l) => l.slice(1).trim());
+    const added = new Set(
+      lines.filter((l) => l.startsWith('+') && !l.startsWith('+++')).map((l) => l.slice(1).trim()),
+    );
+    for (const line of removed) {
+      if (line && !line.startsWith('#') && SECRET_IGNORE.test(line) && !added.has(line)) {
+        problems.push(
+          `Your change to ${path} drops \`${line}\`, so that file is no longer kept out of git and secrets could be committed. Restore it (a file with no trailing newline joins the next line you append).`,
+        );
+      }
+    }
+  }
+  return problems;
+}
+
+// The host's own services and private networks are no docs page, and must stay out of reach:
+// the monitor and run reports live there. shortcut: checks the name as written, not where DNS
+// resolves it; resolve and check the address if a public name pointing inside matters.
+export function privateHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, '');
+  if (host === 'localhost' || host.endsWith('.localhost') || host.endsWith('.internal'))
+    return true;
+  if (
+    host === '::1' ||
+    host === '::' ||
+    /^f[cd][0-9a-f]{2}:/.test(host) ||
+    host.startsWith('fe80:')
+  ) {
+    return true;
+  }
+  const octets = host.split('.').map(Number);
+  if (octets.length !== 4 || octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255))
+    return false;
+  const [a, b] = octets as [number, number, number, number];
+  return (
+    a === 0 ||
+    a === 10 ||
+    a === 127 ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168)
+  );
+}
+
 export function buildTools(ctx: ToolContext): AgentTool[] {
   const { sandbox } = ctx;
+  const runs: ValidatorRun[] = [];
+  let refusals = 0;
   const inside = (file?: string) => resolveInSandbox(sandbox.dir, file);
   const display = (full: string) => path.relative(sandbox.dir, full) || '.';
 
@@ -307,7 +402,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
     ),
     tool(
       'run_checks',
-      'Run the type check, build and tests. Shows failures for each. Use `add` to register checks the detection missed (e.g. `make test`): the harness runs them on the original code and after your edit, and they count toward proof like the detected ones.',
+      'Run the type check, build and tests. Shows failures for each. Use `add` to register checks the detection missed (e.g. `make test`): the harness runs them on the original code and after your edit, and they count toward proof like the detected ones. Use `remove` to drop a check you added and gave up on; every check left counts, and a new failure in any of them holds back verified.',
       {
         names: { type: 'array', items: { type: 'string' }, description: 'Only these checks' },
         add: {
@@ -319,10 +414,22 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
             required: ['name', 'command'],
           },
         },
+        remove: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Names of checks you added and no longer want counted',
+        },
       },
       [],
       async (args) => {
         const notes: string[] = [];
+        for (const name of Array.isArray(args.remove) ? args.remove.map(String) : []) {
+          notes.push(
+            ctx.removeCheck?.(name)
+              ? `removed ${name}`
+              : `${name} was not removed: only a check you added can be`,
+          );
+        }
         for (const item of Array.isArray(args.add) ? args.add : []) {
           const { name, command } = (item ?? {}) as { name?: unknown; command?: unknown };
           if (typeof name !== 'string' || typeof command !== 'string' || !name || !command) {
@@ -406,6 +513,9 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
         if (url.protocol !== 'http:' && url.protocol !== 'https:') {
           return `error: only http and https URLs are supported, got ${url.protocol}`;
         }
+        if (privateHost(url.hostname)) {
+          return `error: ${url.hostname} is a local or private address; fetch_url reads the public web only`;
+        }
         const response = await (ctx.fetch ?? fetch)(url, { signal: AbortSignal.timeout(15_000) });
         const raw = await response.text();
         const html = /html/i.test(response.headers.get('content-type') ?? '') || /^\s*</.test(raw);
@@ -443,7 +553,9 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
           out = `error: ${error instanceof Error ? error.message : String(error)}`;
         }
         const output = truncate(redactSecrets(out));
-        ctx.onToolPackCall?.({ tool: name, output, passed: runPassed(out) });
+        const run = { tool: name, output, passed: runPassed(out) };
+        runs.push(run);
+        ctx.onToolPackCall?.(run);
         return output;
       },
     });
@@ -473,6 +585,15 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
         },
         unproven: { type: 'array', items: { type: 'string' } },
         behaviourChanges: { type: 'array', items: { type: 'string' } },
+        proofTest: {
+          type: 'string',
+          description:
+            'Name of the check you registered with run_checks `add` that tests this change (the test you wrote). Required for verified.',
+        },
+        noProofTestReason: {
+          type: 'string',
+          description: 'Only when no test of this change can be written: why not.',
+        },
       },
       ['verdict', 'summary', 'why', 'validators', 'unproven', 'behaviourChanges'],
       async (args) => {
@@ -487,7 +608,25 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
           }),
           unproven: strings(args.unproven),
           behaviourChanges: strings(args.behaviourChanges),
+          ...(typeof args.proofTest === 'string' && args.proofTest.trim()
+            ? { proofTest: args.proofTest.trim() }
+            : {}),
+          ...(typeof args.noProofTestReason === 'string' && args.noProofTestReason.trim()
+            ? { noProofTestReason: text(args.noProofTestReason) }
+            : {}),
         };
+        // Two refusals at most, so an agent that can't satisfy them still ends with a report.
+        const problems =
+          report.verdict === 'migrated' && refusals < 2
+            ? [
+                ...finishProblems(report, ctx.checks, runs),
+                ...gitignoreProblems(await sandbox.diff().catch(() => '')),
+              ]
+            : [];
+        if (problems.length > 0) {
+          refusals += 1;
+          return `Not recorded yet: this report would end as needs-review. Fix these, then call finish again:\n- ${problems.join('\n- ')}`;
+        }
         ctx.onFinish(report);
         return `Recorded the "${report.verdict}" report. The harness will now re-run the checks and compare them with the baseline.`;
       },

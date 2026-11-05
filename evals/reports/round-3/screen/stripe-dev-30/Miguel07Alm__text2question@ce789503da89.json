@@ -1,0 +1,45 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "Miguel07Alm/text2question",
+  "commit": "ce789503da89a1a7cc488c96e0717727b5abb4ec",
+  "provider": "stripe",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export GOOGLE_GENERATIVE_AI_API_KEY='placeholder' AUTH_SECRET='placeholder' AUTH_GOOGLE_ID='placeholder' AUTH_GOOGLE_SECRET='placeholder' UPSTASH_REDIS_REST_URL='https://placeholder.upstash.io' UPSTASH_REDIS_REST_TOKEN='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_PRICE_ID='price_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export GOOGLE_GENERATIVE_AI_API_KEY='placeholder' AUTH_SECRET='placeholder' AUTH_GOOGLE_ID='placeholder' AUTH_GOOGLE_SECRET='placeholder' UPSTASH_REDIS_REST_URL='https://placeholder.upstash.io' UPSTASH_REDIS_REST_TOKEN='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_PRICE_ID='price_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder'; corepack pnpm@9 run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.13442999999999994,
+  "durationMs": 159321,
+  "install": {
+    "code": 0,
+    "tail": " resolved 497, reused 0, downloaded 476, added 461\nProgress: resolved 497, reused 0, downloaded 479, added 464\nProgress: resolved 497, reused 0, downloaded 492, added 476\nProgress: resolved 497, reused 0, downloaded 492, added 477\nProgress: resolved 497, reused 0, downloaded 497, added 497, done\n\ndependencies:\n+ @ai-sdk/deepseek 0.2.14\n+ @ai-sdk/google 1.0.16\n+ @ai-sdk/openai 1.3.22\n+ @ai-sdk/react 1.2.9\n+ @auth/upstash-redis-adapter 2.8.0\n+ @formatjs/intl-localematcher 0.6.1\n+ @radix-ui/react-dialog 1.1.4\n+ @radix-ui/react-dropdown-menu 2.1.4\n+ @radix-ui/react-label 2.1.1\n+ @radix-ui/react-select 2.1.4\n+ @radix-ui/react-slot 1.1.1\n+ @radix-ui/react-switch 1.1.2\n+ @radix-ui/react-toast 1.2.4\n+ @types/pdfjs-dist 2.10.378\n+ @upstash/ratelimit 2.0.5\n+ @upstash/redis 1.34.8\n+ ai 4.3.16\n+ canvas-confetti 1.9.3\n+ class-variance-authority 0.7.1\n+ clsx 2.1.1\n+ html2canvas 1.4.1\n+ jspdf 3.0.1\n+ lucide-react 0.473.0\n+ lz-string 1.5.0\n+ negotiator 1.0.0\n+ next 15.3.0\n+ next-auth 5.0.0-beta.25\n+ next-themes 0.4.4\n+ pdfjs-dist 4.10.38\n+ react 19.0.0\n+ react-dom 19.0.0\n+ react@latest 0.0.0 <- ai/react@latest\n+ stripe 18.1.0\n+ tailwind-merge 2.6.0\n+ tailwindcss-animate 1.0.7\n+ zod 3.24.1\n\ndevDependencies:\n+ @eslint/eslintrc 3.2.0\n+ @tailwindcss/typography 0.5.16\n+ @types/negotiator 0.6.3\n+ @types/node 20.17.12\n+ @types/react 19.0.6\n+ @types/react-dom 19.0.3\n+ eslint 9.18.0\n+ eslint-config-next 15.1.4\n+ postcss 8.5.0\n+ tailwindcss 3.4.17\n+ typescript 5.7.3\n\nDone in 1m 7.7s using pnpm v9.15.9"
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "GOOGLE_GENERATIVE_AI_API_KEY",
+      "AUTH_SECRET",
+      "AUTH_GOOGLE_ID",
+      "AUTH_GOOGLE_SECRET",
+      "UPSTASH_REDIS_REST_URL",
+      "UPSTASH_REDIS_REST_TOKEN",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_PRICE_ID",
+      "STRIPE_WEBHOOK_SECRET"
+    ]
+  }
+}

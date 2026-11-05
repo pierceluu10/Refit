@@ -1,0 +1,90 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "smartflow-systems/smartflow-hub",
+  "taskId": "smartflow-systems/smartflow-hub:anthropic:2026-10-21-sdk-typescript-1-0-0",
+  "title": "npm @anthropic-ai/sdk 1.0.0 sends API version 2026-10-21 by default; MessageParam becomes a union, temperature/top_p/top_k removed, Bedrock/Vertex/Foundry SDKs must move to v1 too",
+  "refit": {
+    "outcome": "needs-review",
+    "passesChecks": true,
+    "costUsd": 0.0924815,
+    "diffLines": 167,
+    "review": {
+      "opinion": "looks-right",
+      "summary": "The PR bumps @anthropic-ai/sdk from ^0.71.2 to ^1.0.0 in package.json and package-lock.json. It also adds test/anthropic-request.test.mts, which stubs fetch, calls queryAI from src/lib/ai, and asserts three things: the reply parses, temperature/top_p/top_k are absent from the body, and the anthropic-version header is 2026-10-21.\n\nNo source files changed. Because typecheck passes after the bump, the existing call(s) in src/lib/ai.ts appear to compile against the new MessageParam union and the removal of sampling params. The repo shows no Bedrock/Vertex/Foundry packages, so that part of the change doesn't apply.\n\nI could not confirm the 2026-10-21 version string or the 1.0.0 surface from memory. The quoted CHANGELOG line supports the version string, and the SDK's bundled .d.ts files are the place to confirm the rest.\n\nThe checks prove only what a mocked request looks like. The response fed back is the pre-1.0 message shape, so nothing shows that queryAI parses a real 2026-10-21 response. needs-review is the right grade.\n\nThe match agent listed no call sites even though src/lib/ai.ts clearly calls the SDK. A reviewer should open that file, which was not provided here, to confirm no other files construct Anthropic clients.",
+      "concerns": [
+        {
+          "file": "test/anthropic-request.test.mts",
+          "issue": "The fetch stub returns a hand-written response in the old Messages shape (content[0].text, stop_reason, usage). The test therefore only proves the outgoing request and that queryAI parses the old shape. If API version 2026-10-21 changes the response shape, the reply extraction in src/lib/ai.ts is untested; no live call was made.",
+          "severity": "medium"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "The lockfile drops the \"libc\": [\"glibc\"/\"musl\"] fields from four optional native packages (around lines 1120-1180, likely next/swc or sharp binaries). This is unrelated churn, probably from a different npm version regenerating the lock. It could change which native binary gets picked on musl (Alpine) vs glibc deploy images.",
+          "severity": "low"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "The SDK license changes from MIT to Apache-2.0. The SDK also pulls in new runtime dependencies: @opentelemetry/api, standardwebhooks, @stablelib/base64 and fast-sha256 (Unlicense). Worth a glance if the org tracks licenses or bundle size; Next may bundle these into server chunks.",
+          "severity": "low"
+        },
+        {
+          "file": "test/anthropic-request.test.mts",
+          "issue": "package.json has no test script, so this file is only run by the migration harness. Nothing in the repo will run it in CI going forward. It also uses `any`, which the configured eslint (next config) may flag; lint was not among the checks.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "Open src/lib/ai.ts and confirm it is the only place that constructs an Anthropic client or calls messages.create.",
+        "Confirm it never relied on temperature/top_p/top_k or on old MessageParam shapes being widened via casts or `any`.",
+        "Make one real request with the new SDK (staging key) and confirm queryAI's reply extraction still works on a live 2026-10-21 response.",
+        "Verify in node_modules/@anthropic-ai/sdk (1.0.0 .d.ts / CHANGELOG) that the default anthropic-version is 2026-10-21 and what other request/response changes ship with it.",
+        "Regenerate or diff package-lock.json with the project's usual npm version to see whether the removed libc fields are intentional; test an install on the production base image (musl vs glibc)."
+      ],
+      "costUsd": 0.057496,
+      "model": "claude-opus-5-5"
+    }
+  },
+  "claude": {
+    "passesChecks": true,
+    "costUsd": 0.0189184,
+    "prepCostUsd": 0.007132,
+    "diffLines": 146,
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-smartflow-systems-smartflow-hub-anthropic-2026-10-21-sdk-typescript-1-0-0/transcript.jsonl",
+    "stopReason": "done",
+    "review": {
+      "opinion": "has-concerns",
+      "summary": "The diff only bumps @anthropic-ai/sdk from ^0.71.2 to ^1.0.0, resolving to 1.4.0, and regenerates package-lock.json. No source files change, and the match agent named no call sites, so the PR shows no review of where the SDK is actually used. Typecheck and build passing is real evidence: it rules out typed uses of temperature, top_p or top_k, and typed MessageParam shapes that broke. It does not prove runtime behaviour. Per the change summary, SDK 1.0.0 sends API version 2026-10-21 by default, so every live request now goes to a different API version. Nothing in the checks exercises a real call, streaming, or response parsing. Some breakage would not show up in a typecheck at all: params built as `any`, spread from untyped config, or living in .js files, and response fields whose shape changed under the new version. The 'verified' grade overstates what typecheck plus build demonstrate for a major-version bump that changes the wire API version; 'needs-review' would fit better. The lockfile also carries churn unrelated to the SDK: libc fields were stripped from four optional native packages, which suggests a different npm version regenerated it. The SDK's license also moves from MIT to Apache-2.0, and it adds three new dependencies: @opentelemetry/api, standardwebhooks and its transitive deps.",
+      "concerns": [
+        {
+          "file": "package.json",
+          "issue": "Major SDK bump that switches the default API version to 2026-10-21, but no call sites were identified or inspected. Typecheck/build cannot prove that requests and responses behave the same under the new API version. No live or mocked request was run.",
+          "severity": "medium"
+        },
+        {
+          "file": "package.json",
+          "issue": "The grade is 'verified' though the only checks are typecheck and build. Removed sampling params (temperature/top_p/top_k) passed through untyped objects or JS files, and changed response shapes, would pass both checks and fail at runtime.",
+          "severity": "medium"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "The lockfile regeneration dropped `libc` (glibc/musl) constraints from four optional native packages around lines 1120-1177, likely platform binaries for Next/SWC or lightningcss. This is unrelated to the API change. It may change which binaries install on musl (Alpine) vs glibc deploy images, and it suggests the lockfile was regenerated with a different npm version.",
+          "severity": "low"
+        },
+        {
+          "file": "package-lock.json",
+          "issue": "@anthropic-ai/sdk changes license from MIT to Apache-2.0 and pulls in new runtime deps: @opentelemetry/api, standardwebhooks, @stablelib/base64, fast-sha256 (Unlicense). This may matter for license or bundle-size policy.",
+          "severity": "low"
+        }
+      ],
+      "checkFirst": [
+        "grep the repo for '@anthropic-ai/sdk' / 'new Anthropic' / 'messages.create' / 'messages.stream' and confirm none pass temperature, top_p or top_k, including via spread or untyped objects",
+        "Check whether any Bedrock/Vertex/Foundry Anthropic SDK packages are used anywhere (the change says they must move to v1 too); package.json shows none, but confirm there are no dynamic imports",
+        "Run one real (or recorded) request through each Anthropic code path against SDK 1.4.0 and confirm response parsing and streaming still work under API version 2026-10-21",
+        "Confirm the stripped libc fields in package-lock.json don't break installs on the production image (e.g. Alpine/musl); consider regenerating the lockfile with the repo's usual npm version",
+        "Downgrade the grade to needs-review unless runtime coverage is added"
+      ],
+      "costUsd": 0.049136,
+      "model": "claude-opus-5-5"
+    }
+  }
+}

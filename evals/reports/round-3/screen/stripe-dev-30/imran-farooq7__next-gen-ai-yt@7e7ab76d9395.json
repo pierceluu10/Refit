@@ -1,0 +1,41 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "imran-farooq7/next-gen-ai-yt",
+  "commit": "7e7ab76d9395a6188bcb93be4fa65d742ed676fa",
+  "provider": "stripe",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db' AUTH_SECRET='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' GEMINI_API_KEY='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db' AUTH_SECRET='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' GEMINI_API_KEY='placeholder'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.038541999999999965,
+  "durationMs": 84508,
+  "install": {
+    "code": 0,
+    "tail": "added 402 packages in 22s"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npx prisma generate",
+        "why": "@prisma/client's postinstall was skipped, so the Prisma client types are not generated. tsc and next build import PrismaClient and the models from it, and need the generated client.",
+        "code": 0
+      }
+    ],
+    "env": ["DATABASE_URL", "AUTH_SECRET", "STRIPE_SECRET_KEY", "GEMINI_API_KEY"]
+  }
+}

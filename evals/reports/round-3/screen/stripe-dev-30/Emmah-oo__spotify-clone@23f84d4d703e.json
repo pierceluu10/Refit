@@ -1,0 +1,42 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "Emmah-oo/spotify-clone",
+  "commit": "23f84d4d703ea005c12f60bc9ae42148158cc0f8",
+  "provider": "stripe",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' STRIPE_SECRET_KEY='placeholder' NEXT_PUBLIC_SITE_URL='http://localhost:3000' STRIPE_WEBHOOK_SECRET='placeholder'; npx --no-install tsc --noEmit",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "export NEXT_PUBLIC_SUPABASE_URL='https://placeholder.supabase.co' NEXT_PUBLIC_SUPABASE_ANON_KEY='placeholder' SUPABASE_SERVICE_ROLE_KEY='placeholder' STRIPE_SECRET_KEY='placeholder' NEXT_PUBLIC_SITE_URL='http://localhost:3000' STRIPE_WEBHOOK_SECRET='placeholder'; npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.06762399999999999,
+  "durationMs": 92116,
+  "install": {
+    "code": 0,
+    "tail": "added 462 packages in 35s"
+  },
+  "preparation": {
+    "steps": [],
+    "env": [
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "STRIPE_SECRET_KEY",
+      "NEXT_PUBLIC_SITE_URL",
+      "STRIPE_WEBHOOK_SECRET"
+    ]
+  }
+}

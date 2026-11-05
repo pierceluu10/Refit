@@ -1,0 +1,61 @@
+{
+  "set": "openai-dev-30",
+  "repo": "guixincui/LobeChat",
+  "commit": "c0f1ca77014de1669ebce0b45a3f1810cd5b6228",
+  "provider": "openai",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "typecheck",
+      "command": "export OPENAI_API_KEY='sk-placeholder'; npm run type-check",
+      "ok": false,
+      "failures": [
+        "src/app/api/openai/chat/createChatCompletion.ts: error TS2345: Argument of type 'Stream<ChatCompletionChunk> & { _request_id?: string | null | undefined; }' is not assignable to parameter of type 'Response | AsyncIterableOpenAIStreamReturnTypes'.",
+        "src/app/api/openai/images/createImageGeneration.ts: error TS18048: 'res.data' is possibly 'undefined'.",
+        "src/app/api/openai/stt/route.ts: error TS2307: Cannot find module '@lobehub/tts' or its corresponding type declarations.",
+        "src/app/api/openai/stt/route.ts: error TS2307: Cannot find module '@lobehub/tts/server' or its corresponding type declarations.",
+        "src/app/api/openai/tts/route.ts: error TS2307: Cannot find module '@lobehub/tts' or its corresponding type declarations.",
+        "src/app/api/openai/tts/route.ts: error TS2307: Cannot find module '@lobehub/tts/server' or its corresponding type declarations.",
+        "src/app/api/tts/edge-speech/route.ts: error TS2307: Cannot find module '@lobehub/tts' or its corresponding type declarations.",
+        "src/app/api/tts/microsoft-speech/route.ts: error TS2307: Cannot find module '@lobehub/tts' or its corresponding type declarations.",
+        "src/app/chat/(desktop)/features/ChatHeader.tsx: error TS2305: Module '\"@lobehub/ui\"' has no exported member 'ChatHeader'.",
+        "src/app/chat/(desktop)/features/ChatHeader.tsx: error TS2305: Module '\"@lobehub/ui\"' has no exported member 'ChatHeaderTitle'."
+      ],
+      "tail": "S2345: Argument of type '[\"inbox.desc\"]' is not assignable to parameter of type '[key: \"stop\" | \"delete\" | \"password\" | \"defaultAgent\" | \"autoGenerate\" | \"close\" | TemplateStringsArray | \"about\" | \"setting\" | \"confirmRemoveSessionItemAlert\" | ... 594 more ... | (\"stop\" | ... 602 more ... | \"welcome:slogan.desc2\")[], options?: (TOptionsBase & $Dictionary) | undefined] | [key: ...] | [key: ...]'.\n  Type '[\"inbox.desc\"]' is not assignable to type '[key: \"stop\" | \"delete\" | \"password\" | \"defaultAgent\" | \"autoGenerate\" | \"close\" | TemplateStringsArray | \"about\" | \"setting\" | \"confirmRemoveSessionItemAlert\" | ... 594 more ... | (\"stop\" | ... 602 more ... | \"welcome:slogan.desc2\")[], options?: (TOptionsBase & $Dictionary) | undefined]'.\n    Type at position 0 in source is not compatible with type at position 0 in target.\n      Type '\"inbox.desc\"' is not assignable to type '\"stop\" | \"delete\" | \"password\" | \"defaultAgent\" | \"autoGenerate\" | \"close\" | TemplateStringsArray | \"about\" | \"setting\" | \"confirmRemoveSessionItemAlert\" | ... 594 more ... | (\"stop\" | ... 602 more ... | \"welcome:slogan.desc2\")[]'.\nsrc/tools/dalle/Render/EditMode.tsx(18,44): error TS2322: Type '{ style: { minHeight: number; }; type: string; value: string; }' is not assignable to type 'IntrinsicAttributes & TextAreaProps'.\n  Property 'type' does not exist on type 'IntrinsicAttributes & TextAreaProps'.\nsrc/tools/dalle/Render/index.tsx(1,22): error TS2305: Module '\"@lobehub/ui\"' has no exported member 'ImageGallery'."
+    },
+    {
+      "name": "build",
+      "command": "export OPENAI_API_KEY='sk-placeholder'; npm run build",
+      "ok": false,
+      "failures": ["exit-nonzero: > Build failed because of webpack errors"],
+      "tail": "r: /work/public/sw.js\n ○ (pwa)   URL: /sw.js\n ○ (pwa)   Scope: /\n\nFailed to compile.\n\n./node_modules/@lobehub/ui/es/Avatar/Avatar.mjs\nModule not found: Can't resolve '@lobehub/fluent-emoji'\n\nhttps://nextjs.org/docs/messages/module-not-found\n\nImport trace for requested module:\n./node_modules/@lobehub/ui/es/Avatar/index.mjs\n./node_modules/@lobehub/ui/es/index.mjs\n./src/app/market/(desktop)/index.tsx\n\n./node_modules/@lobehub/ui/es/EmojiPicker/EmojiPicker.mjs\nModule not found: Can't resolve '@lobehub/icons/es/features/getLobeIconCDN'\n\nhttps://nextjs.org/docs/messages/module-not-found\n\nImport trace for requested module:\n./node_modules/@lobehub/ui/es/index.mjs\n./src/app/market/(desktop)/index.tsx\n\n./node_modules/@lobehub/ui/es/EmojiPicker/EmojiPicker.mjs\nModule not found: Can't resolve '@lobehub/icons/es/toc'\n\nhttps://nextjs.org/docs/messages/module-not-found\n\nImport trace for requested module:\n./node_modules/@lobehub/ui/es/index.mjs\n./src/app/market/(desktop)/index.tsx\n\n./src/app/welcome/features/Banner/Hero.tsx\nModule not found: Can't resolve '@lobehub/ui/es/LogoThree'\n\nhttps://nextjs.org/docs/messages/module-not-found\n\nImport trace for requested module:\n./src/app/welcome/features/Banner/index.tsx\n\n./src/app/welcome/features/Banner/Hero.tsx\nModule not found: Can't resolve '@lobehub/ui/es/LogoThree/LogoSpline'\n\nhttps://nextjs.org/docs/messages/module-not-found\n\nImport trace for requested module:\n./src/app/welcome/features/Banner/index.tsx\n\n\n> Build failed because of webpack errors"
+    },
+    {
+      "name": "test",
+      "command": "export OPENAI_API_KEY='sk-placeholder'; npm run test",
+      "ok": false,
+      "failures": [
+        "Error: Builtin tool failed",
+        "FAIL src/features/Conversation/Extras/Assistant.test.tsx [ src/features/Conversation/Extras/Assistant.test.tsx ]",
+        "FAIL src/app/chat/(desktop)/features/ChatInput/TextArea.test.tsx [ src/app/chat/(desktop)/features/ChatInput/TextArea.test.tsx ]",
+        "Error: Cannot find package '@lobehub/icons' imported from /work/node_modules/@lobehub/ui/es/EmojiPicker/EmojiPicker.mjs"
+      ],
+      "tail": "instead. Otherwise, consider using \"deps.optimizer.web.include\"\u001b[39m\n\u001b[90mstderr\u001b[2m | src/store/file/slices/images/action.test.ts\u001b[2m > \u001b[22m\u001b[2museFileStore:images\u001b[2m > \u001b[22m\u001b[2mclearImageList should clear the inputFilesList\u001b[22m\u001b[39m\nWarning: `ReactDOMTestUtils.act` is deprecated in favor of `React.act`. Import `act` from `react` instead of `react-dom/test-utils`. See https://react.dev/warnings/react-dom-test-utils for more info.\n\n\u001b[90mstderr\u001b[2m | src/store/file/slices/tts/action.test.ts\u001b[2m > \u001b[22m\u001b[2mTTSFileAction\u001b[2m > \u001b[22m\u001b[2mremoveTTSFile should call fileService.removeFile\u001b[22m\u001b[39m\nWarning: `ReactDOMTestUtils.act` is deprecated in favor of `React.act`. Import `act` from `react` instead of `react-dom/test-utils`. See https://react.dev/warnings/react-dom-test-utils for more info.\n\n\u001b[31m⎯⎯⎯⎯⎯⎯\u001b[1m\u001b[7m Failed Suites 2 \u001b[27m\u001b[22m⎯⎯⎯⎯⎯⎯⎯\u001b[39m\n\n\u001b[31m\u001b[1m\u001b[7m FAIL \u001b[27m\u001b[22m\u001b[39m src/features/Conversation/Extras/Assistant.test.tsx \u001b[2m[ src/features/Conversation/Extras/Assistant.test.tsx ]\u001b[22m\n\u001b[31m\u001b[1m\u001b[7m FAIL \u001b[27m\u001b[22m\u001b[39m src/app/chat/(desktop)/features/ChatInput/TextArea.test.tsx \u001b[2m[ src/app/chat/(desktop)/features/ChatInput/TextArea.test.tsx ]\u001b[22m\n\u001b[31m\u001b[1mError\u001b[22m: Cannot find package '@lobehub/icons' imported from /work/node_modules/@lobehub/ui/es/EmojiPicker/EmojiPicker.mjs\u001b[39m\n\u001b[31m\u001b[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯\u001b[22m\u001b[39m\n\u001b[31m\u001b[1mSerialized Error:\u001b[22m\u001b[39m \u001b[90m{ code: 'ERR_MODULE_NOT_FOUND' }\u001b[39m\n\u001b[31m\u001b[2m⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/2]⎯\u001b[22m\u001b[39m"
+    }
+  ],
+  "costUsd": 0.38460199999999933,
+  "durationMs": 891207,
+  "install": {
+    "code": 0,
+    "tail": "current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me\nnpm warn deprecated glob@10.3.10: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me"
+  },
+  "preparation": {
+    "steps": [],
+    "env": ["OPENAI_API_KEY"]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "typecheck, build and test all fail on the repo's own state: TS errors (OpenAI stream types, possibly-undefined res.data), and unresolved public packages (@lobehub/tts, @lobehub/icons, @lobehub/fluent-emoji, @lobehub/ui exports), which points to dependency/version drift in the repo rather than credentials, a private registry or an unsupported toolchain."
+  }
+}

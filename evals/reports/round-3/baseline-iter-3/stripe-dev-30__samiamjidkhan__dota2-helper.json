@@ -1,0 +1,32 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "samiamjidkhan/dota2-helper",
+  "refit": {
+    "checks": "no-change",
+    "costUsd": 0.6887668,
+    "tasks": 0,
+    "verified": 0
+  },
+  "claude": {
+    "checks": "no-change",
+    "costUsd": 0.0869272,
+    "prepCostUsd": 0.004218,
+    "diffLines": 0,
+    "finalText": "I changed nothing. I found no API or SDK change that breaks this code now or within the next 90 days (by 2027-02-01), and no later deprecation to list.\n\nWhat the repo uses and what I checked:\n- **Groq chat completions:** the code uses the model `openai/gpt-oss-120b` with `max_completion_tokens` and `reasoning_effort`. Groq's deprecation page lists several 2026 retirements. These include llama-3.1-8b-instant, llama-3.3-70b-versatile, qwen3-32b, kimi-k2, the llama-4 models and groq/compound. `openai/gpt-oss-120b` isn't among them, and Groq names it as the replacement for several of those models.\n- **Stripe (`stripe` ^22.0.0, locked at 22.0.0):** the code calls `checkout.sessions.create` and `.retrieve`, `billingPortal.sessions.create` and `webhooks.constructEvent`. The v22 changelog I found covers type-export and TypeScript changes, which don't affect this plain CommonJS code. I loaded the installed package and confirmed those three methods exist. I couldn't retrieve the v22 migration guide or the API version it pins, so that part rests on the changelog summary and the method check.\n- **OpenDota:** `/api/matches/{id}`, `/api/heroStats` and `/api/heroes/{id}/matchups`. I found no change affecting them. I didn't run a dedicated search for OpenDota changes, so this check was lighter than the others.\n- **Not checked:** `@upstash/redis`, `axios`, `express`, `dotaconstants` and `@vercel/node`. I didn't research changes for these, and none of my findings touch them.\n\nSources:\n- https://console.groq.com/docs/deprecations\n- https://app.unpkg.com/stripe@22.0.0/files/CHANGELOG.md\n- https://releases.sh/stripe/stripe-node/highlights",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-samiamjidkhan-dota2-helper/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [],
+      "breaks": []
+    },
+    "claude": {
+      "handled": [],
+      "breaks": []
+    },
+    "better": "tie",
+    "why": "Neither side changed anything.",
+    "costUsd": 0
+  }
+}

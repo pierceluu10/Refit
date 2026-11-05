@@ -1,0 +1,19 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "Jmk125/ConstructionDocuments",
+  "commit": "2938076b6cd75f046980d3bfd817645831725003",
+  "provider": "anthropic",
+  "green": true,
+  "noChecks": true,
+  "checks": [],
+  "costUsd": 0.005473999999999979,
+  "durationMs": 25014,
+  "install": {
+    "code": 0,
+    "tail": "added 107 packages in 7s"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  }
+}

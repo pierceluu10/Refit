@@ -1,0 +1,47 @@
+{
+  "set": "anthropic-dev-30",
+  "repo": "nielspac177/massmonitor",
+  "commit": "03dd722c810b63e91a3d3d9a9e0aa545edce850b",
+  "provider": "anthropic",
+  "green": true,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "typecheck",
+      "command": "npm run typecheck",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "test",
+      "command": "npm run test",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    }
+  ],
+  "costUsd": 0.060939999999999994,
+  "durationMs": 39942,
+  "install": {
+    "code": 0,
+    "tail": "added 105 packages in 5s\n\nnpm warn deprecated text-encoding@0.6.4: no longer maintained"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npm run build:data",
+        "why": "Compiles the repo's data into public/data (the same step `npm run dev` and `npm run build` run first), so typecheck and tests that read the generated JSON can find it.",
+        "code": 0
+      }
+    ],
+    "env": []
+  }
+}

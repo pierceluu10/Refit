@@ -1,0 +1,604 @@
+{
+  "eligible": 62,
+  "verified": 45,
+  "score": 0.7258064516129032,
+  "notAffected": 7,
+  "excluded": {
+    "red-baseline": 33,
+    "outside-authority": 6
+  },
+  "outsideAuthorityShare": 0.08823529411764706,
+  "errors": 0,
+  "costUsd": 73.98733955000002,
+  "rows": [
+    {
+      "set": "anthropic-dev-30",
+      "repo": "rainmana/cursorify",
+      "outcomes": ["not-affected", "verified"],
+      "costUsd": 1.205314,
+      "durationMs": 341131,
+      "status": "verified"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "swharr/TrailblazerAI",
+      "outcomes": ["not-affected", "needs-review"],
+      "costUsd": 0.8511131000000001,
+      "durationMs": 1282884,
+      "status": "not-verified",
+      "why": "swharr/TrailblazerAI:anthropic:2026-10-21-api-version-2026-10-21: needs-review"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "atrueempire/yk",
+      "outcomes": ["not-affected", "verified"],
+      "costUsd": 1.1224928,
+      "durationMs": 1585216,
+      "status": "verified"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "ducknife/Music_Agent",
+      "outcomes": ["not-affected", "verified"],
+      "costUsd": 0.7363033999999999,
+      "durationMs": 334120,
+      "status": "verified"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "smartflow-systems/smartflow-hub",
+      "outcomes": ["needs-review"],
+      "costUsd": 0.413377,
+      "durationMs": 345050,
+      "status": "not-verified",
+      "why": "smartflow-systems/smartflow-hub:anthropic:2026-10-21-sdk-typescript-1-0-0: needs-review"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "saxllc/journey-intelligence",
+      "outcomes": ["verified", "verified"],
+      "costUsd": 1.3037948000000001,
+      "durationMs": 342663,
+      "status": "verified"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "elnazar535-coder/eleko-bot",
+      "outcomes": ["verified"],
+      "costUsd": 0.5662159,
+      "durationMs": 209196,
+      "status": "verified"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "wimvwu-design/factuur-scanner",
+      "outcomes": ["verified"],
+      "costUsd": 0.7622569,
+      "durationMs": 180960,
+      "status": "verified"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "nielspac177/massmonitor",
+      "outcomes": ["not-affected", "verified"],
+      "costUsd": 0.8399595000000001,
+      "durationMs": 425051,
+      "status": "verified"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "rickkxu/stylescout",
+      "outcomes": ["not-affected"],
+      "costUsd": 0.2820888,
+      "durationMs": 254723,
+      "status": "not-affected"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "nfindler/playbook-pipeline",
+      "outcomes": ["not-affected", "needs-review"],
+      "costUsd": 0.7399374000000001,
+      "durationMs": 271054,
+      "status": "not-verified",
+      "why": "nfindler/playbook-pipeline:anthropic:2026-10-21-sdk-typescript-1-0-0: needs-review"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "souravdas2003/Chatbot-Using-Anthropic-Api-Key",
+      "outcomes": ["verified"],
+      "costUsd": 0.6751511000000001,
+      "durationMs": 578063,
+      "status": "verified"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "Jmk125/ConstructionDocuments",
+      "outcomes": ["not-affected", "needs-review"],
+      "costUsd": 0.7470886999999999,
+      "durationMs": 241486,
+      "status": "not-verified",
+      "why": "Jmk125/ConstructionDocuments:anthropic:2026-10-21-sdk-typescript-1-0-0: needs-review"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "William-franklyn/data-visualization-library",
+      "outcomes": ["not-affected", "verified"],
+      "costUsd": 0.7393569999999999,
+      "durationMs": 273638,
+      "status": "verified"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "xiaoshuntian/academic-paper-skill",
+      "outcomes": ["not-affected", "verified"],
+      "costUsd": 0.7519558,
+      "durationMs": 306203,
+      "status": "verified"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "kumarswamyg2005/Docstring-Generation-Agent-and-README-Generation-Agent",
+      "outcomes": ["verified", "not-affected"],
+      "costUsd": 0.6376337,
+      "durationMs": 298670,
+      "status": "verified"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "MFaizanali2/Code-Review-Agent",
+      "outcomes": ["verified", "not-affected"],
+      "costUsd": 0.8647766,
+      "durationMs": 473673,
+      "status": "verified"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "konan-ny/MAF2024",
+      "outcomes": ["verified"],
+      "costUsd": 0.8141303999999999,
+      "durationMs": 997339,
+      "status": "verified"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "PunsaraniJayawardhana/AIspect",
+      "outcomes": ["needs-review", "not-affected"],
+      "costUsd": 0.7787935,
+      "durationMs": 312917,
+      "status": "not-verified",
+      "why": "PunsaraniJayawardhana/AIspect:anthropic:2026-10-21-api-version-2026-10-21: needs-review"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "adri14gl/Chatbot-multiproveedor-con-fallback-y-streaming",
+      "outcomes": ["not-affected"],
+      "costUsd": 0.1903893,
+      "durationMs": 68853,
+      "status": "not-affected"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "rosscrooke/specialist-swarm",
+      "outcomes": ["needs-review", "not-affected"],
+      "costUsd": 0.6300809,
+      "durationMs": 232965,
+      "status": "not-verified",
+      "why": "rosscrooke/specialist-swarm:anthropic:2026-10-21-api-version-2026-10-21: needs-review"
+    },
+    {
+      "set": "anthropic-dev-30",
+      "repo": "Brettjo77/YTAstroAssistant",
+      "outcomes": [],
+      "costUsd": 0.11194180000000001,
+      "durationMs": 38607,
+      "status": "not-affected"
+    },
+    {
+      "set": "gemini-dev-15",
+      "repo": "XDTerminated/t2-chat-t3c-2025",
+      "outcomes": ["verified", "verified", "verified", "verified", "verified"],
+      "costUsd": 3.8017336999999993,
+      "durationMs": 4387255,
+      "status": "verified"
+    },
+    {
+      "set": "gemini-dev-15",
+      "repo": "PRIYESHSINGH24/buddy_connect",
+      "outcomes": ["verified", "verified", "verified"],
+      "costUsd": 2.1677033999999997,
+      "durationMs": 2210295,
+      "status": "verified"
+    },
+    {
+      "set": "gemini-dev-15",
+      "repo": "WeWake1/BSOMS",
+      "outcomes": [
+        "not-affected",
+        "not-affected",
+        "not-affected",
+        "not-affected",
+        "verified",
+        "verified",
+        "not-affected",
+        "not-affected",
+        "not-affected"
+      ],
+      "costUsd": 1.6431399,
+      "durationMs": 2197900,
+      "status": "verified"
+    },
+    {
+      "set": "gemini-dev-15",
+      "repo": "djnightmare9909/Dungeon-master-OS-WFGY",
+      "outcomes": [
+        "verified",
+        "not-affected",
+        "verified",
+        "verified",
+        "verified",
+        "verified",
+        "verified",
+        "verified",
+        "not-affected"
+      ],
+      "costUsd": 3.9195281999999985,
+      "durationMs": 1391780,
+      "status": "verified"
+    },
+    {
+      "set": "gemini-dev-15",
+      "repo": "saurabhbisht95/ai-career-coach",
+      "outcomes": ["verified", "verified"],
+      "costUsd": 1.4179292000000001,
+      "durationMs": 944494,
+      "status": "verified"
+    },
+    {
+      "set": "gemini-dev-15",
+      "repo": "kousalyaChintha/InfiniteCode",
+      "outcomes": ["verified", "verified", "not-affected", "verified"],
+      "costUsd": 2.0139724,
+      "durationMs": 672344,
+      "status": "verified"
+    },
+    {
+      "set": "gemini-dev-15",
+      "repo": "SamirAkhtar7/AI-Healthcare-Bot-System",
+      "outcomes": ["verified", "verified"],
+      "costUsd": 1.295301,
+      "durationMs": 325337,
+      "status": "verified"
+    },
+    {
+      "set": "longtail-dev-20",
+      "repo": "mantou132/Spotify-Lyrics",
+      "outcomes": [],
+      "costUsd": 0.2873318,
+      "durationMs": 87676,
+      "status": "not-affected"
+    },
+    {
+      "set": "longtail-dev-20",
+      "repo": "provinzio/CoinTaxman",
+      "outcomes": ["verified"],
+      "costUsd": 0.5366602,
+      "durationMs": 133221,
+      "status": "verified"
+    },
+    {
+      "set": "longtail-dev-20",
+      "repo": "levelopers/Ecommerce-Nodejs",
+      "outcomes": ["verified"],
+      "costUsd": 0.7671470999999999,
+      "durationMs": 295266,
+      "status": "verified"
+    },
+    {
+      "set": "longtail-dev-20",
+      "repo": "yokingma/one-search-mcp",
+      "outcomes": ["verified"],
+      "costUsd": 0.5723022999999999,
+      "durationMs": 320893,
+      "status": "verified"
+    },
+    {
+      "set": "longtail-dev-20",
+      "repo": "bcrant/Tableau2Slack",
+      "outcomes": ["verified", "verified", "verified"],
+      "costUsd": 1.245494,
+      "durationMs": 420501,
+      "status": "verified"
+    },
+    {
+      "set": "longtail-dev-20",
+      "repo": "LeviathanLevi/Coinbase-Pro-Crypto-Trading-Bot-CrypFinder",
+      "outcomes": ["verified", "verified", "verified", "verified"],
+      "costUsd": 1.7717637999999998,
+      "durationMs": 479722,
+      "status": "verified"
+    },
+    {
+      "set": "longtail-dev-20",
+      "repo": "bricefrisco/NamesLoL",
+      "outcomes": ["verified"],
+      "costUsd": 0.6941090000000001,
+      "durationMs": 284477,
+      "status": "verified"
+    },
+    {
+      "set": "longtail-dev-20",
+      "repo": "MitchellHarrison/python-twitch-chatbot",
+      "outcomes": ["verified", "verified"],
+      "costUsd": 1.1068548,
+      "durationMs": 648972,
+      "status": "verified"
+    },
+    {
+      "set": "longtail-dev-20",
+      "repo": "jasperapp/jasper",
+      "outcomes": [],
+      "costUsd": 0.08865870000000001,
+      "durationMs": 28644,
+      "status": "not-affected"
+    },
+    {
+      "set": "longtail-dev-20",
+      "repo": "natbat/pillarpointstewards",
+      "outcomes": ["needs-review"],
+      "costUsd": 0.6417284,
+      "durationMs": 224250,
+      "status": "not-verified",
+      "why": "natbat/pillarpointstewards:openweathermap:one-call-4-0-launch: needs-review"
+    },
+    {
+      "set": "longtail-dev-20",
+      "repo": "b1f6c1c4/c",
+      "outcomes": ["verified", "needs-review"],
+      "costUsd": 1.1880435999999999,
+      "durationMs": 326448,
+      "status": "not-verified",
+      "why": "b1f6c1c4/c:monday:got-16-0-0: needs-review"
+    },
+    {
+      "set": "longtail-dev-20",
+      "repo": "outlook/ALTAR",
+      "outcomes": ["needs-review", "verified", "verified"],
+      "costUsd": 1.5643578000000002,
+      "durationMs": 554649,
+      "status": "not-verified",
+      "why": "outlook/ALTAR:azure-ad-graph:2025-08-31-azure-ad-graph-retired: needs-review"
+    },
+    {
+      "set": "longtail-dev-20",
+      "repo": "kognise/stalker",
+      "outcomes": [],
+      "costUsd": 0.4897449,
+      "durationMs": 105454,
+      "status": "not-affected"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "mohammadpurl/next-livekit-streaming",
+      "outcomes": ["needs-review", "verified", "verified", "not-affected", "needs-review"],
+      "costUsd": 1.3687529,
+      "durationMs": 1628991,
+      "status": "not-verified",
+      "why": "mohammadpurl/next-livekit-streaming:openai:2026-03-26-gpt4-old: needs-review; mohammadpurl/next-livekit-streaming:openai:2026-08-26-transcription-retire: needs-review"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "borodinka/hire-wise",
+      "outcomes": ["verified", "verified"],
+      "costUsd": 0.812938,
+      "durationMs": 1237018,
+      "status": "verified"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "gvprime/pubragi",
+      "outcomes": ["verified", "verified", "needs-review", "not-affected"],
+      "costUsd": 2.3687148,
+      "durationMs": 943239,
+      "status": "not-verified",
+      "why": "gvprime/pubragi:openai:npm-7-0-0: needs-review"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "hachanimohamedsaid/backend_AgentAi",
+      "outcomes": ["verified", "verified", "not-affected", "not-affected", "verified", "verified"],
+      "costUsd": 2.7041939000000004,
+      "durationMs": 1986306,
+      "status": "verified"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "AyeletHillel/fine-tune",
+      "outcomes": ["verified", "verified", "verified"],
+      "costUsd": 1.4888008999999998,
+      "durationMs": 562468,
+      "status": "verified"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "edwinsatya/llm-output-guard",
+      "outcomes": [],
+      "costUsd": 0.1070508,
+      "durationMs": 35767,
+      "status": "not-affected"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "MRwangqi/chatGPT-nodejs",
+      "outcomes": ["verified", "needs-review"],
+      "costUsd": 1.0390678,
+      "durationMs": 302381,
+      "status": "not-verified",
+      "why": "MRwangqi/chatGPT-nodejs:openai:npm-7-0-0: needs-review"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "adeojoemmanuel/EDD-Kafka-Rest-Api",
+      "outcomes": ["needs-review"],
+      "costUsd": 1.1332335000000002,
+      "durationMs": 318996,
+      "status": "not-verified",
+      "why": "adeojoemmanuel/EDD-Kafka-Rest-Api:openai:2026-09-28-legacy-completions: needs-review"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "RaizenStyx/lore-forge",
+      "outcomes": ["needs-review", "verified"],
+      "costUsd": 1.126677,
+      "durationMs": 597851,
+      "status": "not-verified",
+      "why": "RaizenStyx/lore-forge:openai:2026-09-28-legacy-completions: needs-review"
+    },
+    {
+      "set": "openai-dev-30",
+      "repo": "kkb2849/nextjs-1zdevcamp-template",
+      "outcomes": ["verified", "needs-review", "needs-review"],
+      "costUsd": 2.971361,
+      "durationMs": 1028720,
+      "status": "not-verified",
+      "why": "kkb2849/nextjs-1zdevcamp-template:openai:2026-09-28-legacy-completions: needs-review; kkb2849/nextjs-1zdevcamp-template:openai:2026-10-23-legacy-gpt-shutdown: needs-review"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "4lbatr0s/jiro",
+      "outcomes": ["verified"],
+      "costUsd": 0.6668413999999999,
+      "durationMs": 565332,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "alanagoyal/branded",
+      "outcomes": ["verified"],
+      "costUsd": 0.879666,
+      "durationMs": 667432,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "Anassarwar14/Chat-Nest-AI",
+      "outcomes": ["verified"],
+      "costUsd": 0.7765827999999999,
+      "durationMs": 971089,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "benlamiro/ShipGenAI",
+      "outcomes": ["verified", "not-affected"],
+      "costUsd": 1.0656805,
+      "durationMs": 330291,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "createdbymax/Loopletter-Open-source-email-marketing-platform",
+      "outcomes": ["verified"],
+      "costUsd": 1.2029815,
+      "durationMs": 1289646,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "Devanshjain2110/QueryPDF",
+      "outcomes": ["verified"],
+      "costUsd": 0.6965836999999999,
+      "durationMs": 544369,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "Emmah-oo/spotify-clone",
+      "outcomes": ["verified"],
+      "costUsd": 0.9266125,
+      "durationMs": 481875,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "imran-farooq7/next-gen-ai-yt",
+      "outcomes": ["verified"],
+      "costUsd": 0.705072,
+      "durationMs": 420642,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "liamstamper/lamp-bot",
+      "outcomes": ["verified", "verified"],
+      "costUsd": 0.9241176999999999,
+      "durationMs": 1137758,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "manu14357/smartdoc",
+      "outcomes": ["verified"],
+      "costUsd": 0.8130770999999999,
+      "durationMs": 835205,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "Miguel07Alm/text2question",
+      "outcomes": ["verified"],
+      "costUsd": 0.7491181,
+      "durationMs": 566683,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "MuhammadTanveerAbbas/Clario-ai",
+      "outcomes": ["verified"],
+      "costUsd": 1.0612211,
+      "durationMs": 738397,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "nicuk/docsflow",
+      "outcomes": ["verified"],
+      "costUsd": 1.4115062,
+      "durationMs": 866664,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "palashb01/DocuChat",
+      "outcomes": ["needs-review"],
+      "costUsd": 0.6278306999999999,
+      "durationMs": 426577,
+      "status": "not-verified",
+      "why": "palashb01/DocuChat:stripe:node-23-0-0: needs-review"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "pretzelai/lumen",
+      "outcomes": ["not-affected", "verified"],
+      "costUsd": 1.66818735,
+      "durationMs": 1276978,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "samiamjidkhan/dota2-helper",
+      "outcomes": ["verified", "verified"],
+      "costUsd": 0.9698068,
+      "durationMs": 335614,
+      "status": "verified"
+    },
+    {
+      "set": "stripe-dev-30",
+      "repo": "Small-Web-Co/tinypivot",
+      "outcomes": ["needs-review"],
+      "costUsd": 0.7440069,
+      "durationMs": 336083,
+      "status": "not-verified",
+      "why": "Small-Web-Co/tinypivot:stripe:node-23-0-0: needs-review"
+    }
+  ]
+}

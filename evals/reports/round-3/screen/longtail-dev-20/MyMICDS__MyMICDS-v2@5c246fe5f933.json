@@ -1,0 +1,74 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "MyMICDS/MyMICDS-v2",
+  "commit": "5c246fe5f93313b7444961fa84e8010f6151e777",
+  "provider": "openweathermap",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "fallback": true,
+      "name": "typecheck",
+      "command": "npx --no-install tsc --noEmit",
+      "ok": false,
+      "failures": [
+        "src/index.ts: error TS2307: Cannot find module './libs/config' or its corresponding type declarations.",
+        "src/init.ts: error TS2307: Cannot find module './libs/config' or its corresponding type declarations.",
+        "src/libs/api.ts: error TS2307: Cannot find module './config' or its corresponding type declarations.",
+        "src/libs/backgrounds.ts: error TS2307: Cannot find module './config' or its corresponding type declarations.",
+        "src/libs/dailyBulletin.ts: error TS2307: Cannot find module './config' or its corresponding type declarations.",
+        "src/libs/googleServiceAccount.ts: error TS2307: Cannot find module './config' or its corresponding type declarations.",
+        "src/libs/jwt.ts: error TS2307: Cannot find module './config' or its corresponding type declarations.",
+        "src/libs/mail.ts: error TS2307: Cannot find module './config' or its corresponding type declarations.",
+        "src/libs/portal.ts: error TS2307: Cannot find module './config' or its corresponding type declarations.",
+        "src/libs/socket.io.ts: error TS2307: Cannot find module './config' or its corresponding type declarations."
+      ],
+      "tail": "rounds.ts(8,20): error TS2307: Cannot find module './config' or its corresponding type declarations.\nsrc/libs/dailyBulletin.ts(7,20): error TS2307: Cannot find module './config' or its corresponding type declarations.\nsrc/libs/googleServiceAccount.ts(3,20): error TS2307: Cannot find module './config' or its corresponding type declarations.\nsrc/libs/jwt.ts(9,20): error TS2307: Cannot find module './config' or its corresponding type declarations.\nsrc/libs/mail.ts(3,20): error TS2307: Cannot find module './config' or its corresponding type declarations.\nsrc/libs/portal.ts(11,20): error TS2307: Cannot find module './config' or its corresponding type declarations.\nsrc/libs/socket.io.ts(4,20): error TS2307: Cannot find module './config' or its corresponding type declarations.\nsrc/libs/weather.ts(5,20): error TS2307: Cannot find module './config' or its corresponding type declarations.\nsrc/scripts/add-user-item.ts(5,20): error TS2307: Cannot find module '../libs/config' or its corresponding type declarations.\nsrc/scripts/newsletter.ts(9,20): error TS2307: Cannot find module '../libs/config' or its corresponding type declarations.\nsrc/tasks.ts(8,20): error TS2307: Cannot find module './libs/config' or its corresponding type declarations.\nsrc/test/lunchSchedule.ts(3,20): error TS2307: Cannot find module '../libs/config' or its corresponding type declarations.\nsrc/test/portalClassCleanup.ts(3,20): error TS2307: Cannot find module '../libs/config' or its corresponding type declarations."
+    },
+    {
+      "name": "build",
+      "command": "npm run build",
+      "ok": true,
+      "failures": [],
+      "tail": ""
+    },
+    {
+      "name": "test",
+      "command": "npm run test",
+      "ok": false,
+      "failures": [
+        "src/index.ts: error TS2307: Cannot find module './libs/config' or its corresponding type declarations.",
+        "src/init.ts: error TS2307: Cannot find module './libs/config' or its corresponding type declarations.",
+        "src/libs/api.ts: error TS2307: Cannot find module './config' or its corresponding type declarations.",
+        "src/libs/backgrounds.ts: error TS2307: Cannot find module './config' or its corresponding type declarations.",
+        "src/libs/dailyBulletin.ts: error TS2307: Cannot find module './config' or its corresponding type declarations.",
+        "src/libs/googleServiceAccount.ts: error TS2307: Cannot find module './config' or its corresponding type declarations.",
+        "src/libs/jwt.ts: error TS2307: Cannot find module './config' or its corresponding type declarations.",
+        "src/libs/mail.ts: error TS2307: Cannot find module './config' or its corresponding type declarations.",
+        "src/libs/portal.ts: error TS2307: Cannot find module './config' or its corresponding type declarations.",
+        "src/libs/socket.io.ts: error TS2307: Cannot find module './config' or its corresponding type declarations."
+      ],
+      "tail": "rounds.ts(8,20): error TS2307: Cannot find module './config' or its corresponding type declarations.\nsrc/libs/dailyBulletin.ts(7,20): error TS2307: Cannot find module './config' or its corresponding type declarations.\nsrc/libs/googleServiceAccount.ts(3,20): error TS2307: Cannot find module './config' or its corresponding type declarations.\nsrc/libs/jwt.ts(9,20): error TS2307: Cannot find module './config' or its corresponding type declarations.\nsrc/libs/mail.ts(3,20): error TS2307: Cannot find module './config' or its corresponding type declarations.\nsrc/libs/portal.ts(11,20): error TS2307: Cannot find module './config' or its corresponding type declarations.\nsrc/libs/socket.io.ts(4,20): error TS2307: Cannot find module './config' or its corresponding type declarations.\nsrc/libs/weather.ts(5,20): error TS2307: Cannot find module './config' or its corresponding type declarations.\nsrc/scripts/add-user-item.ts(5,20): error TS2307: Cannot find module '../libs/config' or its corresponding type declarations.\nsrc/scripts/newsletter.ts(9,20): error TS2307: Cannot find module '../libs/config' or its corresponding type declarations.\nsrc/tasks.ts(8,20): error TS2307: Cannot find module './libs/config' or its corresponding type declarations.\nsrc/test/lunchSchedule.ts(3,20): error TS2307: Cannot find module '../libs/config' or its corresponding type declarations.\nsrc/test/portalClassCleanup.ts(3,20): error TS2307: Cannot find module '../libs/config' or its corresponding type declarations."
+    }
+  ],
+  "costUsd": 0.11315799999999995,
+  "durationMs": 132243,
+  "install": {
+    "code": 0,
+    "tail": "s recommended you upgrade to 3.2.7 or 4.3.1. (https://github.com/visionmedia/debug/issues/797)\nnpm WARN deprecated uuid@3.3.3: Please upgrade  to version 7 or higher.  Older versions may use Math.random() in certain circumstances, which is known to be problematic.  See https://v8.dev/blog/math-random for details.\nnpm WARN deprecated debug@4.1.1: Debug versions >=3.2.0 <3.2.7 || >=4 <4.3.1 have a low-severity ReDos regression when used in a Node.js environment. It is recommended you upgrade to 3.2.7 or 4.3.1. (https://github.com/visionmedia/debug/issues/797)\nnpm WARN deprecated debug@4.1.1: Debug versions >=3.2.0 <3.2.7 || >=4 <4.3.1 have a low-severity ReDos regression when used in a Node.js environment. It is recommended you upgrade to 3.2.7 or 4.3.1. (https://github.com/visionmedia/debug/issues/797)\nnpm WARN deprecated debug@4.1.1: Debug versions >=3.2.0 <3.2.7 || >=4 <4.3.1 have a low-severity ReDos regression when used in a Node.js environment. It is recommended you upgrade to 3.2.7 or 4.3.1. (https://github.com/visionmedia/debug/issues/797)\nnpm WARN deprecated debug@4.1.1: Debug versions >=3.2.0 <3.2.7 || >=4 <4.3.1 have a low-severity ReDos regression when used in a Node.js environment. It is recommended you upgrade to 3.2.7 or 4.3.1. (https://github.com/visionmedia/debug/issues/797)\nnpm WARN deprecated later@1.2.0: Please upgrade to the maintained and new drop-in replacement @breejs/later at https://github.com/breejs/later 🚀 Thanks and happy hacking! 🚀  @niftylettuce"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "[ -f src/libs/config.ts ] || cp src/libs/config.default.ts src/libs/config.ts",
+        "why": "src/libs/config.ts is gitignored and only the template config.default.ts is committed. Every TS2307 'Cannot find module ./config' error comes from the missing file, so copy the template to create it.",
+        "code": 1
+      }
+    ],
+    "env": []
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "typecheck and test fail with TS2307 because src/libs/config module is missing from the checkout (likely a gitignored/generated config file), which is a repo-level problem rather than an external credential, service, or toolchain requirement."
+  }
+}

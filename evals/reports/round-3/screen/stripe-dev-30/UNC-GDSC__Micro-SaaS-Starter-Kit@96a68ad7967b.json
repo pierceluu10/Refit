@@ -1,0 +1,58 @@
+{
+  "set": "stripe-dev-30",
+  "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+  "commit": "96a68ad7967b112a75956d37a51b3bef30c717c7",
+  "provider": "stripe",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "typecheck",
+      "command": "export DATABASE_URL='postgresql://user:password@localhost:5432/microsaas?schema=public' NEXTAUTH_URL='http://localhost:3000' NEXTAUTH_SECRET='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' RESEND_API_KEY='re_placeholder'; npm run type-check",
+      "ok": false,
+      "failures": ["exit-nonzero: sh: 1: tsc: not found"],
+      "tail": "> micro-saas-starter-kit@1.0.0 type-check\n> tsc --noEmit\n\n\nsh: 1: tsc: not found"
+    },
+    {
+      "name": "build",
+      "command": "export DATABASE_URL='postgresql://user:password@localhost:5432/microsaas?schema=public' NEXTAUTH_URL='http://localhost:3000' NEXTAUTH_SECRET='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' RESEND_API_KEY='re_placeholder'; npm run build",
+      "ok": false,
+      "failures": ["exit-nonzero: sh: 1: next: not found"],
+      "tail": "> micro-saas-starter-kit@1.0.0 build\n> next build\n\n\nsh: 1: next: not found"
+    },
+    {
+      "name": "test",
+      "command": "export DATABASE_URL='postgresql://user:password@localhost:5432/microsaas?schema=public' NEXTAUTH_URL='http://localhost:3000' NEXTAUTH_SECRET='placeholder' STRIPE_SECRET_KEY='sk_test_placeholder' STRIPE_WEBHOOK_SECRET='whsec_placeholder' RESEND_API_KEY='re_placeholder'; npm run test",
+      "ok": false,
+      "failures": ["exit-nonzero: sh: 1: jest: not found"],
+      "tail": "> micro-saas-starter-kit@1.0.0 test\n> jest --watch\n\n\nsh: 1: jest: not found"
+    }
+  ],
+  "costUsd": 0.2148,
+  "durationMs": 918752,
+  "install": {
+    "code": 1,
+    "tail": "rror\nnpm error Run \"npm help ci\" for more info\nnpm error A complete log of this run can be found in: /tmp/.npm/_logs/2026-11-03T19_08_49_921Z-debug-0.log\nnpm error code E404\nnpm error 404 Not Found - GET https://registry.npmjs.org/@radix-ui%2freact-skeleton - Not found\nnpm error 404\nnpm error 404  '@radix-ui/react-skeleton@^0.0.5' is not in this registry.\nnpm error 404\nnpm error 404 Note that you can also install from a\nnpm error 404 tarball, folder, http url, or git url.\nnpm error A complete log of this run can be found in: /tmp/.npm/_logs/2026-11-03T19_08_50_152Z-debug-0.log\nnpm error code E404\nnpm error 404 Not Found - GET https://registry.npmjs.org/@radix-ui%2freact-skeleton - Not found\nnpm error 404\nnpm error 404  '@radix-ui/react-skeleton@^0.0.5' is not in this registry.\nnpm error 404\nnpm error 404 Note that you can also install from a\nnpm error 404 tarball, folder, http url, or git url.\nnpm error A complete log of this run can be found in: /tmp/.npm/_logs/2026-11-03T19_09_58_965Z-debug-0.log\nnpm warn using --force Recommended protections disabled.\nnpm error code E404\nnpm error 404 Not Found - GET https://registry.npmjs.org/@radix-ui%2freact-skeleton - Not found\nnpm error 404\nnpm error 404  '@radix-ui/react-skeleton@^0.0.5' is not in this registry.\nnpm error 404\nnpm error 404 Note that you can also install from a\nnpm error 404 tarball, folder, http url, or git url.\nnpm error A complete log of this run can be found in: /tmp/.npm/_logs/2026-11-03T19_10_08_404Z-debug-0.log"
+  },
+  "preparation": {
+    "steps": [
+      {
+        "command": "npx prisma generate",
+        "why": "The repo's postinstall runs prisma generate, but install scripts were off. Type-check, build and tests import the generated @prisma/client types.",
+        "code": 124
+      }
+    ],
+    "env": [
+      "DATABASE_URL",
+      "NEXTAUTH_URL",
+      "NEXTAUTH_SECRET",
+      "STRIPE_SECRET_KEY",
+      "STRIPE_WEBHOOK_SECRET",
+      "RESEND_API_KEY"
+    ]
+  },
+  "exclusion": {
+    "class": "red-baseline",
+    "reason": "typecheck fails before any edit: exit-nonzero: sh: 1: tsc: not found"
+  }
+}

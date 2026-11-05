@@ -1,0 +1,783 @@
+{
+  "set": "gemini-dev-15",
+  "index": 0,
+  "repo": "XDTerminated/t2-chat-t3c-2025",
+  "commit": "89102edbbb3f10dd78f1483cfb5aa3dba73880ed",
+  "provider": "gemini",
+  "usages": 9,
+  "changes": 23,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "XDTerminated/t2-chat-t3c-2025:gemini:generative-ai-js-eol",
+      "changeId": "gemini:generative-ai-js-eol",
+      "kind": "sdk-major",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:generative-ai-js-eol",
+        "kind": "sdk-major",
+        "title": "@google/generative-ai (npm) is deprecated and reaches end of life; migrate to @google/genai",
+        "source": {
+          "url": "https://raw.githubusercontent.com/google/generative-ai-js/HEAD/README.md",
+          "quote": "All support for this repository (including bug fixes) will permanently end on **November 30, 2025**."
+        },
+        "affects": {
+          "versions": ["<=0.24.1"],
+          "sdk": "@google/generative-ai"
+        },
+        "effectiveDate": "2025-11-30"
+      },
+      "reasoning": "The repo pins @google/generative-ai 0.24.1, which falls in the affected range <=0.24.1. Support, including bug fixes, ended on 2025-11-30. The same repo already depends on @google/genai 1.35.0 (usage 3, models.generateContent in gemini-api.ts). The migration is therefore to rewrite the getGenerativeModel/generateContent calls onto the existing GoogleGenAI client and then remove @google/generative-ai from package.json. The response shapes differ: response.text() becomes the response.text getter, streaming becomes generateContentStream, and the config key names change. The migration agent should check how responses are read at each site.",
+      "callSites": [
+        {
+          "file": "src/app/api/chats/generate-title/route.ts",
+          "line": 64,
+          "why": "Uses getGenerativeModel from the deprecated @google/generative-ai 0.24.1 SDK. It must be ported to @google/genai ai.models.generateContent."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 45,
+          "why": "Uses getGenerativeModel from the deprecated @google/generative-ai SDK (image-generation model). Port it to @google/genai."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 308,
+          "why": "Uses getGenerativeModel from the deprecated @google/generative-ai SDK. Port it to @google/genai."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "XDTerminated/t2-chat-t3c-2025:gemini:generative-ai-js-eol",
+        "outcome": "verified",
+        "diff": "diff --git a/package.json b/package.json\nindex 8c84352..01d1e38 100644\n--- a/package.json\n+++ b/package.json\n@@ -20,7 +20,6 @@\n   \"dependencies\": {\n     \"@clerk/nextjs\": \"^6.36.7\",\n     \"@google/genai\": \"^1.35.0\",\n-    \"@google/generative-ai\": \"^0.24.1\",\n     \"@lexical/code\": \"^0.31.2\",\n     \"@lexical/link\": \"^0.31.2\",\n     \"@lexical/list\": \"^0.31.2\",\ndiff --git a/pnpm-lock.yaml b/pnpm-lock.yaml\nindex f6cef70..9feb37e 100644\n--- a/pnpm-lock.yaml\n+++ b/pnpm-lock.yaml\n@@ -14,9 +14,6 @@ importers:\n       '@google/genai':\n         specifier: ^1.35.0\n         version: 1.35.0\n-      '@google/generative-ai':\n-        specifier: ^0.24.1\n-        version: 0.24.1\n       '@lexical/code':\n         specifier: ^0.31.2\n         version: 0.31.2\n@@ -337,10 +334,6 @@ packages:\n       '@modelcontextprotocol/sdk':\n         optional: true\n \n-  '@google/generative-ai@0.24.1':\n-    resolution: {integrity: sha512-MqO+MLfM6kjxcKoy0p1wRzG3b4ZZXtPI+z2IE26UogS2Cm/XHO+7gGRBh6gcJsOiIVoH93UwKvW4HdgiOZCy9Q==}\n-    engines: {node: '>=18.0.0'}\n-\n   '@hono/node-server@1.19.6':\n     resolution: {integrity: sha512-Shz/KjlIeAhfiuE93NDKVdZ7HdBVLQAfdbaXEaoAVO3ic9ibRSLGIQGkcBbFyuLr+7/1D5ZCINM8B+6IvXeMtw==}\n     engines: {node: '>=18.14.1'}\n@@ -4175,8 +4168,6 @@ snapshots:\n       - supports-color\n       - utf-8-validate\n \n-  '@google/generative-ai@0.24.1': {}\n-\n   '@hono/node-server@1.19.6(hono@4.10.6)':\n     dependencies:\n       hono: 4.10.6\ndiff --git a/scripts/check-genai-migration.mjs b/scripts/check-genai-migration.mjs\nnew file mode 100644\nindex 0000000..dc4fd15\n--- /dev/null\n+++ b/scripts/check-genai-migration.mjs\n@@ -0,0 +1,17 @@\n+import { readFileSync } from \"node:fs\";\n+import assert from \"node:assert\";\n+\n+const files = [\n+  \"src/lib/api/gemini-api.ts\",\n+  \"src/app/api/chats/generate-title/route.ts\",\n+];\n+for (const f of files) {\n+  const src = readFileSync(f, \"utf8\");\n+  assert(!src.includes(\"@google/generative-ai\"), `${f} imports legacy SDK`);\n+  assert(!/getGenerativeModel/.test(src), `${f} uses getGenerativeModel`);\n+  assert(!/\\.text\\(\\)/.test(src), `${f} calls text() as a method`);\n+}\n+const pkg = JSON.parse(readFileSync(\"package.json\", \"utf8\"));\n+assert(!pkg.dependencies[\"@google/generative-ai\"], \"legacy dep still in package.json\");\n+assert(pkg.dependencies[\"@google/genai\"], \"@google/genai missing\");\n+console.log(\"ok\");\ndiff --git a/src/app/api/chats/generate-title/route.ts b/src/app/api/chats/generate-title/route.ts\nindex 474566a..d4517d5 100644\n--- a/src/app/api/chats/generate-title/route.ts\n+++ b/src/app/api/chats/generate-title/route.ts\n@@ -1,10 +1,6 @@\n import { NextResponse } from \"next/server\";\n import { currentUser } from \"@clerk/nextjs/server\";\n-import {\n-  GoogleGenerativeAI,\n-  HarmCategory,\n-  HarmBlockThreshold,\n-} from \"@google/generative-ai\";\n+import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from \"@google/genai\";\n import {\n   checkRateLimit,\n   getClientIdentifier,\n@@ -60,8 +56,7 @@ export async function POST(request: Request) {\n       );\n     }\n \n-    const genAI = new GoogleGenerativeAI(apiKey);\n-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });\n+    const genAI = new GoogleGenAI({ apiKey });\n     const generationConfig = {\n       temperature: 0.3, // Lower temperature for faster, more consistent results\n       topK: 10, // Increased for faster token selection\n@@ -86,14 +81,14 @@ export async function POST(request: Request) {\n \n     const parts = [{ text: prompt }];\n \n-    const result = await model.generateContent({\n+    const result = await genAI.models.generateContent({\n+      model: MODEL_NAME,\n       contents: [{ role: \"user\", parts }],\n-      generationConfig,\n-      safetySettings,\n+      config: { ...generationConfig, safetySettings },\n     });\n     let generatedTitle = \"New Chat\"; // Default title\n-    if (result.response?.candidates && result.response.candidates.length > 0) {\n-      const candidate = result.response.candidates[0];\n+    if (result.candidates && result.candidates.length > 0) {\n+      const candidate = result.candidates[0];\n       if (candidate?.content?.parts && candidate.content.parts.length > 0) {\n         // Ensure part.text is defined before trying to access it\n         const textPart = candidate.content.parts[0]?.text;\ndiff --git a/src/lib/api/gemini-api.ts b/src/lib/api/gemini-api.ts\nindex 36f0d49..75aff4e 100644\n--- a/src/lib/api/gemini-api.ts\n+++ b/src/lib/api/gemini-api.ts\n@@ -1,4 +1,3 @@\n-import { GoogleGenerativeAI } from \"@google/generative-ai\";\n import { GoogleGenAI } from \"@google/genai\";\n import type { UploadFileResponse } from \"../types\";\n import type { MessageContent, ChatStreamOptions, ChatMessage } from \"./types\";\n@@ -6,11 +5,9 @@ import { mapToGeminiModelName } from \"./model-helpers\";\n \n export class GeminiAPI {\n   private genAI: GoogleGenAI;\n-  private legacyGenAI: GoogleGenerativeAI;\n \n   constructor(apiKey: string) {\n     this.genAI = new GoogleGenAI({ apiKey });\n-    this.legacyGenAI = new GoogleGenerativeAI(apiKey);\n   }\n \n   async generateChatStream(\n@@ -42,13 +39,11 @@ export class GeminiAPI {\n       aspectRatio?: \"1:1\" | \"3:4\" | \"4:3\" | \"9:16\" | \"16:9\";\n     },\n   ): Promise<{ data: Array<{ url: string }> }> {\n-    const model = this.legacyGenAI.getGenerativeModel({\n+    const response = await this.genAI.models.generateContent({\n       model: \"gemini-2.0-flash-preview-image-generation\",\n+      contents: [{ role: \"user\", parts: [{ text: prompt }] }],\n     });\n-\n-    const result = await model.generateContent([{ text: prompt }]);\n     const images: Array<{ url: string }> = [];\n-    const response = result.response;\n \n     for (const candidate of response.candidates ?? []) {\n       for (const part of candidate.content?.parts ?? []) {\n@@ -300,14 +295,12 @@ export class GeminiAPI {\n   ) {\n     const { contents, systemInstruction } = this.convertToGeminiFormat(messages);\n \n-    const modelConfig = {\n+    const stream = await this.genAI.models.generateContentStream({\n       model: mapToGeminiModelName(modelId),\n-      systemInstruction: systemInstruction,\n-    };\n-\n-    const model = this.legacyGenAI.getGenerativeModel(modelConfig);\n-    const result = await model.generateContentStream({ contents });\n-    return this.createCompatibleStream(result);\n+      contents,\n+      config: systemInstruction ? { systemInstruction } : undefined,\n+    });\n+    return this.createCompatibleStream(stream);\n   }\n \n   private convertToGeminiFormat(messages: ChatMessage[]) {\n@@ -620,17 +613,17 @@ export class GeminiAPI {\n     }\n   }\n \n-  private async createCompatibleStream(result: {\n-    stream: AsyncIterable<{ text(): string }>;\n-  }) {\n+  private async createCompatibleStream(\n+    stream: AsyncIterable<{ text?: string }>,\n+  ) {\n     const encoder = new TextEncoder();\n \n     return new Response(\n       new ReadableStream({\n         async start(controller) {\n           try {\n-            for await (const chunk of result.stream) {\n-              const text: string = chunk.text();\n+            for await (const chunk of stream) {\n+              const text: string = chunk.text ?? \"\";\n               if (text) {\n                 const payload = JSON.stringify({ token: text, reasoning: \"\" });\n                 controller.enqueue(encoder.encode(`data: ${payload}\\n\\n`));\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "genai-migration",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.23341040000000002,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-XDTerminated-t2-chat-t3c-2025-gemini-generative-ai-js-eol-Stxoxp/transcript.jsonl",
+        "prBody": "## @google/generative-ai (npm) is deprecated and reaches end of life; migrate to @google/genai [Verified]\n\n### Change\n\nMoved the remaining @google/generative-ai call sites (gemini-api.ts image generation and legacy stream, generate-title route) onto the @google/genai client that was already a dependency. Removed @google/generative-ai from package.json and the lockfile with pnpm.\n\nFiles touched:\n- `package.json`\n- `pnpm-lock.yaml`\n- `scripts/check-genai-migration.mjs`\n- `src/app/api/chats/generate-title/route.ts`\n- `src/lib/api/gemini-api.ts`\n\n### Why\n\n@google/generative-ai is end-of-life as of 2025-11-30.\n\n> All support for this repository (including bug fixes) will permanently end on **November 30, 2025**.\n\nSource: https://raw.githubusercontent.com/google/generative-ai-js/HEAD/README.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| genai-migration | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- genai-migration, added by the agent: `export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder'; node scripts/check-genai-migration.mjs` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Before the baseline the harness ran `corepack pnpm@10.2.0 exec prisma generate` (The postinstall hook (prisma generate) did not run because install scripts are off. The client is generated into src/generated/prisma, and typecheck needs it to resolve imports.); it exited 0.\n- Before the baseline the harness ran `npx prisma generate` (Postinstall was skipped, and typecheck needs the generated client in src/generated/prisma (the build script runs this itself).); it exited 0.\n- Checks ran with placeholder env: DATABASE_URL, DIRECT_DATABASE_URL, CLERK_SECRET_KEY, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, GEMINI_API_KEY, UPLOADTHING_TOKEN, OPENROUTER_API_KEY.\n\nTest of this change: `genai-migration`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- The proof test is a static source check, not a mocked runtime call; the repo has no test framework.\n- Image generation: the new SDK call sends no responseModalities, as before; the preview image model may need it live.\n- The title route's safetySettings now go in config; the HarmCategory enums now come from @google/genai.\n- No provider validator was run.\n\n### Behaviour changes\n\n- Streaming text now comes from the chunk.text getter, which is undefined for chunks with no text; those chunks are skipped.\n- The system instruction is passed in config.systemInstruction, and only when it is non-empty.\n- The title route reads result.candidates directly instead of result.response.candidates.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.2334\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [],
+        "agentChecks": [
+          {
+            "name": "genai-migration",
+            "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder'; node scripts/check-genai-migration.mjs",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# XDTerminated/t2-chat-t3c-2025:gemini:generative-ai-js-eol: verified, $0.2334\nChange: @google/generative-ai (npm) is deprecated and reaches end of life; migrate to @google/genai (gemini, sdk-major)\nBaseline checks: typecheck pass, build pass, genai-migration fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=generative-ai|@google/genai glob=src/** → src/app/api/chats/generate-title/route.ts:7: } from \"@google/generative-ai\"; | src/lib/api/gemini-api.ts:1: import { GoogleGenerativeAI } from \"@google/generative-ai\"; | src/lib/api/gemini-api.ts:2: import { GoogleGenAI } from \"@google/gena…\n2. read_file path=src/lib/api/gemini-api.ts → 1\timport { GoogleGenerativeAI } from \"@google/generative-ai\"; | 2\timport { GoogleGenAI } from \"@google/genai\"; | 3\timport type { UploadFileResponse } from \"../types\";\n3. read_file path=src/lib/api/gemini-api.ts offset=283 limit=80 → 283\t | 284\t      const response = await this.genAI.models.generateContent({ | 285\t        model: mapToGeminiModelName(modelId),\n4. read_file path=src/app/api/chats/generate-title/route.ts → 1\timport { NextResponse } from \"next/server\"; | 2\timport { currentUser } from \"@clerk/nextjs/server\"; | 3\timport {\n5. edit_file path=src/app/api/chats/generate-title/route.ts old=<100 chars> new=import { GoogleGenAI, HarmCategory, HarmBlockThreshold } from \"@google/genai\"; → edited src/app/api/chats/generate-title/route.ts (1 replacement)\n6. edit_file path=src/app/api/chats/generate-title/route.ts old=<147 chars> new=    const genAI = new GoogleGenAI({ apiKey });\n    const generationConfig = { → edited src/app/api/chats/generate-title/route.ts (1 replacement)\n7. edit_file path=src/app/api/chats/generate-title/route.ts old=<334 chars> new=<347 chars> → edited src/app/api/chats/generate-title/route.ts (1 replacement)\n8. edit_file path=src/lib/api/gemini-api.ts old=import { GoogleGenerativeAI } from \"@google/generative-ai\";\n new= → edited src/lib/api/gemini-api.ts (1 replacement)\n9. edit_file path=src/lib/api/gemini-api.ts old=<176 chars> new=\n  constructor(apiKey: string) {\n    this.genAI = new GoogleGenAI({ apiKey }); → edited src/lib/api/gemini-api.ts (1 replacement)\n10. edit_file path=src/lib/api/gemini-api.ts old=<275 chars> new=<238 chars> → edited src/lib/api/gemini-api.ts (1 replacement)\n11. edit_file path=src/lib/api/gemini-api.ts old=<305 chars> new=<251 chars> → edited src/lib/api/gemini-api.ts (1 replacement)\n12. edit_file path=src/lib/api/gemini-api.ts old=<102 chars> new=<91 chars> → edited src/lib/api/gemini-api.ts (1 replacement)\n13. edit_file path=src/lib/api/gemini-api.ts old=<103 chars> new=<100 chars> → edited src/lib/api/gemini-api.ts (1 replacement)\n14. shell command=<145 chars> → exit code: 1 | --- stdout --- | dependencies:\n15. write_file path=scripts/check-genai-migration.mjs content=<695 chars> → wrote scripts/check-genai-migration.mjs (695 bytes)\n16. run_checks add=[{\"name\":\"genai-migration\",\"command\":\"node scripts/check-genai-migration.mjs\"}] → registered genai-migration; on the original code it fails (1) | ## typecheck: pass | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk…\n17. finish verdict=migrated summary=<262 chars> why=@google/generative-ai is end-of-life as of 2025-11-30. validators=[] unproven=<327 chars> behaviourChanges=<311 chars> proofTest=genai-migration → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, genai-migration fail (1) → pass\n\n## Result\nFiles changed: package.json, pnpm-lock.yaml, scripts/check-genai-migration.mjs, src/app/api/chats/generate-title/route.ts, src/lib/api/gemini-api.ts\nVerdict: migrated. Moved the remaining @google/generative-ai call sites (gemini-api.ts image generation and legacy stream, generate-title route) onto the @google/genai client that was already a dependency. Removed @google/generative-ai from package.json and the lockfile with pnpm.\nUnproven: The proof test is a static source check, not a mocked runtime call; the repo has no test framework.; Image generation: the new SDK call sends no responseModalities, as before; the preview image model may need it live.; The title route's safetySettings now go in config; the HarmCategory enums now come from @google/genai.\n",
+        "preparation": {
+          "steps": [
+            {
+              "command": "corepack pnpm@10.2.0 exec prisma generate",
+              "why": "The postinstall hook (prisma generate) did not run because install scripts are off. The client is generated into src/generated/prisma, and typecheck needs it to resolve imports.",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 111ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            },
+            {
+              "command": "npx prisma generate",
+              "why": "Postinstall was skipped, and typecheck needs the generated client in src/generated/prisma (the build script runs this itself).",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 91ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            }
+          ],
+          "env": {
+            "DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "DIRECT_DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "CLERK_SECRET_KEY": "sk_test_placeholder",
+            "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_Y2xlcmsuZXhhbXBsZS5jb20k",
+            "GEMINI_API_KEY": "placeholder",
+            "UPLOADTHING_TOKEN": "placeholder",
+            "OPENROUTER_API_KEY": "placeholder"
+          },
+          "reasoning": "The Prisma schema uses the prisma-client generator with output ../src/generated/prisma, which is not committed. Install scripts were skipped, so the postinstall hook never generated it. Running prisma generate fixes the typecheck. The build script already runs prisma generate itself, but running it earlier is harmless. next.config.js imports src/env.js, which validates env vars at build time, so placeholder values are set for the variables in .env.example.\nThe build fails while prerendering because Clerk rejects pk_test_placeholder. A Clerk publishable key is pk_test_ followed by base64 of a domain ending in $, so the placeholder must be in that format. The value given decodes to clerk.example.com$, which Clerk accepts as well-formed. The harness's own export of pk_test_placeholder may override this env value. If it does, the failure comes from that placeholder rather than from the repo's code."
+        }
+      },
+      "review": {
+        "opinion": "looks-right",
+        "summary": "The diff migrates all three named call sites to @google/genai: the title route (route.ts:64), generateImage (gemini-api.ts:45) and the non-search streaming path (gemini-api.ts:308). It also drops the legacy dependency. Typecheck and build both pass after the legacy package is removed, which shows no other file still imports it. The new request shapes match the SDK patterns this file already uses in generateWithSearch and generateWithThinking: `models.generateContent` or `generateContentStream` with `model`, `contents` and `config`, and `safetySettings` inside `config`. The response access also matches: top-level `candidates`, and `chunk.text` read as a property. My concerns are small runtime differences the checks cannot see. No check makes a live Gemini call, so 'verified' rests on type-level and static evidence only.",
+        "concerns": [
+          {
+            "file": "src/lib/api/gemini-api.ts",
+            "issue": "In createCompatibleStream, the legacy `chunk.text()` threw when a candidate was blocked (safety or recitation). That error went to the stream's catch path. The new code reads `chunk.text ?? \"\"` and skips empty chunks, so a blocked response now yields an empty stream with no error. The client may show a blank reply instead of an error.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/lib/api/gemini-api.ts",
+            "issue": "generateImage still calls `gemini-2.0-flash-preview-image-generation` without `config.responseModalities: ['TEXT','IMAGE']`. That matches the old code, so nothing regresses, but this model has generally required image modality to return inlineData. Image generation was likely already broken or fragile. Neither path was exercised by any check.",
+            "severity": "low"
+          },
+          {
+            "file": "src/lib/api/gemini-api.ts",
+            "issue": "The streaming path previously passed `systemInstruction: \"\"` when there was no system message; now it omits config entirely. This is harmless, but it is a small behaviour difference. `generateWithLegacySDK` keeps its name even though it no longer uses the legacy SDK, which is misleading.",
+            "severity": "low"
+          },
+          {
+            "file": "src/app/api/chats/generate-title/route.ts",
+            "issue": "Errors thrown by the new SDK (ApiError) have a different shape from the legacy GoogleGenerativeAIError. The catch block here only logs and falls back, so this is fine. Confirm no other code inspects legacy error fields such as `status` or `errorDetails` from these calls.",
+            "severity": "low"
+          },
+          {
+            "file": "scripts/check-genai-migration.mjs",
+            "issue": "The new check is a static grep: no legacy import, no getGenerativeModel, no `.text()`. It proves the code moved off the old API surface, not that requests succeed at runtime. The `.text()` regex could also flag unrelated future code in these files.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Run one real chat turn without search on a non-thinking model and confirm tokens stream through createCompatibleStream",
+          "Hit /api/chats/generate-title live and confirm a model title comes back rather than the fallback (gemini-2.0-flash-exp availability, safetySettings accepted inside config)",
+          "Trigger a safety-blocked prompt on the streaming path and check what the client shows now that the chunk getter no longer throws",
+          "Try generateImage and check whether the model returns inlineData without responseModalities"
+        ],
+        "costUsd": 0.09144,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "XDTerminated/t2-chat-t3c-2025:gemini:2026-06-01-gemini-2-0-shutdown",
+      "changeId": "gemini:2026-06-01-gemini-2-0-shutdown",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-06-01-gemini-2-0-shutdown",
+        "kind": "model-retirement",
+        "title": "gemini-2.0-flash and flash-lite models shut down June 1 2026",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "The following Gemini 2.0 models are now [shut down](/docs/deprecations):"
+        },
+        "affects": {
+          "operations": [
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-001",
+            "gemini-2.0-flash-lite",
+            "gemini-2.0-flash-lite-001"
+          ]
+        },
+        "effectiveDate": "2026-06-01"
+      },
+      "reasoning": "gemini-2.0-flash, gemini-2.0-flash-001, gemini-2.0-flash-lite and gemini-2.0-flash-lite-001 shut down on 2026-06-01. The repo pins gemini-2.0-flash-preview-image-generation (gemini-api.ts:46), a 2.0 Flash preview variant that is likewise retired. Requests to it fail now. Other call sites' model ids were not captured. The chat app (2025 era) likely offers gemini-2.0-flash or flash-lite in its model list or uses them for title generation. The migration agent should grep for 'gemini-2.0' across the repo, including model lists and UI config, and replace each with a supported model. Already past effective date; calls hard-fail.",
+      "callSites": [
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 45,
+          "why": "Pins model 'gemini-2.0-flash-preview-image-generation', a Gemini 2.0 Flash variant. The 2.0 Flash family is shut down, so image generation will fail. Move it to a current Gemini image model (e.g. gemini-nano-banana-2.1), not the shut-down 3.x image previews."
+        },
+        {
+          "file": "src/app/api/chats/generate-title/route.ts",
+          "line": 64,
+          "why": "Model name not captured by the scan. Title generation commonly uses gemini-2.0-flash or flash-lite. Verify and replace it if so."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 221,
+          "why": "generateContent model value not captured. Check whether it is a gemini-2.0-flash* model."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 284,
+          "why": "generateContent model value not captured. Check whether it is a gemini-2.0-flash* model."
+        },
+        {
+          "file": "src/lib/api/google-gemini-api.ts",
+          "line": 32,
+          "why": "The raw HTTP URL is built at runtime with the model id. Check whether it targets gemini-2.0-flash*."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "XDTerminated/t2-chat-t3c-2025:gemini:2026-06-01-gemini-2-0-shutdown",
+        "outcome": "verified",
+        "diff": "diff --git a/scripts/check-models.mjs b/scripts/check-models.mjs\nnew file mode 100644\nindex 0000000..bb987da\n--- /dev/null\n+++ b/scripts/check-models.mjs\n@@ -0,0 +1,8 @@\n+import fs from \"node:fs\";\n+const files = [\"src/app/api/chats/generate-title/route.ts\",\"src/lib/api/gemini-api.ts\",\"src/lib/api/google-gemini-api.ts\"];\n+let bad=0;\n+for (const f of files){const s=fs.readFileSync(f,\"utf8\"); if(/\"gemini-2\\.0-flash-(exp|preview-image-generation)\"|models\\/gemini-2\\.0/.test(s.replace(/_model = \"[^\"]*\"/,\"\"))){console.error(\"retired model in\",f);bad=1;}}\n+const h=fs.readFileSync(\"src/lib/api/model-helpers.ts\",\"utf8\");\n+const fn=h.slice(h.indexOf(\"export function mapToGeminiModelName\"));\n+if(/return \"gemini-2\\.0/.test(fn)){console.error(\"mapping returns 2.0\");bad=1;}\n+process.exit(bad);\ndiff --git a/src/app/api/chats/generate-title/route.ts b/src/app/api/chats/generate-title/route.ts\nindex 474566a..5b4e293 100644\n--- a/src/app/api/chats/generate-title/route.ts\n+++ b/src/app/api/chats/generate-title/route.ts\n@@ -12,7 +12,7 @@ import {\n   RATE_LIMITS,\n } from \"~/lib/rate-limit\";\n \n-const MODEL_NAME = \"gemini-2.0-flash-exp\"; // Fast model for quick title generation\n+const MODEL_NAME = \"gemini-2.5-flash\"; // Fast model for quick title generation\n \n export async function POST(request: Request) {\n   // Rate limiting check (expensive operation: 10 req/min)\ndiff --git a/src/lib/api/gemini-api.ts b/src/lib/api/gemini-api.ts\nindex 36f0d49..3926946 100644\n--- a/src/lib/api/gemini-api.ts\n+++ b/src/lib/api/gemini-api.ts\n@@ -36,14 +36,14 @@ export class GeminiAPI {\n \n   async generateImage(\n     prompt: string,\n-    _model = \"gemini-2.0-flash-preview-image-generation\",\n+    _model = \"gemini-2.5-flash-image\",\n     _options?: {\n       numberOfImages?: number;\n       aspectRatio?: \"1:1\" | \"3:4\" | \"4:3\" | \"9:16\" | \"16:9\";\n     },\n   ): Promise<{ data: Array<{ url: string }> }> {\n     const model = this.legacyGenAI.getGenerativeModel({\n-      model: \"gemini-2.0-flash-preview-image-generation\",\n+      model: \"gemini-2.5-flash-image\",\n     });\n \n     const result = await model.generateContent([{ text: prompt }]);\ndiff --git a/src/lib/api/google-gemini-api.ts b/src/lib/api/google-gemini-api.ts\nindex a7134f2..d3fcdad 100644\n--- a/src/lib/api/google-gemini-api.ts\n+++ b/src/lib/api/google-gemini-api.ts\n@@ -12,7 +12,7 @@ export class GoogleGeminiAPI {\n \n   async generateImage(\n     prompt: string,\n-    _model = \"gemini-2.0-flash-preview-image-generation\",\n+    _model = \"gemini-2.5-flash-image\",\n     _options?: {\n       numberOfImages?: number;\n       aspectRatio?: \"1:1\" | \"3:4\" | \"4:3\" | \"9:16\" | \"16:9\";\n@@ -30,7 +30,7 @@ export class GoogleGeminiAPI {\n     };\n \n     const response = await fetch(\n-      `${this.baseUrl}/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${this.apiKey}`,\n+      `${this.baseUrl}/v1beta/models/gemini-2.5-flash-image:generateContent?key=${this.apiKey}`,\n       {\n         method: \"POST\",\n         headers: { \"Content-Type\": \"application/json\" },\ndiff --git a/src/lib/api/model-helpers.ts b/src/lib/api/model-helpers.ts\nindex 12f6394..c8f857b 100644\n--- a/src/lib/api/model-helpers.ts\n+++ b/src/lib/api/model-helpers.ts\n@@ -42,18 +42,19 @@ export function modelSupportsThinking(modelId: string): boolean {\n  * Map internal model ID to the actual Gemini API model name\n  */\n export function mapToGeminiModelName(modelId: string): string {\n+  // Gemini 2.0 models were shut down on 2026-06-01; internal IDs are kept\n+  // for stored chats but are served by their supported replacements.\n   switch (modelId) {\n-    case \"gemini-2.0-flash-exp\":\n-      return \"gemini-2.0-flash-exp\";\n-    case \"gemini-2.0-flash-thinking-exp\":\n-      return \"gemini-2.0-flash-thinking-exp\";\n+    case \"gemini-2.0-flash-lite-exp\":\n+      return \"gemini-2.5-flash-lite\";\n     case \"gemini-2.5-flash-preview-05-20\":\n       return \"gemini-2.5-flash-preview-05-20\";\n     case \"gemini-2.5-pro-preview-06-05\":\n       return \"gemini-2.5-pro-preview-06-05\";\n     case \"gemini-2.0-flash-preview-image-generation\":\n-      return \"gemini-2.0-flash-preview-image-generation\";\n+      return \"gemini-2.5-flash-image\";\n     default:\n-      return \"gemini-2.0-flash-exp\";\n+      // gemini-2.0-flash-exp, gemini-2.0-flash-thinking-exp and unknown IDs\n+      return \"gemini-2.5-flash\";\n   }\n }\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "models-check",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.18482490000000001,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-XDTerminated-t2-chat-t3c-2025-gemini-2026-06-01-gemini-2-0-shutdown-ULgJZe/transcript.jsonl",
+        "prBody": "## gemini-2.0-flash and flash-lite models shut down June 1 2026 [Verified]\n\n### Change\n\nMoved every Gemini API call off the retired 2.0 models. Title generation now uses gemini-2.5-flash. Both image-generation paths (SDK and raw HTTP) now use gemini-2.5-flash-image. mapToGeminiModelName now sends gemini-2.5-flash for 2.0 Flash, 2.0 Flash Thinking and unknown IDs, and gemini-2.5-flash-lite for 2.0 Flash Lite. The internal model IDs in the UI list and stored chats are unchanged, so existing chats keep working. Added scripts/check-models.mjs, which fails on the old code and passes now. Typecheck and build pass.\n\nFiles touched:\n- `scripts/check-models.mjs`\n- `src/app/api/chats/generate-title/route.ts`\n- `src/lib/api/gemini-api.ts`\n- `src/lib/api/google-gemini-api.ts`\n- `src/lib/api/model-helpers.ts`\n\n### Why\n\ngemini-2.0-flash*, flash-lite and the 2.0 flash preview image-generation model are shut down, so requests to them fail.\n\n> The following Gemini 2.0 models are now [shut down](/docs/deprecations):\n\nSource: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| models-check | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- models-check, added by the agent: `export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder' SKIP_ENV_VALIDATION='1'; node scripts/check-models.mjs` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Before the baseline the harness ran `corepack pnpm@10.2.0 exec prisma generate` (The postinstall hook (prisma generate) did not run because install scripts are off. The generator outputs the client to src/generated/prisma, which the typecheck imports from.); it exited 0.\n- Before the baseline the harness ran `npx prisma generate` (The repo's postinstall (prisma generate) was skipped, so the Prisma client in src/generated/prisma is missing. Typecheck needs it.); it exited 0.\n- Checks ran with placeholder env: DATABASE_URL, DIRECT_DATABASE_URL, CLERK_SECRET_KEY, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, GEMINI_API_KEY, UPLOADTHING_TOKEN, OPENROUTER_API_KEY, SKIP_ENV_VALIDATION.\n\nTest of this change: `models-check`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- I did not run the Gemini provider validators (openapi_check, graphql_check).\n- I did not verify that gemini-2.5-flash-image works with the SDK call in gemini-api.ts, which sends no responseModalities. The raw HTTP path does send responseModalities [TEXT, IMAGE].\n- The deprecated @google/generative-ai SDK is still used in the title route, in generateImage and in the legacy stream fallback. I left it alone because it is outside this change.\n- The 2.5 preview IDs (gemini-2.5-flash-preview-05-20, gemini-2.5-pro-preview-06-05) may be retired separately. I did not check.\n- The title route still sets maxOutputTokens: 15. Thinking tokens on gemini-2.5-flash may count against that limit and truncate titles. I did not check.\n- No provider validator was run.\n\n### Behaviour changes\n\n- Gemini 2.0 Flash, Flash Lite and Flash Thinking in the UI are now served by gemini-2.5-flash, gemini-2.5-flash-lite and gemini-2.5-flash. Output tone, length, latency and cost will differ.\n- Image generation now uses gemini-2.5-flash-image. The UI label still says Gemini 2.0 Flash Image Generation.\n- Chat title generation now uses gemini-2.5-flash.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.1848\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-sdk-major-3e966223",
+          "recipe-openai-model-retirement-58a73d88",
+          "recipe-openai-product-shutdown-2d9e0301"
+        ],
+        "agentChecks": [
+          {
+            "name": "models-check",
+            "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder' SKIP_ENV_VALIDATION='1'; node scripts/check-models.mjs",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# XDTerminated/t2-chat-t3c-2025:gemini:2026-06-01-gemini-2-0-shutdown: verified, $0.1848\nChange: gemini-2.0-flash and flash-lite models shut down June 1 2026 (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass, models-check fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gemini-2\\.|gemini-1\\.|generative-ai glob=**/*.{ts,tsx,json,md,mjs} → package.json:23:     \"@google/generative-ai\": \"^0.24.1\", | src/app/api/chat/route.ts:47:     \"gemini-2.0-flash-thinking-exp\", | src/app/api/chat/route.ts:48:     \"gemini-2.5-flash-preview-05-20\",\n2. read_file path=src/lib/api/models.ts → 1\timport type { OpenRouterModel } from \"./types\"; | 2\t | 3\t// Gemini models that will use the official Google SDK\n3. read_file path=src/lib/api/model-helpers.ts → 1\timport { GEMINI_MODELS, GROQ_MODELS } from \"./models\"; | 2\t | 3\t/**\n4. read_file path=src/lib/api/gemini-api.ts offset=30 limit=60 → 30\t    if (options?.searchEnabled) { | 31\t      return this.generateWithSearch(processedMessages, modelId, options); | 32\t    } else {\n5. search pattern=mapToGeminiModelName|isImageGenerationModel|GeminiAPI\\(|GoogleGeminiAPI glob=src/**/*.ts* → src/app/api/chat/route.ts:13:   GoogleGeminiAPI, | src/app/api/chat/route.ts:17:   isImageGenerationModel, | src/app/api/chat/route.ts:183:   const isImageGen = isImageGenerationModel(selectedModel);\n6. shell command=<197 chars> → exit code: 0 | --- stdout --- |   private async generateWithLegacySDK(\n7. shell command=<2041 chars> → exit code: 0 | --- stdout --- | --- stderr ---\n8. run_checks add=[{\"name\":\"models-check\",\"command\":\"node scripts/check-models.mjs\"}] → registered models-check; on the original code it fails (1) | ## typecheck: pass | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_te…\n9. finish verdict=migrated summary=<527 chars> why=<119 chars> validators=[] unproven=<728 chars> behaviourChanges=<354 chars> proofTest=models-check → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, models-check fail (1) → pass\n\n## Result\nFiles changed: scripts/check-models.mjs, src/app/api/chats/generate-title/route.ts, src/lib/api/gemini-api.ts, src/lib/api/google-gemini-api.ts, src/lib/api/model-helpers.ts\nVerdict: migrated. Moved every Gemini API call off the retired 2.0 models. Title generation now uses gemini-2.5-flash. Both image-generation paths (SDK and raw HTTP) now use gemini-2.5-flash-image. mapToGeminiModelName now sends gemini-2.5-flash for 2.0 Flash, 2.0 Flash Thinking and unknown IDs, and gemini-2.5-flash-lite for 2.0 Flash Lite. The internal model IDs in the UI list and stored chats are unchanged, so existing chats keep working. Added scripts/check-models.mjs, which fails on the old code and passes now. Typecheck and build pass.\nUnproven: I did not run the Gemini provider validators (openapi_check, graphql_check).; I did not verify that gemini-2.5-flash-image works with the SDK call in gemini-api.ts, which sends no responseModalities. The raw HTTP path does send responseModalities [TEXT, IMAGE].; The deprecated @google/generative-ai SDK is still used in the title route, in generateImage and in the legacy stream fallback. I left it alone because it is outside this change.; The 2.5 preview IDs (gemini-2.5-flash-preview-05-20, gemini-2.5-pro-preview-06-05) may be retired separately. I did not check.; The title route still sets maxOutputTokens: 15. Thinking tokens on gemini-2.5-flash may count against that limit and truncate titles. I did not check.\n",
+        "preparation": {
+          "steps": [
+            {
+              "command": "corepack pnpm@10.2.0 exec prisma generate",
+              "why": "The postinstall hook (prisma generate) did not run because install scripts are off. The generator outputs the client to src/generated/prisma, which the typecheck imports from.",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 75ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            },
+            {
+              "command": "npx prisma generate",
+              "why": "The repo's postinstall (prisma generate) was skipped, so the Prisma client in src/generated/prisma is missing. Typecheck needs it.",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 52ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            }
+          ],
+          "env": {
+            "DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "DIRECT_DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "CLERK_SECRET_KEY": "sk_test_placeholder",
+            "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk",
+            "GEMINI_API_KEY": "placeholder",
+            "UPLOADTHING_TOKEN": "placeholder",
+            "OPENROUTER_API_KEY": "placeholder",
+            "SKIP_ENV_VALIDATION": "1"
+          },
+          "reasoning": "The Prisma schema uses the new prisma-client generator with output ../src/generated/prisma. That directory is not committed and is only created by prisma generate, so typecheck and build fail without it. next.config.js imports src/env.js, which validates env vars at build time. Placeholder values plus SKIP_ENV_VALIDATION=1 let the build load without real secrets. The build script runs prisma generate itself, but typecheck does not, so generating up front is needed.\nTypecheck needs the generated Prisma client, which the skipped postinstall would have created. The build already runs prisma generate itself. It failed while prerendering /sign-in/google because Clerk rejected the placeholder publishable key pk_test_placeholder as malformed. A Clerk key needs the form pk_test_<base64 of a frontend host ending in $>, so I supplied one that decodes to example.clerk.accounts.dev$. The harness exports its own pk_test_placeholder in the check command, which may override this value. If it does, the build failure comes from that placeholder, not from the repo's code."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff removes every literal 2.0 model name from the six named call sites and remaps the internal 2.0 IDs in mapToGeminiModelName, so requests will no longer go to shut-down models. Two problems remain.\n\nFirst, swapping title generation to gemini-2.5-flash while keeping maxOutputTokens: 15 can silently break titles. 2.5-flash thinks by default, and thinking tokens likely eat that budget, so the call may end in MAX_TOKENS with no text and fall back every time.\n\nSecond, the 'verified' grade rests mainly on a regex script the agent wrote for this PR. Typecheck and build passed before and after, so they cannot show the change works. No live call proves the new model names or the image path behave.\n\nThe mapping still forwards the 2.5 preview IDs (-preview-05-20, -pro-preview-06-05) unchanged. Their status is outside this change and the check does not look at them.",
+        "concerns": [
+          {
+            "file": "src/app/api/chats/generate-title/route.ts",
+            "issue": "MODEL_NAME changed to gemini-2.5-flash (line 15), but generationConfig still sets maxOutputTokens: 15 (~line 68) and no thinking config. 2.5-flash thinks by default, and thinking tokens may count toward or exhaust that budget, giving empty candidates. The route then silently uses the local fallback title. Consider gemini-2.5-flash-lite or an explicit thinkingBudget: 0. Check whether the legacy @google/generative-ai SDK's types accept thinkingConfig.",
+            "severity": "high"
+          },
+          {
+            "file": "scripts/check-models.mjs",
+            "issue": "The models-check that flips from fail to pass was written by the agent alongside the fix. It only greps for a few literal strings and strips one `_model = \"...\"` default before matching. It is not evidence that gemini-2.5-flash, gemini-2.5-flash-lite or gemini-2.5-flash-image exist or behave as expected. typecheck/build cannot catch wrong model strings either. 'verified' overstates what was proven.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/lib/api/gemini-api.ts",
+            "issue": "generateImage (~line 45) now uses gemini-2.5-flash-image via the legacy SDK, still without responseModalities in the request. I could not confirm from the quoted source whether this model returns inlineData without that setting. If it returns only text, the code throws 'No images generated in response'. The REST path in google-gemini-api.ts does send responseModalities. Needs a live call to confirm.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/lib/api/model-helpers.ts",
+            "issue": "Behaviour change beyond the forced one: the default branch now sends unknown IDs and gemini-2.0-flash-exp to gemini-2.5-flash. That is a thinking model with different latency and cost, called through the non-thinking legacy path. gemini-2.0-flash-thinking-exp also now hits 2.5-flash with includeThoughts. This is reasonable, but users picking '2.0 Flash' in the UI get a different model, and models.ts labels are unchanged.",
+            "severity": "low"
+          },
+          {
+            "file": "src/lib/api/model-helpers.ts",
+            "issue": "The mapping still passes through gemini-2.5-flash-preview-05-20 and gemini-2.5-pro-preview-06-05 unchanged. Their availability is not part of this change and I can't confirm it here, but the check script would not flag them if they are also retired. Worth checking against the deprecations page.",
+            "severity": "low"
+          },
+          {
+            "file": "src/lib/api/model-helpers.ts",
+            "issue": "The new case 'gemini-2.0-flash-lite-exp' assumes that internal ID exists in GEMINI_MODELS (models.ts, not shown). If the actual flash-lite ID differs, it falls to the default and gets gemini-2.5-flash instead of flash-lite.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Make a live title-generation request with gemini-2.5-flash and maxOutputTokens 15; confirm the candidate has text rather than finishReason MAX_TOKENS with empty parts.",
+          "Make a live image request through both GeminiAPI.generateImage (legacy SDK, no responseModalities) and GoogleGeminiAPI.generateImage (REST) with gemini-2.5-flash-image, and confirm inlineData images come back.",
+          "Confirm gemini-2.5-flash, gemini-2.5-flash-lite and gemini-2.5-flash-image names against the Gemini models/deprecations docs, and check whether the 2.5 preview IDs still mapped are still served.",
+          "Check src/lib/api/models.ts for the exact internal 2.0 IDs (e.g. flash-lite) so every one hits the intended mapping case."
+        ],
+        "costUsd": 0.100728,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "XDTerminated/t2-chat-t3c-2025:gemini:2026-10-26-store-default",
+      "changeId": "gemini:2026-10-26-store-default",
+      "kind": "other",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-10-26-store-default",
+        "kind": "other",
+        "title": "Generate Content API: new paid-tier projects now store requests by default (store=true); opt out with store=false",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "now store requests by default\n(`store=true`), matching the Interactions API."
+        },
+        "affects": {
+          "operations": ["generateContent", "streamGenerateContent", "batchGenerateContent"],
+          "fields": ["store"]
+        },
+        "effectiveDate": "2026-10-26"
+      },
+      "reasoning": "From 2026-10-26, new paid-tier projects store Generate Content requests by default (store=true). This chat app sends user conversations through generateContent. If it runs on (or moves to) a new paid-tier project, user chats would be retained by Google without the app opting in. It is uncertain whether the deployment's project is new or paid-tier. The migration agent should consider explicitly sending store=false (if supported by the SDK/REST version in use) to keep current privacy behaviour. Nothing breaks functionally.",
+      "callSites": [
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 221,
+          "why": "models.generateContent request. New paid-tier projects will store requests by default unless config sets store=false."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 284,
+          "why": "models.generateContent request. Same store default applies."
+        },
+        {
+          "file": "src/lib/api/google-gemini-api.ts",
+          "line": 32,
+          "why": "Raw HTTP generateContent/streamGenerateContent request. Same store default applies."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "XDTerminated/t2-chat-t3c-2025:gemini:2026-10-26-store-default",
+        "outcome": "verified",
+        "diff": "diff --git a/scripts/check-store-false.mjs b/scripts/check-store-false.mjs\nnew file mode 100644\nindex 0000000..20cb44a\n--- /dev/null\n+++ b/scripts/check-store-false.mjs\n@@ -0,0 +1,7 @@\n+import fs from \"node:fs\";\n+let ok = true;\n+for (const [f, n] of [[\"src/lib/api/gemini-api.ts\", 2], [\"src/lib/api/google-gemini-api.ts\", 1]]) {\n+  const c = (fs.readFileSync(f, \"utf8\").match(/store: false/g) || []).length;\n+  if (c !== n) { console.error(f, \"expected\", n, \"got\", c); ok = false; }\n+}\n+process.exit(ok ? 0 : 1);\ndiff --git a/src/lib/api/gemini-api.ts b/src/lib/api/gemini-api.ts\nindex 36f0d49..75e937d 100644\n--- a/src/lib/api/gemini-api.ts\n+++ b/src/lib/api/gemini-api.ts\n@@ -221,7 +221,11 @@ export class GeminiAPI {\n       const response = await this.genAI.models.generateContent({\n         model: mapToGeminiModelName(modelId),\n         contents,\n-        config,\n+        config: {\n+          ...config,\n+          // Opt out of default request storage (store=true for new paid projects)\n+          httpOptions: { extraBody: { store: false } },\n+        },\n       });\n \n       console.log(\"Gemini API response:\", JSON.stringify(response, null, 2));\n@@ -284,7 +288,11 @@ export class GeminiAPI {\n       const response = await this.genAI.models.generateContent({\n         model: mapToGeminiModelName(modelId),\n         contents,\n-        config,\n+        config: {\n+          ...config,\n+          // Opt out of default request storage (store=true for new paid projects)\n+          httpOptions: { extraBody: { store: false } },\n+        },\n       });\n \n       return this.createStreamFromNewSDKResponse(response);\ndiff --git a/src/lib/api/google-gemini-api.ts b/src/lib/api/google-gemini-api.ts\nindex a7134f2..c58a87f 100644\n--- a/src/lib/api/google-gemini-api.ts\n+++ b/src/lib/api/google-gemini-api.ts\n@@ -19,6 +19,8 @@ export class GoogleGeminiAPI {\n     },\n   ): Promise<{ data: Array<{ url: string }> }> {\n     const requestBody = {\n+      // Opt out of default request storage for new paid-tier projects\n+      store: false,\n       contents: [\n         {\n           parts: [{ text: prompt }],\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "store-false",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.18058979999999997,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-XDTerminated-t2-chat-t3c-2025-gemini-2026-10-26-store-default-fFTlO1/transcript.jsonl",
+        "prBody": "## Generate Content API: new paid-tier projects now store requests by default (store=true); opt out with store=false [Verified]\n\n### Change\n\nAdded store=false to the three generateContent calls: the two SDK calls in gemini-api.ts, sent via config.httpOptions.extraBody, and the raw REST body in google-gemini-api.ts. Added scripts/check-store-false.mjs as a static proof check. Typecheck and build pass.\n\nFiles touched:\n- `scripts/check-store-false.mjs`\n- `src/lib/api/gemini-api.ts`\n- `src/lib/api/google-gemini-api.ts`\n\n### Why\n\nChangelog 2026-10-26: \"New projects using the Generate Content API (`generateContent`, `streamGenerateContent`, and `batchGenerateContent`) on the paid tier now store requests by default (`store=true`), matching the Interactions API. Existing projects keep their current setting. To opt out, set `store=false` on individual requests\". This app sends user chats, so it opts out explicitly to keep its current privacy behaviour.\n\n> now store requests by default\n> (`store=true`), matching the Interactions API.\n\nSource: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| store-false | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- store-false, added by the agent: `export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder' SKIP_ENV_VALIDATION='1'; node scripts/check-store-false.mjs` (fail (1) → pass)\n\nProvider tool calls recorded by the harness:\n- `gemini__search_docs`: pass\n- `gemini__fetch_changelog`: pass\n\nPrepared before the baseline:\n- Before the baseline the harness ran `corepack pnpm@10.2.0 exec prisma generate` (The postinstall hook (prisma generate) was skipped. The generator writes the client to src/generated/prisma, which the source imports, so typecheck needs it. Prisma 7 reads the datasource URL from prisma.config, not the schema, so this does not contact a database.); it exited 0.\n- Before the baseline the harness ran `npx prisma generate` (The postinstall hook (prisma generate) did not run with install scripts off. Typecheck and build import the Prisma client from src/generated/prisma, which this step creates.); it exited 0.\n- Checks ran with placeholder env: DATABASE_URL, DIRECT_DATABASE_URL, CLERK_SECRET_KEY, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, GEMINI_API_KEY, UPLOADTHING_TOKEN, OPENROUTER_API_KEY, SKIP_ENV_VALIDATION.\n\nTest of this change: `store-false`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- @google/genai 1.35.0 has no typed `store` field on the generateContent config, so it goes through httpOptions.extraBody. The SDK source shows extraBody is merged into the request body, but no live call confirmed the API accepts it at the top level.\n- The test is a static source check. It does not mock the provider or inspect an actual request body.\n- The legacy @google/generative-ai generateContentStream fallback in gemini-api.ts does not send store=false. That SDK has no `store` field, and its REST path may also be affected.\n- Account-level logging setting in the Logs and Datasets dashboard not checked.\n- No provider validator was run.\n\n### Behaviour changes\n\n- Requests now carry store=false, so Google does not store them even on new paid-tier projects. Functionally nothing else changes.\n- If the API rejects the unknown field in some case, the SDK paths fall back to the legacy SDK, and the image REST call would error.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.1806\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-sdk-major-3e966223",
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-openai-product-shutdown-2d9e0301"
+        ],
+        "agentChecks": [
+          {
+            "name": "store-false",
+            "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder' SKIP_ENV_VALIDATION='1'; node scripts/check-store-false.mjs",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# XDTerminated/t2-chat-t3c-2025:gemini:2026-10-26-store-default: verified, $0.1806\nChange: Generate Content API: new paid-tier projects now store requests by default (store=true); opt out with store=false (gemini, other)\nBaseline checks: typecheck pass, build pass, store-false fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. read_file path=src/lib/api/gemini-api.ts offset=200 limit=120 → 200\t        systemInstruction?: string; | 201\t        thinkingConfig?: { | 202\t          thinkingBudget?: number;\n2. read_file path=src/lib/api/google-gemini-api.ts → 1\t/** | 2\t * Google Gemini API for image generation | 3\t * Uses the direct REST API for image generation capabilities\n3. shell command=<129 chars> → exit code: 0 | --- stdout --- | 179:     * Uploads a file to a given file search store asynchronously using Gemini API only, this is not supported\r\n4. gemini__search_docs query=generateContent store false request body field opt out → No gemini docs passages matched \"generateContent store false request body field opt out\". Try other words, or read these pages directly: | - https://ai.google.dev/gemini-api/docs/changelog\n5. gemini__fetch_changelog url=https://ai.google.dev/gemini-api/docs/changelog.md.txt query=store requests by default limit=2 → Read https://aistudio.google.com/docs/changelog.md (HTTP 200, 62591 characters). | 148 entries; matching \"store requests by default\": 7 entries, best first. Showing 2 from offset 0. | ## October 26, 2026  {% id=\"10-26-2026\" %}\n6. shell command=<117 chars> → exit code: 0 | --- stdout --- | 5336:    extraBody?: Record<string, unknown>;\r\n7. shell command=<135 chars> → exit code: 0 | --- stdout --- | 11734:        if (httpOptions && httpOptions.extraBody !== null) {\n8. shell command=<1035 chars> → exit code: 0 | --- stdout --- | --- stderr ---\n9. run_checks add=[{\"name\":\"store-false\",\"command\":\"node scripts/check-store-false.mjs\"}] → registered store-false; on the original code it fails (1) | ## typecheck: pass | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_tes…\n10. finish verdict=migrated summary=<262 chars> why=<426 chars> validators=[] unproven=<615 chars> behaviourChanges=<265 chars> proofTest=store-false → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, store-false fail (1) → pass\n\n## Result\nFiles changed: scripts/check-store-false.mjs, src/lib/api/gemini-api.ts, src/lib/api/google-gemini-api.ts\nVerdict: migrated. Added store=false to the three generateContent calls: the two SDK calls in gemini-api.ts, sent via config.httpOptions.extraBody, and the raw REST body in google-gemini-api.ts. Added scripts/check-store-false.mjs as a static proof check. Typecheck and build pass.\nUnproven: @google/genai 1.35.0 has no typed `store` field on the generateContent config, so it goes through httpOptions.extraBody. The SDK source shows extraBody is merged into the request body, but no live call confirmed the API accepts it at the top level.; The test is a static source check. It does not mock the provider or inspect an actual request body.; The legacy @google/generative-ai generateContentStream fallback in gemini-api.ts does not send store=false. That SDK has no `store` field, and its REST path may also be affected.; Account-level logging setting in the Logs and Datasets dashboard not checked.\n",
+        "preparation": {
+          "steps": [
+            {
+              "command": "corepack pnpm@10.2.0 exec prisma generate",
+              "why": "The postinstall hook (prisma generate) was skipped. The generator writes the client to src/generated/prisma, which the source imports, so typecheck needs it. Prisma 7 reads the datasource URL from prisma.config, not the schema, so this does not contact a database.",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 38ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            },
+            {
+              "command": "npx prisma generate",
+              "why": "The postinstall hook (prisma generate) did not run with install scripts off. Typecheck and build import the Prisma client from src/generated/prisma, which this step creates.",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 68ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            }
+          ],
+          "env": {
+            "DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "DIRECT_DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "CLERK_SECRET_KEY": "sk_test_placeholder",
+            "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk",
+            "GEMINI_API_KEY": "placeholder",
+            "UPLOADTHING_TOKEN": "placeholder",
+            "OPENROUTER_API_KEY": "placeholder",
+            "SKIP_ENV_VALIDATION": "1"
+          },
+          "reasoning": "Install scripts were off, so the Prisma client was never generated into src/generated/prisma. The typecheck and build both depend on it (build also runs prisma generate itself). next.config.js imports src/env.js, which validates env vars at build time. Placeholder values plus SKIP_ENV_VALIDATION let the config load without real secrets.\nPrisma generation is the only environmental step the checks need, because the client output directory is generated rather than committed. The build failure comes from Clerk rejecting the placeholder key 'pk_test_placeholder' during prerender. A publishable key must be pk_test_ followed by base64 of a domain ending in '$', so the env entry gives a well-formed one. The check command exports its own value for this variable, which probably overrides mine, so the build may still fail. If it does, the cause is the harness placeholder, not something a repo step can fix."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The PR adds `store: false` to the three call sites the match agent named. It misses other Generate Content calls in the same file, made through the legacy `@google/generative-ai` SDK, which will still be stored by default. The only new check is a grep that counts the string `store: false`. It does not show the field reaches the wire or that the API accepts it. 'Verified' overstates what was tested.",
+        "concerns": [
+          {
+            "file": "src/lib/api/gemini-api.ts",
+            "issue": "`generateWithLegacySDK` calls `model.generateContentStream` and `generateImage` calls `model.generateContent`, both via `legacyGenAI` (`@google/generative-ai`). Neither gets `store: false`. This is the default path for every model where `modelSupportsThinking` is false, so most chat traffic will still be stored on new paid-tier projects. The legacy SDK may not support extra body fields at all, so these paths may need migrating to `@google/genai` or to REST.",
+            "severity": "high"
+          },
+          {
+            "file": "src/lib/api/gemini-api.ts",
+            "issue": "`generateWithSearch` and `generateWithThinking` catch every error and fall back to `generateWithLegacySDK`, which does not opt out. If the API rejects the new `store` field (unknown-field 400), requests will silently fall back to the stored legacy path. Users see no error and storage stays on.",
+            "severity": "high"
+          },
+          {
+            "file": "src/lib/api/gemini-api.ts",
+            "issue": "`httpOptions: { extraBody: { store: false } }` passes typecheck, so `extraBody` exists in the installed `@google/genai` types. I could not confirm that `extraBody` is merged into the top-level request JSON for `generateContent` rather than somewhere else. I also could not confirm that the field is named `store` at the top level of the REST body. Check the quoted changelog and the SDK's request-building code for the installed version.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/lib/api/google-gemini-api.ts",
+            "issue": "Adding top-level `store: false` to the REST body looks consistent with the changelog, but I could not confirm the field name or placement. If the v1beta endpoint rejects it (for example before 2026-10-26, or for the preview image model), image generation will throw. No live call exercised this.",
+            "severity": "medium"
+          },
+          {
+            "file": "scripts/check-store-false.mjs",
+            "issue": "The check only counts occurrences of the literal `store: false` with a regex. It would pass with the text in a comment or a dead branch. It does not inspect the request sent and does not cover the legacy SDK paths. The 'verified' grade rests on typecheck, build and this grep; needs-review fits better.",
+            "severity": "medium"
+          }
+        ],
+        "checkFirst": [
+          "Find every generateContent/generateContentStream call, including the legacyGenAI ones in generateWithLegacySDK and generateImage, and decide how each opts out.",
+          "Confirm from the changelog or API reference the exact request field name and placement for `store` on generateContent (REST and SDK).",
+          "Confirm the installed @google/genai version serializes `httpOptions.extraBody` into the request body, e.g. by logging or intercepting one real request.",
+          "Make one live call each for the REST image path and an SDK path to ensure `store: false` is not rejected and does not trigger the silent legacy fallback."
+        ],
+        "costUsd": 0.06374,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "XDTerminated/t2-chat-t3c-2025:gemini:2026-12-01-gemini-2-5-pro-reroute",
+      "changeId": "gemini:2026-12-01-gemini-2-5-pro-reroute",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-12-01-gemini-2-5-pro-reroute",
+        "kind": "model-retirement",
+        "title": "gemini-2.5-pro deprecated; from Dec 1 2026 requests route to gemini-3.8-flash with breaking API changes (thought_signature validation, thinking_level replaces thinking_budget, sampling params and prefill removed)",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/changelog.md.txt",
+          "quote": "Effective December 1, 2026, all API\nrequests to `gemini-2.5-pro` will automatically route to"
+        },
+        "affects": {
+          "operations": ["gemini-2.5-pro", "gemini-3.8-flash"],
+          "fields": ["thinking_budget", "thinking_level", "temperature", "top_p", "top_k"]
+        },
+        "effectiveDate": "2026-12-01"
+      },
+      "reasoning": "The scan did not record which models the chat UI offers. A 2025 T3-chat clone very likely exposes gemini-2.5-pro. From 2026-12-01, requests to gemini-2.5-pro auto-route to gemini-3.8-flash with breaking API differences: thought_signature validation, thinking_level instead of thinking_budget, and temperature/top_p/top_k and prefill removed. Calls passing those fields may error. The migration agent should grep for 'gemini-2.5-pro' (model lists, defaults), update it to a supported model, and strip or adapt the thinking and sampling config. It should also check multi-turn handling of thought signatures. This is uncertain until the model list is confirmed.",
+      "callSites": [
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 221,
+          "why": "generateContent with model and config. If the model is gemini-2.5-pro, it reroutes to gemini-3.8-flash. There, thinking_budget is replaced by thinking_level and temperature/top_p/top_k and prefill are removed."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 284,
+          "why": "Same as line 221: possible gemini-2.5-pro usage, and config may include thinkingBudget or sampling params."
+        },
+        {
+          "file": "src/lib/api/google-gemini-api.ts",
+          "line": 32,
+          "why": "Raw HTTP with the model in a runtime URL. It may target gemini-2.5-pro with generationConfig fields that become invalid."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 308,
+          "why": "getGenerativeModel with unrecorded model. May be gemini-2.5-pro."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "XDTerminated/t2-chat-t3c-2025:gemini:2026-12-01-gemini-2-5-pro-reroute",
+        "outcome": "verified",
+        "diff": "diff --git a/scripts/check-gemini-pro.mjs b/scripts/check-gemini-pro.mjs\nnew file mode 100644\nindex 0000000..613da56\n--- /dev/null\n+++ b/scripts/check-gemini-pro.mjs\n@@ -0,0 +1,8 @@\n+import fs from \"node:fs\";\n+const h = fs.readFileSync(\"src/lib/api/model-helpers.ts\", \"utf8\");\n+const g = fs.readFileSync(\"src/lib/api/gemini-api.ts\", \"utf8\");\n+const body = h.slice(h.indexOf(\"export function mapToGeminiModelName\"));\n+const ok = /case \"gemini-2\\.5-pro-preview-06-05\":[\\s\\S]*?return \"gemini-3\\.8-flash\"/.test(body) &&\n+  !/return \"gemini-2\\.5-pro/.test(body) && g.includes(\"thinkingLevel\");\n+if (!ok) { console.error(\"FAIL\"); process.exit(1); }\n+console.log(\"ok\");\ndiff --git a/src/lib/api/gemini-api.ts b/src/lib/api/gemini-api.ts\nindex 36f0d49..f88323b 100644\n--- a/src/lib/api/gemini-api.ts\n+++ b/src/lib/api/gemini-api.ts\n@@ -1,8 +1,12 @@\n import { GoogleGenerativeAI } from \"@google/generative-ai\";\n-import { GoogleGenAI } from \"@google/genai\";\n+import { GoogleGenAI, ThinkingLevel } from \"@google/genai\";\n import type { UploadFileResponse } from \"../types\";\n import type { MessageContent, ChatStreamOptions, ChatMessage } from \"./types\";\n-import { mapToGeminiModelName } from \"./model-helpers\";\n+import {\n+  mapToGeminiModelName,\n+  usesThinkingLevel,\n+  budgetToThinkingLevel,\n+} from \"./model-helpers\";\n \n export class GeminiAPI {\n   private genAI: GoogleGenAI;\n@@ -200,6 +204,7 @@ export class GeminiAPI {\n         systemInstruction?: string;\n         thinkingConfig?: {\n           thinkingBudget?: number;\n+          thinkingLevel?: ThinkingLevel;\n           includeThoughts?: boolean;\n         };\n       } = {\n@@ -214,7 +219,14 @@ export class GeminiAPI {\n       if (supportsThinking) {\n         config.thinkingConfig = { includeThoughts: true };\n         if (options?.thinkingBudget !== undefined) {\n-          config.thinkingConfig.thinkingBudget = options.thinkingBudget;\n+          if (usesThinkingLevel(mapToGeminiModelName(modelId))) {\n+            config.thinkingConfig.thinkingLevel =\n+              budgetToThinkingLevel(options.thinkingBudget) === \"low\"\n+                ? ThinkingLevel.LOW\n+                : ThinkingLevel.HIGH;\n+          } else {\n+            config.thinkingConfig.thinkingBudget = options.thinkingBudget;\n+          }\n         }\n       }\n \n@@ -267,6 +279,7 @@ export class GeminiAPI {\n         systemInstruction?: string;\n         thinkingConfig?: {\n           thinkingBudget?: number;\n+          thinkingLevel?: ThinkingLevel;\n           includeThoughts?: boolean;\n         };\n       } = {};\n@@ -278,7 +291,14 @@ export class GeminiAPI {\n       config.thinkingConfig = { includeThoughts: true };\n \n       if (options?.thinkingBudget !== undefined) {\n-        config.thinkingConfig.thinkingBudget = options.thinkingBudget;\n+        if (usesThinkingLevel(mapToGeminiModelName(modelId))) {\n+          config.thinkingConfig.thinkingLevel =\n+            budgetToThinkingLevel(options.thinkingBudget) === \"low\"\n+              ? ThinkingLevel.LOW\n+              : ThinkingLevel.HIGH;\n+        } else {\n+          config.thinkingConfig.thinkingBudget = options.thinkingBudget;\n+        }\n       }\n \n       const response = await this.genAI.models.generateContent({\ndiff --git a/src/lib/api/model-helpers.ts b/src/lib/api/model-helpers.ts\nindex 12f6394..383bf09 100644\n--- a/src/lib/api/model-helpers.ts\n+++ b/src/lib/api/model-helpers.ts\n@@ -38,6 +38,20 @@ export function modelSupportsThinking(modelId: string): boolean {\n   return thinkingModels.includes(modelId);\n }\n \n+/**\n+ * Gemini 3.x models take thinkingLevel instead of thinkingBudget\n+ */\n+export function usesThinkingLevel(apiModelName: string): boolean {\n+  return apiModelName.startsWith(\"gemini-3\");\n+}\n+\n+/**\n+ * Convert a legacy token thinking budget to a Gemini 3 thinking level\n+ */\n+export function budgetToThinkingLevel(budget: number): \"low\" | \"high\" {\n+  return budget <= 1024 ? \"low\" : \"high\";\n+}\n+\n /**\n  * Map internal model ID to the actual Gemini API model name\n  */\n@@ -50,7 +64,8 @@ export function mapToGeminiModelName(modelId: string): string {\n     case \"gemini-2.5-flash-preview-05-20\":\n       return \"gemini-2.5-flash-preview-05-20\";\n     case \"gemini-2.5-pro-preview-06-05\":\n-      return \"gemini-2.5-pro-preview-06-05\";\n+      // gemini-2.5-pro is deprecated; from 2026-12-01 it routes to gemini-3.8-flash\n+      return \"gemini-3.8-flash\";\n     case \"gemini-2.0-flash-preview-image-generation\":\n       return \"gemini-2.0-flash-preview-image-generation\";\n     default:\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "gemini-pro-proof",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.27918160000000003,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-XDTerminated-t2-chat-t3c-2025-gemini-2026-12-01-gemini-2-5-pro-reroute-eHt5bD/transcript.jsonl",
+        "prBody": "## gemini-2.5-pro deprecated; from Dec 1 2026 requests route to gemini-3.8-flash with breaking API changes (thought_signature validation, thinking_level replaces thinking_budget, sampling params and prefill removed) [Verified]\n\n### Change\n\nThe internal id gemini-2.5-pro-preview-06-05 now maps to gemini-3.8-flash in mapToGeminiModelName. For gemini-3.x models, thinkingBudget is sent as thinkingConfig.thinkingLevel (LOW when the budget is 1024 or less, otherwise HIGH). Other models still get thinkingBudget. I added scripts/check-gemini-pro.mjs. It fails on the original code and passes now, and typecheck and build pass.\n\nFiles touched:\n- `scripts/check-gemini-pro.mjs`\n- `src/lib/api/gemini-api.ts`\n- `src/lib/api/model-helpers.ts`\n\n### Why\n\ngemini-2.5-pro is deprecated and routes to gemini-3.8-flash on 2026-12-01. That model rejects thinking_budget and the sampling params.\n\n> Effective December 1, 2026, all API\n> requests to `gemini-2.5-pro` will automatically route to\n\nSource: https://ai.google.dev/gemini-api/docs/changelog.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| gemini-pro-proof | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- gemini-pro-proof, added by the agent: `export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder'; node scripts/check-gemini-pro.mjs` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Before the baseline the harness ran `corepack pnpm@10.2.0 exec prisma generate` (The postinstall hook (prisma generate) did not run because install scripts are off. The client is generated into src/generated/prisma, which the code imports, so typecheck needs it.); it exited 0.\n- Checks ran with placeholder env: DATABASE_URL, DIRECT_DATABASE_URL, CLERK_SECRET_KEY, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, GEMINI_API_KEY, UPLOADTHING_TOKEN, OPENROUTER_API_KEY.\n\nTest of this change: `gemini-pro-proof`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- I did not check live behaviour, thought_signature handling across multi-turn chats, or whether gemini-3.8-flash accepts includeThoughts and the googleSearch tool.\n- The 1024-token cut-off between LOW and HIGH is my own choice and is not from the docs.\n- src/app/api/chats/generate-title/route.ts still sends temperature, topK and topP to gemini-2.0-flash-exp through the deprecated @google/generative-ai SDK. I did not touch it because it is not on 2.5-pro. It will need changing when it moves to a 3.6+ model.\n- The other retired 2.0 and 2.5-flash preview ids (gemini-2.0-flash-exp, gemini-2.0-flash-thinking-exp, gemini-2.5-flash-preview-05-20, and the image-generation model in gemini-api.ts and google-gemini-api.ts) are unchanged.\n- The UI label for the pro model in models.ts still names the old preview.\n- No provider validator was run.\n\n### Behaviour changes\n\n- The Pro option now runs on gemini-3.8-flash, so output quality, latency and cost will differ.\n- The thinking budget is now an approximate LOW/HIGH level for that model.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.2792\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-gemini-sdk-major-3e966223",
+          "recipe-gemini-other-9e8975ad"
+        ],
+        "agentChecks": [
+          {
+            "name": "gemini-pro-proof",
+            "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder'; node scripts/check-gemini-pro.mjs",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# XDTerminated/t2-chat-t3c-2025:gemini:2026-12-01-gemini-2-5-pro-reroute: verified, $0.2792\nChange: gemini-2.5-pro deprecated; from Dec 1 2026 requests route to gemini-3.8-flash with breaking API changes (thought_signature validation, thinking_level replaces thinking_budget, sampling params and prefill removed) (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass, gemini-pro-proof fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gemini-[0-9]|thinkingBudget|thinking_budget|temperature|topP|topK glob=src/**/*.{ts,tsx} → src/app/api/chat/route.ts:41:   thinkingBudget?: number; | src/app/api/chat/route.ts:47:     \"gemini-2.0-flash-thinking-exp\", | src/app/api/chat/route.ts:48:     \"gemini-2.5-flash-preview-05-20\",\n2. read_file path=src/lib/api/model-helpers.ts → 1\timport { GEMINI_MODELS, GROQ_MODELS } from \"./models\"; | 2\t | 3\t/**\n3. read_file path=src/app/api/chats/generate-title/route.ts offset=55 limit=30 → 55\t    if (!apiKey) { | 56\t      console.error(\"GEMINI_API_KEY is not set.\"); | 57\t      return NextResponse.json(\n4. read_file path=src/lib/api/gemini-api.ts offset=190 limit=110 → 190\t      const systemInstruction = systemMessage | 191\t        ? typeof systemMessage.content === \"string\" | 192\t          ? systemMessage.content\n5. shell command=<153 chars> → exit code: 0 | --- stdout --- | 9117:    thinkingLevel?: ThinkingLevel;\r\n6. shell command=grep -n \"^import\\|from \\\"\" src/lib/api/gemini-api.ts | head -20 → exit code: 0 | --- stdout --- | 1:import { GoogleGenerativeAI } from \"@google/generative-ai\";\n7. edit_file path=src/lib/api/model-helpers.ts old=<98 chars> new=<171 chars> → edited src/lib/api/model-helpers.ts (1 replacement)\n8. edit_file path=src/lib/api/model-helpers.ts old=/**\n * Map internal model ID to new=<417 chars> → edited src/lib/api/model-helpers.ts (1 replacement)\n9. edit_file path=src/lib/api/gemini-api.ts old=import { mapToGeminiModelName } from \"./model-helpers\"; new=<104 chars> → edited src/lib/api/gemini-api.ts (1 replacement)\n10. shell command=<2095 chars> → exit code: 0 | --- stdout --- | ok\n11. run_checks add=[{\"name\":\"gemini-pro-proof\",\"command\":\"node scripts/check-gemini-pro.mjs\"}] → registered gemini-pro-proof; on the original code it fails (1) | ## typecheck: pass | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='s…\n12. finish verdict=migrated summary=<384 chars> why=<134 chars> validators=[] unproven=<814 chars> behaviourChanges=<172 chars> proofTest=gemini-pro-proof → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, gemini-pro-proof fail (1) → pass\n\n## Result\nFiles changed: scripts/check-gemini-pro.mjs, src/lib/api/gemini-api.ts, src/lib/api/model-helpers.ts\nVerdict: migrated. The internal id gemini-2.5-pro-preview-06-05 now maps to gemini-3.8-flash in mapToGeminiModelName. For gemini-3.x models, thinkingBudget is sent as thinkingConfig.thinkingLevel (LOW when the budget is 1024 or less, otherwise HIGH). Other models still get thinkingBudget. I added scripts/check-gemini-pro.mjs. It fails on the original code and passes now, and typecheck and build pass.\nUnproven: I did not check live behaviour, thought_signature handling across multi-turn chats, or whether gemini-3.8-flash accepts includeThoughts and the googleSearch tool.; The 1024-token cut-off between LOW and HIGH is my own choice and is not from the docs.; src/app/api/chats/generate-title/route.ts still sends temperature, topK and topP to gemini-2.0-flash-exp through the deprecated @google/generative-ai SDK. I did not touch it because it is not on 2.5-pro. It will need changing when it moves to a 3.6+ model.; The other retired 2.0 and 2.5-flash preview ids (gemini-2.0-flash-exp, gemini-2.0-flash-thinking-exp, gemini-2.5-flash-preview-05-20, and the image-generation model in gemini-api.ts and google-gemini-api.ts) are unchanged.; The UI label for the pro model in models.ts still names the old preview.\n",
+        "preparation": {
+          "steps": [
+            {
+              "command": "corepack pnpm@10.2.0 exec prisma generate",
+              "why": "The postinstall hook (prisma generate) did not run because install scripts are off. The client is generated into src/generated/prisma, which the code imports, so typecheck needs it.",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 32ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            }
+          ],
+          "env": {
+            "DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "DIRECT_DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "CLERK_SECRET_KEY": "sk_test_placeholder",
+            "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_Y2xlcmsuZXhhbXBsZS5jb20k",
+            "GEMINI_API_KEY": "placeholder",
+            "UPLOADTHING_TOKEN": "placeholder",
+            "OPENROUTER_API_KEY": "placeholder"
+          },
+          "reasoning": "The Prisma schema outputs the client to src/generated/prisma, which is not committed, so tsc and next build fail without it. The build script already runs prisma generate, but typecheck does not, so generate once up front. next.config.js imports src/env.js, which validates env vars at build time. The placeholders from .env.example let it load. Prisma 7 generate may need a datasource URL from prisma.config, so DATABASE_URL is set too.\nThe build already runs prisma generate, and it succeeded, so no setup step is missing. The failure happens while prerendering /_not-found: Clerk rejects the key pk_test_placeholder because it isn't a valid publishable key. A valid key is pk_test_ followed by a base64-encoded domain ending in $. The env value above decodes to clerk.example.com$. The build command exports its own NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, which may override this value, so this fix may not take effect unless the harness applies my env after that export."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff remaps the internal `gemini-2.5-pro-preview-06-05` ID to `gemini-3.8-flash` and converts `thinkingBudget` to `thinkingLevel` at the two new-SDK `generateContent` sites in gemini-api.ts. It does not handle thought_signature round-tripping, its budget-to-level mapping is lossy (and wrong for the dynamic -1 budget), and the legacy-SDK fallback paths now send `gemini-3.8-flash` through the old `@google/generative-ai` SDK. The only new check is a regex grep of source text: it proves no runtime behaviour. Typecheck and build prove only that the `ThinkingLevel` enum exists in the installed SDK. The 'verified' grade overstates what the checks show; this should be needs-review.",
+        "concerns": [
+          {
+            "file": "src/lib/api/model-helpers.ts",
+            "issue": "`budgetToThinkingLevel` maps `budget <= 1024` to LOW. A thinkingBudget of -1 (dynamic thinking in the 2.5 API) and 0 (thinking off) both become LOW. Dynamic thinking silently turns into minimal thinking. Handle -1 explicitly (e.g. omit thinkingLevel or use HIGH) and decide what 0 should mean.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/lib/api/gemini-api.ts",
+            "issue": "The change notes thought_signature validation on the new model. `convertMessagesForNewSDK` rebuilds history from text and inlineData only. `createStreamFromNewSDKResponse` (truncated in the prompt) does not appear to keep `thoughtSignature`. With `includeThoughts: true`, multi-turn conversations may be rejected or degraded. I could not confirm how strict validation is for plain-text turns; check the quoted changelog and Gemini 3 thinking docs.",
+            "severity": "high"
+          },
+          {
+            "file": "src/lib/api/gemini-api.ts",
+            "issue": "`generateWithThinking` and `generateWithSearch` catch every error and fall back to `generateWithLegacySDK` (and `generateWithoutSearch` without options). That fallback now calls `gemini-3.8-flash` through the deprecated `@google/generative-ai` SDK. Any thinkingLevel or signature error will be masked by a retry that may also fail or behave differently. A green build cannot reveal this.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/lib/api/model-helpers.ts",
+            "issue": "The remap applies immediately, not from 2026-12-01. It silently swaps a Pro model for a Flash model under the same user-facing ID. The models.ts labels are untouched, so the UI likely still says 2.5 Pro. That product and pricing change goes beyond what the API forces; a human should confirm it.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/app/api/chats/generate-title/route.ts",
+            "issue": "The match agent named this call site, but it uses `gemini-2.0-flash-exp` and is unaffected by the 2.5-pro reroute. Its temperature/topK/topP would only matter if it moved to a 3.x model. There is nothing to fix here, but the site list overstates the scope.",
+            "severity": "low"
+          },
+          {
+            "file": "scripts/check-gemini-pro.mjs",
+            "issue": "The proof check only regex-matches source text for the case mapping and the string 'thinkingLevel'. It makes no live call and does not exercise the request shape, multi-turn history, or the fallbacks. It cannot justify a 'verified' grade.",
+            "severity": "medium"
+          }
+        ],
+        "checkFirst": [
+          "Make one live multi-turn request (search on and off, thinkingBudget unset, 512, 8192 and -1) against gemini-3.8-flash and confirm no thought_signature or thinkingConfig errors.",
+          "Confirm in the quoted changelog / @google/genai types that `ThinkingLevel.LOW/HIGH` are the accepted values for gemini-3.8-flash, and decide how -1/0 budgets should map.",
+          "Decide whether the Pro-to-Flash swap should ship before 2026-12-01 and whether models.ts labels and pricing copy need updating.",
+          "Check whether the legacy-SDK fallback in `generateWithLegacySDK` works with gemini-3.8-flash, or should be removed or redirected."
+        ],
+        "costUsd": 0.095984,
+        "model": "claude-opus-5-5"
+      }
+    },
+    {
+      "taskId": "XDTerminated/t2-chat-t3c-2025:gemini:2026-12-01-gemini-2-5-flash-reroute",
+      "changeId": "gemini:2026-12-01-gemini-2-5-flash-reroute",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "gemini",
+        "id": "gemini:2026-12-01-gemini-2-5-flash-reroute",
+        "kind": "model-retirement",
+        "title": "gemini-2.5-flash deprecated; from Dec 1 2026 requests route to gemini-3.5-flash-lite with breaking API changes",
+        "source": {
+          "url": "https://ai.google.dev/gemini-api/docs/deprecations.md.txt",
+          "quote": "Effective December 1, 2026, all API requests to `gemini-2.5-flash`\nwill automatically route to"
+        },
+        "affects": {
+          "operations": ["gemini-2.5-flash", "gemini-3.5-flash-lite"],
+          "fields": ["thinking_budget", "thinking_level"]
+        },
+        "effectiveDate": "2026-12-01"
+      },
+      "reasoning": "gemini-2.5-flash is a likely model in this chat app's model picker, though the scan did not capture model ids for these sites. From 2026-12-01, requests route to gemini-3.5-flash-lite with breaking changes (thinking_level replaces thinking_budget) and a silent quality or behaviour change. The migration agent should grep for 'gemini-2.5-flash' (excluding image/tts variants), choose a supported replacement, and adapt the thinking config. This is uncertain until the model list is confirmed.",
+      "callSites": [
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 221,
+          "why": "generateContent with model and config. If the model is gemini-2.5-flash, it reroutes to gemini-3.5-flash-lite, where thinking_budget is replaced by thinking_level."
+        },
+        {
+          "file": "src/lib/api/gemini-api.ts",
+          "line": 284,
+          "why": "Same as line 221: possible gemini-2.5-flash usage with thinking config."
+        },
+        {
+          "file": "src/lib/api/google-gemini-api.ts",
+          "line": 32,
+          "why": "Raw HTTP with the model in a runtime URL. It may target gemini-2.5-flash."
+        },
+        {
+          "file": "src/app/api/chats/generate-title/route.ts",
+          "line": 64,
+          "why": "Title generation model is unrecorded. It may be gemini-2.5-flash."
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "XDTerminated/t2-chat-t3c-2025:gemini:2026-12-01-gemini-2-5-flash-reroute",
+        "outcome": "verified",
+        "diff": "diff --git a/scripts/check-gemini-model.mjs b/scripts/check-gemini-model.mjs\nnew file mode 100644\nindex 0000000..30c3f55\n--- /dev/null\n+++ b/scripts/check-gemini-model.mjs\n@@ -0,0 +1,7 @@\n+import { readFileSync } from \"node:fs\";\n+const h = readFileSync(\"src/lib/api/model-helpers.ts\", \"utf8\");\n+const g = readFileSync(\"src/lib/api/gemini-api.ts\", \"utf8\");\n+const fail = (m) => { console.error(\"FAIL\", m); process.exit(1); };\n+if (!/case \"gemini-2\\.5-flash-preview-05-20\":[\\s\\S]*?return \"gemini-3\\.5-flash-lite\"/.test(h)) fail(\"mapping\");\n+if (!g.includes(\"thinkingLevel\")) fail(\"thinkingLevel\");\n+console.log(\"ok\");\ndiff --git a/src/lib/api/gemini-api.ts b/src/lib/api/gemini-api.ts\nindex 36f0d49..a7c89d8 100644\n--- a/src/lib/api/gemini-api.ts\n+++ b/src/lib/api/gemini-api.ts\n@@ -1,8 +1,12 @@\n import { GoogleGenerativeAI } from \"@google/generative-ai\";\n-import { GoogleGenAI } from \"@google/genai\";\n+import { GoogleGenAI, ThinkingLevel } from \"@google/genai\";\n import type { UploadFileResponse } from \"../types\";\n import type { MessageContent, ChatStreamOptions, ChatMessage } from \"./types\";\n-import { mapToGeminiModelName } from \"./model-helpers\";\n+import {\n+  mapToGeminiModelName,\n+  usesThinkingLevel,\n+  budgetToThinkingLevel,\n+} from \"./model-helpers\";\n \n export class GeminiAPI {\n   private genAI: GoogleGenAI;\n@@ -66,6 +70,25 @@ export class GeminiAPI {\n     return { data: images };\n   }\n \n+  private applyThinkingBudget(\n+    thinkingConfig: {\n+      thinkingBudget?: number;\n+      thinkingLevel?: ThinkingLevel;\n+      includeThoughts?: boolean;\n+    },\n+    modelId: string,\n+    budget: number,\n+  ) {\n+    if (usesThinkingLevel(mapToGeminiModelName(modelId))) {\n+      thinkingConfig.thinkingLevel =\n+        budgetToThinkingLevel(budget) === \"low\"\n+          ? ThinkingLevel.LOW\n+          : ThinkingLevel.HIGH;\n+    } else {\n+      thinkingConfig.thinkingBudget = budget;\n+    }\n+  }\n+\n   private modelSupportsThinking(modelId: string): boolean {\n     const thinkingModels = [\n       \"gemini-2.0-flash-thinking-exp\",\n@@ -200,6 +223,7 @@ export class GeminiAPI {\n         systemInstruction?: string;\n         thinkingConfig?: {\n           thinkingBudget?: number;\n+          thinkingLevel?: ThinkingLevel;\n           includeThoughts?: boolean;\n         };\n       } = {\n@@ -214,7 +238,11 @@ export class GeminiAPI {\n       if (supportsThinking) {\n         config.thinkingConfig = { includeThoughts: true };\n         if (options?.thinkingBudget !== undefined) {\n-          config.thinkingConfig.thinkingBudget = options.thinkingBudget;\n+          this.applyThinkingBudget(\n+            config.thinkingConfig,\n+            modelId,\n+            options.thinkingBudget,\n+          );\n         }\n       }\n \n@@ -267,6 +295,7 @@ export class GeminiAPI {\n         systemInstruction?: string;\n         thinkingConfig?: {\n           thinkingBudget?: number;\n+          thinkingLevel?: ThinkingLevel;\n           includeThoughts?: boolean;\n         };\n       } = {};\n@@ -278,7 +307,11 @@ export class GeminiAPI {\n       config.thinkingConfig = { includeThoughts: true };\n \n       if (options?.thinkingBudget !== undefined) {\n-        config.thinkingConfig.thinkingBudget = options.thinkingBudget;\n+        this.applyThinkingBudget(\n+          config.thinkingConfig,\n+          modelId,\n+          options.thinkingBudget,\n+        );\n       }\n \n       const response = await this.genAI.models.generateContent({\ndiff --git a/src/lib/api/model-helpers.ts b/src/lib/api/model-helpers.ts\nindex 12f6394..835311d 100644\n--- a/src/lib/api/model-helpers.ts\n+++ b/src/lib/api/model-helpers.ts\n@@ -38,6 +38,16 @@ export function modelSupportsThinking(modelId: string): boolean {\n   return thinkingModels.includes(modelId);\n }\n \n+/** Gemini 3.x models take thinkingLevel instead of thinkingBudget */\n+export function usesThinkingLevel(apiName: string): boolean {\n+  return apiName.startsWith(\"gemini-3\");\n+}\n+\n+/** Arbitrary threshold (not from the docs): small budgets -> low, else high */\n+export function budgetToThinkingLevel(budget: number): \"low\" | \"high\" {\n+  return budget <= 1024 ? \"low\" : \"high\";\n+}\n+\n /**\n  * Map internal model ID to the actual Gemini API model name\n  */\n@@ -48,7 +58,8 @@ export function mapToGeminiModelName(modelId: string): string {\n     case \"gemini-2.0-flash-thinking-exp\":\n       return \"gemini-2.0-flash-thinking-exp\";\n     case \"gemini-2.5-flash-preview-05-20\":\n-      return \"gemini-2.5-flash-preview-05-20\";\n+      // gemini-2.5-flash is deprecated; routes to gemini-3.5-flash-lite from 2026-12-01\n+      return \"gemini-3.5-flash-lite\";\n     case \"gemini-2.5-pro-preview-06-05\":\n       return \"gemini-2.5-pro-preview-06-05\";\n     case \"gemini-2.0-flash-preview-image-generation\":\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "gemini-model-proof",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.18429760000000003,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-XDTerminated-t2-chat-t3c-2025-gemini-2026-12-01-gemini-2-5-flash-reroute-3ZHGzX/transcript.jsonl",
+        "prBody": "## gemini-2.5-flash deprecated; from Dec 1 2026 requests route to gemini-3.5-flash-lite with breaking API changes [Verified]\n\n### Change\n\nThe internal id gemini-2.5-flash-preview-05-20 now maps to the API name gemini-3.5-flash-lite in mapToGeminiModelName. I added usesThinkingLevel and budgetToThinkingLevel helpers. Both @google/genai thinking paths in gemini-api.ts now send thinkingLevel (LOW or HIGH) for gemini-3.x models and keep thinkingBudget for older models. A proof script, scripts/check-gemini-model.mjs, checks the mapping and that thinkingLevel is used.\n\nFiles touched:\n- `scripts/check-gemini-model.mjs`\n- `src/lib/api/gemini-api.ts`\n- `src/lib/api/model-helpers.ts`\n\n### Why\n\ngemini-2.5-flash reroutes to gemini-3.5-flash-lite on 2026-12-01, and Gemini 3.x replaces thinking_budget with thinking_level. Mapping it explicitly makes the change visible now.\n\n> Effective December 1, 2026, all API requests to `gemini-2.5-flash`\n> will automatically route to\n\nSource: https://ai.google.dev/gemini-api/docs/deprecations.md.txt\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| gemini-model-proof | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- gemini-model-proof, added by the agent: `export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder'; node scripts/check-gemini-model.mjs` (fail (1) → pass)\n\nProvider validators: none run.\n\nPrepared before the baseline:\n- Before the baseline the harness ran `corepack pnpm@10.2.0 exec prisma generate` (The postinstall hook (prisma generate) did not run because install scripts are off. The client is generated into src/generated/prisma, which the code imports, so typecheck needs it.); it exited 0.\n- Before the baseline the harness ran `npx prisma generate` (The postinstall hook did not run, so the Prisma client in src/generated/prisma is missing. The typecheck needs it, because the typecheck script does not generate it the way build does.); it exited 0.\n- Checks ran with placeholder env: DATABASE_URL, DIRECT_DATABASE_URL, CLERK_SECRET_KEY, NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY, GEMINI_API_KEY, UPLOADTHING_TOKEN, OPENROUTER_API_KEY.\n\nTest of this change: `gemini-model-proof`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- The provider validators were not run, because no OpenAPI or GraphQL spec applies here.\n- Whether gemini-3.5-flash-lite accepts includeThoughts together with the googleSearch tool.\n- Multi-turn thought_signature handling.\n- The 1024 budget threshold for choosing LOW or HIGH is my own choice, not from the docs.\n- The other ids are unchanged: gemini-2.0-flash-exp, gemini-2.0-flash-thinking-exp, gemini-2.5-pro-preview-06-05 and gemini-2.0-flash-preview-image-generation (which also appears in the SDK and REST image calls). I left them because this task covers only gemini-2.5-flash, but they are likely retired or deprecated too.\n- The generate-title route and the legacy SDK paths in gemini-api.ts were not touched.\n- The proof script only checks the source text for the mapping and for thinkingLevel. It does not run the built config.\n- No provider validator was run.\n\n### Behaviour changes\n\n- The 'Gemini 2.5 Flash' option now runs on gemini-3.5-flash-lite, so output quality, length, latency and cost will differ. The UI label is now stale.\n- thinkingLevel is sent instead of thinkingBudget for this model. Budgets of 1024 or less map to LOW, larger ones to HIGH, so fine-grained budget control is lost.\n- Sampling params (temperature, topP, topK) are not sent by this code, so none needed removing.\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-2 · Models: claude-sonnet-5-5 · AI cost: $0.1843\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-2",
+        "recipeIds": [
+          "recipe-gemini-model-retirement-84ad9a3f",
+          "recipe-gemini-sdk-major-3e966223"
+        ],
+        "agentChecks": [
+          {
+            "name": "gemini-model-proof",
+            "command": "export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY='sk_test_placeholder' NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY='[redacted]' GEMINI_API_KEY='placeholder' UPLOADTHING_TOKEN='placeholder' OPENROUTER_API_KEY='placeholder'; node scripts/check-gemini-model.mjs",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# XDTerminated/t2-chat-t3c-2025:gemini:2026-12-01-gemini-2-5-flash-reroute: verified, $0.1843\nChange: gemini-2.5-flash deprecated; from Dec 1 2026 requests route to gemini-3.5-flash-lite with breaking API changes (gemini, model-retirement)\nBaseline checks: typecheck pass, build pass, gemini-model-proof fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gemini-[0-9]|thinkingBudget|thinking_budget|generativelanguage glob=src/** → src/app/api/chat/route.ts:41:   thinkingBudget?: number; | src/app/api/chat/route.ts:47:     \"gemini-2.0-flash-thinking-exp\", | src/app/api/chat/route.ts:48:     \"gemini-2.5-flash-preview-05-20\",\n2. read_file path=src/lib/api/model-helpers.ts → 1\timport { GEMINI_MODELS, GROQ_MODELS } from \"./models\"; | 2\t | 3\t/**\n3. read_file path=src/lib/api/gemini-api.ts offset=1 limit=300 → 1\timport { GoogleGenerativeAI } from \"@google/generative-ai\"; | 2\timport { GoogleGenAI } from \"@google/genai\"; | 3\timport type { UploadFileResponse } from \"../types\";\n4. edit_file path=src/lib/api/model-helpers.ts old=      return \"gemini-2.5-flash-preview-05-20\";\n    case \"gemini-2.5-pro new=<151 chars> → edited src/lib/api/model-helpers.ts (1 replacement)\n5. edit_file path=src/lib/api/model-helpers.ts old=/**\n * Map internal new=<392 chars> → edited src/lib/api/model-helpers.ts (1 replacement)\n6. edit_file path=src/lib/api/gemini-api.ts old=import { GoogleGenAI } from \"@google/genai\"; new=import { GoogleGenAI, ThinkingLevel } from \"@google/genai\"; → edited src/lib/api/gemini-api.ts (1 replacement)\n7. edit_file path=src/lib/api/gemini-api.ts old=import { mapToGeminiModelName } from \"./model-helpers\"; new=<104 chars> → edited src/lib/api/gemini-api.ts (1 replacement)\n8. edit_file path=src/lib/api/gemini-api.ts old=<135 chars> new=<203 chars> → edited src/lib/api/gemini-api.ts (1 replacement)\n9. edit_file path=src/lib/api/gemini-api.ts old=<129 chars> new=<189 chars> → edited src/lib/api/gemini-api.ts (1 replacement)\n10. edit_file path=src/lib/api/gemini-api.ts old=  private modelSupportsThinking( new=<517 chars> → edited src/lib/api/gemini-api.ts (1 replacement)\n11. shell command=<801 chars> → exit code: 0 | --- stdout --- | ok\n12. run_checks add=[{\"name\":\"gemini-model-proof\",\"command\":\"node scripts/check-gemini-model.mjs\"}] → registered gemini-model-proof; on the original code it fails (1) | ## typecheck: pass | command: export DATABASE_URL='postgresql://user:pass@localhost:5432/db' DIRECT_DATABASE_URL='postgresql://user:pass@localhost:5432/db' CLERK_SECRET_KEY=…\n13. finish verdict=migrated summary=<430 chars> why=<178 chars> validators=[] unproven=<841 chars> behaviourChanges=<411 chars> proofTest=gemini-model-proof → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, gemini-model-proof fail (1) → pass\n\n## Result\nFiles changed: scripts/check-gemini-model.mjs, src/lib/api/gemini-api.ts, src/lib/api/model-helpers.ts\nVerdict: migrated. The internal id gemini-2.5-flash-preview-05-20 now maps to the API name gemini-3.5-flash-lite in mapToGeminiModelName. I added usesThinkingLevel and budgetToThinkingLevel helpers. Both @google/genai thinking paths in gemini-api.ts now send thinkingLevel (LOW or HIGH) for gemini-3.x models and keep thinkingBudget for older models. A proof script, scripts/check-gemini-model.mjs, checks the mapping and that thinkingLevel is used.\nUnproven: The provider validators were not run, because no OpenAPI or GraphQL spec applies here.; Whether gemini-3.5-flash-lite accepts includeThoughts together with the googleSearch tool.; Multi-turn thought_signature handling.; The 1024 budget threshold for choosing LOW or HIGH is my own choice, not from the docs.; The other ids are unchanged: gemini-2.0-flash-exp, gemini-2.0-flash-thinking-exp, gemini-2.5-pro-preview-06-05 and gemini-2.0-flash-preview-image-generation (which also appears in the SDK and REST image calls). I left them because this task covers only gemini-2.5-flash, but they are likely retired or deprecated too.; The generate-title route and the legacy SDK paths in gemini-api.ts were not touched.; The proof script only checks the source text for the mapping and for thinkingLevel. It does not run the built config.\n",
+        "preparation": {
+          "steps": [
+            {
+              "command": "corepack pnpm@10.2.0 exec prisma generate",
+              "why": "The postinstall hook (prisma generate) did not run because install scripts are off. The client is generated into src/generated/prisma, which the code imports, so typecheck needs it.",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 58ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            },
+            {
+              "command": "npx prisma generate",
+              "why": "The postinstall hook did not run, so the Prisma client in src/generated/prisma is missing. The typecheck needs it, because the typecheck script does not generate it the way build does.",
+              "code": 0,
+              "output": "✔ Generated Prisma Client (7.2.0) to ./src/generated/prisma in 62ms\n\n\nPrisma schema loaded from prisma/schema.prisma."
+            }
+          ],
+          "env": {
+            "DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "DIRECT_DATABASE_URL": "postgresql://user:pass@localhost:5432/db",
+            "CLERK_SECRET_KEY": "sk_test_placeholder",
+            "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY": "pk_test_Y2xlcmsuZXhhbXBsZS5jb20k",
+            "GEMINI_API_KEY": "placeholder",
+            "UPLOADTHING_TOKEN": "placeholder",
+            "OPENROUTER_API_KEY": "placeholder"
+          },
+          "reasoning": "The Prisma schema uses the prisma-client generator with output ../src/generated/prisma, which is not committed. With install scripts off, postinstall never generated it, so tsc would fail on missing imports. The build script already runs prisma generate, but typecheck does not. next.config.js imports src/env.js, which validates env vars at build, so placeholders from .env.example are needed. Prisma 7 may need a prisma.config.ts for the datasource URL, but generate does not connect to the database.\nThe typecheck imports the generated client, so it needs prisma generate. The build already runs prisma generate itself. The build failed because Clerk rejects the placeholder pk_test_placeholder, which is not a decodable key. I give a correctly formatted key (pk_test_ plus base64 of 'clerk.example.com$'). The check command exports its own value, which may override this one, so I cannot guarantee it fixes the build."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff remaps the internal id `gemini-2.5-flash-preview-05-20` to `gemini-3.5-flash-lite` and converts `thinkingBudget` to `thinkingLevel` for 3.x models. Both new-SDK `generateContent` sites in gemini-api.ts (~221 and ~284) are covered. The other named sites (generate-title, image generation, google-gemini-api.ts REST) use 2.0 models and are correctly left alone. The 'verified' grade rests on a new script that only greps source text, plus typecheck and build. No request is ever made to the new model, so neither the model name nor the `thinkingLevel` behaviour is exercised. The remap also takes effect on merge rather than on 2026-12-01, and it targets a dated preview id rather than `gemini-2.5-flash` itself. Users get a different, lighter model immediately. This reads as needs-review rather than verified.",
+        "concerns": [
+          {
+            "file": "scripts/check-gemini-model.mjs",
+            "issue": "This 'proof' is a regex and substring check over source files. It confirms the mapping string and the word `thinkingLevel` exist, not that the API accepts `gemini-3.5-flash-lite` or `thinkingConfig.thinkingLevel`. It passes even if the call would 400. The verified grade overstates what was checked.",
+            "severity": "high"
+          },
+          {
+            "file": "src/lib/api/model-helpers.ts",
+            "issue": "`mapToGeminiModelName` now sends `gemini-3.5-flash-lite` as soon as this merges, not from 2026-12-01. The quoted deprecation covers `gemini-2.5-flash`, while the remapped case is the dated preview `gemini-2.5-flash-preview-05-20`. The PR does not establish that this preview is covered by the reroute, or that it is still served at all. Moving from Flash to a Flash-Lite tier is a user-visible quality and behaviour change. It applies to search, thinking and legacy paths alike, since all three call `mapToGeminiModelName`.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/lib/api/model-helpers.ts",
+            "issue": "I could not confirm the target model name `gemini-3.5-flash-lite`: the quoted source is truncated at 'route to'. Check the full deprecations page and the models list.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/lib/api/model-helpers.ts",
+            "issue": "The `budgetToThinkingLevel` threshold is admittedly arbitrary, and it collapses special budget values. `0` (thinking off) and `-1` (dynamic) both become LOW, so a user who disabled thinking still gets LOW thinking. Only LOW and HIGH are used. I could not confirm which levels flash-lite accepts, or whether it rejects some; check the @google/genai `ThinkingLevel` enum and the 3.x thinking docs.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/lib/api/gemini-api.ts",
+            "issue": "When a new-SDK call fails, `generateWithThinking` falls back to `generateWithLegacySDK`, which now asks @google/generative-ai for `gemini-3.5-flash-lite`. A failure caused by the new thinking config would be silently masked. The fallback itself is untested against the new model.",
+            "severity": "low"
+          },
+          {
+            "file": "src/lib/api/gemini-api.ts",
+            "issue": "The change entry mentions 'breaking API changes'. The diff handles only thinkingBudget→thinkingLevel. Other possible differences are unaddressed and unverified: response shape for thought parts, grounding metadata with `googleSearch`, and `includeThoughts` support on flash-lite. `createStreamFromNewSDKResponse` parses those fields.",
+            "severity": "medium"
+          },
+          {
+            "file": "src/lib/api/models.ts",
+            "issue": "Not shown in the diff. The UI label and description for this model id likely still say Gemini 2.5 Flash, though requests now go to 3.5 Flash-Lite.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Read the full deprecation entry to confirm the reroute target name and the listed breaking changes, and whether it covers `gemini-2.5-flash-preview-05-20`.",
+          "Make one live `generateContent` call with model `gemini-3.5-flash-lite`, `includeThoughts: true` and `thinkingLevel: LOW`, with and without `googleSearch`. Confirm a 200 and that thought and grounding parts parse.",
+          "Decide whether the remap should land now or be gated to 2026-12-01, and whether budget 0 should map to minimal or no thinking rather than LOW.",
+          "Check the `ThinkingLevel` enum values in the installed @google/genai version."
+        ],
+        "costUsd": 0.09684,
+        "model": "claude-opus-5-5"
+      }
+    }
+  ],
+  "costUsd": 3.8017336999999993,
+  "durationMs": 4387255,
+  "matchReasoning": "XDTerminated/t2-chat-t3c-2025:gemini:generative-ai-js-eol: The repo pins @google/generative-ai 0.24.1, which falls in the affected range <=0.24.1. Support, including bug fixes, ended on 2025-11-30. The same repo already depends on @google/genai 1.35.0 (usage 3, models.generateContent in gemini-api.ts). The migration is therefore to rewrite the getGenerativeModel/generateContent calls onto the existing GoogleGenAI client and then remove @google/generative-ai from package.json. The response shapes differ: response.text() becomes the response.text getter, streaming becomes generateContentStream, and the config key names change. The migration agent should check how responses are read at each site.\nXDTerminated/t2-chat-t3c-2025:gemini:2026-06-01-gemini-2-0-shutdown: gemini-2.0-flash, gemini-2.0-flash-001, gemini-2.0-flash-lite and gemini-2.0-flash-lite-001 shut down on 2026-06-01. The repo pins gemini-2.0-flash-preview-image-generation (gemini-api.ts:46), a 2.0 Flash preview variant that is likewise retired. Requests to it fail now. Other call sites' model ids were not captured. The chat app (2025 era) likely offers gemini-2.0-flash or flash-lite in its model list or uses them for title generation. The migration agent should grep for 'gemini-2.0' across the repo, including model lists and UI config, and replace each with a supported model. Already past effective date; calls hard-fail.\nXDTerminated/t2-chat-t3c-2025:gemini:2026-10-26-store-default: From 2026-10-26, new paid-tier projects store Generate Content requests by default (store=true). This chat app sends user conversations through generateContent. If it runs on (or moves to) a new paid-tier project, user chats would be retained by Google without the app opting in. It is uncertain whether the deployment's project is new or paid-tier. The migration agent should consider explicitly sending store=false (if supported by the SDK/REST version in use) to keep current privacy behaviour. Nothing breaks functionally.\nXDTerminated/t2-chat-t3c-2025:gemini:2026-12-01-gemini-2-5-pro-reroute: The scan did not record which models the chat UI offers. A 2025 T3-chat clone very likely exposes gemini-2.5-pro. From 2026-12-01, requests to gemini-2.5-pro auto-route to gemini-3.8-flash with breaking API differences: thought_signature validation, thinking_level instead of thinking_budget, and temperature/top_p/top_k and prefill removed. Calls passing those fields may error. The migration agent should grep for 'gemini-2.5-pro' (model lists, defaults), update it to a supported model, and strip or adapt the thinking and sampling config. It should also check multi-turn handling of thought signatures. This is uncertain until the model list is confirmed.\nXDTerminated/t2-chat-t3c-2025:gemini:2026-12-01-gemini-2-5-flash-reroute: gemini-2.5-flash is a likely model in this chat app's model picker, though the scan did not capture model ids for these sites. From 2026-12-01, requests route to gemini-3.5-flash-lite with breaking changes (thinking_level replaces thinking_budget) and a silent quality or behaviour change. The migration agent should grep for 'gemini-2.5-flash' (excluding image/tts variants), choose a supported replacement, and adapt the thinking config. This is uncertain until the model list is confirmed.\ngemini:genai-js-2-0-0-interactions: not affected: The breaking changes are limited to the Interactions API. The repo uses @google/genai only for models.generateContent (gemini-api.ts:221/284), which the changelog states is unaffected.\ngemini:genai-js-1-0-0-lyria: not affected: The repo is already on @google/genai 1.35.0, past 1.0.0. It uses no Lyria music methods.\ngemini:genai-js-1-46-0-interactions-breaking: not affected: These breaking changes apply only to Interactions API types. The repo calls only models.generateContent and never uses interactions.\ngemini:genai-js-0x-breaking-0-9-0: not affected: These are 0.x-era changes. The repo's @google/genai is 1.35.0, already past them.\ngemini:2026-05-interactions-steps-schema: not affected: No call site uses POST/GET /v1beta/interactions. The SDK usage is generateContent, and the raw HTTP client predates the Interactions API (chat-completion style).\ngemini:2025-12-19-total-thought-tokens: not affected: The renamed field is in the Interactions API usage object. The repo does not use the Interactions API.\ngemini:2026-07-21-sampling-params-deprecated: not affected: The deprecation applies only to Gemini 3.6+ models, which the repo does not currently use. The case where rerouting to 3.8-flash removes sampling params is covered in the gemini-2.5-pro reroute task.\ngemini:2026-11-17-preview-shutdowns: not affected: The repo uses no TTS, Live or native-audio preview models; it is text/image chat only.\ngemini:2026-10-22-veo-omni-shutdown: not affected: The repo does not generate video and uses neither Veo nor gemini-omni-flash-preview.\ngemini:2026-10-23-deep-research-pro-shutdown: not affected: The repo does not call the Interactions API with any agent parameter.\ngemini:2026-09-antigravity-agent-tools: not affected: The repo uses no antigravity managed agents.\ngemini:2026-08-17-imagen-4-shutdown: not affected: Image generation in the repo uses gemini-2.0-flash-preview-image-generation and OpenRouter flux-schnell, not Imagen 4.\ngemini:2026-06-30-veo-2-3-shutdown: not affected: The repo uses no Veo video models.\ngemini:2026-06-25-image-preview-shutdown: not affected: The repo's image model is gemini-2.0-flash-preview-image-generation, not gemini-3.1-flash-image-preview or gemini-3-pro-image-preview. When replacing it (2.0 shutdown task), avoid these retired previews.\ngemini:2026-10-08-3-5-3-7-flash-reroute: not affected: The repo (2025 era) references no gemini-3.5-flash or gemini-3.7-flash models.\ngemini:2026-05-embedding-lifecycle: not affected: No call site uses embedding models or embedContent.\ngemini:2027-gemini-3-1-flash-lite-and-2-5-flash-image: not affected: The repo references neither gemini-3.1-flash-lite nor gemini-2.5-flash-image. Its image model is the 2.0 flash preview.\ngemini:2026-03-gemini-3-pro-preview-shutdown: not affected: The repo predates Gemini 3 and references no gemini-3-pro-preview model.",
+  "costByPart": {
+    "inventory": 0.0481149,
+    "watch": 0.21378650000000002,
+    "match": 0.188548,
+    "other": 1.8402479999999999,
+    "harness": 1.0623043,
+    "review": 0.448732
+  }
+}

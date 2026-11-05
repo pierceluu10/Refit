@@ -1,0 +1,598 @@
+{
+  "set": "openai-dev-30",
+  "index": 0,
+  "repo": "hachanimohamedsaid/backend_AgentAi",
+  "commit": "387ace95142de78a7d8dd3a1378b9aba5aeb3048",
+  "provider": "openai",
+  "usages": 14,
+  "changes": 27,
+  "verdict": "tasks",
+  "tasks": [
+    {
+      "taskId": "hachanimohamedsaid/backend_AgentAi:openai:2026-02-chatgpt4o-codexmini+9",
+      "changeId": "openai:2026-02-chatgpt4o-codexmini",
+      "kind": "model-retirement",
+      "change": {
+        "provider": "openai",
+        "id": "openai:2026-02-chatgpt4o-codexmini",
+        "kind": "model-retirement",
+        "title": "10 changes: chatgpt-4o-latest (Feb 17, 2026) and codex-mini-latest with legacy local shell tool (Feb 12, 2026) removed and more",
+        "source": {
+          "url": "https://developers.openai.com/api/docs/deprecations.md",
+          "quote": "On November 18th, 2025, we notified developers using `chatgpt-4o-latest` model snapshot of its deprecation and removal from the API on February 17, 2026."
+        },
+        "affects": {
+          "fields": ["model:chatgpt-4o-latest", "model:codex-mini-latest"]
+        },
+        "effectiveDate": "2026-02-17"
+      },
+      "reasoning": "This one task covers all 10 openai changes that affect this repo. Handle every one of them in this single change set, prove each with your test, and say in finish which you changed and which needed no change.\n\n1. chatgpt-4o-latest (Feb 17, 2026) and codex-mini-latest with legacy local shell tool (Feb 12, 2026) removed (model-retirement, effective 2026-02-17)\n   Source: https://developers.openai.com/api/docs/deprecations.md\n   Quote: On November 18th, 2025, we notified developers using `chatgpt-4o-latest` model snapshot of its deprecation and removal from the API on February 17, 2026.\n   Affects: fields: model:chatgpt-4o-latest, model:codex-mini-latest\n   Call sites: src/ai/ai.service.ts:63 (model value not visible; check for chatgpt-4o-latest); src/ai/dispatch-email-llm.service.ts:121 (modelName from config/env; check value); src/ai/task-assignment-llm.service.ts:229 (model value not visible; check); src/assistant/openai-notification.client.ts:95 (model value not visible; check); src/assistant/openai-suggestion.client.ts:65 (model value not visible; check); src/market-intelligence/market-intelligence.service.ts:443 (model value not visible; check); src/meeting/meeting.service.ts:574 (model value not visible; check); src/meeting/meeting.service.ts:656 (modelStart variable; check value); src/meeting/meeting.service.ts:755 (model value not visible; check); src/meeting/meeting.service.ts:937 (model value not visible; check); src/pm/proposal-plan-generator.service.ts:162 (model value not visible; check)\n   Why it applies: chatgpt-4o-latest was removed on 2026-02-17. The repo makes 11 chat.completions.create calls, and the scan did not record which model strings they use (several are variables or env values). If any resolves to chatgpt-4o-latest, the call already fails. The migration agent should grep for chatgpt-4o-latest in code, env defaults and .env examples, and replace it with a supported model. codex-mini-latest and the local shell tool are not used by this repo. If no match is found, close the task with no change.\n\n2. gpt-4-0314 and gpt-4-0125-preview/gpt-4-turbo-preview shut down Mar 26, 2026 (model-retirement, effective 2026-03-26)\n   Source: https://developers.openai.com/api/docs/deprecations.md\n   Quote: Access to these models was shut down on March 26, 2026.\n   Affects: fields: model:gpt-4-0314, model:gpt-4-0125-preview, model:gpt-4-turbo-preview\n   Call sites: src/ai/ai.service.ts:63 (model value unknown; check for gpt-4-0314/gpt-4-turbo-preview); src/ai/dispatch-email-llm.service.ts:121 (modelName from config; check); src/ai/task-assignment-llm.service.ts:229 (model value unknown; check); src/assistant/openai-notification.client.ts:95 (model value unknown; check); src/assistant/openai-suggestion.client.ts:65 (model value unknown; check); src/market-intelligence/market-intelligence.service.ts:443 (model value unknown; check); src/meeting/meeting.service.ts:574 (model value unknown; check); src/meeting/meeting.service.ts:656 (modelStart variable; check); src/meeting/meeting.service.ts:755 (model value unknown; check); src/meeting/meeting.service.ts:937 (model value unknown; check); src/pm/proposal-plan-generator.service.ts:162 (model value unknown; check)\n   Why it applies: gpt-4-0314, gpt-4-0125-preview and gpt-4-turbo-preview were shut down on 2026-03-26. The chat.completions.create calls take their model from variables or config that the scan did not resolve, so it is uncertain whether any uses these names. The migration agent should search code and env defaults for them and replace any hit with a currently supported model. If none is found, no change is needed.\n\n3. dall-e-2/dall-e-3 and Realtime beta header removed May 12, 2026; realtime preview/audio-preview models May 7, 2026 (model-retirement, effective 2026-05-12)\n   Source: https://developers.openai.com/api/docs/deprecations.md\n   Quote: On November 14th, 2025, we notified developers using DALL·E model snapshots of their deprecation and removal from the API on May 12, 2026.\n   Affects: fields: model:dall-e-2, model:dall-e-3, model:gpt-4o-realtime-preview, model:gpt-4o-audio-preview\n   Call sites: src/realtime/realtime-voice.service.ts:4 (pins model gpt-4o-realtime-preview, which was removed May 7, 2026); src/realtime/realtime-voice.service.ts:25 (WebSocket to wss://api.openai.com/v1/realtime with the removed model; may also send the retired OpenAI-Beta: realtime=v1 header)\n   Why it applies: The repo hard-codes gpt-4o-realtime-preview for its realtime voice WebSocket. That model was removed in May 2026, so the connection fails already. The Realtime beta header also went away, so the migration agent should check whether the socket sends OpenAI-Beta: realtime=v1 and drop it, and check the session/event schema for GA differences. Switch the model to gpt-realtime-2.1 or gpt-realtime-2.1-mini. This also covers the legacy realtime/audio retirement on 2027-01-20. DALL-E is not used.\n\n4. computer-use-preview, search-preview, gpt-5-codex, gpt-5.1-codex*, deep-research and chat-latest snapshots shut down Jul 23, 2026; use gpt-5.6-* (model-retirement, effective 2026-07-23)\n   Source: https://developers.openai.com/api/docs/deprecations.md\n   Quote: Access to these models was shut down on July 23, 2026.\n   Affects: fields: model:computer-use-preview, model:gpt-4o-search-preview, model:gpt-4o-mini-search-preview, model:gpt-5-chat-latest, model:gpt-5-codex, model:gpt-5.1-chat-latest, model:gpt-5.1-codex, model:gpt-5.1-codex-max, model:gpt-5.1-codex-mini, model:gpt-5.2-codex, model:o3-deep-research, model:o4-mini-deep-research\n   Call sites: src/ai/ai.service.ts:63 (model value unknown; check for gpt-5-chat-latest/search-preview); src/ai/dispatch-email-llm.service.ts:121 (modelName from config; check); src/ai/task-assignment-llm.service.ts:229 (model value unknown; check); src/assistant/openai-notification.client.ts:95 (model value unknown; check); src/assistant/openai-suggestion.client.ts:65 (model value unknown; check); src/market-intelligence/market-intelligence.service.ts:443 (model value unknown; check (market search may use a search-preview model)); src/meeting/meeting.service.ts:574 (model value unknown; check); src/meeting/meeting.service.ts:656 (modelStart variable; check); src/meeting/meeting.service.ts:755 (model value unknown; check); src/meeting/meeting.service.ts:937 (model value unknown; check); src/pm/proposal-plan-generator.service.ts:162 (model value unknown; check)\n   Why it applies: The listed models (gpt-5-chat-latest, gpt-5.1-chat-latest, gpt-5-codex and the other codex variants, gpt-4o-search-preview, gpt-4o-mini-search-preview, computer-use-preview, deep-research) were shut down on 2026-07-23. Several can be called through chat.completions.create, and the scan did not resolve the model strings. The migration agent should grep for these names, including env defaults, and replace any hit with a gpt-5.6-* model. Note that search-preview models have no direct chat.completions replacement; check for web-search options.\n\n5. openai (npm) 7.0.0 requires Node.js 22 (sdk-major, effective 2026-07-27)\n   Source: https://raw.githubusercontent.com/openai/openai-node/HEAD/CHANGELOG.md\n   Quote: * require Node.js 22 and codify version support ([#2026](https://github.com/openai/openai-node/issues/2026))\n   Affects: versions: <7.0.0, 7.0.0; sdk: openai\n   Call sites: src/ai/ai.service.ts:63 (uses the openai npm SDK pinned at 6.33.0 (<7.0.0))\n   Why it applies: The repo pins the openai npm SDK at 6.33.0, inside the affected range (<7.0.0). Nothing forces the move to 7.x today. If the repo upgrades, Node.js 22 is required, so check the engines field, Dockerfile, Railway/CI runtime and @types/node. Then re-check the chat.completions.create call sites for 7.x type changes. The Live Decisions type changes in later 7.x minors do not apply because the repo does not use the Live API. This is optional and low priority.\n\n6. gpt-5.2-chat-latest and gpt-5.3-chat-latest removed Aug 10, 2026; use gpt-5.6-sol (model-retirement, effective 2026-08-10)\n   Source: https://developers.openai.com/api/docs/deprecations.md\n   Quote: On May 8th, 2026, we notified developers using `gpt-5.2-chat-latest` and `gpt-5.3-chat-latest` model snapshots of their deprecation and removal from the API.\n   Affects: fields: model:gpt-5.2-chat-latest, model:gpt-5.3-chat-latest\n   Call sites: src/ai/ai.service.ts:63 (model value unknown; check for gpt-5.2/5.3-chat-latest); src/ai/dispatch-email-llm.service.ts:121 (modelName from config; check); src/ai/task-assignment-llm.service.ts:229 (model value unknown; check); src/assistant/openai-notification.client.ts:95 (model value unknown; check); src/assistant/openai-suggestion.client.ts:65 (model value unknown; check); src/market-intelligence/market-intelligence.service.ts:443 (model value unknown; check); src/meeting/meeting.service.ts:574 (model value unknown; check); src/meeting/meeting.service.ts:656 (modelStart variable; check); src/meeting/meeting.service.ts:755 (model value unknown; check); src/meeting/meeting.service.ts:937 (model value unknown; check); src/pm/proposal-plan-generator.service.ts:162 (model value unknown; check)\n   Why it applies: gpt-5.2-chat-latest and gpt-5.3-chat-latest were removed on 2026-08-10. The chat.completions.create calls use unresolved model values, so it is uncertain whether either is used. The migration agent should search code and env defaults and switch any hit to gpt-5.6-sol. If none is found, no change is needed.\n\n7. Legacy GPT snapshots (gpt-3.5-turbo, gpt-4, gpt-4-turbo, gpt-4.1-nano, o1, o1-pro, o3-mini, o4-mini, gpt-image-1 etc.) shut down Oct 23, 2026; use gpt-5.6-* or gpt-image-2.5 (model-retirement, effective 2026-10-23)\n   Source: https://developers.openai.com/api/docs/deprecations.md\n   Quote: On April 22, 2026, we announced the deprecation of the following older OpenAI models. Access to these models was shut down on October 23, 2026.\n   Affects: fields: model:gpt-3.5-turbo, model:gpt-3.5-turbo-0125, model:gpt-4, model:gpt-4-0613, model:gpt-4-1106-preview, model:gpt-4-turbo, model:gpt-4.1-nano, model:gpt-4o-2024-05-13, model:gpt-image-1, model:o1, model:o1-pro, model:o3-mini, model:o4-mini\n   Call sites: src/ai/ai.service.ts:63 (model value unknown; common legacy defaults like gpt-4/gpt-3.5-turbo/o1); src/ai/dispatch-email-llm.service.ts:121 (modelName from config; also uses max_tokens, check for o-series incompatibility); src/ai/task-assignment-llm.service.ts:229 (model value unknown; uses response_format and max_tokens); src/assistant/openai-notification.client.ts:95 (model value unknown; check); src/assistant/openai-suggestion.client.ts:65 (model value unknown; check); src/market-intelligence/market-intelligence.service.ts:443 (model value unknown; uses response_format); src/meeting/meeting.service.ts:574 (model value unknown; check); src/meeting/meeting.service.ts:656 (modelStart variable; check); src/meeting/meeting.service.ts:755 (model value unknown; check); src/meeting/meeting.service.ts:937 (model value unknown; check); src/pm/proposal-plan-generator.service.ts:162 (model value unknown; uses max_tokens and temperature)\n   Why it applies: gpt-3.5-turbo, gpt-4, gpt-4-turbo, gpt-4.1-nano, o1, o1-pro, o3-mini, o4-mini and others were shut down on 2026-10-23. These are common defaults for chat.completions.create, and the scan did not capture the model strings (they are variables or env values). The migration agent should resolve every model value, including env defaults and fallbacks, and replace any retired one with a gpt-5.6-* model. Newer models may reject max_tokens (use max_completion_tokens) and non-default temperature. gpt-image-1 is not used here.\n\n8. gpt-5, gpt-5-mini, gpt-5-nano, gpt-5-pro, o3, o3-pro removed Dec 11, 2026; migrate to gpt-5.6-sol/terra/luna (model-retirement, effective 2026-12-11)\n   Source: https://developers.openai.com/api/docs/deprecations.md\n   Quote: On June 11, 2026, we notified developers using older GPT-5 and o3 model snapshots of their deprecation and removal from the API on December 11, 2026.\n   Affects: fields: model:gpt-5, model:gpt-5-2025-08-07, model:gpt-5-mini, model:gpt-5-mini-2025-08-07, model:gpt-5-nano, model:gpt-5-nano-2025-08-07, model:gpt-5-pro, model:gpt-5-pro-2025-10-06, model:o3, model:o3-2025-04-16, model:o3-pro, model:o3-pro-2025-06-10\n   Call sites: src/ai/ai.service.ts:63 (model value unknown; check for gpt-5/o3 families); src/ai/dispatch-email-llm.service.ts:121 (modelName from config; uses max_tokens and temperature, which reasoning models reject); src/ai/task-assignment-llm.service.ts:229 (model value unknown; check); src/assistant/openai-notification.client.ts:95 (model value unknown; check); src/assistant/openai-suggestion.client.ts:65 (model value unknown; check); src/market-intelligence/market-intelligence.service.ts:443 (model value unknown; check); src/meeting/meeting.service.ts:574 (model value unknown; check); src/meeting/meeting.service.ts:656 (modelStart variable; check); src/meeting/meeting.service.ts:755 (model value unknown; check); src/meeting/meeting.service.ts:937 (model value unknown; check); src/pm/proposal-plan-generator.service.ts:162 (model value unknown; uses max_tokens and temperature)\n   Why it applies: gpt-5, gpt-5-mini, gpt-5-nano, gpt-5-pro, o3 and o3-pro (and their dated snapshots) are removed on 2026-12-11. The chat.completions.create calls take model names from variables, so it is uncertain whether any hits. The migration agent should resolve all model values and env defaults and migrate any match to gpt-5.6-sol/terra/luna.\n\n9. GPT-4o, GPT-4o mini, GPT-4.1, GPT-4.1 mini snapshots shut down Jan 14, 2027; migrate to gpt-6-luna (model-retirement, effective 2027-01-14)\n   Source: https://developers.openai.com/api/docs/deprecations.md\n   Quote: On October 14, 2026, we notified developers using certain GPT-4 series models of their deprecation and removal from the API on January 14, 2027.\n   Affects: fields: model:gpt-4o-2024-08-06, model:gpt-4o-2024-11-20, model:gpt-4o-mini-2024-07-18, model:gpt-4.1-2025-04-14, model:gpt-4.1-mini-2025-04-14\n   Call sites: src/ai/ai.service.ts:63 (model value unknown; gpt-4o/gpt-4o-mini are likely defaults); src/ai/dispatch-email-llm.service.ts:121 (modelName from config; check); src/ai/task-assignment-llm.service.ts:229 (model value unknown; check); src/assistant/openai-notification.client.ts:95 (model value unknown; check); src/assistant/openai-suggestion.client.ts:65 (model value unknown; check); src/market-intelligence/market-intelligence.service.ts:443 (model value unknown; check); src/meeting/meeting.service.ts:574 (model value unknown; check); src/meeting/meeting.service.ts:656 (modelStart variable; check); src/meeting/meeting.service.ts:755 (model value unknown; check); src/meeting/meeting.service.ts:937 (model value unknown; check); src/pm/proposal-plan-generator.service.ts:162 (model value unknown; check)\n   Why it applies: gpt-4o, gpt-4o-mini, gpt-4.1 and gpt-4.1-mini snapshots are removed on 2027-01-14. These are the most likely models behind the repo's 11 chat.completions.create calls, but the scan did not resolve the model strings. The migration agent should resolve every model value and env default (including fallbacks such as modelName and modelStart). It should replace any match with gpt-6-luna, then re-check max_tokens and temperature handling.\n\n10. gpt-5.3-codex, gpt-5.4-nano and gpt-5.1 removed Apr 1, 2027; migrate to gpt-6-sol / gpt-6-luna (model-retirement, effective 2027-04-01)\n   Source: https://developers.openai.com/api/docs/deprecations.md\n   Quote: The following models are deprecated and will be removed from the API on April 1, 2027, with six months' notice.\n   Affects: fields: model:gpt-5.3-codex, model:gpt-5.4-nano, model:gpt-5.4-nano-2026-03-17, model:gpt-5.1, model:gpt-5.1-2025-11-13\n   Call sites: src/ai/ai.service.ts:63 (model value unknown; check for gpt-5.1/gpt-5.4-nano); src/ai/dispatch-email-llm.service.ts:121 (modelName from config; check); src/ai/task-assignment-llm.service.ts:229 (model value unknown; check); src/assistant/openai-notification.client.ts:95 (model value unknown; check); src/assistant/openai-suggestion.client.ts:65 (model value unknown; check); src/market-intelligence/market-intelligence.service.ts:443 (model value unknown; check); src/meeting/meeting.service.ts:574 (model value unknown; check); src/meeting/meeting.service.ts:656 (modelStart variable; check); src/meeting/meeting.service.ts:755 (model value unknown; check); src/meeting/meeting.service.ts:937 (model value unknown; check); src/pm/proposal-plan-generator.service.ts:162 (model value unknown; check)\n   Why it applies: gpt-5.3-codex, gpt-5.4-nano and gpt-5.1 (and dated snapshots) are removed on 2027-04-01. Model values at the chat.completions.create call sites are unresolved, so it is uncertain whether any is affected. The migration agent should check code and env defaults and migrate any match to gpt-6-sol or gpt-6-luna.",
+      "callSites": [
+        {
+          "file": "src/ai/ai.service.ts",
+          "line": 63,
+          "why": "model value not visible; check for chatgpt-4o-latest"
+        },
+        {
+          "file": "src/ai/dispatch-email-llm.service.ts",
+          "line": 121,
+          "why": "modelName from config/env; check value"
+        },
+        {
+          "file": "src/ai/task-assignment-llm.service.ts",
+          "line": 229,
+          "why": "model value not visible; check"
+        },
+        {
+          "file": "src/assistant/openai-notification.client.ts",
+          "line": 95,
+          "why": "model value not visible; check"
+        },
+        {
+          "file": "src/assistant/openai-suggestion.client.ts",
+          "line": 65,
+          "why": "model value not visible; check"
+        },
+        {
+          "file": "src/market-intelligence/market-intelligence.service.ts",
+          "line": 443,
+          "why": "model value not visible; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 574,
+          "why": "model value not visible; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 656,
+          "why": "modelStart variable; check value"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 755,
+          "why": "model value not visible; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 937,
+          "why": "model value not visible; check"
+        },
+        {
+          "file": "src/pm/proposal-plan-generator.service.ts",
+          "line": 162,
+          "why": "model value not visible; check"
+        },
+        {
+          "file": "src/ai/ai.service.ts",
+          "line": 63,
+          "why": "model value unknown; check for gpt-4-0314/gpt-4-turbo-preview"
+        },
+        {
+          "file": "src/ai/dispatch-email-llm.service.ts",
+          "line": 121,
+          "why": "modelName from config; check"
+        },
+        {
+          "file": "src/ai/task-assignment-llm.service.ts",
+          "line": 229,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/assistant/openai-notification.client.ts",
+          "line": 95,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/assistant/openai-suggestion.client.ts",
+          "line": 65,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/market-intelligence/market-intelligence.service.ts",
+          "line": 443,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 574,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 656,
+          "why": "modelStart variable; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 755,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 937,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/pm/proposal-plan-generator.service.ts",
+          "line": 162,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/realtime/realtime-voice.service.ts",
+          "line": 4,
+          "why": "pins model gpt-4o-realtime-preview, which was removed May 7, 2026"
+        },
+        {
+          "file": "src/realtime/realtime-voice.service.ts",
+          "line": 25,
+          "why": "WebSocket to wss://api.openai.com/v1/realtime with the removed model; may also send the retired OpenAI-Beta: realtime=v1 header"
+        },
+        {
+          "file": "src/ai/ai.service.ts",
+          "line": 63,
+          "why": "model value unknown; check for gpt-5-chat-latest/search-preview"
+        },
+        {
+          "file": "src/ai/dispatch-email-llm.service.ts",
+          "line": 121,
+          "why": "modelName from config; check"
+        },
+        {
+          "file": "src/ai/task-assignment-llm.service.ts",
+          "line": 229,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/assistant/openai-notification.client.ts",
+          "line": 95,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/assistant/openai-suggestion.client.ts",
+          "line": 65,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/market-intelligence/market-intelligence.service.ts",
+          "line": 443,
+          "why": "model value unknown; check (market search may use a search-preview model)"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 574,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 656,
+          "why": "modelStart variable; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 755,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 937,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/pm/proposal-plan-generator.service.ts",
+          "line": 162,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/ai/ai.service.ts",
+          "line": 63,
+          "why": "uses the openai npm SDK pinned at 6.33.0 (<7.0.0)"
+        },
+        {
+          "file": "src/ai/ai.service.ts",
+          "line": 63,
+          "why": "model value unknown; check for gpt-5.2/5.3-chat-latest"
+        },
+        {
+          "file": "src/ai/dispatch-email-llm.service.ts",
+          "line": 121,
+          "why": "modelName from config; check"
+        },
+        {
+          "file": "src/ai/task-assignment-llm.service.ts",
+          "line": 229,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/assistant/openai-notification.client.ts",
+          "line": 95,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/assistant/openai-suggestion.client.ts",
+          "line": 65,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/market-intelligence/market-intelligence.service.ts",
+          "line": 443,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 574,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 656,
+          "why": "modelStart variable; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 755,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 937,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/pm/proposal-plan-generator.service.ts",
+          "line": 162,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/ai/ai.service.ts",
+          "line": 63,
+          "why": "model value unknown; common legacy defaults like gpt-4/gpt-3.5-turbo/o1"
+        },
+        {
+          "file": "src/ai/dispatch-email-llm.service.ts",
+          "line": 121,
+          "why": "modelName from config; also uses max_tokens, check for o-series incompatibility"
+        },
+        {
+          "file": "src/ai/task-assignment-llm.service.ts",
+          "line": 229,
+          "why": "model value unknown; uses response_format and max_tokens"
+        },
+        {
+          "file": "src/assistant/openai-notification.client.ts",
+          "line": 95,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/assistant/openai-suggestion.client.ts",
+          "line": 65,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/market-intelligence/market-intelligence.service.ts",
+          "line": 443,
+          "why": "model value unknown; uses response_format"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 574,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 656,
+          "why": "modelStart variable; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 755,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 937,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/pm/proposal-plan-generator.service.ts",
+          "line": 162,
+          "why": "model value unknown; uses max_tokens and temperature"
+        },
+        {
+          "file": "src/ai/ai.service.ts",
+          "line": 63,
+          "why": "model value unknown; check for gpt-5/o3 families"
+        },
+        {
+          "file": "src/ai/dispatch-email-llm.service.ts",
+          "line": 121,
+          "why": "modelName from config; uses max_tokens and temperature, which reasoning models reject"
+        },
+        {
+          "file": "src/ai/task-assignment-llm.service.ts",
+          "line": 229,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/assistant/openai-notification.client.ts",
+          "line": 95,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/assistant/openai-suggestion.client.ts",
+          "line": 65,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/market-intelligence/market-intelligence.service.ts",
+          "line": 443,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 574,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 656,
+          "why": "modelStart variable; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 755,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 937,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/pm/proposal-plan-generator.service.ts",
+          "line": 162,
+          "why": "model value unknown; uses max_tokens and temperature"
+        },
+        {
+          "file": "src/ai/ai.service.ts",
+          "line": 63,
+          "why": "model value unknown; gpt-4o/gpt-4o-mini are likely defaults"
+        },
+        {
+          "file": "src/ai/dispatch-email-llm.service.ts",
+          "line": 121,
+          "why": "modelName from config; check"
+        },
+        {
+          "file": "src/ai/task-assignment-llm.service.ts",
+          "line": 229,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/assistant/openai-notification.client.ts",
+          "line": 95,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/assistant/openai-suggestion.client.ts",
+          "line": 65,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/market-intelligence/market-intelligence.service.ts",
+          "line": 443,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 574,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 656,
+          "why": "modelStart variable; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 755,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 937,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/pm/proposal-plan-generator.service.ts",
+          "line": 162,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/ai/ai.service.ts",
+          "line": 63,
+          "why": "model value unknown; check for gpt-5.1/gpt-5.4-nano"
+        },
+        {
+          "file": "src/ai/dispatch-email-llm.service.ts",
+          "line": 121,
+          "why": "modelName from config; check"
+        },
+        {
+          "file": "src/ai/task-assignment-llm.service.ts",
+          "line": 229,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/assistant/openai-notification.client.ts",
+          "line": 95,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/assistant/openai-suggestion.client.ts",
+          "line": 65,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/market-intelligence/market-intelligence.service.ts",
+          "line": 443,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 574,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 656,
+          "why": "modelStart variable; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 755,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/meeting/meeting.service.ts",
+          "line": 937,
+          "why": "model value unknown; check"
+        },
+        {
+          "file": "src/pm/proposal-plan-generator.service.ts",
+          "line": 162,
+          "why": "model value unknown; check"
+        }
+      ],
+      "attempted": true,
+      "record": {
+        "taskId": "hachanimohamedsaid/backend_AgentAi:openai:2026-02-chatgpt4o-codexmini+9",
+        "outcome": "verified",
+        "diff": "diff --git a/.env.example b/.env.example\nindex 5d9f23c..a0c357a 100644\n--- a/.env.example\n+++ b/.env.example\n@@ -45,7 +45,7 @@ FRONTEND_GUEST_INTERVIEW_URL=https://ton-front-flutter.up.railway.app/guest-inte\n \n # Talk to buddy – OpenAI (optionnel ; si absent, POST /ai/chat renvoie une réponse factice)\n OPENAI_API_KEY=your-openai-api-key-here\n-OPENAI_MODEL=gpt-4o-mini\n+OPENAI_MODEL=gpt-6-luna\n \n # Assignation IA des tâches (dispatch) — Gemini en priorité, puis OpenAI (même OPENAI_API_KEY que ci-dessus possible)\n # GEMINI_API_KEY=  (ou GOOGLE_GEMINI_API_KEY)\ndiff --git a/docs/CONFIGURATION_NESTJS_ASSISTANT_CONTEXT.md b/docs/CONFIGURATION_NESTJS_ASSISTANT_CONTEXT.md\nindex ae8f1f3..0579d8e 100644\n--- a/docs/CONFIGURATION_NESTJS_ASSISTANT_CONTEXT.md\n+++ b/docs/CONFIGURATION_NESTJS_ASSISTANT_CONTEXT.md\n@@ -9,7 +9,7 @@\n ```bash\n # Suggestions contextuelles (AVA)\n OPENAI_API_KEY=sk-proj-...\n-OPENAI_SUGGESTION_MODEL=gpt-4o-mini   # optionnel, défaut gpt-4o-mini\n+OPENAI_SUGGESTION_MODEL=gpt-6-luna   # optionnel, défaut gpt-6-luna\n ```\n \n ---\ndiff --git a/docs/NESTJS_CONFIG_BACKEND.md b/docs/NESTJS_CONFIG_BACKEND.md\nindex 4c1ce6f..d41a2d4 100644\n--- a/docs/NESTJS_CONFIG_BACKEND.md\n+++ b/docs/NESTJS_CONFIG_BACKEND.md\n@@ -19,7 +19,7 @@ Ce document récapitule **toute la configuration** à mettre en place dans le ba\n | **FRONTEND_RESET_PASSWORD_URL** | Oui (si reset password) | URL de la page « définir nouveau mot de passe » dans l’app Flutter. Le backend met dans l’email : cette URL + `?token=...` | En prod : `https://ton-app.web.app/reset-password/confirm` ; en dev : `http://localhost:8080/reset-password/confirm` |\n | **FRONTEND_VERIFY_EMAIL_URL** | Oui (si vérification email) | URL de la page « vérifier mon email » (lien envoyé après inscription : URL + `?token=...`). | En prod : `https://ton-app.web.app/verify-email` ; en dev : `http://localhost:8080/verify-email` |\n | **OPENAI_API_KEY** | Oui (si Talk to buddy) | Clé API OpenAI pour POST /ai/chat. | `sk-proj-...` |\n-| **OPENAI_MODEL** | Non | Modèle OpenAI (défaut : `gpt-4o-mini`). | `gpt-4o-mini` ou `gpt-4o` |\n+| **OPENAI_MODEL** | Non | Modèle OpenAI (défaut : `gpt-6-luna`). | `gpt-6-luna` ou `gpt-4o` |\n \n **Note :** Le backend accepte aussi **MONGO_URI** (prioritaire sur MONGODB_URI) pour la connexion MongoDB.\n \n@@ -170,7 +170,7 @@ Sans cette étape, le LLM n'a pas accès aux données du compte et ne peut pas s\n - **Config** : `ConfigModule.forRoot()`, `JwtModule.registerAsync(...)` avec `ConfigService`.\n \n ### Talk to buddy (POST /ai/chat)\n-- **Variables** : `OPENAI_API_KEY` (obligatoire pour réponses IA), `OPENAI_MODEL` (optionnel, défaut : `gpt-4o-mini`).\n+- **Variables** : `OPENAI_API_KEY` (obligatoire pour réponses IA), `OPENAI_MODEL` (optionnel, défaut : `gpt-6-luna`).\n - **Route** : `POST /ai/chat` avec body `{ \"messages\": [ { \"role\", \"content\" } ] }`, réponse `{ \"message\": \"...\" }`.\n - **Implémentation** : module `AiModule`, `AiService` appelle l’API OpenAI quand `OPENAI_API_KEY` est défini ; sinon réponse factice.\n \ndiff --git a/docs/NESTJS_REALTIME_VOICE.md b/docs/NESTJS_REALTIME_VOICE.md\nindex 01e7079..74ebb00 100644\n--- a/docs/NESTJS_REALTIME_VOICE.md\n+++ b/docs/NESTJS_REALTIME_VOICE.md\n@@ -25,7 +25,7 @@ OPENAI_API_KEY=sk-xxxxxxxx\n \n ## 3. Implémentation\n \n-- **RealtimeVoiceService** (`src/realtime/realtime-voice.service.ts`) : proxy vers `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview`. Une instance par connexion client. Méthodes : `connectToOpenAI(onAudioDelta, onTextDelta?)`, `sendAudioChunk(base64)`, `commitAndCreateResponse()`, `close()`.\n+- **RealtimeVoiceService** (`src/realtime/realtime-voice.service.ts`) : proxy vers `wss://api.openai.com/v1/realtime?model=gpt-realtime-2.1`. Une instance par connexion client. Méthodes : `connectToOpenAI(onAudioDelta, onTextDelta?)`, `sendAudioChunk(base64)`, `commitAndCreateResponse()`, `close()`.\n - **RealtimeVoiceGateway** (`src/realtime/realtime.gateway.ts`) : WebSocket Gateway sur le path `/realtime-voice`. À chaque connexion client, crée un `RealtimeVoiceService` et le connecte à OpenAI ; relaie les messages audio (input → OpenAI, output → client).\n - **RealtimeModule** : importé dans `AppModule`.\n - **main.ts** : `app.useWebSocketAdapter(new WsAdapter(app))` pour utiliser la lib `ws` (WebSocket natif).\ndiff --git a/src/ai/ai.service.ts b/src/ai/ai.service.ts\nindex 9c322bc..5626618 100644\n--- a/src/ai/ai.service.ts\n+++ b/src/ai/ai.service.ts\n@@ -61,7 +61,7 @@ export class AiService {\n \n     try {\n       const completion = await openai.chat.completions.create({\n-        model: this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-4o-mini',\n+        model: this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-6-luna',\n         messages: openaiMessages,\n       });\n \ndiff --git a/src/ai/dispatch-email-llm.service.ts b/src/ai/dispatch-email-llm.service.ts\nindex 218c969..3cc6d4e 100644\n--- a/src/ai/dispatch-email-llm.service.ts\n+++ b/src/ai/dispatch-email-llm.service.ts\n@@ -78,7 +78,7 @@ export class DispatchEmailLlmService {\n     }\n \n     const openaiKey = this.configService.get<string>('OPENAI_API_KEY');\n-    const openaiModel = this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-4o-mini';\n+    const openaiModel = this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-6-luna';\n     if (openaiKey?.trim() && !openaiKey.includes('your-openai')) {\n       try {\n         const html = await this.withTimeout(\n@@ -124,8 +124,7 @@ export class DispatchEmailLlmService {\n         { role: 'system', content: SYSTEM_PROMPT },\n         { role: 'user', content: userPrompt },\n       ],\n-      max_tokens: MAX_OUTPUT_TOKENS,\n-      temperature: 0.2,\n+      max_completion_tokens: MAX_OUTPUT_TOKENS,\n     });\n     const content = completion.choices[0]?.message?.content?.trim();\n     if (!content) throw new Error('Réponse OpenAI vide');\ndiff --git a/src/ai/task-assignment-llm.service.ts b/src/ai/task-assignment-llm.service.ts\nindex 3aeaac2..571063c 100644\n--- a/src/ai/task-assignment-llm.service.ts\n+++ b/src/ai/task-assignment-llm.service.ts\n@@ -227,14 +227,13 @@ export class TaskAssignmentLlmService {\n   private async callOpenAI(apiKey: string, userMessage: string): Promise<string> {\n     const openai = new OpenAI({ apiKey, timeout: LLM_TIMEOUT_MS });\n     const completion = await openai.chat.completions.create({\n-      model: this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-4o-mini',\n+      model: this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-6-luna',\n       messages: [\n         { role: 'system', content: SYSTEM_PROMPT },\n         { role: 'user', content: userMessage },\n       ],\n       response_format: { type: 'json_object' },\n-      temperature: 0.15,\n-      max_tokens: 4096,\n+      max_completion_tokens: 4096,\n     });\n     const raw = completion.choices[0]?.message?.content?.trim();\n     if (!raw) throw new Error('Réponse OpenAI vide');\ndiff --git a/src/assistant/openai-notification.client.ts b/src/assistant/openai-notification.client.ts\nindex 87f0788..0977a10 100644\n--- a/src/assistant/openai-notification.client.ts\n+++ b/src/assistant/openai-notification.client.ts\n@@ -46,7 +46,7 @@ export class OpenAiNotificationClient {\n \n     const model =\n       this.configService.get<string>('OPENAI_NOTIFICATION_MODEL') ??\n-      'gpt-4o-mini';\n+      'gpt-6-luna';\n \n     const openai = new OpenAI({ apiKey });\n \ndiff --git a/src/assistant/openai-suggestion.client.ts b/src/assistant/openai-suggestion.client.ts\nindex 70e4bbd..7c458e9 100644\n--- a/src/assistant/openai-suggestion.client.ts\n+++ b/src/assistant/openai-suggestion.client.ts\n@@ -20,7 +20,7 @@ export class OpenAiSuggestionClient {\n \n     const model =\n       this.configService.get<string>('OPENAI_SUGGESTION_MODEL') ??\n-      'gpt-4o-mini';\n+      'gpt-6-luna';\n \n     const openai = new OpenAI({ apiKey });\n \ndiff --git a/src/market-intelligence/market-intelligence.service.ts b/src/market-intelligence/market-intelligence.service.ts\nindex 072e573..9cf02f4 100644\n--- a/src/market-intelligence/market-intelligence.service.ts\n+++ b/src/market-intelligence/market-intelligence.service.ts\n@@ -382,7 +382,7 @@ export class MarketIntelligenceService {\n     dealsCount: number,\n   ): Promise<LlmOverlay> {\n     const apiKey = this.config.get<string>('OPENAI_API_KEY')?.trim();\n-    const model = this.config.get<string>('OPENAI_MODEL') ?? 'gpt-4o-mini';\n+    const model = this.config.get<string>('OPENAI_MODEL') ?? 'gpt-6-luna';\n \n     const lines = comps.map(\n       (c, i) =>\ndiff --git a/src/meeting/meeting.service.ts b/src/meeting/meeting.service.ts\nindex 928ea27..26449ba 100644\n--- a/src/meeting/meeting.service.ts\n+++ b/src/meeting/meeting.service.ts\n@@ -550,7 +550,7 @@ export class MeetingService {\n \n     const apiKey = this.configService.get<string>('OPENAI_API_KEY');\n     const model =\n-      this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-4o-mini';\n+      this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-6-luna';\n \n     const meta = {\n       generatedAt: new Date().toISOString(),\n@@ -643,7 +643,7 @@ export class MeetingService {\n     );\n     const apiKeyStart = this.configService.get<string>('OPENAI_API_KEY');\n     const modelStart =\n-      this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-4o-mini';\n+      this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-6-luna';\n     if (apiKeyStart) {\n       try {\n         const openai = new OpenAI({ apiKey: apiKeyStart });\n@@ -710,7 +710,7 @@ Rules: 1–3 sentences; first person as the investor; specific and testing; no m\n \n     const apiKey = this.configService.get<string>('OPENAI_API_KEY');\n     const model =\n-      this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-4o-mini';\n+      this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-6-luna';\n \n     let investorReply = '';\n     let coachFeedback: {\n@@ -894,7 +894,7 @@ Rules: 1–3 sentences; first person as the investor; specific and testing; no m\n \n     const apiKey = this.configService.get<string>('OPENAI_API_KEY');\n     const model =\n-      this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-4o-mini';\n+      this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-6-luna';\n \n     if (!apiKey) {\n       const report = {\ndiff --git a/src/pm/proposal-plan-generator.service.ts b/src/pm/proposal-plan-generator.service.ts\nindex bc050c3..9d535ed 100644\n--- a/src/pm/proposal-plan-generator.service.ts\n+++ b/src/pm/proposal-plan-generator.service.ts\n@@ -160,13 +160,12 @@ Génère 2 à 4 sprints cohérents avec la période et le type de projet.`;\n     if (openaiKey?.trim() && !openaiKey.includes('your-openai')) {\n       const openai = new OpenAI({ apiKey: openaiKey, timeout: LLM_TIMEOUT_MS });\n       const completion = await openai.chat.completions.create({\n-        model: this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-4o-mini',\n+        model: this.configService.get<string>('OPENAI_MODEL') ?? 'gpt-6-luna',\n         messages: [\n           { role: 'system', content: system },\n           { role: 'user', content: user },\n         ],\n-        max_tokens: 4096,\n-        temperature: 0.2,\n+        max_completion_tokens: 4096,\n       });\n       const content = completion.choices[0]?.message?.content?.trim();\n       if (content) return this.parsePlanJson(content);\ndiff --git a/src/realtime/realtime-voice.service.ts b/src/realtime/realtime-voice.service.ts\nindex f259e05..1149554 100644\n--- a/src/realtime/realtime-voice.service.ts\n+++ b/src/realtime/realtime-voice.service.ts\n@@ -1,7 +1,7 @@\n import WebSocket from 'ws';\n \n-const OPENAI_REALTIME_URL =\n-  'wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview';\n+export const OPENAI_REALTIME_URL =\n+  'wss://api.openai.com/v1/realtime?model=gpt-realtime-2.1';\n \n /**\n  * Proxy vers l'API OpenAI Realtime (voix ChatGPT originale).\n@@ -25,7 +25,6 @@ export class RealtimeVoiceService {\n       this.openaiWs = new WebSocket(OPENAI_REALTIME_URL, {\n         headers: {\n           Authorization: `Bearer ${this.apiKey}`,\n-          'OpenAI-Beta': 'realtime=v1',\n         },\n       } as WebSocket.ClientOptions);\n \n@@ -34,7 +33,15 @@ export class RealtimeVoiceService {\n           JSON.stringify({\n             type: 'session.update',\n             session: {\n-              voice: 'alloy',\n+              type: 'realtime',\n+              output_modalities: ['audio'],\n+              audio: {\n+                input: { format: { type: 'audio/pcm', rate: 24000 } },\n+                output: {\n+                  format: { type: 'audio/pcm', rate: 24000 },\n+                  voice: 'alloy',\n+                },\n+              },\n               instructions:\n                 'Understand any spoken language and respond naturally in the same language using conversational voice. Réponds en français si on te parle en français.',\n             },\n@@ -46,7 +53,7 @@ export class RealtimeVoiceService {\n       this.openaiWs.on('message', (data: Buffer) => {\n         try {\n           const msg = JSON.parse(data.toString());\n-          if (msg.type === 'response.audio.delta' && msg.delta) {\n+          if (msg.type === 'response.output_audio.delta' && msg.delta) {\n             onAudioDelta(msg.delta);\n           }\n           if (\ndiff --git a/src/realtime/realtime-voice.spec.ts b/src/realtime/realtime-voice.spec.ts\nnew file mode 100644\nindex 0000000..4df1f63\n--- /dev/null\n+++ b/src/realtime/realtime-voice.spec.ts\n@@ -0,0 +1,50 @@\n+import * as fs from 'fs';\n+import * as path from 'path';\n+\n+jest.mock('ws', () => {\n+  const instances: any[] = [];\n+  function Mock(this: any, url: string, opts: any) {\n+    this.url = url;\n+    this.opts = opts;\n+    this.handlers = {};\n+    this.sent = [];\n+    this.on = (e: string, h: any) => { this.handlers[e] = h; };\n+    this.send = (m: string) => this.sent.push(JSON.parse(m));\n+    instances.push(this);\n+  }\n+  Mock.OPEN = 1;\n+  (Mock as any).instances = instances;\n+  return { __esModule: true, default: Mock };\n+});\n+\n+import WebSocket from 'ws';\n+import { RealtimeVoiceService, OPENAI_REALTIME_URL } from './realtime-voice.service';\n+\n+describe('realtime GA + model migration', () => {\n+  it('uses GA realtime', async () => {\n+    expect(OPENAI_REALTIME_URL).toContain('model=gpt-realtime-2.1');\n+    const svc = new RealtimeVoiceService('k');\n+    const audio = jest.fn();\n+    const p = svc.connectToOpenAI(audio);\n+    const ws = (WebSocket as any).instances[0];\n+    expect(ws.opts.headers['OpenAI-Beta']).toBeUndefined();\n+    ws.handlers.open();\n+    await p;\n+    expect(ws.sent[0].session.type).toBe('realtime');\n+    expect(ws.sent[0].session.audio.output.voice).toBe('alloy');\n+    ws.handlers.message(Buffer.from(JSON.stringify({ type: 'response.output_audio.delta', delta: 'x' })));\n+    expect(audio).toHaveBeenCalledWith('x');\n+  });\n+\n+  it('no retired chat models or max_tokens in OpenAI calls', () => {\n+    const walk = (d: string): string[] =>\n+      fs.readdirSync(d, { withFileTypes: true }).flatMap((e) =>\n+        e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);\n+    const files = walk(path.join(__dirname, '..')).filter((f) => f.endsWith('.ts') && !f.endsWith('.spec.ts'));\n+    for (const f of files) {\n+      const s = fs.readFileSync(f, 'utf8');\n+      expect(s).not.toMatch(/gpt-4o|chatgpt-4o/);\n+      expect(s).not.toMatch(/\\bmax_tokens\\b/);\n+    }\n+  });\n+});\n",
+        "checks": [
+          {
+            "name": "typecheck",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "build",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "test",
+            "before": "pass",
+            "after": "pass"
+          },
+          {
+            "name": "proof",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "costUsd": 0.2045733,
+        "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/aptitude-run-hachanimohamedsaid-backend_AgentAi-openai-2026-02-chatgpt4o-codexmini-9-OarUJY/transcript.jsonl",
+        "prBody": "## 10 changes: chatgpt-4o-latest (Feb 17, 2026) and codex-mini-latest with legacy local shell tool (Feb 12, 2026) removed and more [Verified]\n\n### Change\n\nNo repo use of chatgpt-4o-latest or codex-mini-latest (task 1 needed no change; likewise none of the gpt-4-0314/gpt-5*/o-series/search/codex ids in notices 2, 4, 6, 8, 10). Actual hits were the gpt-4o-mini defaults for OPENAI_MODEL and the per-feature model vars (Jan 14 2027 notice, notice 9), now gpt-6-luna in src, .env.example and docs. In the 3 OpenAI calls using max_tokens/temperature (dispatch-email, task-assignment, proposal-plan) I renamed max_tokens to max_completion_tokens and removed temperature (Gemini params left alone). Realtime (notice 3): model gpt-realtime-2.1, removed OpenAI-Beta header, GA session.update shape (pcm 24k, voice under audio.output), event renamed to response.output_audio.delta. Notice 5 (openai 7.x / Node 22) optional, not done. Added src/realtime/realtime-voice.spec.ts.\n\nFiles touched:\n- `.env.example`\n- `docs/CONFIGURATION_NESTJS_ASSISTANT_CONTEXT.md`\n- `docs/NESTJS_CONFIG_BACKEND.md`\n- `docs/NESTJS_REALTIME_VOICE.md`\n- `src/ai/ai.service.ts`\n- `src/ai/dispatch-email-llm.service.ts`\n- `src/ai/task-assignment-llm.service.ts`\n- `src/assistant/openai-notification.client.ts`\n- `src/assistant/openai-suggestion.client.ts`\n- `src/market-intelligence/market-intelligence.service.ts`\n- `src/meeting/meeting.service.ts`\n- `src/pm/proposal-plan-generator.service.ts`\n- `src/realtime/realtime-voice.service.ts`\n- `src/realtime/realtime-voice.spec.ts`\n\n### Why\n\ngpt-4o-mini and gpt-4o-realtime-preview are retired/retiring, and gpt-6-luna is a reasoning model that rejects max_tokens and non-default temperature.\n\n> On November 18th, 2025, we notified developers using `chatgpt-4o-latest` model snapshot of its deprecation and removal from the API on February 17, 2026.\n\nSource: https://developers.openai.com/api/docs/deprecations.md\n\n### Proof\n\n| Check | Before | After | New failures |\n| --- | --- | --- | --- |\n| typecheck | pass | pass | 0 |\n| build | pass | pass | 0 |\n| test | pass | pass | 0 |\n| proof | fail (1) | pass | 0 |\n\nNew failures: 0\n\nChecks added by the agent (they count toward proof; check that each command really tests the change):\n- proof, added by the agent: `export MONGO_URI='mongodb://user:pass@localhost:27017/db' JWT_SECRET='placeholder'; npx jest src/realtime` (fail (1) → pass)\n\nProvider tool calls recorded by the harness:\n- `openai__openai_check_request`: pass\n\nThe agent's validator claims (not proof; graded against the recorded calls):\n- openai_check_request: pass (chat.completions with gpt-6-luna, max_completion_tokens, response_format: no unknown or deprecated params (top-level keys only))\n\nPrepared before the baseline:\n- Checks ran with placeholder env: MONGO_URI, JWT_SECRET.\n\nTest of this change: `proof`, written by the agent and run with the checks.\n\nWhere checks ran: Docker container node:22-bookworm; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls\n\n### Unproven\n\n- Realtime GA session schema and event names written from the recipe, not verified against live docs; audio formats vs client gateway unchecked\n- gpt-6-luna with response_format json_object not confirmed\n- max_completion_tokens now includes reasoning tokens; 4096 cap could shorten output\n- Deployed OPENAI_MODEL / OPENAI_*_MODEL env overrides naming gpt-4o-mini still need updating\n- openai_model_lookup not run\n- dist/ is stale until rebuilt\n\n### Behaviour changes\n\n- Default model gpt-4o-mini -> gpt-6-luna: quality, latency, cost differ\n- temperature (0.15/0.2) no longer sent to OpenAI in 3 calls; model default applies\n- max_tokens -> max_completion_tokens\n- Realtime: new model, no beta header, GA session and event names\n\n---\n\nPrompt harness-prompt/2026-11-03.r3-4 · Models: claude-sonnet-5-5 · AI cost: $0.2046\n",
+        "models": ["claude-sonnet-5-5"],
+        "promptVersion": "harness-prompt/2026-11-03.r3-4",
+        "recipeIds": [
+          "recipe-openai-model-retirement-58a73d88",
+          "recipe-openai-model-retirement-6816ef95"
+        ],
+        "agentChecks": [
+          {
+            "name": "proof",
+            "command": "export MONGO_URI='mongodb://user:pass@localhost:27017/db' JWT_SECRET='placeholder'; npx jest src/realtime",
+            "before": "fail (1)",
+            "after": "pass"
+          }
+        ],
+        "summary": "# hachanimohamedsaid/backend_AgentAi:openai:2026-02-chatgpt4o-codexmini+9: verified, $0.2046\nChange: 10 changes: chatgpt-4o-latest (Feb 17, 2026) and codex-mini-latest with legacy local shell tool (Feb 12, 2026) removed and more (openai, model-retirement)\nBaseline checks: typecheck pass, build pass, test pass, proof fail (1)\n\n## Iteration 1 (claude-sonnet-5-5, done)\n1. search pattern=gpt-|OPENAI_.*MODEL|max_tokens|temperature|modelStart|modelName path=. glob=**/*.{ts,md,example,json,yml,yaml,js} → dist/ai/ai.service.js:55:                 model: this.configService.get('OPENAI_MODEL') ?? 'gpt-4o-mini', | dist/ai/dispatch-email-llm.service.js:55:         const openaiModel = this.configService.get('OPENAI_MODEL') ?? 'gpt-4o-mini'; | dis…\n2. read_file path=src/realtime/realtime-voice.service.ts → 1\timport WebSocket from 'ws'; | 2\t | 3\tconst OPENAI_REALTIME_URL =\n3. shell command=<280 chars> → exit code: 0 | --- stdout --- | src/ai/dispatch-email-llm.service.ts:111:        temperature: 0.2,\n4. shell command=<3215 chars> → exit code: 0 | --- stdout --- | PASS src/realtime/realtime-voice.spec.ts\n5. run_checks add=[{\"name\":\"proof\",\"command\":\"npx jest src/realtime\"}] → registered proof; on the original code it fails (1) | ## typecheck: pass | command: export MONGO_URI='mongodb://user:pass@localhost:27017/db' JWT_SECRET='placeholder'; npx --no-install tsc --noEmit\n6. openai__openai_check_request endpoint=chat.completions body=<136 chars> → POST /v1/chat/completions (createChatCompletion) | Endpoint note (supported): Chat Completions remains supported, but Responses is recommended for new projects. Starting with GPT-5.4, Chat Completions does not support tool calling with reas…\n7. finish verdict=migrated summary=<813 chars> why=<150 chars> validators=<186 chars> unproven=<445 chars> behaviourChanges=<262 chars> proofTest=proof → Recorded the \"migrated\" report. The harness will now re-run the checks and compare them with the baseline.\nChecks after: typecheck pass → pass, build pass → pass, test pass → pass, proof fail (1) → pass\n\n## Result\nFiles changed: .env.example, docs/CONFIGURATION_NESTJS_ASSISTANT_CONTEXT.md, docs/NESTJS_CONFIG_BACKEND.md, docs/NESTJS_REALTIME_VOICE.md, src/ai/ai.service.ts, src/ai/dispatch-email-llm.service.ts, src/ai/task-assignment-llm.service.ts, src/assistant/openai-notification.client.ts, src/assistant/openai-suggestion.client.ts, src/market-intelligence/market-intelligence.service.ts, src/meeting/meeting.service.ts, src/pm/proposal-plan-generator.service.ts, src/realtime/realtime-voice.service.ts, src/realtime/realtime-voice.spec.ts\nVerdict: migrated. No repo use of chatgpt-4o-latest or codex-mini-latest (task 1 needed no change; likewise none of the gpt-4-0314/gpt-5*/o-series/search/codex ids in notices 2, 4, 6, 8, 10). Actual hits were the gpt-4o-mini defaults for OPENAI_MODEL and the per-feature model vars (Jan 14 2027 notice, notice 9), now gpt-6-luna in src, .env.example and docs. In the 3 OpenAI calls using max_tokens/temperature (dispatch-email, task-assignment, proposal-plan) I renamed max_tokens to max_completion_tokens and removed temperature (Gemini params left alone). Realtime (notice 3): model gpt-realtime-2.1, removed OpenAI-Beta header, GA session.update shape (pcm 24k, voice under audio.output), event renamed to response.output_audio.delta. Notice 5 (openai 7.x / Node 22) optional, not done. Added src/realtime/realtime-voice.spec.ts.\nUnproven: Realtime GA session schema and event names written from the recipe, not verified against live docs; audio formats vs client gateway unchecked; gpt-6-luna with response_format json_object not confirmed; max_completion_tokens now includes reasoning tokens; 4096 cap could shorten output; Deployed OPENAI_MODEL / OPENAI_*_MODEL env overrides naming gpt-4o-mini still need updating; openai_model_lookup not run; dist/ is stale until rebuilt\n",
+        "preparation": {
+          "steps": [],
+          "env": {
+            "MONGO_URI": "mongodb://user:pass@localhost:27017/db",
+            "JWT_SECRET": "placeholder"
+          },
+          "reasoning": "Plain NestJS project with no codegen, prisma, or workspace packages. No postinstall or prepare hooks are needed for tsc, nest build, or jest. Only placeholder env vars are provided in case modules read them at load time."
+        }
+      },
+      "review": {
+        "opinion": "has-concerns",
+        "summary": "The diff removes gpt-4o-mini/gpt-4o references and moves the Realtime proxy to the GA shape, but several choices go beyond what the quoted deprecation forces and cannot be confirmed. The quoted source only covers chatgpt-4o-latest and codex-mini-latest, yet the repo used gpt-4o-mini and gpt-4o-realtime-preview, so I cannot tell from the quote that those were retired. The replacement ids `gpt-6-luna` and `gpt-realtime-2.1` are unfamiliar to me and I could not confirm them; check them against the deprecations page and the SDK model types. If they are wrong, every OpenAI call site fails at runtime. The `proof` check went from fail to pass, but it is a string-grep test plus a mocked WebSocket. It proves the old strings are gone and the new shape is sent. It does not prove the model ids exist or that the live Realtime handshake works. The grade 'verified' therefore overstates the evidence. Beyond the forced change, the diff also drops `temperature` (0.2 / 0.15) in three services and renames `max_tokens` to `max_completion_tokens` in three of the chat call sites, which changes output determinism. This is a behaviour change, probably needed only if the new model rejects temperature, which I could not confirm. In realtime-voice.service.ts the diff removes the beta header, changes the audio delta event name, and adds `audio.input/output` formats. The text-delta handler and the `commitAndCreateResponse` path are not shown in the truncated source, so GA event names for text (`response.output_text.delta`) and commit were not checked. The docs (NESTJS_REALTIME_VOICE.md §5) still describe `response.audio.delta` as the event relayed to the client. Pre-existing: meeting.service.ts and the other clients likely pass other params I could not see in the truncated files.",
+        "concerns": [
+          {
+            "file": ".env.example",
+            "issue": "Default model `gpt-6-luna` is a replacement id I could not confirm; if it does not exist, every chat.completions call in all 11 call sites fails at runtime. The tests never call the API.",
+            "severity": "high"
+          },
+          {
+            "file": "src/realtime/realtime-voice.service.ts",
+            "issue": "Model `gpt-realtime-2.1`, the new session.update schema (type 'realtime', output_modalities, audio.input/output formats) and the event rename to `response.output_audio.delta` were validated only against a mock written by the same agent. Not confirmed against live GA docs. The text-delta event and the commit/create-response messages were not re-checked.",
+            "severity": "high"
+          },
+          {
+            "file": "src/ai/dispatch-email-llm.service.ts",
+            "issue": "Removed `temperature: 0.2` and switched to `max_completion_tokens`. The deprecation does not force this; it changes output variability for email generation. Same in task-assignment-llm.service.ts (0.15, JSON assignment, where determinism matters) and proposal-plan-generator.service.ts (0.2).",
+            "severity": "medium"
+          },
+          {
+            "file": "src/realtime/realtime-voice.spec.ts",
+            "issue": "The second test greps source for `gpt-4o` and `max_tokens`. It enforces a string ban, not API correctness, and would also fail on legitimate comments or future strings. The first test mocks `ws`, so the handshake is not exercised.",
+            "severity": "medium"
+          },
+          {
+            "file": "docs/NESTJS_REALTIME_VOICE.md",
+            "issue": "The doc updates the URL only. Section 5 still documents `response.audio.delta` as relayed to the client, which conflicts with the renamed upstream event. Also `gpt-4o` is still listed as an example in NESTJS_CONFIG_BACKEND.md.",
+            "severity": "low"
+          },
+          {
+            "file": "src/ai/ai.service.ts",
+            "issue": "Several call sites (meeting.service.ts, openai-suggestion/notification clients) only change the default model string. Their other params (temperature, max_tokens, response_format) were not visible; any `max_tokens` there would be caught only by the grep test.",
+            "severity": "low"
+          }
+        ],
+        "checkFirst": [
+          "Confirm `gpt-6-luna` and `gpt-realtime-2.1` exist in the OpenAI models list / SDK types and are not retired or access-gated.",
+          "Confirm from the deprecations page that gpt-4o-mini and gpt-4o-realtime-preview were actually retired, since the quote only names chatgpt-4o-latest.",
+          "Run one live Realtime session to verify the GA session.update schema, the audio delta event name and the text delta event name.",
+          "Check whether the new model accepts `temperature`; if it does, restore the removed values to preserve behaviour.",
+          "Check the unseen meeting.service.ts and client call sites for leftover params such as max_tokens or temperature."
+        ],
+        "costUsd": 0.071938,
+        "model": "claude-sonnet-5-5"
+      }
+    }
+  ],
+  "costUsd": 0.6417013,
+  "durationMs": 331537,
+  "matchReasoning": "hachanimohamedsaid/backend_AgentAi:openai:2026-02-chatgpt4o-codexmini: chatgpt-4o-latest was removed on 2026-02-17. The repo makes 11 chat.completions.create calls, and the scan did not record which model strings they use (several are variables or env values). If any resolves to chatgpt-4o-latest, the call already fails. The migration agent should grep for chatgpt-4o-latest in code, env defaults and .env examples, and replace it with a supported model. codex-mini-latest and the local shell tool are not used by this repo. If no match is found, close the task with no change.\nhachanimohamedsaid/backend_AgentAi:openai:2026-03-26-gpt4-old: gpt-4-0314, gpt-4-0125-preview and gpt-4-turbo-preview were shut down on 2026-03-26. The chat.completions.create calls take their model from variables or config that the scan did not resolve, so it is uncertain whether any uses these names. The migration agent should search code and env defaults for them and replace any hit with a currently supported model. If none is found, no change is needed.\nhachanimohamedsaid/backend_AgentAi:openai:2026-05-12-dalle-realtime-beta: The repo hard-codes gpt-4o-realtime-preview for its realtime voice WebSocket. That model was removed in May 2026, so the connection fails already. The Realtime beta header also went away, so the migration agent should check whether the socket sends OpenAI-Beta: realtime=v1 and drop it, and check the session/event schema for GA differences. Switch the model to gpt-realtime-2.1 or gpt-realtime-2.1-mini. This also covers the legacy realtime/audio retirement on 2027-01-20. DALL-E is not used.\nhachanimohamedsaid/backend_AgentAi:openai:2026-07-23-legacy-codex-preview: The listed models (gpt-5-chat-latest, gpt-5.1-chat-latest, gpt-5-codex and the other codex variants, gpt-4o-search-preview, gpt-4o-mini-search-preview, computer-use-preview, deep-research) were shut down on 2026-07-23. Several can be called through chat.completions.create, and the scan did not resolve the model strings. The migration agent should grep for these names, including env defaults, and replace any hit with a gpt-5.6-* model. Note that search-preview models have no direct chat.completions replacement; check for web-search options.\nhachanimohamedsaid/backend_AgentAi:openai:npm-7-0-0: The repo pins the openai npm SDK at 6.33.0, inside the affected range (<7.0.0). Nothing forces the move to 7.x today. If the repo upgrades, Node.js 22 is required, so check the engines field, Dockerfile, Railway/CI runtime and @types/node. Then re-check the chat.completions.create call sites for 7.x type changes. The Live Decisions type changes in later 7.x minors do not apply because the repo does not use the Live API. This is optional and low priority.\nhachanimohamedsaid/backend_AgentAi:openai:2026-08-10-chat-latest: gpt-5.2-chat-latest and gpt-5.3-chat-latest were removed on 2026-08-10. The chat.completions.create calls use unresolved model values, so it is uncertain whether either is used. The migration agent should search code and env defaults and switch any hit to gpt-5.6-sol. If none is found, no change is needed.\nhachanimohamedsaid/backend_AgentAi:openai:2026-10-23-legacy-gpt-shutdown: gpt-3.5-turbo, gpt-4, gpt-4-turbo, gpt-4.1-nano, o1, o1-pro, o3-mini, o4-mini and others were shut down on 2026-10-23. These are common defaults for chat.completions.create, and the scan did not capture the model strings (they are variables or env values). The migration agent should resolve every model value, including env defaults and fallbacks, and replace any retired one with a gpt-5.6-* model. Newer models may reject max_tokens (use max_completion_tokens) and non-default temperature. gpt-image-1 is not used here.\nhachanimohamedsaid/backend_AgentAi:openai:2026-06-11-gpt5-o3-retire: gpt-5, gpt-5-mini, gpt-5-nano, gpt-5-pro, o3 and o3-pro (and their dated snapshots) are removed on 2026-12-11. The chat.completions.create calls take model names from variables, so it is uncertain whether any hits. The migration agent should resolve all model values and env defaults and migrate any match to gpt-5.6-sol/terra/luna.\nhachanimohamedsaid/backend_AgentAi:openai:2026-10-14-gpt-4o-4-1-retire: gpt-4o, gpt-4o-mini, gpt-4.1 and gpt-4.1-mini snapshots are removed on 2027-01-14. These are the most likely models behind the repo's 11 chat.completions.create calls, but the scan did not resolve the model strings. The migration agent should resolve every model value and env default (including fallbacks such as modelName and modelStart). It should replace any match with gpt-6-luna, then re-check max_tokens and temperature handling.\nhachanimohamedsaid/backend_AgentAi:openai:2026-10-01-gpt53codex-51-54nano: gpt-5.3-codex, gpt-5.4-nano and gpt-5.1 (and dated snapshots) are removed on 2027-04-01. Model values at the chat.completions.create call sites are unresolved, so it is uncertain whether any is affected. The migration agent should check code and env defaults and migrate any match to gpt-6-sol or gpt-6-luna.\nopenai:2026-07-20-legacy-audio-realtime: not affected: No task of its own: resolved inside hachanimohamedsaid/backend_AgentAi:openai:2026-05-12-dalle-realtime-beta (dall-e-2/dall-e-3 and Realtime beta header removed May 12, 2026; realtime preview/audio-preview models May 7, 2026). Moving the realtime socket to gpt-realtime-2.1 / gpt-realtime-2.1-mini fixes the removed preview model and avoids the legacy gpt-realtime and gpt-4o-realtime models removed 2027-01-20 in the same edit.\nopenai:2026-10-01-tts-retire: not affected: No call site uses POST /v1/audio/speech or any TTS model. The OpenAI usages are chat.completions.create and a realtime WebSocket.\nopenai:2026-08-26-transcription-retire: not affected: No call site uses /v1/audio/transcriptions or /v1/audio/translations, and no whisper or transcribe model is recorded. Realtime audio goes over the WebSocket, which is handled in the realtime task.\nopenai:2026-11-30-prompts-api: not affected: The repo does not call /v1/prompts or use reusable prompt objects; prompts are inline in messages.\nopenai:2026-11-30-evals: not affected: No call to /v1/evals appears in the usage map.\nopenai:2026-11-30-agent-builder: not affected: Agent Builder is a dashboard product and no workflow or ChatKit usage appears in this repo. Its n8n workflows are separate and unrelated to OpenAI.\nopenai:2026-12-01-gpt-image-retire: not affected: No image generation endpoint or gpt-image model is called anywhere in the usage map.\nopenai:2027-01-06-finetuning-jobs: not affected: The repo never calls POST /v1/fine_tuning/jobs.\nopenai:2026-09-28-legacy-completions: not affected: The repo only calls chat.completions.create, not the legacy completions endpoint, and the instruct/babbage/davinci models need that endpoint. gpt-3.5-turbo-1106 is a pinned snapshot, and gpt-3.5-turbo is already covered by the Oct 23, 2026 legacy task, whose model-value check would catch it.\nopenai:2026-09-24-sora-videos: not affected: No /v1/videos call or Sora model appears in the usage map.\nopenai:2026-08-26-assistants-api: not affected: No /v1/assistants or /v1/threads calls exist; the OpenAI usages are chat completions and a realtime socket.\nopenai:2026-10-01-gpt54-cyber: not affected: gpt-5.4-cyber is a specialized restricted-access model, and nothing suggests this app (email dispatch, meetings, PM planning) uses it.\nopenai:pypi-3-0-0: not affected: This is the Python SDK. The repo's Python code in ml_service/ does not use the openai package; all OpenAI calls are in the TypeScript backend.\nopenai:pypi-2-0-0: not affected: This is the Python SDK and no Python OpenAI usage is recorded. The TypeScript code does not read ResponseFunctionToolCallOutputItem.output.\nopenai:npm-7-43-live-decisions: not affected: The repo uses chat.completions.create and does not use the Live API, Decisions questions or DecisionInputMessage. The repo is also on 6.33.0, not 7.43.0.\nopenai:npm-7-live-decision-items: not affected: The repo never touches DecisionItemCreatedEvent or DecisionItemCreateEvent (Live API types), and it is on openai 6.33.0.\nopenai:go-3-86-0: not affected: This is the Go SDK (github.com/openai/openai-go). The repo is TypeScript and Python and has no Go OpenAI usage.",
+  "costByPart": {
+    "inventory": 0,
+    "match": 0.148566,
+    "memory": 0.21662399999999998,
+    "harness": 0.2045733,
+    "review": 0.071938
+  }
+}

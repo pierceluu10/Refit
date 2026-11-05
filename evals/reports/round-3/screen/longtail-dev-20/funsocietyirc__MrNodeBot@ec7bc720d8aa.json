@@ -1,0 +1,31 @@
+{
+  "set": "longtail-dev-20",
+  "repo": "funsocietyirc/MrNodeBot",
+  "commit": "ec7bc720d8aa05fd7cb682ea131335f0861fe66e",
+  "provider": "firebase-dynamic-links",
+  "green": false,
+  "noChecks": false,
+  "checks": [
+    {
+      "name": "test",
+      "command": "npm run test",
+      "ok": false,
+      "failures": ["exit-nonzero: Downloaded successfull!"],
+      "tail": "> mrnodebot@1.0.17 test\n> snyk test && node_modules/mocha/bin/mocha test/**/*.js --reporter spec\n\n`snyk` requires an authenticated account. Please run `snyk auth` and try again.\n\nExecutable doesn't exist, trying to download.\nDownloading from 'https://static.snyk.io/cli/v1.1226.0/snyk-linux-arm64' to '/work/node_modules/snyk/wrapper_dist/snyk-linux-arm64'\nShasums:\n- actual:   c187c43af42623fbd12d63691a896c57519bfc2b6e57bbd06c3429672dc8dc2e\n- expected: c187c43af42623fbd12d63691a896c57519bfc2b6e57bbd06c3429672dc8dc2e\nDownloaded successfull!"
+    }
+  ],
+  "costUsd": 0.047422,
+  "durationMs": 117078,
+  "install": {
+    "code": 0,
+    "tail": "added 1721 packages in 1m\n\nnpm WARN deprecated svgo@0.7.2: This SVGO version is no longer supported. Upgrade to v2.x.x.\nnpm WARN deprecated debug@4.1.1: Debug versions >=3.2.0 <3.2.7 || >=4 <4.3.1 have a low-severity ReDos regression when used in a Node.js environment. It is recommended you upgrade to 3.2.7 or 4.3.1. (https://github.com/visionmedia/debug/issues/797)"
+  },
+  "preparation": {
+    "steps": [],
+    "env": []
+  },
+  "exclusion": {
+    "class": "outside-authority",
+    "reason": "`npm run test` runs `snyk test` first, which fails because it requires an authenticated Snyk account (`snyk auth`), i.e. real credentials for a live external service; the mocha tests never run."
+  }
+}

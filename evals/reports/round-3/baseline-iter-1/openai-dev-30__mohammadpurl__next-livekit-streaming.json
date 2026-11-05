@@ -1,0 +1,72 @@
+{
+  "set": "openai-dev-30",
+  "repo": "mohammadpurl/next-livekit-streaming",
+  "refit": {
+    "checks": "passes",
+    "costUsd": 0.6282529,
+    "tasks": 4,
+    "verified": 2
+  },
+  "claude": {
+    "checks": "passes",
+    "costUsd": 0.0679497,
+    "prepCostUsd": 0.006772,
+    "diffLines": 148,
+    "finalText": "I migrated the OpenAI code off the retired Assistants API. I did not migrate the HeyGen code, which is also affected. `tsc --noEmit` passes. I didn't run the app or call either API.\n\n**What I changed**\n- **Why:** The code used `beta.assistants`, `beta.threads` and `runs.createAndPoll` with the model `gpt-4-turbo-preview`. As far as I know, OpenAI shut the Assistants API down in August 2026, and that model has also been retired. I didn't re-check either date in this session.\n- **`app/api/chat/route.ts`:** It now makes one `openai.responses.create` call with model `gpt-4.1`. The tutor prompt is passed as `instructions`, and the reply comes from `output_text`. I set `store: false` because each request is stateless.\n- **`app/openai-assistant.ts`:** The `OpenAIAssistant` class keeps the same public methods, `initialize()` and `getResponse()`. It no longer creates an assistant or a thread. It now keeps the instructions and chains turns with `previous_response_id`.\n- **Model choice:** `gpt-4.1` was my pick. I didn't check its own retirement schedule, so confirm it or swap in the model you prefer.\n\n**Not changed: HeyGen**\n- **What I found:** HeyGen's [Streaming API deprecation notice](https://docs.heygen.com/docs/streaming-api-deprecated) says Interactive Avatar was sunset on 31 March 2026 and replaced by LiveAvatar. Its [avatar version notice](https://docs.heygen.com/docs/interactive-avatar-api-avatar-version-deprecation-notice) says v1 and v2 avatars are no longer supported.\n- **What's affected:** This repo uses `@heygen/streaming-avatar` and the `https://api.heygen.com/v1/streaming.create_token` endpoint in `app/api/heygen-token/route.ts`. Both are probably dead by now.\n- **Why I stopped:** Moving to LiveAvatar means a different SDK, a separate account and API key, and a rewrite of the avatar components. I didn't find LiveAvatar's replacement SDK or token endpoint, so I couldn't write that migration reliably. The [LiveAvatar docs](https://docs.liveavatar.com) are the place to start.\n\n**Other notes**\n- `app/api/heygen-token/route.ts` logs `HEYGEN_API_KEY` to the console. You should remove that line.\n- I didn't look into the LiveKit or ElevenLabs usage, or the `whisper-1` call in the transcribe route, beyond seeing them in the code. I found no deprecation notices for them, but I didn't search for any.\n\nSources:\n- https://docs.heygen.com/docs/streaming-api-deprecated\n- https://docs.heygen.com/docs/interactive-avatar-api-avatar-version-deprecation-notice\n- https://docs.liveavatar.com",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-mohammadpurl-next-livekit-streaming/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "gpt-4-turbo-preview / gpt-4-0125-preview / gpt-4-0314 shut down Mar 26, 2026",
+          "correct": true,
+          "note": "Replaced the model in both files with gpt-5.6-terra, which fits the cited change. The Assistants PR uses a different replacement (gpt-6-luna), so the PRs are inconsistent and conflict on the same lines. The registration of a 'model-check' check that the explanation mentions does not appear in the diff."
+        },
+        {
+          "change": "openai npm 7.0.0 requires Node.js 22",
+          "correct": true,
+          "note": "Bumped openai to ^7.49.0, updated the lockfile and added engines.node >=22. Says no call-site changes were needed. The test it added still calls beta.assistants with the retired model, which is harmless but stale."
+        },
+        {
+          "change": "Assistants API removed Aug 26, 2026; migrate to Responses",
+          "correct": true,
+          "note": "Both the route and the class now use responses.create with instructions, read output_text, and chain turns with previous_response_id. It only advances the chain on a completed response. Uses gpt-6-luna."
+        },
+        {
+          "change": "whisper-1 removed Feb 26, 2027; use gpt-transcribe",
+          "correct": true,
+          "note": "Changed the client form-data model from whisper-1 to gpt-transcribe. The /api/transcribe route forwards the form data, so the new model reaches OpenAI."
+        }
+      ],
+      "breaks": [
+        "Separate PRs pick different replacement models (gpt-5.6-terra vs gpt-6-luna) and edit overlapping lines, so they will merge-conflict.",
+        "Test files are split across inconsistent tests/ and test/ directories."
+      ]
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "Assistants API shut down Aug 2026; migrate to Responses",
+          "correct": true,
+          "note": "Same Responses migration as A, using gpt-4.1. It sets previousResponseId even when a response is incomplete, which is minor."
+        },
+        {
+          "change": "gpt-4-turbo-preview retired",
+          "correct": true,
+          "note": "Replaced as part of the migration with gpt-4.1. It admits it did not check gpt-4.1's own retirement schedule."
+        },
+        {
+          "change": "HeyGen Interactive Avatar / streaming API sunset Mar 31, 2026",
+          "correct": false,
+          "note": "Identified it with sources and explained why it stopped, but changed no code."
+        }
+      ],
+      "breaks": []
+    },
+    "better": "refit",
+    "why": "A handles four OpenAI changes the code is affected by: the model retirement, the SDK v7 / Node 22 requirement, the Assistants-to-Responses migration and the whisper-1 retirement. B makes the same Assistants migration but skips the SDK bump and the whisper change. B's one extra finding, the HeyGen sunset, was only flagged and not fixed. A's inconsistent model choice across its PRs is a flaw, but it does not outweigh how much more A covers.",
+    "costUsd": 0.068656
+  }
+}

@@ -1,0 +1,62 @@
+{
+  "set": "gemini-dev-15",
+  "repo": "XDTerminated/t2-chat-t3c-2025",
+  "refit": {
+    "checks": "passes",
+    "costUsd": 0.35301130000000003,
+    "tasks": 1,
+    "verified": 1
+  },
+  "claude": {
+    "checks": "passes",
+    "costUsd": 0.30583949999999993,
+    "prepCostUsd": 0.042192,
+    "diffLines": 373,
+    "finalText": "I replaced the model IDs that Google, Groq and OpenRouter have retired or no longer list. `tsc --noEmit` passes. I didn't test any live API calls.\n\n**Gemini** (`models.ts`, `model-helpers.ts`, `gemini-api.ts`, `google-gemini-api.ts`, `chat/route.ts`, `ChatContext.tsx`, `generate-title/route.ts`)\n- The old IDs are shut down or on Google's deprecated list. Most of them have no mapping to a current model, so I picked replacements.\n- The default `gemini-2.0-flash-exp` became `gemini-3.6-flash`. The `-lite-exp` model and the title generator now use `gemini-3.5-flash-lite`.\n- `gemini-2.0-flash-thinking-exp` became `gemini-3.8-flash`, and `gemini-2.5-pro-preview-06-05` became `gemini-3.1-pro-preview`. I dropped `gemini-2.5-flash-preview-05-20` as a separate entry.\n- `gemini-2.0-flash-preview-image-generation` became `gemini-nano-banana-2.1`, which I took from Google's deprecation table. The part of the page covering this model's shutdown date was cut off in my fetch.\n- The list of models that support thinking is updated in all three places that keep a copy of it.\n\n**Groq** (`models.ts`, `model-helpers.ts`, `chat/route.ts`)\n- Groq's deprecation page lists `llama-4-maverick-17b-128e-instruct` (shut down March 2026) and `qwen/qwen3-32b` (July 2026).\n- I replaced them with `openai/gpt-oss-120b`, `openai/gpt-oss-20b` and `qwen/qwen3.8-27b`.\n- `deepseek-r1-distill-llama-70b` is also gone, but I didn't see its deprecation entry because that part of the page was cut off. I replaced it anyway with `openai/gpt-oss-120b`.\n\n**OpenRouter** (`models.ts`)\n- I checked the IDs against the live `/api/v1/models` list. Only `openai/gpt-4o` is still listed.\n- The Claude, DeepSeek and free-tier IDs are replaced with current ones:\n  - Claude: `anthropic/claude-sonnet-5.5` and `anthropic/claude-sonnet-4.6`.\n  - DeepSeek: `deepseek/deepseek-v4-flash` and `deepseek/deepseek-v4-pro`.\n  - Free tier: Gemma 4 and Nemotron `:free` models.\n- Context lengths come from the live list.\n\n**Not changed**\n- `@google/generative-ai` is the old Gemini SDK, and I believe Google has deprecated it. The code still uses it for non-thinking chat. Moving that to `@google/genai` is a larger rewrite, so I left it.\n- Gemini 3 models may prefer `thinkingLevel` over `thinkingBudget`. I didn't check this, and the code still sends `thinkingBudget`.\n- `OpenRouterAPI.generateImage` still points at `black-forest-labs/flux-schnell`, which OpenRouter no longer lists. Nothing calls it, so I left it.\n- Chats saved in the database under the old model IDs will fall back to the default model.\n\nSources:\n- https://ai.google.dev/gemini-api/docs/deprecations\n- https://console.groq.com/docs/deprecations\n- https://openrouter.ai/api/v1/models",
+    "transcriptPath": "/var/folders/5x/jrkl0bs93qj0k2x5glzcwh240000gn/T/baseline-XDTerminated-t2-chat-t3c-2025/transcript.jsonl",
+    "stopReason": "done"
+  },
+  "judge": {
+    "refit": {
+      "handled": [
+        {
+          "change": "@google/generative-ai deprecated; migrate to @google/genai",
+          "correct": true,
+          "note": "Ported the title route, generateImage and the legacy streaming path to ai.models.generateContent/generateContentStream with config.safetySettings/systemInstruction. Chunk.text is handled as a getter, and the dependency and lockfile entries were removed. The port looks correct."
+        }
+      ],
+      "breaks": [
+        "Retired Gemini model IDs were left in place, including the default gemini-2.0-flash-exp and the image-generation preview, so core chat, title generation and image generation still call dead models (acknowledged).",
+        "Retired Groq and OpenRouter model IDs were not addressed.",
+        "Added a scripts/check-genai-migration.mjs file that nothing required."
+      ]
+    },
+    "claude": {
+      "handled": [
+        {
+          "change": "Gemini models retired or deprecated (2.0 flash exp/lite/thinking, 2.5 preview IDs, 2.0 image-generation preview)",
+          "correct": true,
+          "note": "Replaced in models.ts, mapToGeminiModelName, all three thinking lists, the title generator and both generateImage paths. The replacement IDs are A's own picks, and the image model ID comes from a partly truncated page, so they are plausible but unverified. The edits are internally consistent, and the default fallback was updated too."
+        },
+        {
+          "change": "Groq retirements (llama-4-maverick, qwen3-32b, deepseek-r1-distill-llama-70b)",
+          "correct": true,
+          "note": "Replaced with gpt-oss-120b/20b and qwen3.8-27b, and the thinking lists were updated. The deepseek retirement was not confirmed from the page. A did not check whether the Groq reasoning request parameters suit gpt-oss."
+        },
+        {
+          "change": "OpenRouter model IDs no longer listed",
+          "correct": true,
+          "note": "Checked against the live /models list, and IDs and context lengths were updated. The unused flux-schnell image model was left alone, which A disclosed."
+        }
+      ],
+      "breaks": [
+        "Chats stored with old model IDs silently fall back to the default model (disclosed).",
+        "Capability flags were changed for some entries (e.g. vision/pdf added to the flash model), which no API change required.",
+        "The deprecated @google/generative-ai SDK was left in place (disclosed)."
+      ]
+    },
+    "better": "claude",
+    "why": "The most damaging changes are the model retirements, which leave the app's default Gemini model and many Groq/OpenRouter options dead. A replaces them throughout the codebase. B does only the SDK migration, which is cleanly done, but it leaves every retired model ID in place, so the app still fails at runtime. A's replacement IDs are partly unverified, but they are consistent with its cited sources.",
+    "costUsd": 0.078376
+  }
+}

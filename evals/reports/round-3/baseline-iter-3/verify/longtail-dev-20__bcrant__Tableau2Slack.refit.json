@@ -1,0 +1,5 @@
+{
+  "status": "clean",
+  "problems": [],
+  "checked": ["syntax Tableau2Slack.py", "syntax tests/test_slack_sdk.py"]
+}
