@@ -7,14 +7,16 @@ in [SETUP.md](SETUP.md).
 
 ## What it does
 
-| Webhook                                                     | Result                                                     |
-| ----------------------------------------------------------- | ---------------------------------------------------------- |
-| `installation.created`                                      | Lists every repo via the API, queues `understand` for each |
-| `installation.deleted`, `installation_repositories.removed` | Queues `forget` for each repo                              |
-| `installation_repositories.added`                           | Queues `understand` for each repo                          |
-| `push` to the default branch                                | Queues `understand` (a re-read) with the new sha           |
-| `pull_request.closed` on an `aptitude/` branch              | Records the human verdict, `merged` or `closed`, in memory |
-| `pull_request.synchronize` on an `aptitude/` branch         | Records `edited` when a person pushed their own commit     |
+| Webhook                                              | Result                                                                                    |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `installation.created`                               | Records shared learning as no, lists every repo via the API, queues `understand` for each |
+| `installation.deleted`                               | Drops the shared learning answer, queues `forget` for each repo                           |
+| `installation_repositories.removed`                  | Queues `forget` for each repo                                                             |
+| `installation_repositories.added`                    | Queues `understand` for each repo                                                         |
+| `push` to the default branch                         | Queues `understand` (a re-read) with the new sha, and records any `Revert "..."` commit   |
+| `pull_request.closed` on an `aptitude/` branch       | Records the human verdict, `merged` or `closed`, in memory, then the evidence             |
+| `pull_request.synchronize` on an `aptitude/` branch  | Records `edited` when a person pushed their own commit, in both                           |
+| `pull_request.closed` and merged on any other branch | Records a revert if it's GitHub's revert PR form, onto the default branch                 |
 
 Every request's signature is checked against `GITHUB_WEBHOOK_SECRET` before it is handled. The app
 answers `202` as soon as the signature and JSON check out, then does the work, since GitHub gives a
@@ -24,6 +26,56 @@ delivery 10 seconds. A failure after that is logged with the delivery id; redeli
 A `synchronize` counts as a person's edit when the sender isn't a bot and `before...after` holds a
 non-merge commit not authored by a bot (memory/README.md, Verdicts). Aptitude's own pushes, other bots
 and the **Update branch** button send nothing. Each verdict gets its own $1 AI budget.
+
+## Evidence for memory
+
+Memory learns from what really happened to a fix. The app sends it `FixEvidence`, the shape in
+`memory/types.ts` on `rebuild/otabek`, copied by shape into `types.ts`. `main.ts` holds the only two
+lines to swap, `sendEvidence` and `sendHabits`, which only log until that code lands. Either way the
+app's own fact files hold what it has seen.
+
+| Field      | Where it comes from                                                                                                                                                                                  |
+| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `edited`   | A non-merge commit on the PR not authored by a bot, or a change in what was merged even when no commit looks like a person's (an amend keeps the bot as author). Only ever `true`.                   |
+| `merged`   | `merged_at`, and `humanDiff`: what people changed between our commit and the PR's final head, in the files where the change itself differs from ours. Secrets redacted, then capped at 60,000 chars. |
+| `closed`   | `closed_at`, and `comment`: the closing person's latest comment, else the latest from any person. Bots and empty reviews never count. Secrets redacted, then capped at 2,000 chars.                  |
+| `reverted` | `via: 'revert'`: GitHub's revert PR, or a commit naming our PR or commit. `via: 'rescan'`: a later scan finds live a list entry this fix removed. The earliest wins.                                 |
+
+**Why not diff against the merge commit?** A squash's tree also holds everything main gained since we
+branched, and GitHub's compare only offers `BASE...HEAD` (`BASE..HEAD` answers 404), which diffs from
+the merge base. So `humanDiff` compares our commit with the PR's final head, the tree that was merged.
+Update branch can still bring main's edits into our files, so a file only counts when the lines its
+change adds and removes differ from ours. If the branch was rewritten, our commit is no longer an
+ancestor, and the diff says it shows the whole merged change for those files.
+
+**Order.** Each webhook only adds facts to a per-repo file, `<APTITUDE_APP_DIR>/fixes/<owner>/<repo>.json`,
+and the evidence is worked out from all of them. A redelivered or out-of-order event ends in the same
+state, and a revert that arrives before its merge waits there. Each send carries the whole evidence so
+far, so `recordEvidence` must be safe to call twice.
+
+**Which entries a fix fixed.** `createOpenPullRequest` keeps the commit and `task.entries`, minus any the
+harness's last rescan still found live, since finding those later isn't a return. A job scans the
+checkout only when the repo has a merged fix that named entries. It dates the scan from before the
+clone, so a merge during the clone never counts against itself.
+
+**Repo habits.** After each event the app sends `RepoHabitEvidence` for the customer's own store, never
+shared: `rejections` (how many of our PRs were closed unmerged, and the latest 5 reasons) and `edits`
+(how many were edited, and the files people changed on 2 or more merged PRs).
+
+## Shared learning consent
+
+Whether a customer agrees to shared learning is the app's own setting, per installation, in
+`<APTITUDE_APP_DIR>/installations/<id>.json`. It isn't a GitHub App setting.
+
+- An install records no. A redelivered install keeps the answer, and an uninstall drops it.
+- No record, a value that isn't `true`, or any read error all mean no.
+- It's read fresh for every send and passed to the sink as `consented`. A customer's own store gets the
+  evidence either way. Revoking stops sharing from the next event, but can't recall what already left.
+- There's no customer-facing toggle yet. Once a customer has told us, a founder sets it:
+
+```sh
+node --experimental-strip-types app/consent-cli.ts <installationId> yes
+```
 
 ## Jobs
 
@@ -55,21 +107,25 @@ back. It never touches the default branch and never merges.
 
 ## Files
 
-| File            | Purpose                                                                            |
-| --------------- | ---------------------------------------------------------------------------------- |
-| `types.ts`      | Job, verdict and PR types, and `BRANCH_PREFIX` (`aptitude/`)                       |
-| `github.ts`     | App JWT, token cache, `listInstallationRepos`, `listViewerRepos`, `compareCommits` |
-| `pr.ts`         | `openPullRequest` (Git Data API, draft PR) and the shared `createOpenPullRequest`  |
-| `webhooks.ts`   | Signature verification and the handlers above                                      |
-| `server.ts`     | `POST /webhooks`, `GET /api/runs`, `GET /healthz`                                  |
-| `runs.ts`       | `/api/runs` validation and per-viewer scoping                                      |
-| `queue.ts`      | File-backed job queue                                                              |
-| `jobs.ts`       | One job: checkout, `runRepoJob`, cleanup                                           |
-| `git.ts`        | `cloneRepo`, and `filesFromDiff` (a diff to file changes, via a scratch index)     |
-| `main.ts`       | Entry point; wires memory's `recordVerdict` with a $1 budget per verdict           |
-| `config.ts`     | Reads the env vars listed in SETUP.md                                              |
-| `fixtures/`     | Illustrative webhook payloads for the tests                                        |
-| `manifest.json` | The App's permissions and events; source of truth for its GitHub settings          |
+| File            | Purpose                                                                                |
+| --------------- | -------------------------------------------------------------------------------------- |
+| `types.ts`      | Job, verdict and PR types, and `BRANCH_PREFIX` (`aptitude/`)                           |
+| `github.ts`     | App JWT, token cache, repo lists, `compareCommits`, and reading what happened to a PR  |
+| `pr.ts`         | `openPullRequest` (Git Data API, draft PR) and the shared `createOpenPullRequest`      |
+| `webhooks.ts`   | Signature verification and the handlers above                                          |
+| `evidence.ts`   | Turns webhooks and rescans into facts, and sends the evidence and repo habits          |
+| `fix-facts.ts`  | The per-repo facts, how they merge in any order, and the evidence worked out from them |
+| `consent.ts`    | The per-installation shared learning setting; `consent-cli.ts` changes it              |
+| `json-file.ts`  | Reads a JSON file, and writes one atomically                                           |
+| `server.ts`     | `POST /webhooks`, `GET /api/runs`, `GET /healthz`                                      |
+| `runs.ts`       | `/api/runs` validation and per-viewer scoping                                          |
+| `queue.ts`      | File-backed job queue                                                                  |
+| `jobs.ts`       | One job: checkout, `runRepoJob`, cleanup                                               |
+| `git.ts`        | `cloneRepo`, and `filesFromDiff` (a diff to file changes, via a scratch index)         |
+| `main.ts`       | Entry point; wires memory's `recordVerdict` with a $1 budget per verdict               |
+| `config.ts`     | Reads the env vars listed in SETUP.md                                                  |
+| `fixtures/`     | Illustrative webhook payloads for the tests                                            |
+| `manifest.json` | The App's permissions and events; source of truth for its GitHub settings              |
 
 ## Opening a PR from the harness
 

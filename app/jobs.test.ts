@@ -19,7 +19,10 @@ const RECORD: RunRecord = {
   transcriptPath: '',
 };
 
-function fakes(runRepoJob: () => Promise<RunRecord[]>) {
+function fakes(
+  runRepoJob: () => Promise<RunRecord[]>,
+  rescan: (at: string) => Promise<void> = async () => {},
+) {
   const calls: string[] = [];
   const opener: OpenPullRequest = async () => 'https://github.com/example/pull/1';
   let checkoutDir = '';
@@ -28,6 +31,10 @@ function fakes(runRepoJob: () => Promise<RunRecord[]>) {
     checkout: async (token, repo, dir) => {
       checkoutDir = dir;
       calls.push(`checkout ${token} ${repo}`);
+    },
+    rescan: async (job, dir, at) => {
+      calls.push(`rescan ${job.repo} ${dir === checkoutDir} ${existsSync(dir)}`);
+      await rescan(at);
     },
     openPullRequestFor: (id) => {
       calls.push(`opener ${id}`);
@@ -51,10 +58,40 @@ describe('createJobRunner', () => {
     await run(JOB);
     expect(calls).toEqual([
       'checkout token-70000001 aptitude-example-org/billing-api',
+      'rescan aptitude-example-org/billing-api true true',
       'opener 70000001',
       'run aptitude-example-org/billing-api true true',
     ]);
     expect(existsSync(dir())).toBe(false);
+  });
+
+  it('a failed rescan never stops the fix', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { run, calls } = fakes(
+      async () => [RECORD],
+      async () => {
+        throw new Error('scan broke');
+      },
+    );
+    await run(JOB);
+    expect(calls.at(-1)).toBe('run aptitude-example-org/billing-api true true');
+    expect(logged.mock.calls.flat().join(' ')).toContain('scan broke');
+  });
+
+  it('dates the rescan before the clone, so a merge during the clone never counts against itself', async () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    let scannedAt = '';
+    const before = new Date().toISOString();
+    const { run } = fakes(
+      async () => [RECORD],
+      async (at) => {
+        scannedAt = at;
+      },
+    );
+    await run(JOB);
+    expect(scannedAt >= before, `${scannedAt} before ${before}`).toBe(true);
+    expect(scannedAt <= new Date().toISOString()).toBe(true);
   });
 
   it('fails the job when runRepoJob throws, and still deletes the checkout', async () => {

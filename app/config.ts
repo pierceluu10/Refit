@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 
 const DEFAULT_PORT = 3000;
 const DEFAULT_QUEUE_FILE = '.aptitude/queue.json';
+const DEFAULT_DATA_DIR = '.aptitude/app';
 
 export class MissingConfigError extends Error {
   constructor(variable: string) {
@@ -16,7 +17,12 @@ export type AppConfig = {
   webhookSecret: string;
   port: number;
   queueFile: string;
+  dataDir: string;
 };
+
+// Where the app keeps installation settings and what it has seen of each fix.
+export const appDataDir = (env: NodeJS.ProcessEnv = process.env) =>
+  env.APTITUDE_APP_DIR || DEFAULT_DATA_DIR;
 
 function required(env: NodeJS.ProcessEnv, variable: string): string {
   const value = env[variable];
@@ -37,5 +43,6 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     webhookSecret: required(env, 'GITHUB_WEBHOOK_SECRET'),
     port: env.PORT ? Number(env.PORT) : DEFAULT_PORT,
     queueFile: env.APTITUDE_QUEUE_FILE || DEFAULT_QUEUE_FILE,
+    dataDir: appDataDir(env),
   };
 }
