@@ -1,0 +1,5 @@
+# Excerpt of LazerTechnologies/shopify-app-development-course at 93cb55752c30, extensions/customer-cancel-button/shopify.extension.toml.
+api_version = "2025-07"
+[[extensions]]
+handle = "customer-cancel-button"
+type = "ui_extension"

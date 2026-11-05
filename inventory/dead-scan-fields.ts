@@ -3,7 +3,7 @@
 // Fine for telling a provider's object from an app's own; upgrade if P5 finds a miss from it.
 import { escapeRegex } from '../dead-apis/match.ts';
 import type { DeadApiEntry, DeadApiMatcher } from '../shared/types.ts';
-import { innerText, type Source } from './dead-scan-lex.ts';
+import { innerText, lineIndexAt, spanAt, type Source } from './dead-scan-lex.ts';
 import { closeOf } from './dead-scan-place.ts';
 
 export type FieldRead = {
@@ -63,6 +63,14 @@ const CALL_WORD = /[./]/;
 const MAX_CHAIN_WALK = 2_000;
 const NESTED_WEBHOOK = /\bdata\s*:\s*\{\s*object\b/;
 const GETATTR_AHEAD = /\bgetattr\(\s*([\w$.]+)\s*,\s*$/;
+// A replacement written as a path into the object, and not a URL such as /v1/invoice_payments.
+const REPLACEMENT_PATH = /^[A-Za-z_]\w*(?:\[[^\]]*\])?(?:\.[A-Za-z_]\w*(?:\[[^\]]*\])?)*$/;
+// How near a read of the replacement must be for a dead read to be its fallback: a small helper at most.
+const FALLBACK_LINES = 8;
+const FUNCTION_START =
+  /\bfunction\b|\bdef\s|=>\s*\{|^[ \t]*(?:(?:async|public|private|protected|static)\s+)*(?!(?:if|for|while|switch|catch)\b)[\w$]+\s*\([^)\n]*\)[^{;\n]*\{/m;
+const INDEX_GAP = String.raw`(?:[?!\s]*(?:\??\.)?\[[^\]"']*\])*[?!\s]*`;
+const HOLDER_NAME = '([A-Za-z_$][\\w$]*)';
 
 const normal = (word: string) => word.toLowerCase().replace(/[_$]/g, '').replace(/s$/, '');
 const wordsOf = (name: string) =>
@@ -341,6 +349,91 @@ export function bindingsOf(source: Source, provider: string): FileBindings {
 }
 
 export type ReadEvidence = { strong: boolean; why: string };
+
+const keyRead = (word: string) => {
+  const key = escapeRegex(word);
+  return String.raw`(?:(?:\??\.|->)\s*${key}(?![\w$])|\[\s*["']${key}["']\s*\]|\.get\(\s*["']${key}["'][^()]*(?:\([^()]*\)[^()]*)*\))`;
+};
+const keysRead = (words: string[]) => words.map(keyRead).join(INDEX_GAP);
+const pathRead = ([first, ...rest]: string[]) => {
+  const root = String.raw`(?:(?<![\w$])${escapeRegex(first)}(?![\w$])|${keyRead(first)})`;
+  return rest.length > 0 ? `${root}${INDEX_GAP}${keysRead(rest)}` : root;
+};
+
+// The replacement's paths, without an "on" word, which the read's own receiver stands for. The holder
+// of the new field says the same, unless it's a list, which the old shape had too.
+function replacementPaths(entry: DeadApiEntry, matcher: FieldMatcher): string[][] {
+  const on = (matcher.on ?? []).map(normal);
+  return (entry.replacementIds ?? [])
+    .filter((id) => REPLACEMENT_PATH.test(id))
+    .flatMap((id) => {
+      const parts = id.split('.');
+      const words = parts.map((part) => part.replace(/\[.*$/, ''));
+      const kept = on.includes(normal(words[0])) ? 1 : 0;
+      const path = words.slice(kept);
+      if (path.length < 3 || parts.at(-2)?.includes('[')) return path.length > 0 ? [path] : [];
+      return [path, path.slice(0, -1)];
+    });
+}
+
+// What binds a name to a holder of the path, each with what's left to read off that name.
+function holderBindings(path: string[]): { binder: RegExp; rest: string }[] {
+  return path.slice(1).flatMap((_, index) => {
+    const holder = pathRead(path.slice(0, index + 1));
+    const rest = keysRead(path.slice(index + 1));
+    return [
+      String.raw`(?<![\w$.])\[?\s*${HOLDER_NAME}\s*\]?\s*(?::[^=\n]*)?=\s*[^;\n]*?${holder}`,
+      String.raw`\bfor\s*\(?\s*(?:const\s+|let\s+|var\s+)?${HOLDER_NAME}\s+(?:of|in)\s+[^\n]*?${holder}`,
+      String.raw`${holder}${INDEX_GAP}\.(?:map|forEach|filter|find|flatMap|some|every|reduce)\(\s*(?:async\s+)?\(?\s*${HOLDER_NAME}`,
+    ].map((binder) => ({ binder: new RegExp(binder, 'g'), rest }));
+  });
+}
+
+// Where the code reads the replacement. Strings and comments only talk about it.
+function replacementReads(source: Source, read: FieldRead, path: string[]): number[] {
+  if (path.some((word) => !source.text.includes(word))) return [];
+  const offsets = (pattern: string) =>
+    [...source.text.matchAll(new RegExp(pattern, 'g'))].map((match) => match.index);
+  // A lone word such as `data` is common, so it has to come off the same object.
+  const direct =
+    path.length === 1
+      ? `${escapeRegex(read.chain)}${INDEX_GAP}${keyRead(path[0])}`
+      : pathRead(path);
+  const viaHolder = holderBindings(path).flatMap(({ binder, rest }) =>
+    [...source.text.matchAll(binder)].flatMap((bound) =>
+      offsets(`(?<![\\w$.])${escapeRegex(bound[1])}${INDEX_GAP}${rest}`),
+    ),
+  );
+  return [...offsets(direct), ...viaHolder].filter(
+    (offset) => spanAt(source.spans, offset) === undefined,
+  );
+}
+
+/**
+ * Whether a read of a dead field sits beside a read of what replaced it, in one expression or a small
+ * helper, so it's written to handle both shapes and isn't a sole read. A call or a key in a request
+ * isn't a read: the dead one still goes out.
+ */
+export function besideReplacement(
+  source: Source,
+  entry: DeadApiEntry,
+  matcher: FieldMatcher,
+  read: FieldRead,
+): boolean {
+  if (read.callArgument) return false;
+  const end = source.text.indexOf(matcher.value, read.offset) + matcher.value.length;
+  if (source.code.slice(end).trimStart().startsWith('(')) return false;
+  const line = lineIndexAt(source, read.offset);
+  return replacementPaths(entry, matcher).some((path) =>
+    replacementReads(source, read, path).some(
+      (offset) =>
+        Math.abs(lineIndexAt(source, offset) - line) <= FALLBACK_LINES &&
+        !FUNCTION_START.test(
+          source.code.slice(Math.min(offset, read.offset), Math.max(offset, read.offset)),
+        ),
+    ),
+  );
+}
 
 /** The reads of one field in a file: off a name for the entry's "on" word, or a variable bound to it. */
 export function fieldReads(

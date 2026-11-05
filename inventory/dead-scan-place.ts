@@ -54,6 +54,8 @@ const WALK_TEST = (word: string) =>
 const SOME_TEST_AFTER =
   /^\s*\.(?:some|every)\s*\(\s*\(?\s*(\w+)\s*\)?\s*=>\s*[\w$.\[\]?]*(?:\.(?:includes|startsWith|endsWith|indexOf)\(\s*\1\s*\)|\s*[=!]==?\s*\1\b|\1\s*[=!]==?)/;
 const WALK_LOOK_CHARS = 200;
+// A bare word where an id goes: /v18.0/pixel_id/events can't be a request unless the code fills it in.
+const PLACEHOLDER_IN_URL = /^https?:\/\/[^/\s]+\/(?:[^/\s?#]+\/)*?([a-z]\w*_id)(?:[/?#]|$)/i;
 // `assert x in NAME`, or a rejection when it isn't: the code stops unless the value is on the list.
 const GUARDED_BY = (name: string) =>
   new RegExp(
@@ -198,8 +200,20 @@ function onlyTested(source: Source, list: Enclosure): boolean {
   return walk !== null && WALK_TEST(walk[2]).test(walk[1]);
 }
 
+function isPlaceholderUrl(source: Source, span: Span): boolean {
+  const word = PLACEHOLDER_IN_URL.exec(innerText(source, span))?.[1];
+  if (!word) return false;
+  return !new RegExp(`\\.replace(?:All)?\\(\\s*["'\`/]${word}`).test(source.text);
+}
+
 function checkPlace(source: Source, span: Span): Place | undefined {
   const { code } = source;
+  if (isPlaceholderUrl(source, span)) {
+    return {
+      kind: 'catalog',
+      reason: 'a URL with a placeholder where the id goes, so not a request',
+    };
+  }
   const line = source.lines[lineIndexAt(source, span.start)];
   const ahead = before(code, span.start);
   const behind = after(code, span.end);

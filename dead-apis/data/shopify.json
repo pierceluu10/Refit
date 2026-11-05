@@ -15,7 +15,8 @@
       "lookFor": [
         "2025-10 in a REST or GraphQL path: /admin/api/<version>/..., /api/<version>/graphql.json, /customer/api/<version>/graphql",
         "2025-10 set as apiVersion, api_version, API_VERSION, SHOPIFY_API_VERSION or a Session argument, or named by the ApiVersion enum of @shopify/shopify-api. A bare version setting can belong to another vendor, so check it is Shopify. A date-versioned string with a day, such as 2024-10-21, is not this.",
-        "api_version in shopify.app.toml (webhooks fall forward) and in shopify.extension.toml (extensions behave differently: see what)."
+        "2025-10 in a REST resources import, @shopify/shopify-api/rest/admin/<version>. Its classes send /admin/api/<version>/... whatever version the app config sets.",
+        "api_version in shopify.app.toml (webhooks fall forward). In shopify.extension.toml a UI extension's api_version isn't a break by itself: see what."
       ],
       "matchers": [
         {
@@ -38,6 +39,10 @@
           "kind": "regex",
           "value": "[aA][pP][iI][-_ ]?[vV][eE][rR][sS][iI][oO][nN]['\\\"`]?\\s*(?:=>|[:=,(])\\s*['\\\"`]?2025-10(?![-\\d])",
           "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "shopify-api/rest/admin/2025-10(?![-\\d])"
         }
       ],
       "replacement": "2026-10, the latest stable version the page lists. Accessible until October 16, 2027 15:00 UTC.",
@@ -52,7 +57,10 @@
         "2026-10: changing the shipping address on an unfulfilled order with orderUpdate or the REST order update endpoint now recalculates taxes. Re-read taxLines, totalTaxSet and totals afterward and handle the balance difference.",
         "2026-10: DraftOrderDiscountNotAppliedWarning.priceRule and the PriceRule object are removed from the GraphQL schema: select discountTitle and discountCode. Segment query functions use MATCHES and NOT MATCHES instead of = true and = false. A query filtering by a metafield that is not valid for filtering now returns an error. CustomerPhoneNumber.smsMarketingConsent replaces the flat SMS consent fields, and checkout and customer account UI extension metafield declarations need an owner_type. Carrier services no longer add rates to the General shipping profile by default.",
         "Webhook payloads follow the subscription version, so change [webhooks] api_version in shopify.app.toml or the subscription too, and read handlers against the new shape. After the move, check the X-Shopify-API-Version response header equals the version asked for.",
-        "Code naming the version by the ApiVersion enum needs an @shopify package new enough to hold that value. This is a reading: the page does not say it."
+        "Code naming the version by the ApiVersion enum needs an @shopify package new enough to hold that value. This is a reading: the page does not say it.",
+        "The lighter path: passing the version as a plain string, apiVersion: \"2026-10\", needs no package upgrade. @shopify/shopify-api 11.0.0 and 12.2.0 hand the value through unchecked (lib/clients/admin/rest/client.ts in https://github.com/Shopify/shopify-app-js), and a test with a mocked fetch saw it reach /admin/api/2026-10/ for GraphQL and REST. That is SDK behaviour, not a Shopify promise: it shows what the SDK sends, not what Shopify answers, so check the X-Shopify-API-Version response header. TypeScript needs a cast, since the config's type is the ApiVersion enum.",
+        "A REST resources import, @shopify/shopify-api/rest/admin/<version>, pins its classes to that version whatever the app config sets, so it has to move too. The folder must ship in the package: 15.0.1 stops at rest/admin/2026-07 and 12.2.0 at rest/admin/2025-10. This is read from the packages, not from Shopify's page.",
+        "A UI extension's api_version in shopify.extension.toml moves with its @shopify/ui-extensions package: Shopify's upgrade guide changes both, api_version = \"2026-04\" with @shopify/ui-extensions 2026.4.x (https://shopify.dev/docs/api/checkout-ui-extensions/2026-10/upgrading-to-2026-10). Older Polaris extensions keep working, so don't bump an extension's api_version alone."
       ]
     },
     {
@@ -68,7 +76,8 @@
       "lookFor": [
         "2025-07 in a REST or GraphQL path: /admin/api/<version>/..., /api/<version>/graphql.json, /customer/api/<version>/graphql",
         "2025-07 set as apiVersion, api_version, API_VERSION, SHOPIFY_API_VERSION or a Session argument, or named by the ApiVersion enum of @shopify/shopify-api. A bare version setting can belong to another vendor, so check it is Shopify. A date-versioned string with a day, such as 2024-10-21, is not this.",
-        "api_version in shopify.app.toml (webhooks fall forward) and in shopify.extension.toml (extensions behave differently: see what)."
+        "2025-07 in a REST resources import, @shopify/shopify-api/rest/admin/<version>. Its classes send /admin/api/<version>/... whatever version the app config sets.",
+        "api_version in shopify.app.toml (webhooks fall forward). In shopify.extension.toml a UI extension's api_version isn't a break by itself: see what."
       ],
       "matchers": [
         {
@@ -91,6 +100,10 @@
           "kind": "regex",
           "value": "[aA][pP][iI][-_ ]?[vV][eE][rR][sS][iI][oO][nN]['\\\"`]?\\s*(?:=>|[:=,(])\\s*['\\\"`]?2025-07(?![-\\d])",
           "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "shopify-api/rest/admin/2025-07(?![-\\d])"
         }
       ],
       "replacement": "2026-10, the latest stable version the page lists. Accessible until October 16, 2027 15:00 UTC.",
@@ -105,7 +118,10 @@
         "2026-10: changing the shipping address on an unfulfilled order with orderUpdate or the REST order update endpoint now recalculates taxes. Re-read taxLines, totalTaxSet and totals afterward and handle the balance difference.",
         "2026-10: DraftOrderDiscountNotAppliedWarning.priceRule and the PriceRule object are removed from the GraphQL schema: select discountTitle and discountCode. Segment query functions use MATCHES and NOT MATCHES instead of = true and = false. A query filtering by a metafield that is not valid for filtering now returns an error. CustomerPhoneNumber.smsMarketingConsent replaces the flat SMS consent fields, and checkout and customer account UI extension metafield declarations need an owner_type. Carrier services no longer add rates to the General shipping profile by default.",
         "Webhook payloads follow the subscription version, so change [webhooks] api_version in shopify.app.toml or the subscription too, and read handlers against the new shape. After the move, check the X-Shopify-API-Version response header equals the version asked for.",
-        "Code naming the version by the ApiVersion enum needs an @shopify package new enough to hold that value. This is a reading: the page does not say it."
+        "Code naming the version by the ApiVersion enum needs an @shopify package new enough to hold that value. This is a reading: the page does not say it.",
+        "The lighter path: passing the version as a plain string, apiVersion: \"2026-10\", needs no package upgrade. @shopify/shopify-api 11.0.0 and 12.2.0 hand the value through unchecked (lib/clients/admin/rest/client.ts in https://github.com/Shopify/shopify-app-js), and a test with a mocked fetch saw it reach /admin/api/2026-10/ for GraphQL and REST. That is SDK behaviour, not a Shopify promise: it shows what the SDK sends, not what Shopify answers, so check the X-Shopify-API-Version response header. TypeScript needs a cast, since the config's type is the ApiVersion enum.",
+        "A REST resources import, @shopify/shopify-api/rest/admin/<version>, pins its classes to that version whatever the app config sets, so it has to move too. The folder must ship in the package: 15.0.1 stops at rest/admin/2026-07 and 12.2.0 at rest/admin/2025-10. This is read from the packages, not from Shopify's page.",
+        "A UI extension's api_version in shopify.extension.toml moves with its @shopify/ui-extensions package: Shopify's upgrade guide changes both, api_version = \"2026-04\" with @shopify/ui-extensions 2026.4.x (https://shopify.dev/docs/api/checkout-ui-extensions/2026-10/upgrading-to-2026-10). Older Polaris extensions keep working, so don't bump an extension's api_version alone."
       ]
     },
     {
@@ -121,7 +137,8 @@
       "lookFor": [
         "2025-04 in a REST or GraphQL path: /admin/api/<version>/..., /api/<version>/graphql.json, /customer/api/<version>/graphql",
         "2025-04 set as apiVersion, api_version, API_VERSION, SHOPIFY_API_VERSION or a Session argument, or named by the ApiVersion enum of @shopify/shopify-api. A bare version setting can belong to another vendor, so check it is Shopify. A date-versioned string with a day, such as 2024-10-21, is not this.",
-        "api_version in shopify.app.toml (webhooks fall forward) and in shopify.extension.toml (extensions behave differently: see what)."
+        "2025-04 in a REST resources import, @shopify/shopify-api/rest/admin/<version>. Its classes send /admin/api/<version>/... whatever version the app config sets.",
+        "api_version in shopify.app.toml (webhooks fall forward). In shopify.extension.toml a UI extension's api_version isn't a break by itself: see what."
       ],
       "matchers": [
         {
@@ -144,6 +161,10 @@
           "kind": "regex",
           "value": "[aA][pP][iI][-_ ]?[vV][eE][rR][sS][iI][oO][nN]['\\\"`]?\\s*(?:=>|[:=,(])\\s*['\\\"`]?2025-04(?![-\\d])",
           "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "shopify-api/rest/admin/2025-04(?![-\\d])"
         }
       ],
       "replacement": "2026-10, the latest stable version the page lists. Accessible until October 16, 2027 15:00 UTC.",
@@ -158,7 +179,10 @@
         "2026-10: changing the shipping address on an unfulfilled order with orderUpdate or the REST order update endpoint now recalculates taxes. Re-read taxLines, totalTaxSet and totals afterward and handle the balance difference.",
         "2026-10: DraftOrderDiscountNotAppliedWarning.priceRule and the PriceRule object are removed from the GraphQL schema: select discountTitle and discountCode. Segment query functions use MATCHES and NOT MATCHES instead of = true and = false. A query filtering by a metafield that is not valid for filtering now returns an error. CustomerPhoneNumber.smsMarketingConsent replaces the flat SMS consent fields, and checkout and customer account UI extension metafield declarations need an owner_type. Carrier services no longer add rates to the General shipping profile by default.",
         "Webhook payloads follow the subscription version, so change [webhooks] api_version in shopify.app.toml or the subscription too, and read handlers against the new shape. After the move, check the X-Shopify-API-Version response header equals the version asked for.",
-        "Code naming the version by the ApiVersion enum needs an @shopify package new enough to hold that value. This is a reading: the page does not say it."
+        "Code naming the version by the ApiVersion enum needs an @shopify package new enough to hold that value. This is a reading: the page does not say it.",
+        "The lighter path: passing the version as a plain string, apiVersion: \"2026-10\", needs no package upgrade. @shopify/shopify-api 11.0.0 and 12.2.0 hand the value through unchecked (lib/clients/admin/rest/client.ts in https://github.com/Shopify/shopify-app-js), and a test with a mocked fetch saw it reach /admin/api/2026-10/ for GraphQL and REST. That is SDK behaviour, not a Shopify promise: it shows what the SDK sends, not what Shopify answers, so check the X-Shopify-API-Version response header. TypeScript needs a cast, since the config's type is the ApiVersion enum.",
+        "A REST resources import, @shopify/shopify-api/rest/admin/<version>, pins its classes to that version whatever the app config sets, so it has to move too. The folder must ship in the package: 15.0.1 stops at rest/admin/2026-07 and 12.2.0 at rest/admin/2025-10. This is read from the packages, not from Shopify's page.",
+        "A UI extension's api_version in shopify.extension.toml moves with its @shopify/ui-extensions package: Shopify's upgrade guide changes both, api_version = \"2026-04\" with @shopify/ui-extensions 2026.4.x (https://shopify.dev/docs/api/checkout-ui-extensions/2026-10/upgrading-to-2026-10). Older Polaris extensions keep working, so don't bump an extension's api_version alone."
       ]
     },
     {
@@ -174,7 +198,8 @@
       "lookFor": [
         "A version from 2019-04 to 2025-01 in a REST or GraphQL path: /admin/api/<version>/..., /api/<version>/graphql.json, /customer/api/<version>/graphql",
         "A version from 2019-04 to 2025-01 set as apiVersion, api_version, API_VERSION, SHOPIFY_API_VERSION or a Session argument, or named by the ApiVersion enum of @shopify/shopify-api. A bare version setting can belong to another vendor, so check it is Shopify. A date-versioned string with a day, such as 2024-10-21, is not this.",
-        "api_version in shopify.app.toml (webhooks fall forward) and in shopify.extension.toml (extensions behave differently: see what)."
+        "A version from 2019-04 to 2025-01 in a REST resources import, @shopify/shopify-api/rest/admin/<version>. Its classes send /admin/api/<version>/... whatever version the app config sets.",
+        "api_version in shopify.app.toml (webhooks fall forward). In shopify.extension.toml a UI extension's api_version isn't a break by itself: see what."
       ],
       "matchers": [
         {
@@ -197,6 +222,10 @@
           "kind": "regex",
           "value": "[aA][pP][iI][-_ ]?[vV][eE][rR][sS][iI][oO][nN]['\\\"`]?\\s*(?:=>|[:=,(])\\s*['\\\"`]?(?:20(?:19|2[0-4])-(?:01|04|07|10)|2025-01)(?![-\\d])",
           "ambiguous": true
+        },
+        {
+          "kind": "regex",
+          "value": "shopify-api/rest/admin/(?:20(?:19|2[0-4])-(?:01|04|07|10)|2025-01)(?![-\\d])"
         }
       ],
       "replacement": "2026-10, the latest stable version the page lists. Accessible until October 16, 2027 15:00 UTC.",
@@ -211,7 +240,10 @@
         "2026-10: changing the shipping address on an unfulfilled order with orderUpdate or the REST order update endpoint now recalculates taxes. Re-read taxLines, totalTaxSet and totals afterward and handle the balance difference.",
         "2026-10: DraftOrderDiscountNotAppliedWarning.priceRule and the PriceRule object are removed from the GraphQL schema: select discountTitle and discountCode. Segment query functions use MATCHES and NOT MATCHES instead of = true and = false. A query filtering by a metafield that is not valid for filtering now returns an error. CustomerPhoneNumber.smsMarketingConsent replaces the flat SMS consent fields, and checkout and customer account UI extension metafield declarations need an owner_type. Carrier services no longer add rates to the General shipping profile by default.",
         "Webhook payloads follow the subscription version, so change [webhooks] api_version in shopify.app.toml or the subscription too, and read handlers against the new shape. After the move, check the X-Shopify-API-Version response header equals the version asked for.",
-        "Code naming the version by the ApiVersion enum needs an @shopify package new enough to hold that value. This is a reading: the page does not say it."
+        "Code naming the version by the ApiVersion enum needs an @shopify package new enough to hold that value. This is a reading: the page does not say it.",
+        "The lighter path: passing the version as a plain string, apiVersion: \"2026-10\", needs no package upgrade. @shopify/shopify-api 11.0.0 and 12.2.0 hand the value through unchecked (lib/clients/admin/rest/client.ts in https://github.com/Shopify/shopify-app-js), and a test with a mocked fetch saw it reach /admin/api/2026-10/ for GraphQL and REST. That is SDK behaviour, not a Shopify promise: it shows what the SDK sends, not what Shopify answers, so check the X-Shopify-API-Version response header. TypeScript needs a cast, since the config's type is the ApiVersion enum.",
+        "A REST resources import, @shopify/shopify-api/rest/admin/<version>, pins its classes to that version whatever the app config sets, so it has to move too. The folder must ship in the package: 15.0.1 stops at rest/admin/2026-07 and 12.2.0 at rest/admin/2025-10. This is read from the packages, not from Shopify's page.",
+        "A UI extension's api_version in shopify.extension.toml moves with its @shopify/ui-extensions package: Shopify's upgrade guide changes both, api_version = \"2026-04\" with @shopify/ui-extensions 2026.4.x (https://shopify.dev/docs/api/checkout-ui-extensions/2026-10/upgrading-to-2026-10). Older Polaris extensions keep working, so don't bump an extension's api_version alone."
       ]
     },
     {
