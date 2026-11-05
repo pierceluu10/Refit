@@ -6,7 +6,7 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-05.rebuild-1';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-05.rebuild-2';
 
 // The day the run happens, so the agent can tell a change in effect from a later one.
 const today = () => new Date().toISOString().slice(0, 10);
@@ -138,7 +138,7 @@ const LIST_RULES = [
   [
     '- Plain code scanned this repo against a kept list of dead APIs. The kickoff message gives every entry it found, with file and line. Fix all of them in this one session.',
     '- "Out of scope" is not an answer for anything on the list. If a finding is a false alarm (the code never reaches that provider, or the object is the app\'s own), leave it and report it in `falseAlarms` with your evidence.',
-    "- No major upgrade unless a list entry requires it. Don't move a package across a major version to fix something else.",
+    "- No major upgrade unless a list entry requires it. Don't move a package across a major version to fix something else. An SDK with no named constant for the new version isn't a reason: pass the version as a plain string and say so in `unproven`.",
     '- If a fix needs a secret or an ID nobody has yet, read it from config (an env var with a clear name, added to any env template the repo keeps) and say in `personMustDo` what a person must set. Never decline because of it.',
     '- Change defaults and live paths, not only tests. A retired model left as a fallback default is still a break, and so is one in a config, a picker or a shared constant.',
     "- Replacements come from the list entry. Don't use a name that isn't in it, however likely it looks, and don't stop on a name the entry says is itself dead.",
@@ -151,7 +151,7 @@ const LIST_RULES = [
 const LIST_WORKFLOW = [
   '## Workflow',
   [
-    '1. Read every finding in the kickoff message and the code around it. Follow values to where they are set: env defaults, config files, shared constants.',
+    '1. Read every finding in the kickoff message and the code around it. Follow values to where they are set: env defaults, config files, shared constants. Search the repo for each API name an entry\'s "requires" lines give, so a version move covers what the move changes.',
     '2. Plan one change that handles the whole list.',
     '3. Edit the code.',
     "4. Write one small test that proves the live path now uses the replacement, inside the repo's test setup, and register it with `run_checks` `add`. When the repo has no test setup, put a plain node or python script under `.refit-proof/`: the harness runs it but keeps it out of the PR. Mock the provider; the sandbox has no credentials.",
@@ -333,6 +333,7 @@ export function buildRetryMessage(input: {
   hasReport: boolean;
   escalated: boolean;
   left?: string[]; // what the rescan still finds
+  majors?: string[]; // major upgrades no list entry asks for
 }): string {
   const parts = ['The harness re-ran the checks after your changes.'];
   if (input.left?.length) {
@@ -340,6 +341,14 @@ export function buildRetryMessage(input: {
       [
         'The rescan still finds these. Fix each one, or list it in `falseAlarms` with your evidence, then call `finish` again:',
         ...input.left.map((line) => `- ${line}`),
+      ].join('\n'),
+    );
+  }
+  if (input.majors?.length) {
+    parts.push(
+      [
+        "No list entry asks for these major upgrades. Put each one back unless the fix can't work without it, then call `finish` again. An SDK with no named constant for the new version isn't a reason: pass the version as a plain string. If you keep one, say why in `unproven`.",
+        ...input.majors.map((line) => `- ${line}`),
       ].join('\n'),
     );
   }

@@ -17,6 +17,8 @@ export type Readers = {
   /** Reads of a word in a file, since a package's hits ask about the same few names. */
   reads: Map<string, Read[]>;
   uses: Map<string, Uses>;
+  /** Next.js API routes as path segments, worked out once a hit asks. */
+  routes?: string[][];
 };
 
 type Read = { source: Source; line: string; offset: number };
@@ -103,10 +105,51 @@ const LOCAL_SPECIFIER = /^(?:\.{1,2}\/|[@~]\/)/;
 const RELATIVE_CODE_IMPORT = /(?:\bfrom\s+|\brequire\(\s*)["'](\.{1,2}\/[^"']+)["']/g;
 // With an extension that isn't code, such as ./x.css or ./data.json, which the scan may not read.
 const NON_CODE_IMPORT = /\.(?!m?[jt]sx?["']?$|cjs$)\w+$/;
+const CODE_EXTENSION = /\.[cm]?[jt]sx?$/;
 const SPECIFIER_PREFIX = /^(?:(?:\.{1,2}|[@~])\/)+/;
 // Names and folders a framework or a runner starts on its own, so nothing has to import them.
 const ENTRY_NAME =
   /^(?:index|main|app|server|cli|route|page|layout|loading|error|handler|worker|middleware|proxy|background|content|popup|preload|sw|service-worker|\w+\.config)$/;
+// `app bkp1.py`, `app_old.py`, `app - Copy.py`: the part before the mark names the original.
+const BACKUP_NAME = /^(.+?)[\s._-]+(?:bkp|bak|backup|old|orig|copy)(?:[\s._-]*\d+)?$/i;
+// `settings.model || 'x'`: what's read off an object, with the property's name. An environment
+// variable is unset all the time, so its fallback is what runs.
+const FALLBACK_LEFT = /(?<![\w$.])([\w$]+(?:\??\.[\w$]+)*)\??\.([\w$]+)\s*(?:\|\||\?\?)\s*$/;
+const ENVIRONMENT_ROOT = /^(?:process|import\.meta|Deno|Bun)\b|\benv$/;
+const NAMED_IMPORT =
+  /\bimport\s+(?!type\b)(?:[\w$]+\s*,\s*)?\{([^}]*)\}\s*from\s+["'](\.{1,2}\/[^"']+)["']/g;
+const IMPORT_SPEC_TYPE = /^type\s/;
+const STAR_EXPORT = /\bexport\s*\*|\bmodule\.exports\s*=\s*require\b/;
+const BOOKKEEPING_CALL =
+  /^(?:save|store|record|log|track|insert|write|add|report|update|increment)\w*(?:usage|cost|spend|tokens?|billing|telemetry|analytics|metrics?)$/i;
+const CALL_WORD = /([\w$]+)\s*$/;
+const FETCH_CALL = /(?<![\w$.])fetch\s*$/;
+const OWN_API_PATH = /^\s*["'`](\/api\/[^"'`?#]*)/;
+const APP_ROUTE = /(?:^|\/)app\/((?:[^/]+\/)*)route\.[cm]?[jt]sx?$/;
+const PAGES_ROUTE = /(?:^|\/)pages\/(api\/.*?)(?:\/index)?\.[cm]?[jt]sx?$/;
+const ROUTE_GROUP = /^\(.*\)$/;
+const CATCH_ALL = /^\[\[?\.\.\./;
+const DYNAMIC_SEGMENT = /^\[.*\]$/;
+const NEXT_CONFIG = /(?:^|\/)next\.config\.\w+$/;
+const REWRITES = /\brewrites\b/;
+const PACKAGING_FILE = /(?:^|\/)(?:setup\.py|pyproject\.toml)$/;
+const JS_PATH_STRING = /["'`]([\w$@~./-]*\/[\w$.-]+)["'`]/g;
+// A returned object often goes to a framework that calls its members by name, as a Vite plugin does.
+const OBJECT_OR_PLAIN_CLASS = /(?:(?<![=!<>])=|\bclass\s+[\w$]+)\s*$/;
+const ARROW_MEMBER =
+  /(?:^|[\s{,])([\w$]+)\s*:\s*(?:async\s*)?(?:\([^()]*\)|[\w$]+)\s*(?::[^=\n]+)?=>\s*$/;
+const METHOD_MEMBER =
+  /(?:^|[\s{,])(?:async\s+)?(?!(?:if|for|while|switch|catch|function|return)\b)([\w$]+)\s*\([^()]*\)\s*(?::[^{\n]+)?$/;
+const TRAILING_CALLEE = /[\w$.]+\s*$/;
+// A Convex function runs when a client names it, so one nobody names is left over.
+const CONVEX_FILE = /(?:^|\/)convex\//;
+const CONVEX_FUNCTION =
+  /^export\s+const\s+([\w$]+)\s*=\s*(?:internal)?(?:action|mutation|query)\s*\(/i;
+const MEMBER_ACCESS_AFTER = /^\s*\??\.[\w$]/;
+const NOT_A_VALUE_READ = /\btypeof\b|\bimport\s*\(|\brequire\s*\(/;
+const OBJECT_ASSIGNED = /([\w$]+)\s*(?::[^=\n]*)?=\s*$/;
+const GUARD_OPEN = /\bif\s*\(\s*([\w$]+)\s*\)\s*$/;
+const MAX_GUARD_WALK = 12;
 const ENTRY_FOLDER =
   /(?:^|\/)(?:app|pages|api|functions|routes|scripts?|bin|cli|tools|commands|lambdas?|handlers|workers|jobs|migrations|plugins|bench|benchmarks|convex|prisma)\//;
 
@@ -405,6 +448,14 @@ function mentionsOf(source: Source): Set<string> {
     for (const [, name] of source.text.matchAll(SCRIPT_TAG_FILE)) {
       mentions.add(`/${name.replace(EXTENSION, '')}`);
     }
+    for (const [, written] of source.text.matchAll(JS_PATH_STRING)) {
+      const code = written.replace(CODE_EXTENSION, '');
+      mentions.add(
+        written.startsWith('.')
+          ? `whole/${path.posix.join(folderOf(source.file), code)}`
+          : `tail/${code.replace(SPECIFIER_PREFIX, '')}`,
+      );
+    }
   }
   return mentions;
 }
@@ -417,10 +468,27 @@ function isDependency(readers: Readers, name: string): boolean {
   );
 }
 
+// Another module of the same name means a path's tail can't say which one an import means.
+function namesTwin(mentions: Set<string>, target: Source): boolean {
+  const bare = target.file.replace(EXTENSION, '');
+  return [...mentions].some(
+    (one) =>
+      one === `whole/${bare}` ||
+      (one.startsWith('tail/') && `/${bare}`.endsWith(`/${one.slice('tail/'.length)}`)),
+  );
+}
+
 function namesModule(readers: Readers, mentions: Set<string>, target: Source): boolean {
   const name = moduleName(target.file);
   const named = isPythonModule(target) ? `${lastFolder(target.file)}/${name}` : `/${name}`;
-  return mentions.has(named) || (mentions.has(`bare/${name}`) && !isDependency(readers, name));
+  if (mentions.has(`bare/${name}`) && !isDependency(readers, name)) return true;
+  if (!mentions.has(named)) return false;
+  const twin =
+    target.mode === JS_MODE &&
+    readers.sources.some(
+      (one) => one !== target && one.mode === JS_MODE && moduleName(one.file) === name,
+    );
+  return !twin || namesTwin(mentions, target);
 }
 
 // A main guard says a module can be started by hand, unless its folder is plainly a library: one whose
@@ -437,6 +505,9 @@ function isLibraryFolder(
     siblings.some((other) => other !== one && namesModule(readers, mentionsFor(one), other)),
   );
 }
+
+// The folder as a path or module part. A short name such as `ai` turns up inside any other word.
+const folderMention = (folder: string) => new RegExp(`["'\`/.]${escapeRegex(folder)}["'\`/.]`);
 
 function isImportedModule(source: Source): boolean {
   const name = moduleName(source.file);
@@ -508,7 +579,7 @@ function orphansOf(readers: Readers): Set<string> {
     const loads = DYNAMIC_LOAD.test(one.text);
     for (const module of waiting) {
       if (module === one) continue;
-      const loaded = loads && one.text.includes(lastFolder(module.file));
+      const loaded = loads && folderMention(lastFolder(module.file)).test(one.text);
       if (loaded || namesModule(readers, mentions, module)) {
         waiting.delete(module);
         running.push(module);
@@ -602,10 +673,17 @@ function defaultReach(readers: Readers, source: Source, span: Span): Reach | und
     (one) => one === source || !(orphans.has(one.file) || definedHere.test(one.text)),
   );
   const allReads = callers.flatMap((one) => readsIn(readers, one, word));
-  // A package that re-exports a function offers it to callers this repo can't show.
-  if (allReads.some((read) => moduleName(read.source.file) === PYTHON_INIT)) return undefined;
-  const reads = allReads.filter((read) => !isImportOf(read) && !(isInit && isTypeAnnotation(read)));
+  const called = allReads.filter((read) => moduleName(read.source.file) !== PYTHON_INIT);
+  const reads = called.filter((read) => !isImportOf(read) && !(isInit && isTypeAnnotation(read)));
   if (reads.length === 0) return undefined;
+  // A package that re-exports a function offers it to callers this repo can't show, unless it's
+  // an app's own folder: nothing publishes it, and its callers sit outside it.
+  const offeredBy = allReads.find((read) => !called.includes(read));
+  if (offeredBy) {
+    const folder = `${folderOf(offeredBy.source.file)}/`;
+    const published = readers.sources.some((one) => PACKAGING_FILE.test(one.file));
+    if (published || reads.every((read) => read.source.file.startsWith(folder))) return undefined;
+  }
   return reads.every((read) => passesParameter(read, word, parameter, earlier.length))
     ? {
         kind: 'catalog',
@@ -650,8 +728,285 @@ function uncalledReach(readers: Readers, source: Source, offset: number): Reach 
   };
 }
 
+function backupReach(readers: Readers, source: Source): Reach | undefined {
+  const stem = moduleName(source.file);
+  const original = BACKUP_NAME.exec(stem)?.[1];
+  if (!original) return undefined;
+  const sibling = path.posix.join(
+    folderOf(source.file),
+    `${original}${path.posix.extname(source.file)}`,
+  );
+  const isCopy =
+    readers.sources.some((one) => one.file === sibling) &&
+    !readers.sources.some((one) => one !== source && one.text.includes(stem));
+  return isCopy
+    ? { kind: 'catalog', reason: `a backup copy of ${sibling} that nothing starts or imports` }
+    : undefined;
+}
+
+/** A named import its module never mentions: the file fails to build, or throws once it's called. */
+function brokenImportReach(readers: Readers, source: Source): Reach | undefined {
+  if (source.mode !== JS_MODE) return undefined;
+  for (const [, names, specifier] of source.text.matchAll(NAMED_IMPORT)) {
+    const module = localModule(readers, source, specifier);
+    if (!module || module === source || STAR_EXPORT.test(module.text)) continue;
+    const missing = names
+      .split(',')
+      .map((one) => one.trim().split(/\s+as\s+/)[0])
+      .find((one) => one && !IMPORT_SPEC_TYPE.test(one) && !wordPattern(one).test(module.text));
+    if (missing) {
+      return {
+        kind: 'unclear',
+        reason: `this file imports ${missing} from ${module.file}, which never names it, so the file may not build or load`,
+      };
+    }
+  }
+  return undefined;
+}
+
+/** A value handed to the app's own usage or cost record, which stays local. */
+function bookkeepingReach(source: Source, offset: number): Reach | undefined {
+  let at = offset;
+  for (let level = 0; level < MAX_ANCESTORS; level += 1) {
+    const open = enclosing(source.code, at);
+    if (!open) return undefined;
+    at = open.open;
+    if (open.char !== '(') continue;
+    const word = CALL_WORD.exec(source.code.slice(Math.max(0, at - LOOK_BACK_CHARS), at))?.[1];
+    if (word && BOOKKEEPING_CALL.test(word)) {
+      return {
+        kind: 'catalog',
+        reason: `a copy kept by ${word}, the app's own record, never sent`,
+      };
+    }
+  }
+  return undefined;
+}
+
+function routesOf(readers: Readers): string[][] {
+  readers.routes ??= readers.sources.flatMap((one) => {
+    const page = PAGES_ROUTE.exec(one.file)?.[1];
+    const app = APP_ROUTE.exec(one.file)?.[1];
+    const route = page ?? app;
+    if (route === undefined) return [];
+    const segments = route.split('/').filter((part) => part && !ROUTE_GROUP.test(part));
+    return segments[0] === 'api' ? [segments] : [];
+  });
+  return readers.routes;
+}
+
+function routeServes(route: string[], wanted: string[]): boolean {
+  return (
+    route.every(
+      (segment, index) =>
+        CATCH_ALL.test(segment) ||
+        (index < wanted.length &&
+          (segment === wanted[index] ||
+            DYNAMIC_SEGMENT.test(segment) ||
+            wanted[index].includes('$'))),
+    ) &&
+    (route.length === wanted.length || CATCH_ALL.test(route.at(-1) ?? ''))
+  );
+}
+
+/** A request to the app's own /api path that no route in the repo serves, so it never gets further. */
+function missingRouteReach(readers: Readers, source: Source, offset: number): Reach | undefined {
+  if (source.mode !== JS_MODE) return undefined;
+  let at = offset;
+  for (let level = 0; level < MAX_ANCESTORS; level += 1) {
+    const open = enclosing(source.code, at);
+    if (!open) return undefined;
+    at = open.open;
+    if (
+      open.char !== '(' ||
+      !FETCH_CALL.test(source.code.slice(Math.max(0, at - LOOK_BACK_CHARS), at))
+    ) {
+      continue;
+    }
+    const wanted = OWN_API_PATH.exec(source.text.slice(at + 1, at + LOOK_BACK_CHARS))?.[1];
+    if (!wanted) return undefined;
+    const routes = routesOf(readers);
+    const rewritten = readers.sources.some(
+      (one) => NEXT_CONFIG.test(one.file) && REWRITES.test(one.text),
+    );
+    const parts = wanted.split('/').filter(Boolean);
+    if (routes.length === 0 || rewritten || routes.some((one) => routeServes(one, parts))) {
+      return undefined;
+    }
+    return {
+      kind: 'unclear',
+      reason: `sent to ${wanted}, and no route in this repo serves that path, so it may never reach the provider`,
+    };
+  }
+  return undefined;
+}
+
+/** A fallback whose left side is given its own default elsewhere, so it may never be empty. */
+function fallbackReach(readers: Readers, source: Source, span: Span): Reach | undefined {
+  if (source.mode !== JS_MODE) return undefined;
+  const left = FALLBACK_LEFT.exec(
+    source.code.slice(Math.max(0, span.start - LOOK_BACK_CHARS), span.start),
+  );
+  if (!left || ENVIRONMENT_ROOT.test(left[1])) return undefined;
+  const property = escapeRegex(left[2]);
+  const defaulted = new RegExp(
+    `(?<![\\w$.])${property}["']?\\s*[:=](?!=)[^,;\\n]*(?:\\|\\||\\?\\?)\\s*["'\`][^"'\`]+["'\`]`,
+  );
+  const hitLine = lineIndexAt(source, span.start);
+  for (const one of packageOf(readers, source.file)) {
+    const found = one.lines.findIndex(
+      (line, index) =>
+        line.length < MAX_LINE_CHARS &&
+        defaulted.test(line) &&
+        !(one === source && index === hitLine),
+    );
+    if (found === -1) continue;
+    const shown = `${one.file}:${reportedLine(one, found)}: ${one.lines[found].trim()}`;
+    return {
+      kind: 'unclear',
+      reason: `the fallback for ${left[1]}.${left[2]}, and ${shown} gives ${left[2]} a value of its own, so this may never be taken`,
+      reads: [shown],
+    };
+  }
+  return undefined;
+}
+
+// The method or function-valued key this offset is inside, when its owner is a plain object or a
+// class with no base, whose members only this repo's code can call.
+function ownerMember(source: Source, offset: number): { name: string; open: number } | undefined {
+  let at = offset;
+  for (let level = 0; level < MAX_ANCESTORS; level += 1) {
+    const open = enclosing(source.code, at);
+    if (!open) return undefined;
+    at = open.open;
+    const ahead = source.code.slice(Math.max(0, at - LOOK_BACK_CHARS), at);
+    const name =
+      open.char === '{'
+        ? (ARROW_MEMBER.exec(ahead) ?? METHOD_MEMBER.exec(ahead))?.[1]
+        : open.char === '('
+          ? ARROW_MEMBER.exec(ahead.replace(TRAILING_CALLEE, ''))?.[1]
+          : undefined;
+    if (name) return { name, open: at };
+  }
+  return undefined;
+}
+
+/** A member of an object or class that nothing here ever names outside its own definition. */
+function uncalledMemberReach(readers: Readers, source: Source, offset: number): Reach | undefined {
+  if (source.mode !== JS_MODE) return undefined;
+  const member = ownerMember(source, offset);
+  if (!member) return undefined;
+  const owner = enclosing(source.code, member.open);
+  if (
+    owner?.char !== '{' ||
+    !OBJECT_OR_PLAIN_CLASS.test(
+      source.code.slice(Math.max(0, owner.open - LOOK_BACK_CHARS), owner.open),
+    )
+  ) {
+    return undefined;
+  }
+  const scope = packageOf(readers, source.file);
+  return scope.some((one) => readsIn(readers, one, member.name).length > 0)
+    ? undefined
+    : {
+        kind: 'unclear',
+        reason: `inside ${member.name}, which nothing in this repo calls, so it may never run`,
+      };
+}
+
+function uncalledConvexReach(readers: Readers, source: Source, offset: number): Reach | undefined {
+  if (source.mode !== JS_MODE || !CONVEX_FILE.test(source.file)) return undefined;
+  for (let index = lineIndexAt(source, offset); index >= 0; index -= 1) {
+    const line = source.lines[index];
+    if (!line.trim() || /^\s/.test(line) || line.startsWith('}')) continue;
+    const name = CONVEX_FUNCTION.exec(line)?.[1];
+    if (!name) return undefined;
+    return packageOf(readers, source.file).some((one) => readsIn(readers, one, name).length > 0)
+      ? undefined
+      : { kind: 'unclear', reason: `inside ${name}, a Convex function nothing in this repo calls` };
+  }
+  return undefined;
+}
+
+/** A list under a key of a table the code only reads by other keys, so nothing ever picks this one. */
+function unreadKeyReach(readers: Readers, source: Source, offset: number): Reach | undefined {
+  if (source.mode !== JS_MODE) return undefined;
+  const list = enclosing(source.code, offset);
+  if (list?.char !== '[') return undefined;
+  const key = KEY_BEFORE.exec(
+    source.code.slice(Math.max(0, list.open - LOOK_BACK_CHARS), list.open),
+  )?.[1];
+  const table = enclosing(source.code, list.open);
+  if (!key || table?.char !== '{') return undefined;
+  const name = OBJECT_ASSIGNED.exec(
+    source.code.slice(Math.max(0, table.open - LOOK_BACK_CHARS), table.open),
+  )?.[1];
+  if (!name) return undefined;
+  const scope = packageOf(readers, source.file);
+  if (scope.some((one) => readsIn(readers, one, key).length > 0)) return undefined;
+  const reads = scope
+    .flatMap((one) => readsIn(readers, one, name))
+    .filter((read) => !isImportOf(read) && !NOT_A_VALUE_READ.test(read.line));
+  const onlyByKey =
+    reads.length > 0 &&
+    reads.every((read) =>
+      MEMBER_ACCESS_AFTER.test(
+        read.source.code.slice(
+          read.offset + name.length,
+          read.offset + name.length + LOOK_BACK_CHARS,
+        ),
+      ),
+    );
+  return onlyByKey
+    ? {
+        kind: 'catalog',
+        reason: `under ${key} in ${name}, and the code only reads other keys of it`,
+      }
+    : undefined;
+}
+
+// shortcut: only JS `const x = false` and `if (x) {`, add Python and ternaries when a repo shows them.
+function falseGuard(source: Source, offset: number): string | undefined {
+  if (source.mode !== JS_MODE) return undefined;
+  let at = offset;
+  for (let level = 0; level < MAX_GUARD_WALK; level += 1) {
+    const open = enclosing(source.code, at);
+    if (!open) return undefined;
+    at = open.open;
+    if (open.char !== '{') continue;
+    const guard = GUARD_OPEN.exec(source.code.slice(Math.max(0, at - LOOK_BACK_CHARS), at))?.[1];
+    if (
+      guard &&
+      new RegExp(`\\bconst\\s+${escapeRegex(guard)}\\s*(?::\\s*boolean\\s*)?=\\s*false\\b`).test(
+        source.code,
+      )
+    ) {
+      return guard;
+    }
+  }
+  return undefined;
+}
+
+/** Inside a branch a constant turns off, or in a list only ever read inside such a branch. */
+function deadBranchReach(readers: Readers, source: Source, offset: number): Reach | undefined {
+  const here = falseGuard(source, offset);
+  if (here) return { kind: 'catalog', reason: `inside if (${here}), and ${here} is always false` };
+  const list = enclosing(source.code, offset);
+  if (list?.char !== '[') return undefined;
+  const word = listName(source, list).split('.').at(-1);
+  if (!word) return undefined;
+  const reads = packageOf(readers, source.file).flatMap((one) => readsIn(readers, one, word));
+  const guards = reads.map((read) => falseGuard(read.source, read.offset));
+  return reads.length > 0 && guards.every(Boolean)
+    ? {
+        kind: 'catalog',
+        reason: `the list ${word} is only read inside if (${guards[0]}), and ${guards[0]} is always false`,
+      }
+    : undefined;
+}
+
 function localModule(readers: Readers, source: Source, specifier: string): Source | undefined {
-  const code = specifier.replace(/\.[cm]?[jt]sx?$/, '');
+  const code = specifier.replace(CODE_EXTENSION, '');
   const wanted = specifier.startsWith('.')
     ? path.posix.join(folderOf(source.file), code)
     : code.replace(SPECIFIER_PREFIX, '');
@@ -752,6 +1107,8 @@ export type ReachInput = {
 /** Why this match never reaches the API, or undefined when nothing here shows that. */
 export function reachOf(readers: Readers, input: ReachInput): Reach | undefined {
   const { source, offset, span, picker, fileNamesProvider, packages } = input;
+  const backup = backupReach(readers, source);
+  if (backup) return backup;
   if (orphansOf(readers).has(source.file)) {
     return {
       kind: 'unclear',
@@ -759,12 +1116,21 @@ export function reachOf(readers: Readers, input: ReachInput): Reach | undefined 
         'nothing that runs imports this module, so it may be left over from a rewrite, and it only runs if someone starts it by hand',
     };
   }
+  const stopped =
+    brokenImportReach(readers, source) ?? uncalledConvexReach(readers, source, offset);
+  if (stopped) return stopped;
   if (span?.kind !== 'string') return undefined;
   return (
+    deadBranchReach(readers, source, offset) ??
+    unreadKeyReach(readers, source, offset) ??
     facadeReach(readers, source, packages) ??
     wrapperReach(readers, source, offset) ??
     defaultReach(readers, source, span) ??
+    bookkeepingReach(source, offset) ??
+    missingRouteReach(readers, source, offset) ??
+    fallbackReach(readers, source, span) ??
     uncalledReach(readers, source, offset) ??
+    uncalledMemberReach(readers, source, offset) ??
     unresolvedCall(source, offset) ??
     assignedReach(readers, source, span, fileNamesProvider) ??
     constructedReach(readers, source, offset) ??

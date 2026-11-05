@@ -32,7 +32,7 @@ const TOKENIZER_CALL = /\b(?:encoding_for_model|encodingForModel)\s*\(\s*$/;
 const TOKENIZER_LINE = /\btiktoken\b/i;
 const PRICE_CALL = /\b\w*(?:cost|price|pricing)\w*\s*\(\s*$/i;
 const DISPLAY_KEY =
-  /(?:^|[\s{,])["']?(?:placeholder|title|alt|aria-label|tooltip|helperText)["']?\s*[:=]\s*\{?\s*$/i;
+  /(?:^|[\s{,])["']?(?:placeholder|title|alt|label|aria-label|tooltip|helperText)["']?\s*[:=]\s*\{?\s*$/i;
 const CHECK_CALL =
   /\.(?:startsWith|endsWith|startswith|endswith|includes|indexOf|has|match|test)\s*\(\s*$/;
 const COMPARE_BEFORE = /[=!]==?\s*$/;

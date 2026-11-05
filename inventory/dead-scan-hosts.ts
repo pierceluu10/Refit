@@ -31,7 +31,10 @@ const S3_HOST = /(?:^|\.)s3[\w.-]*\.amazonaws\.com$/i;
 const S3_DOMAIN_BUCKET = /^\/((?:[a-z0-9-]+\.)+[a-z]{2,})\//i;
 // An environment key a provider's own name opens, read by code that takes its address from there.
 const PROVIDER_ENV_KEY =
-  /\b([A-Z][A-Z0-9]*)_(?:URL|API_?KEY|ANON_KEY|SERVICE_ROLE_KEY|TOKEN|SECRET(?:_KEY)?)\b/g;
+  /\b([A-Z][A-Z0-9]*)_(?:URL|API_?URL|API_?KEY|CLIENT_(?:ID|SECRET)|ANON_KEY|SERVICE_ROLE_KEY|TOKEN|SECRET(?:_KEY)?)\b/g;
+// The OpenAI SDK's own client for Azure, which leaves no package or host of Azure's to go by.
+const AZURE_OPENAI = /\bAzureOpenAI\b|\bAZURE_OPENAI_[A-Z]+\b/;
+const AZURE_OPENAI_PROVIDER = 'azure-openai';
 // HTML attributes aren't strings to the lexer, so a tag's host is read from the text.
 const SCRIPT_TAG_HOST = /<script\b[^>]*\bsrc=["'](?:https?:)?\/\/((?:[a-z0-9-]+\.)+[a-z]{2,})/gi;
 const WORKFLOW_PATH = /(?:^|\/)\.github\/workflows\//;
@@ -54,8 +57,8 @@ const looksCalled = (ahead: string, host: string, rest: string) => {
   return API_HOST.test(host) || API_PATH.test(rest);
 };
 
-// Installed packages' code, which calls their own hosts and isn't the repo's to fix.
-const VENDORED_PATH = /(?:^|\/)(?:site-packages|dist-packages|vendor|third_party)\//;
+// Copied-in code, which calls its own hosts and isn't the repo's to fix. A walk skips the rest.
+const VENDORED_PATH = /(?:^|\/)third_party\//;
 
 /** The hosts `source` reaches: a URL that opens a string and that a call or an address holder takes. */
 function hostsCalledIn(source: Source): string[] {
@@ -123,6 +126,7 @@ export function namedProviders(sources: Source[]): string[] {
       for (const [, word] of source.text.matchAll(PROVIDER_ENV_KEY)) {
         if (catalogEntry(word.toLowerCase())) names.add(word.toLowerCase());
       }
+      if (AZURE_OPENAI.test(source.text)) names.add(AZURE_OPENAI_PROVIDER);
     }
   }
   return [...names];

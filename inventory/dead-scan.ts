@@ -148,6 +148,8 @@ type Repo = {
   presence: Map<string, boolean>;
   fileNames: Map<string, boolean>;
   bindings: Map<string, FileBindings>;
+  /** Folders a deploy config serves as the site, so a docs/ page there runs. */
+  published: string[];
 };
 
 // Dot folders that hold an installed agent tool or a tool's output. Any other dot folder is the repo's
@@ -186,6 +188,12 @@ const SAMPLE_PATH = /(?:^|\/)(?:stories|examples?|samples?|docs?|documentation)\
 const SOURCE_FOLDER = /(?:^|\/)src\//;
 // An API route is deployed, whatever its name: app/api/test/route.ts.
 const API_ROUTE = /(?:^|\/)(?:app|pages)\/(?:.*\/)?api\//;
+// What a host serves as the site. docs/ and examples/ are samples, unless one of these says it's the app.
+const PUBLISH_SETTINGS: { name: RegExp; setting: RegExp }[] = [
+  { name: /^vercel\.json$/, setting: /"outputDirectory"\s*:\s*"([^"]+)"/ },
+  { name: /^netlify\.toml$/, setting: /\bpublish\s*=\s*"([^"]+)"/ },
+  { name: /^firebase\.json$/, setting: /"public"\s*:\s*"([^"]+)"/ },
+];
 const MINIFIED_NAME = /[.-]min\.\w+$|[.-]bundle\.\w+$|\.map$/;
 const TYPE_DECLARATIONS = /\.d\.[cm]?ts$/;
 const GENERATED_HEAD = /@generated\b|\bDO NOT EDIT\b|__commonJS\b|__create = Object\.create\b/;
@@ -242,6 +250,16 @@ const dotFolderOf = (file: string) =>
 const isTestPath = (file: string) =>
   !API_ROUTE.test(file) &&
   (TEST_PATH.test(file) || (SAMPLE_PATH.test(file) && !SOURCE_FOLDER.test(file)));
+
+function publishedFolders(sources: Source[]): string[] {
+  return sources.flatMap((source) => {
+    const name = path.posix.basename(source.file);
+    const folder = PUBLISH_SETTINGS.find((one) => one.name.test(name))?.setting.exec(
+      source.text,
+    )?.[1];
+    return folder ? [path.posix.join(path.posix.dirname(source.file), folder)] : [];
+  });
+}
 
 /** Paths whose versions and manifests don't speak for the app: tests and vendored tools. */
 const isIgnoredForFacts = (file: string) => isTestPath(file) || dotFolderOf(file) !== undefined;
@@ -592,7 +610,7 @@ function hitsIn(repo: Repo, source: Source, entries: DeadApiEntry[]): Hit[] {
 
 // ---- Judging ----
 
-function placeOf(hit: Hit, span: Span | undefined): Classed | Place | undefined {
+function placeOf(hit: Hit, span: Span | undefined, repo: Repo): Classed | Place | undefined {
   const { source, entry, name, offset } = hit;
   const dotFolder = dotFolderOf(source.file);
   if (dotFolder) {
@@ -612,8 +630,10 @@ function placeOf(hit: Hit, span: Span | undefined): Classed | Place | undefined 
   }
   if (source.mode === 'prose') return { matchClass: 'comment', reason: 'prose, not code' };
   if (span?.kind === 'comment') return { matchClass: 'comment', reason: 'in a comment' };
-  if (isTestPath(source.file))
+  const served = repo.published.some((folder) => source.file.startsWith(`${folder}/`));
+  if (isTestPath(source.file) && !served) {
     return { matchClass: 'test', reason: 'a test, fixture, example or docs path' };
+  }
   if (hit.matcher.kind === 'field' || hit.matcher.kind === 'package') return undefined;
   if (span?.kind === 'string' && offset + name.length <= span.end) {
     if (isProse(source, span, name, offset)) {
@@ -732,7 +752,7 @@ function classify(hit: Hit, repo: Repo): Verdict {
   const version = gate.state === 'at-or-after' || gate.state === 'below' ? gate.version : undefined;
   if (gate.state === 'below') return { quiet: true, reason: gate.reason, version };
 
-  const place = placeOf(hit, span);
+  const place = placeOf(hit, span, repo);
   if (place && 'matchClass' in place) return { ...place, version };
   if (place && (place.kind === 'comment' || place.kind === 'catalog')) {
     if (
@@ -819,7 +839,7 @@ function judge(hit: Hit, repo: Repo): Verdict {
   }
   const { source, offset, entry } = hit;
   const span = spanAt(source.spans, offset);
-  const place = placeOf(hit, span);
+  const place = placeOf(hit, span, repo);
   const reach = reachOf(repo.readers, {
     source,
     offset,
@@ -990,6 +1010,7 @@ export async function scanDeadApis(
     presence: new Map(),
     fileNames: new Map(),
     bindings: new Map(),
+    published: publishedFolders(sources),
   };
 
   const best = new Map<string, FindingDetail>();

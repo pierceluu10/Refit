@@ -44,7 +44,7 @@ export function tokenMatches(
   token: string,
 ): boolean {
   const regex = tokenRegex(matcher.value, matcher.caseSensitive !== false);
-  return candidates(token).some((candidate) => regex.test(candidate));
+  return matcher.bare ? regex.test(token) : candidates(token).some((one) => regex.test(one));
 }
 
 /** Whether a line holds a string or regex matcher's name. */

@@ -1,0 +1,3 @@
+# Excerpt of bicalhobim/ia.rt_bim, requirements.txt, seen in P5.
+openai==1.31.0
+flask==3.0.3

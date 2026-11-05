@@ -275,3 +275,48 @@ The 2026-11-04 numbers are from `TEST-2026-11-04.md`. That test ran several task
 - **`Code-Review-Agent`, Needs a look. That label was too cautious.** The session dropped `temperature`, `top_p` and `top_k` from the Anthropic and Gemini calls. The rule tripped on `LLMConfig`, a typed config next to the edit, and the list allows a shared config to hold them. `requiredRemovals` now skips a typed field or parameter.
 
 The Docker baseline and session each took 1 to 1.5 minutes, so all 3 repos beat the 5-minute target.
+
+## O8 round 3: real scanner, new kinds of break
+
+**When:** 2026-11-05, 06:42 to 06:56. **Commit:** `cf5378da` on `rebuild/integration`. **Locks:** `evals/rounds/o8-3/`. **Spend:** $0.89 of a $9 cap.
+
+The first scored round on Pierce's scanner, and the first with Shopify and Meta breaks. Every repo is fresh.
+
+| Repo | Required fixed | Label | Cost | Time |
+| --- | --- | --- | --- | --- |
+| `tungbinzzz/instagram-app-shopify` | 2 of 2 | Fixed | $0.1722 | 112 s |
+| `sabbir-noyon/wishkit-app-shopify` | 2 of 2 | Fixed | $0.0928 | 89 s |
+| `ksyp-7/shopify-theme-app-extension-vite-react` | 2 of 2 | Fixed, **I disagree** | $0.1950 | 219 s |
+| `diegocsrdias/postmedia` | 2 of 2 | Fixed | $0.1055 | 41 s |
+| `imran-farooq7/next-gen-ai-yt` | 1 of 1 | Fixed | $0.0930 | 98 s |
+| `Cap-go/videoclub` | 1 of 1 | Fixed | $0.0968 | 112 s |
+| `newfold-labs/wp-module-facebook` | 1 of 1 | Fixed | $0.0772 | 69 s |
+| `hridoyhossain1001/buykori-client-portal` | 2 of 2 | Fixed, no real break | $0.0567 | 47 s |
+| **Total** | **13 of 13** | | **$0.8894** | |
+
+| Target | Result |
+| --- | --- |
+| Required changes fixed, at least 70% | 13 of 13 by static locks, or 11 of 11 without `buykori`, which has no real break |
+| "Fixed" a hand-check agrees with, at least 90% | **Missed: 7 of 8, 88%** |
+| Cost with matches, about $0.50, never above $1 | $0.11 on average, $0.20 at most |
+| Time with matches, under 5 minutes | Met on all 8. The slowest took 219 s |
+| Unneeded major upgrades, none | **Missed on 1 of 8.** `ksyp-7` moved 5 packages |
+
+Eight Fixed labels out of eight looked too good, so I read all 8 diffs, and the code around them, by hand. These locks show a name moved, so a pass says little without that read.
+
+**Reading every result:**
+
+- **`ksyp-7`, Fixed. I disagree.** The list says the replacement version is 2026-10, and the installed SDK has no enum value for it. This session moved `shopify-app-remix` 3 to 6, `shopify-api` 11 to 15, `session-storage-prisma` 5 to 11 and Prisma 5 to 6, which raises the Node minimum to 22. It also rewrote `customShopDomains` as a regex, and it says the app was never run on Prisma 6. `tungbinzzz` and `wishkit` faced the same gap and passed `"2026-10"` as a string, with no upgrade. The upgrade was unneeded, and the label had no way to see it.
+- **`tungbinzzz`, Fixed. I agree.** It leaves `restResources` importing `rest/admin/2024-10`. The session says so, and nothing in the app uses a name from the entry's `requires` lines.
+- **`wishkit`, Fixed. I agree.** The `"2026-10" as ApiVersion` cast is ugly but honest, and the PR says so. It also moved `shopify.app.toml` from 2026-04, which wasn't dead. That's harmless. Its one `requires` hit, `productVariantsBulkUpdate`, comes from the template and sends no quantities.
+- **`postmedia`, Fixed. I agree.** Both sizes the repo sends, 1024x1024 and 1024x1536, meet the new rules.
+- **`next-gen-ai-yt`, Fixed. I agree.** It keeps the legacy SDK, which the entry allows unless the call needs the new one.
+- **`videoclub`, Fixed. I agree.** The session also reported that this oEmbed call has no access token, so it may fail for a reason older than this fix. It isn't on the list.
+- **`wp-module-facebook`, Fixed. I agree.** The repo commits `build/`, so the rebuilt bundle belongs in the diff. It also moved a profile image to a field the same component already prints, on the word of the scan's check.
+- **`buykori`, Fixed. I agree with the edit, but the break isn't real.** Both hits are display strings holding the literal `pixel_id`, in a simulator and in `mock-data.ts`. No call is made. It cost $0.06, and it goes to Pierce as a false alarm.
+
+**Top cause: a session can take a major upgrade the list didn't ask for, and the label can't see it.** The prompt already said no, but the entry's own line, that the enum needs a newer package, pushed the other way.
+
+**What changed:** plain code now finds a major upgrade no entry asks for, sends it back to the session once, and gives one it keeps Needs a look. The prompt also says a missing constant isn't a reason, and tells the session to search for each API name in the `requires` lines, because 2 of the 3 Shopify sessions said they hadn't read the code against the versions crossed.
+
+**The scan's AI check,** measured on all 26 repos where the scan was only unsure: $0.0163 in all, about $0.0006 a repo, and 7.6 s on average. It ruled out every match on 1 repo and some matches on 5 others. Across 196 repos the scan averaged 1.6 s, and took 18 s at most.

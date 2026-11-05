@@ -158,6 +158,40 @@ export function requiredRemovals(entries: DeadApiEntry[], diff: string): string[
   return [...left];
 }
 
+/** Packages a diff moved across a major version in a package.json, for the "none unneeded" target. */
+export function majorUpgrades(diff: string): string[] {
+  const major = (range: string) => /(\d+)/.exec(range)?.[1];
+  const moved: string[] = [];
+  for (const section of diff.split(/^(?=diff --git )/m)) {
+    if (!/^diff --git a\/(?:.+\/)?package\.json /m.test(section)) continue;
+    const pairs = (sign: string) =>
+      new Map(
+        [...section.matchAll(new RegExp(`^\\${sign}\\s*"([^"]+)":\\s*"([^"]+)"`, 'gm'))].map(
+          (m) => [m[1] as string, m[2] as string],
+        ),
+      );
+    const before = pairs('-');
+    for (const [name, range] of pairs('+')) {
+      const old = before.get(name);
+      if (old && major(old) !== major(range)) moved.push(`${name} ${old} -> ${range}`);
+    }
+  }
+  return moved;
+}
+
+// Major moves no entry asks for. An entry asks by naming the package, or by saying its SDK moves a major.
+export function unneededMajors(diff: string, entries: DeadApiEntry[]): string[] {
+  const asked = (name: string) =>
+    entries.some((entry) => {
+      const text = [entry.replacement, ...entry.requires].join(' ');
+      return (
+        text.includes(name) ||
+        (/\bmajor\b/i.test(text) && entry.context?.packages?.includes(name) === true)
+      );
+    });
+  return majorUpgrades(diff).filter((move) => !asked(move.split(' ')[0] as string));
+}
+
 export type FixLabel = { outcome: 'verified' | 'needs-review' | 'failed'; reason: string };
 
 // The label from plain facts: the rescan and the checks, never the session's own words.
@@ -170,6 +204,7 @@ export function labelFix(input: {
   rework?: boolean;
   codeRan?: boolean; // a passing check imports the code that changed
   stillSet?: string[]; // what the entry says to remove and a changed file still has
+  majors?: string[]; // major moves no entry asks for
 }): FixLabel {
   const before = input.findings.filter(counts).length;
   const left = leftOf(input.findings, input.rescan).length;
@@ -201,6 +236,12 @@ export function labelFix(input: {
     return {
       outcome: 'needs-review',
       reason: `The rescan is clean, but the list says to remove what's still here: ${input.stillSet.join(', ')}.`,
+    };
+  }
+  if (input.majors?.length) {
+    return {
+      outcome: 'needs-review',
+      reason: `The rescan is clean, but the list doesn't ask for these major upgrades: ${input.majors.join(', ')}.`,
     };
   }
   return { outcome: 'verified', reason: 'The rescan is clean and the checks are no worse.' };

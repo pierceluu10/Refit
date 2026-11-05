@@ -10,10 +10,12 @@ import {
   labelFix,
   repoTask,
   requiredRemovals,
+  unneededMajors,
   type DeadApiEntry,
   type Finding,
   type ScanResult,
 } from './findings.ts';
+import { buildRetryMessage } from './prompt.ts';
 import { ESCALATION_MODEL, MODEL, decideOutcome, runTask } from './run.ts';
 import { createSandbox } from './sandbox.ts';
 import type { Plan } from './prepare.ts';
@@ -561,6 +563,51 @@ describe('a repo session', () => {
     expect(record.outcome).toBe('verified');
   });
 
+  // Under `config`, so the fixture's install has nothing to fetch.
+  const withStripe = () => {
+    const dir = fixtureRepo();
+    const manifest = { name: 'fixture', type: 'module', scripts: { test: 'node check.js' } };
+    const text = { ...manifest, config: { stripe: '^17.0.0' } };
+    writeFileSync(join(dir, 'package.json'), JSON.stringify(text, null, 2));
+    return dir;
+  };
+
+  it('asks the session once to undo a major upgrade, and keeps the label honest if it stays', async () => {
+    const bump: ScriptedTurn = async (call) => {
+      await call('edit_file', {
+        path: 'package.json',
+        old: '"stripe": "^17.0.0"',
+        new: '"stripe": "^18.0.0"',
+      });
+    };
+    const undo: ScriptedTurn = async (call) => {
+      await call('edit_file', {
+        path: 'package.json',
+        old: '"stripe": "^18.0.0"',
+        new: '"stripe": "^17.0.0"',
+      });
+    };
+    const seen: string[] = [];
+    const run = (second: ScriptedTurn) =>
+      runTask(repoTaskFor([live('src/pay.js')]), withStripe(), {
+        ...deps([]),
+        session: scriptedSession([
+          both(fix, bump, finish()),
+          async (call, input) => {
+            seen.push(input.prompt);
+            await second(call, input);
+          },
+        ]),
+        rescan,
+      });
+    expect((await run(both(undo, finish()))).outcome).toBe('verified');
+    expect(seen[0]).toContain('No list entry asks for these major upgrades');
+    expect(seen[0]).toContain('stripe ^17.0.0 -> ^18.0.0');
+    const kept = await run(finish());
+    expect(kept.outcome).toBe('needs-review');
+    expect(kept.note).toContain("the list doesn't ask for these major upgrades");
+  });
+
   it("calls it couldn't fix when every use is still there", async () => {
     const edit: ScriptedTurn = async (call) => {
       await call('write_file', { path: 'README.md', content: 'notes' });
@@ -617,6 +664,44 @@ describe('a repo session', () => {
     // A failed check left only unclear matches, and the fix took them.
     const unsure = labelFix({ ...base, findings: [unclear('a.js')], rescan: scanOf([]) });
     expect(unsure.outcome).toBe('verified');
+  });
+
+  it('sends an unneeded major upgrade back once, and labels one the session keeps', async () => {
+    const major = [
+      'diff --git a/package.json b/package.json',
+      '--- a/package.json',
+      '+++ b/package.json',
+      '@@ -1 +1 @@',
+      '-    "prisma": "^5.0.0",',
+      '+    "prisma": "^6.0.0",',
+    ].join('\n');
+    expect(unneededMajors(major, [entry])).toEqual(['prisma ^5.0.0 -> ^6.0.0']);
+    expect(unneededMajors(major, [{ ...entry, requires: ['Move prisma to 6.'] }])).toEqual([]);
+    const sdk = {
+      ...entry,
+      requires: ['Take the newest major.'],
+      context: { packages: ['prisma'] },
+    };
+    expect(unneededMajors(major, [sdk])).toEqual([]);
+    const label = labelFix({
+      findings: [live('a.js')],
+      rescan: scanOf([]),
+      newFailures: 0,
+      changed: true,
+      touched: true,
+      majors: unneededMajors(major, [entry]),
+    });
+    expect(label.outcome).toBe('needs-review');
+    expect(label.reason).toContain('prisma ^5.0.0 -> ^6.0.0');
+    const retry = buildRetryMessage({
+      comparisons: [],
+      after: [],
+      hasReport: false,
+      escalated: false,
+      majors: ['prisma ^5.0.0 -> ^6.0.0'],
+    });
+    expect(retry).toContain('No list entry asks for these major upgrades');
+    expect(retry).toContain('- prisma ^5.0.0 -> ^6.0.0');
   });
 
   it('calls a partly clean rescan needs a look', () => {
