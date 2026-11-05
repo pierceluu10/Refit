@@ -87,11 +87,11 @@ interrupted. Only one read per repo waits at a time; `forget` drops a repo's wai
 has no forget yet).
 
 Every job makes the same decision. It reads the default branch's tree SHA (one API call, no clone)
-and compares it, and today's in-force list version, with the repo's last scan:
+and compares it, today's in-force list version and the scanner's version with the repo's last scan:
 
 | What it finds                                           | What it does                                                                            |
 | ------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| No scan yet, a new tree, or a new list version          | Clones (depth 1, the token in the environment, never argv), scans, deletes the checkout |
+| No scan yet, a new tree, list version or scanner        | Clones (depth 1, the token in the environment, never argv), scans, deletes the checkout |
 | Nothing new, last scan clean                            | Skips with no download                                                                  |
 | Nothing new, last scan not clean                        | Skips with no download and no fix, and stays reported as not clean                      |
 | Nothing new, but the last AI check failed or was capped | Scans again, so the unclear finding gets its check                                      |
@@ -100,7 +100,7 @@ and compares it, and today's in-force list version, with the repo's last scan:
 A live finding goes to `runRepoJob` only if no fix has been started for it. A finding is its entry and
 its file, so a push that only moves a line doesn't pay for a second fix, a closed PR isn't reopened by
 a tick, and a dead thing that comes back after a clean scan gets a new one. A fix that throws hasn't had
-its try: the next new tree or list version retries it, and the next tick doesn't. A finding that's
+its try: the next new tree, list version or scanner retries it, and the next tick doesn't. A finding that's
 only unclear never reaches a fix. Unlisted providers go to the queue that the list's refresh reads and
 stay on the repo's record, so its summary reads `clean-unlisted-waiting`, not `clean`.
 
@@ -108,6 +108,12 @@ The decision goes by the branch as it is now, never by the commit a webhook name
 late push can't scan twice or move a repo back to an old tree. The tree on record comes from the clone,
 so a push landing mid-job isn't marked as scanned. A failure writes no state, so it can't read as clean
 and the next trigger tries again.
+
+The scanner's version is `SCANNER_VERSION`, a hash of the non-test source in `inventory/` and
+`dead-apis/` taken at load, so nobody has to remember to bump it. Any edit there re-reads every repo once
+(`why: scanner-change`) after a deploy. That costs a clone per repo, one AI check where a repo has unclear
+findings, and a fix only for a live finding that hasn't had one. A finding on the first scan by a new
+scanner isn't reported to evidence, since it can't be told from one the old scanner couldn't see.
 
 ## Always watching
 

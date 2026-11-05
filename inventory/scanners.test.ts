@@ -218,6 +218,80 @@ describe('listManifests', () => {
     ]);
   });
 
+  it('reads a package.json written on one line', async () => {
+    const oneLine = await makeRepo({
+      'package.json': JSON.stringify({
+        name: 'fixture',
+        dependencies: { stripe: '^14.0.0' },
+        devDependencies: { vitest: '^3.0.0' },
+      }),
+    });
+    try {
+      const { manifests } = await listManifests(oneLine);
+      expect(manifests[0].dependencies).toEqual([
+        { name: 'stripe', version: '^14.0.0', line: 1, hint: 'Stripe' },
+        { name: 'vitest', version: '^3.0.0', line: 1, dev: true },
+      ]);
+    } finally {
+      await removeRepo(oneLine);
+    }
+  });
+
+  it('gives each section its own line for a name in two sections', async () => {
+    const twice = await makeRepo({
+      'composer.json': JSON.stringify(
+        { require: { 'stripe/stripe-php': '^10' }, 'require-dev': { 'stripe/stripe-php': '^9' } },
+        null,
+        2,
+      ),
+    });
+    try {
+      const { manifests } = await listManifests(twice);
+      expect(
+        manifests[0].dependencies.map(({ version, line, dev }) => [version, line, dev]),
+      ).toEqual([
+        ['^10', 3, undefined],
+        ['^9', 6, true],
+      ]);
+    } finally {
+      await removeRepo(twice);
+    }
+  });
+
+  it('ignores a section that sits inside another key or holds no versions', async () => {
+    const odd = await makeRepo({
+      'package.json': JSON.stringify(
+        {
+          pnpm: { dependencies: { nested: '1.0.0' } },
+          dependencies: { real: '1.0.0', notAVersion: { version: '1.0.0' } },
+          peerDependencies: ['listed'],
+        },
+        null,
+        2,
+      ),
+    });
+    try {
+      const { manifests } = await listManifests(odd);
+      expect(manifests[0].dependencies.map((entry) => entry.name)).toEqual(['real']);
+    } finally {
+      await removeRepo(odd);
+    }
+  });
+
+  it('still reads a manifest JSON.parse refuses, line by line', async () => {
+    const broken = await makeRepo({
+      'package.json': '{\n  "dependencies": {\n    "stripe": "^14.0.0",\n  },\n}\n',
+    });
+    try {
+      const { manifests } = await listManifests(broken);
+      expect(manifests[0].dependencies).toEqual([
+        { name: 'stripe', version: '^14.0.0', line: 3, hint: 'Stripe' },
+      ]);
+    } finally {
+      await removeRepo(broken);
+    }
+  });
+
   it('parses requirements.txt and go.mod require lines and blocks', async () => {
     const { manifests, lockfiles } = await listManifests(repo);
     const python = manifests.find((manifest) => manifest.file === 'requirements.txt');

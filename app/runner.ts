@@ -4,6 +4,7 @@ import { PROPOSED_DIR } from '../dead-apis/proposals.ts';
 import { BudgetLedger } from '../inventory/budget.ts';
 import { checkUnclear } from '../inventory/dead-check.ts';
 import { scanDeadApis } from '../inventory/dead-scan.ts';
+import { SCANNER_VERSION } from '../inventory/scanner-version.ts';
 import { runRepoJob } from '../orchestrator/index.ts';
 import type { Finding } from '../shared/types.ts';
 import type { ConsentStore } from './consent.ts';
@@ -81,5 +82,6 @@ export const createAppRunner = (
     scan,
     loadList: () => loadDeadApis(),
     triggers,
+    scannerVersion: SCANNER_VERSION,
     rescan: rescanWith(evidence),
   });

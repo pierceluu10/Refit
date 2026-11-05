@@ -25,6 +25,7 @@ export type JobRunnerDeps = {
   scan: (dir: string, repo: string) => Promise<DeadScanReport>;
   loadList: () => DeadApiList;
   triggers: TriggerStore;
+  scannerVersion: string;
   now?: () => Date;
   // Tells evidence what this scan found. `at` is from before the clone.
   rescan: (job: UnderstandJob, findings: Finding[], at: string) => Promise<void>;
@@ -74,11 +75,14 @@ export function createJobRunner(deps: JobRunnerDeps) {
       // From the clone, not the earlier read: a push between the two must not pass as this scan's tree.
       const treeSha = await deps.treeOfCheckout(dir);
       const report = await deps.scan(dir, job.repo);
-      try {
-        await deps.rescan(job, report.findings, at);
-      } catch (error) {
-        // Learning from a rescan never stands between a repo and its fix.
-        console.error(`rescan evidence for ${job.repo} failed: ${messageOf(error)}`);
+      // What only a newer scanner can see isn't a fix coming back. The next scan, on this scanner, tells.
+      if (!previous || previous.scannerVersion === deps.scannerVersion) {
+        try {
+          await deps.rescan(job, report.findings, at);
+        } catch (error) {
+          // Learning from a rescan never stands between a repo and its fix.
+          console.error(`rescan evidence for ${job.repo} failed: ${messageOf(error)}`);
+        }
       }
       const live = liveFindings(report);
       const tried = why === 'manual' ? [] : (previous?.attempted ?? []);
@@ -110,6 +114,7 @@ export function createJobRunner(deps: JobRunnerDeps) {
         installationId: job.installationId,
         treeSha,
         listVersion,
+        scannerVersion: deps.scannerVersion,
         scannedOn: today,
         clean,
         checkSettled: !UNSETTLED_CHECKS.has(report.check?.outcome ?? ''),
@@ -148,7 +153,7 @@ export function createJobRunner(deps: JobRunnerDeps) {
     if (tree === undefined) {
       return { outcome: { decision: 'skipped', why: 'empty-repo', listVersion, costUsd: 0 } };
     }
-    const decision = decide(job.reason, state, tree, listVersion, list, today);
+    const decision = decide(job.reason, state, tree, listVersion, deps.scannerVersion, list, today);
     if (decision.scan) return scanAndFix(job, token, decision.why, state, listVersion, today);
     const { clean, findings, unlistedProviders } = decision.state;
     return {

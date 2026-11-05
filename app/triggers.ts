@@ -16,13 +16,20 @@ export const CLOCK_INTERVAL_MS = 24 * HOUR_MS;
 export const STALE_AFTER_HOURS = 48;
 
 export type ScanCause =
-  'first-scan' | 'tree-changed' | 'list-change' | 'shutdown-date' | 'check-retry' | 'manual';
+  | 'first-scan'
+  | 'tree-changed'
+  | 'list-change'
+  | 'shutdown-date'
+  | 'scanner-change'
+  | 'check-retry'
+  | 'manual';
 export type SkipCause = 'unchanged-clean' | 'unchanged-dirty';
 
 export type RepoState = {
   installationId: number;
   treeSha: string; // the tree the scan really read, taken from the checkout
   listVersion: string; // inForceVersion on the day of the scan
+  scannerVersion: string; // the scanner code that read it
   scannedOn: string; // that day
   clean: boolean;
   checkSettled: boolean; // false when the AI check failed or was capped, so the scan is worth repeating
@@ -59,6 +66,7 @@ export function decide(
   state: RepoState | undefined,
   treeSha: string,
   listVersion: string,
+  scannerVersion: string,
   list: DeadApiList,
   today: string,
 ): Decision {
@@ -69,6 +77,7 @@ export function decide(
     const dated = shutdownsArrived(list, state.scannedOn, today).length > 0;
     return { scan: true, why: dated ? 'shutdown-date' : 'list-change' };
   }
+  if (state.scannerVersion !== scannerVersion) return { scan: true, why: 'scanner-change' };
   if (!state.checkSettled) return { scan: true, why: 'check-retry' };
   return { scan: false, why: state.clean ? 'unchanged-clean' : 'unchanged-dirty', state };
 }

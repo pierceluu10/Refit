@@ -203,6 +203,7 @@ describe('a month of ticks over quiet repos', () => {
       loadList: () => list,
       triggers: store,
       now,
+      scannerVersion: 'illustrative-scanner',
       rescan: async () => {},
     });
 

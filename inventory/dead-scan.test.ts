@@ -848,6 +848,13 @@ describe('unlisted providers', () => {
     expect(queue[0].hints.packages).toContain('resend');
   });
 
+  it('show up from a package.json written on one line', async () => {
+    const report = await scan({
+      'package.json': JSON.stringify({ dependencies: { resend: '^4.0.0', stripe: '^15.0.0' } }),
+    });
+    expect(report.unlistedProviders).toEqual(['resend']);
+  });
+
   it('are returned even with no store, and a listed provider never is', async () => {
     const report = await scan({
       'package.json': manifest({ resend: '^4.0.0', stripe: '^15.0.0' }),

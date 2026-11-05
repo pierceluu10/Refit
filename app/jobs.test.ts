@@ -16,7 +16,7 @@ import type {
 import { GitHubApiError } from './github.ts';
 import { createJobRunner, type JobRunnerDeps } from './jobs.ts';
 import { createFileQueue } from './queue.ts';
-import { createTick, createTriggerStore, summarizeTriggers } from './triggers.ts';
+import { createTick, createTriggerStore, summarizeTriggers, type RepoState } from './triggers.ts';
 import type { UnderstandJob } from './types.ts';
 import { handleWebhook, type WebhookDeps } from './webhooks.ts';
 
@@ -26,6 +26,8 @@ const REPOS = [REPO, 'aptitude-example-org/storefront', 'aptitude-example-org/op
 const DAY_ONE = '2026-11-05';
 const TREE_A = 'a'.repeat(40);
 const TREE_B = 'b'.repeat(40);
+const SCANNER_ONE = 'scanner-one';
+const SCANNER_TWO = 'scanner-two';
 const SECRET_TOKEN = `ghs_${'x'.repeat(36)}`;
 
 const job = (reason: UnderstandJob['reason'], repo = REPO, sha?: string): UnderstandJob => ({
@@ -164,6 +166,7 @@ function world(overrides: Partial<JobRunnerDeps> = {}) {
     loadList: () => w.list,
     triggers,
     now: () => new Date(`${w.today}T12:00:00Z`),
+    scannerVersion: SCANNER_ONE,
     rescan: async (_job, findings, at) => {
       w.rescans.push({ findings, at });
     },
@@ -283,6 +286,67 @@ describe('telling evidence what a scan found', () => {
     await w.run(job('clock'));
     expect(w.calls.scan).toBe(1);
     expect(w.rescans).toHaveLength(1);
+  });
+});
+
+describe('a scanner change', () => {
+  it('re-reads a clean repo once with no fix, then skips again', async () => {
+    const before = world();
+    await before.run(job('install'));
+    const after = world({ scannerVersion: SCANNER_TWO });
+    await after.run(job('clock'));
+    await after.run(job('clock'));
+    expect(after.calls).toEqual({ head: 2, checkout: 1, scan: 1, fix: 0 });
+    expect(await after.decisions()).toEqual([
+      `${REPO} scanned first-scan`,
+      `${REPO} scanned scanner-change`,
+      `${REPO} skipped unchanged-clean`,
+    ]);
+    expect((await after.triggers.state(REPO))?.scannerVersion).toBe(SCANNER_TWO);
+  });
+
+  it('says tree-changed when the tree moved too', async () => {
+    const before = world();
+    await before.run(job('install'));
+    const after = world({ scannerVersion: SCANNER_TWO });
+    after.head.set(REPO, TREE_B);
+    await after.run(job('push'));
+    expect((await after.last())?.why).toBe('tree-changed');
+  });
+
+  it('re-reads a repo whose state predates the scanner version', async () => {
+    const w = world();
+    await w.run(job('install'));
+    const { scannerVersion: _dropped, ...older } = (await w.triggers.state(REPO))!;
+    await w.triggers.saveState(REPO, older as RepoState);
+    await w.run(job('clock'));
+    expect((await w.last())?.why).toBe('scanner-change');
+  });
+
+  it("doesn't pay for a second fix of what it already tried", async () => {
+    const before = world();
+    before.scanResult = report([live('AN-1', 'src/a.ts')]);
+    await before.run(job('install'));
+    expect(before.calls.fix).toBe(1);
+    const after = world({ scannerVersion: SCANNER_TWO });
+    after.scanResult = report([live('AN-1', 'src/a.ts')]);
+    await after.run(job('clock'));
+    expect(after.calls.fix).toBe(0);
+    expect(await after.last()).toMatchObject({ why: 'scanner-change', fix: 'already-attempted' });
+  });
+
+  it('sends a finding only the new scanner sees to a fix, but not to evidence as a return', async () => {
+    const before = world();
+    await before.run(job('install'));
+    expect(before.rescans).toHaveLength(1);
+    const after = world({ scannerVersion: SCANNER_TWO });
+    after.scanResult = report([live('AN-1', 'src/a.ts')]);
+    await after.run(job('clock'));
+    expect(after.calls.fix).toBe(1);
+    expect(after.rescans).toEqual([]);
+    after.head.set(REPO, TREE_B);
+    await after.run(job('push'));
+    expect(after.rescans).toHaveLength(1);
   });
 });
 
