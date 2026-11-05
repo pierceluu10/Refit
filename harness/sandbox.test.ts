@@ -148,13 +148,19 @@ describe('env files', () => {
       '.env.example',
       '.env.sample',
     ];
-    for (const name of [...names, '.env.template', '.env.dist']) {
+    for (const name of [...names, '.env.template', '.env.dist', '.env.production.template']) {
       await fs.writeFile(path.join(repoDir, name), 'API_KEY=x\n');
     }
     await fs.writeFile(path.join(repoDir, 'src', '.env'), 'API_KEY=x\n');
     sandbox = await createSandbox(repoDir, { mode: 'local' });
     const copied = (await fs.readdir(sandbox.dir)).filter((name) => name.startsWith('.env'));
-    expect(copied.sort()).toEqual(['.env.dist', '.env.example', '.env.sample', '.env.template']);
+    expect(copied.sort()).toEqual([
+      '.env.dist',
+      '.env.example',
+      '.env.production.template',
+      '.env.sample',
+      '.env.template',
+    ]);
     await expect(fs.access(path.join(sandbox.dir, 'src', '.env'))).rejects.toThrow();
   });
 });

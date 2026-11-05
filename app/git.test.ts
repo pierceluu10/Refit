@@ -45,6 +45,13 @@ describe('filesFromDiff', () => {
     expect(git('status', '--porcelain')).toBe('');
   });
 
+  it('restores a redacted removed line, so the patch still applies', async () => {
+    const diff = harnessDiff().replace(/^-export const version.*$/m, '-[redacted]');
+    expect(diff).toContain('-[redacted]');
+    const changes = await filesFromDiff(repo, diff);
+    expect(changes.map((change) => change.path)).toContain('billing.ts');
+  });
+
   it("throws GitError when the diff doesn't apply", async () => {
     const diff = harnessDiff().replace('2024-06-20', '1999-01-01');
     await expect(filesFromDiff(repo, diff)).rejects.toThrow(GitError);
