@@ -319,4 +319,6 @@ Eight Fixed labels out of eight looked too good, so I read all 8 diffs, and the 
 
 **What changed:** plain code now finds a major upgrade no entry asks for, sends it back to the session once, and gives one it keeps Needs a look. The prompt also says a missing constant isn't a reason, and tells the session to search for each API name in the `requires` lines, because 2 of the 3 Shopify sessions said they hadn't read the code against the versions crossed.
 
+**Does the fix work?** I reran `ksyp-7` on the new prompt, not for score: 2 of 2 locks, no major upgrades, $0.1144, 104 s, against $0.1950 and 219 s. It passed the version as a string. To check that path I ran `@shopify/shopify-api` 11.0.0 and 12.2.0 in a container with a mocked fetch: on both, a plain `"2026-10"` reaches `/admin/api/2026-10/` for GraphQL and REST. That shows the SDK sends it, not that Shopify answers.
+
 **The scan's AI check,** measured on all 26 repos where the scan was only unsure: $0.0163 in all, about $0.0006 a repo, and 7.6 s on average. It ruled out every match on 1 repo and some matches on 5 others. Across 196 repos the scan averaged 1.6 s, and took 18 s at most.

@@ -1,0 +1,303 @@
+[
+  {
+    "repo": "meisbobzheng/pinpoint-archive",
+    "commit": "24f900a4703dee0bc431e46ed30149d72038ae0d",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "SH-1.before-2025-04",
+        "file": "app/shopify.server.ts",
+        "dead": "ApiVersion\\.October24",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October24",
+          "to": "ApiVersion.October26"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "SH-1.before-2025-04",
+        "file": "shopify.app.toml",
+        "dead": "api_version = \"2024-10\"",
+        "alive": ["2026-10"],
+        "proof": {
+          "from": "api_version = \"2024-10\"",
+          "to": "api_version = \"2026-10\""
+        }
+      }
+    ]
+  },
+  {
+    "repo": "LazerTechnologies/shopify-app-development-course",
+    "commit": "93cb55752c3024257cd2ca5c0edb99520fd94b58",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "SH-1.before-2025-04",
+        "file": "app/shopify.server.js",
+        "dead": "ApiVersion\\.January25",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.January25",
+          "to": "ApiVersion.October26"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "SH-1.2025-07",
+        "file": "app/routes/api.customer.cancel-order.jsx",
+        "dead": "admin/api/2025-07",
+        "alive": ["2026-10", "apiVersion"],
+        "proof": {
+          "from": "admin/api/2025-07",
+          "to": "admin/api/2026-10"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "aaronarrays/shopify-vercel-app",
+    "commit": "41ca20587779dfd0b07a4e184d8d1af69ccb466d",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "SH-1.before-2025-04",
+        "file": "app/shopify.server.ts",
+        "dead": "ApiVersion\\.October24",
+        "alive": ["ApiVersion\\.October26", "2026-10", "LATEST_API_VERSION"],
+        "proof": {
+          "from": "ApiVersion.October24",
+          "to": "ApiVersion.October26"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "SH-1.before-2025-04",
+        "file": "shopify.app.toml",
+        "dead": "api_version = \"2025-01\"",
+        "alive": ["2026-10"],
+        "proof": {
+          "from": "api_version = \"2025-01\"",
+          "to": "api_version = \"2026-10\""
+        }
+      }
+    ]
+  },
+  {
+    "repo": "dvygolov/AdReplica",
+    "commit": "071a118c87c43ea65231bdfe746111d917e0ee82",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "MG-6.instagram_actor_id",
+        "file": "src/identity/identity-service.mjs",
+        "dead": "osp\\.instagram_actor_id = identity\\.instagramActorId",
+        "alive": ["instagram_user_id"],
+        "proof": {
+          "from": "osp.instagram_actor_id = identity.instagramActorId;",
+          "to": "delete osp.instagram_actor_id;"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "MG-6.instagram_actor_id",
+        "file": "src/domain/creative.mjs",
+        "dead": "raw\\.instagram_actor_id = osp\\.instagram_actor_id",
+        "alive": ["instagram_user_id"],
+        "proof": {
+          "from": "raw.instagram_actor_id = osp.instagram_actor_id;",
+          "to": "raw.instagram_user_id = osp.instagram_user_id;"
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "MG-6.effective_instagram_story_id",
+        "file": "src/export/campaign-exporter.mjs",
+        "dead": "\"effective_instagram_story_id\",",
+        "alive": ["effective_instagram_media_id"],
+        "proof": {
+          "from": "\"effective_instagram_story_id\",",
+          "to": ""
+        }
+      },
+      {
+        "id": "R4",
+        "entryId": "MG-6.instagram_actor_id",
+        "file": "src/export/campaign-exporter.mjs",
+        "dead": "\"instagram_actor_id\",",
+        "alive": ["\"instagram_user_id\""],
+        "proof": {
+          "from": "\"instagram_actor_id\",",
+          "to": "\"instagram_user_id\","
+        }
+      }
+    ]
+  },
+  {
+    "repo": "AtonIA00/aton-member-dashboard",
+    "commit": "fe238fcb3d2aacca332d06bdc8150d0a362fb9f9",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "MG-7.root-ids",
+        "file": "lib/meta-ads.ts",
+        "dead": "/\\?ids=\\$\\{c\\.join",
+        "alive": ["batch", "v\\d+\\.0/\\$\\{"],
+        "proof": {
+          "from": "/v21.0/?ids=${c.join(\",\")}&fields=length",
+          "to": "/v21.0/${c[0]}?fields=length"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "MG-7.root-ids",
+        "file": "lib/meta-ads.ts",
+        "dead": "/\\?ids=\\$\\{chunk\\.join",
+        "alive": ["batch", "v\\d+\\.0/\\$\\{"],
+        "proof": {
+          "from": "/v21.0/?ids=${chunk.join(\",\")}",
+          "to": "/v21.0/${chunk[0]}?"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "Hrithik450/harnes",
+    "commit": "c605353d7dc8d2f10808d33d7ae41db9259231a0",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "MG-1.v19.0",
+        "file": "src/lib/agent/tools/validate.meta.interests.tool.ts",
+        "dead": "graph\\.facebook\\.com/v19\\.0",
+        "alive": ["v27\\.0"],
+        "proof": {
+          "from": "graph.facebook.com/v19.0",
+          "to": "graph.facebook.com/v27.0"
+        }
+      }
+    ]
+  },
+  {
+    "repo": "Muregis/educore-school-management-system",
+    "commit": "af85618344da47ae8c7718dc24620f8dfee914e4",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "MG-1.v18.0",
+        "file": "backend/src/config/env.js",
+        "dead": "graph\\.facebook\\.com/v18\\.0",
+        "alive": ["v27\\.0"],
+        "proof": {
+          "from": "graph.facebook.com/v18.0",
+          "to": "graph.facebook.com/v27.0"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "MG-1.v18.0",
+        "file": "backend/.env.example",
+        "dead": "graph\\.facebook\\.com/v18\\.0",
+        "alive": ["v27\\.0"],
+        "proof": {
+          "from": "graph.facebook.com/v18.0",
+          "to": "graph.facebook.com/v27.0"
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "MG-1.v18.0",
+        "file": "render.yaml",
+        "dead": "graph\\.facebook\\.com/v18\\.0",
+        "alive": ["v27\\.0"],
+        "proof": {
+          "from": "graph.facebook.com/v18.0",
+          "to": "graph.facebook.com/v27.0"
+        }
+      },
+      {
+        "id": "R4",
+        "entryId": "MG-1.v18.0",
+        "file": "backend/src/services/payment-config.service.js",
+        "dead": "graph\\.facebook\\.com/v18\\.0",
+        "alive": ["v27\\.0"],
+        "proof": {
+          "from": "graph.facebook.com/v18.0",
+          "to": "graph.facebook.com/v27.0"
+        }
+      },
+      {
+        "id": "R5",
+        "entryId": "GR-1.llama-3.3-70b-versatile",
+        "file": "backend/src/routes/analysis.routes.js",
+        "dead": "\"llama-3\\.3-70b-versatile\"",
+        "alive": ["gpt-oss-120b"],
+        "proof": {
+          "from": "\"llama-3.3-70b-versatile\",",
+          "to": ""
+        }
+      },
+      {
+        "id": "R6",
+        "entryId": "GR-2.llama-3.1-8b-instant",
+        "file": "backend/src/routes/lessonplans.routes.js",
+        "dead": "model: \"llama-3\\.1-8b-instant\"",
+        "alive": ["gpt-oss-20b"],
+        "proof": {
+          "from": "model: \"llama-3.1-8b-instant\"",
+          "to": "model: \"openai/gpt-oss-20b\""
+        }
+      }
+    ]
+  },
+  {
+    "repo": "ogSulem/pulse",
+    "commit": "c9b30a15ff348d19e66921a4320ba45b1fc52a5a",
+    "required": [
+      {
+        "id": "R1",
+        "entryId": "OA-1.gpt-image-1",
+        "file": "server/src/providers/image.js",
+        "dead": "\\|\\| 'gpt-image-1'",
+        "alive": ["gpt-image-2\\.5"],
+        "proof": {
+          "from": "|| 'gpt-image-1'",
+          "to": "|| 'gpt-image-2.5-flare'"
+        }
+      },
+      {
+        "id": "R2",
+        "entryId": "GH-8.github-models",
+        "file": "server/src/providers/llm.js",
+        "dead": "models\\.github\\.ai",
+        "alive": [],
+        "proof": {
+          "from": "base: 'https://models.github.ai/inference',",
+          "to": "base: process.env.FOUNDRY_BASE_URL,"
+        }
+      },
+      {
+        "id": "R3",
+        "entryId": "MG-4.ig-media-insights",
+        "file": "server/src/providers/social/instagram.js",
+        "dead": "metric: 'plays,",
+        "alive": ["views"],
+        "proof": {
+          "from": "metric: 'plays,likes",
+          "to": "metric: 'views,likes"
+        }
+      },
+      {
+        "id": "R4",
+        "entryId": "MG-4.ig-media-insights",
+        "file": "server/src/providers/social/instagram.js",
+        "dead": "pick\\('plays'\\)",
+        "alive": ["pick\\('views'\\)"],
+        "proof": {
+          "from": "pick('plays')",
+          "to": "pick('views')"
+        }
+      }
+    ]
+  }
+]
