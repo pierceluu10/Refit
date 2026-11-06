@@ -1,13 +1,20 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, readdir, readFile, rename, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import type { MigrationTask, RunRecord } from '../shared/types.ts';
-import type { HumanVerdict, MemoryRecipe, SelfEvalReport, StoredRun } from './types.ts';
+import type { RunRecord, ScanReport } from '../shared/types.ts';
+import type {
+  AnyTask,
+  HumanVerdict,
+  MemoryRecipe,
+  SelfEvalReport,
+  StoredRun,
+  StoredScan,
+} from './types.ts';
 
 // Everything memory/ persists. Async throughout so a Postgres implementation can drop in.
 export interface MemoryStore {
   recordRun(input: {
-    task: MigrationTask;
+    task: AnyTask;
     record: RunRecord;
     transcript?: string;
     usedRecipeIds?: string[];
@@ -18,8 +25,13 @@ export interface MemoryStore {
   listRuns(): Promise<StoredRun[]>;
   // Matches by run id or by PR URL, since the GitHub App only knows the PR. 'merged' is final, since a
   // merged PR can't be reopened, and a late 'edited' never replaces 'closed': GitHub can deliver an
-  // event after a later one, and a redelivery can replay an old one.
-  recordVerdict(runIdOrPr: string, verdict: HumanVerdict): Promise<StoredRun | undefined>;
+  // event after a later one, and a redelivery can replay an old one. `finalDiff`, when the app sends
+  // it, is the PR's diff after a human's edits; it is kept as the run's humanDiff.
+  recordVerdict(
+    runIdOrPr: string,
+    verdict: HumanVerdict,
+    finalDiff?: string,
+  ): Promise<StoredRun | undefined>;
 
   saveRecipe(recipe: MemoryRecipe): Promise<void>;
   getRecipe(id: string): Promise<MemoryRecipe | undefined>;
@@ -29,9 +41,13 @@ export interface MemoryStore {
   listSelfEvals(): Promise<SelfEvalReport[]>;
   getSelfEvalTaskIds(): Promise<string[] | undefined>;
   setSelfEvalTaskIds(ids: string[]): Promise<void>;
+
+  // Every scan's report, for the dashboard's "what's behind" history.
+  saveScan(report: ScanReport): Promise<StoredScan>;
+  listScans(): Promise<StoredScan[]>;
 }
 
-type Collection = 'runs' | 'recipes' | 'selfevals';
+type Collection = 'runs' | 'recipes' | 'selfevals' | 'scans';
 
 // Local JSON: one file per item under <dir>/<collection>/, written atomically.
 export class JsonMemoryStore implements MemoryStore {
@@ -77,7 +93,7 @@ export class JsonMemoryStore implements MemoryStore {
     return this.list<StoredRun>('runs');
   }
 
-  async recordVerdict(runIdOrPr: string, verdict: HumanVerdict) {
+  async recordVerdict(runIdOrPr: string, verdict: HumanVerdict, finalDiff?: string) {
     const run =
       (await this.getRun(runIdOrPr)) ??
       (await this.listRuns())
@@ -88,8 +104,20 @@ export class JsonMemoryStore implements MemoryStore {
     const current = run.record.humanVerdict;
     if (current === 'merged' || (current === 'closed' && verdict === 'edited')) return run;
     run.record = { ...run.record, humanVerdict: verdict };
+    // A close carries no diff worth learning from; a merge or an edit does.
+    if (finalDiff?.trim() && verdict !== 'closed') run.humanDiff = finalDiff;
     await this.write('runs', run.id, run);
     return run;
+  }
+
+  async saveScan(report: ScanReport): Promise<StoredScan> {
+    const scan: StoredScan = { ...report, id: `${report.repo}@${report.scannedAt}` };
+    await this.write('scans', scan.id, scan);
+    return scan;
+  }
+
+  listScans() {
+    return this.list<StoredScan>('scans');
   }
 
   saveRecipe(recipe: MemoryRecipe) {

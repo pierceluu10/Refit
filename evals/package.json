@@ -4,9 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "smoke": "node smoke/smoke.ts",
+    "smoke": "node smoke/smoke.ts && node smoke/mvp.ts",
     "bench": "node runner/cli.ts",
-    "recover-sets": "node sets/recover.ts --repo .."
+    "recover-sets": "node sets/recover.ts --repo ..",
+    "smoke:mvp": "node smoke/mvp.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.3.0"

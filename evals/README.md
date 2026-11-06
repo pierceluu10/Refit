@@ -14,6 +14,20 @@ scoring, hand-check log and reviewer, with a fake model. It needs no network, cl
 installs nothing and spends $0. Each repo is stood in for by a small synthetic fixture under
 `smoke/fixtures/`. It prints `SMOKE OK` or the invariant that broke.
 
+The same command then runs the **MVP smoke test** (`smoke/mvp.ts`, alone: `npm run smoke:mvp -w
+evals`): the three sample repos of the `refit-dev` test org (`demo-node-api`, `demo-python-app`,
+`demo-next-web`, as labelled fixtures) through `scanRepo` and `runRepoJob`, then memory (every run
+learned from, every scan report stored, one PR merged and its verdict recorded, a recipe retrieved
+for a repeat upgrade), the advisory reviewer on every PR and scoring by change family. It checks
+that every task is attempted, that the demo's PR kinds are there (a runtime upgrade, a model
+retirement and a CI, library, framework or API change), that one change is judged not affected
+with its reason, and that a dry run opens no PR. It prints `MVP SMOKE OK` or what broke.
+
+Until O1's `scanRepo` and `runRepoJob` are on `mvp`, stand-ins in `smoke/mvp-fake.ts` play the
+orchestrator, the inventory, the watchers and the harness, with labelled example changes. `node
+evals/smoke/mvp.ts --orchestrator real` uses `orchestrator/index.ts` once it exports `scanRepo`,
+and says in its report when it fell back.
+
 ## Repo sets (`sets/`)
 
 Recovered from Refit's git history as data only (`node sets/recover.ts --repo <git dir>`
@@ -33,11 +47,21 @@ Each file keeps the set's purpose and selection criteria (they describe how Refi
 repos) and the repo entries: slug, frozen commit and small metadata. Agents may open, trace and
 debug these freely.
 
-One set is curated here rather than recovered:
+Two sets are curated here rather than recovered:
 
-| Set               | Repos | What it holds                                                                      |
-| ----------------- | ----- | ---------------------------------------------------------------------------------- |
-| `longtail-dev-20` | 20    | 15 smaller providers, through raw HTTP (11), an SDK (4), webhooks (3), GraphQL (2) |
+| Set               | Repos | What it holds                                                                           |
+| ----------------- | ----- | --------------------------------------------------------------------------------------- |
+| `longtail-dev-20` | 20    | 15 smaller providers, through raw HTTP (11), an SDK (4), webhooks (3), GraphQL (2)      |
+| `upgrade-dev-20`  | 20    | 12 JS/TS and 8 Python repos on an end-of-life Node or Python, or an old framework major |
+
+`upgrade-dev-20` (curated 2026-11-06) is the upgrade set: 13 `runtime-eol` (Node 8 to 18,
+Python 3.7 to 3.9), 6 `framework-major` (Next.js 12 to 14, Django 2.2 and 4.x) and 1
+`dependency-major` (react-scripts). Each entry records every place the version is declared (the
+exact line, copied from the file at the pinned commit), the test command and files, and why it was
+picked. Tests were **not run** (`tests.ran: false`): repo code runs only in the sandbox, and none
+was available while curating. The `to` versions are suggested targets, not announcements. EOL
+quotes come from the Node.js Release schedule and endoflife.date's source files on GitHub, pinned
+to commits, because their websites were unreachable from the curating machine.
 
 Each entry names its provider, how the code reaches it, the pending change (kind, date, the
 provider's own page and an exact quote) and every call site (file, line and the line's text) at a
@@ -61,6 +85,15 @@ Blind and measurement sets are sealed: nobody opens them, and evals/ holds only 
 commits and blob SHAs (from `git ls-tree`, never from reading the file).
 `sets/sealed.test.ts` fails if any file in evals/ matches a sealed blob, is named like a blind
 set, or holds a repo list outside `sets/dev/`. `sets/recover.ts` refuses to read a sealed path.
+
+### Sealed sets frozen here
+
+`sets/freeze.ts` freezes a new sealed set without anyone opening it: it picks repos at random from
+a candidate pool (built with the same criteria as the matching dev set, minus every dev-set repo),
+writes them to a path **outside** `evals/`, and prints only the path, count and SHA-256. That path
+and hash go in `FROZEN_SEALED_SETS` (`sets/freeze.ts`). The blind set for upgrades is not frozen
+yet: a founder builds the pool, runs `node evals/sets/freeze.ts --candidates pool.json --out
+<private path>/upgrade-20.json --count 20`, keeps the file private and commits the entry.
 
 ## Runner (`runner/`)
 
@@ -113,6 +146,11 @@ node evals/runner/cli.ts review --in evals/results --budget-usd 0.5 [--only <tas
 - Repo-level outcomes, cost per repo and total cost, and the **cost by part** (inventory, watch,
   match, harness, review) per repo and in total, from the meter's labels. A provider's watch is
   read once per run (and cached for the UTC day), so its cost lands on the first repo.
+- **By change family**: the same rates, the attempted rate and task cost per repo for each
+  family: `api`, `runtime`, `framework`, `library`, `security`, `model`, `image`, `ci`,
+  `platform` (Kubernetes, serverless, cloud, app stores, browsers, TLS, login) and `rules`
+  (payments, regulation), plus `no-task` for repos the match agent found nothing in. The family is
+  read from the task's change kind; it labels results and never gates a task.
 - **Attempted rate**, which must be 100%. A task counts as attempted when it produced a diff or
   an explicit not-affected verdict. A throw, or a needs-review or failed with an empty diff, is
   listed as a bug, and `score` exits non-zero.
@@ -125,7 +163,10 @@ node evals/runner/cli.ts review --in evals/results --budget-usd 0.5 [--only <tas
 ## AI reviewer (`reviewer/`)
 
 A second opinion on each PR: does the diff handle the change at every call site, what behaviour
-changes, what the checks don't prove, and whether the grade matches the checks. It is advisory:
+changes, what the checks don't prove, and whether the grade matches the checks. For an upgrade
+(`reviewer-v3`), it also asks whether the version moved in every place it is declared, whether
+the lockfile was regenerated, and whether the checks ran on the new version; it reads the declared
+files as context. It is advisory:
 its opinion is stored next to the grade and copied into the hand-check entry, and scoring never
 reads it. A reviewer failure is recorded as `unavailable` and never affects the task.
 

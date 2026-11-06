@@ -11,7 +11,7 @@ import type {
   WatchProvider,
 } from '../../shared/types.ts';
 import type { RepoEntry } from '../sets/index.ts';
-import type { AdvisoryReview } from '../reviewer/reviewer.ts';
+import type { AdvisoryReview, ReviewTask } from '../reviewer/reviewer.ts';
 
 /** The match agent's entry point. Not in shared/types.ts yet; O1 exports it from orchestrator/. */
 export type MatchChanges = (
@@ -33,7 +33,7 @@ export type Meter = { charge: (usd: number, label: string) => void };
  * untouched checkout, which it may read (never run) for context.
  */
 export type ReviewPr = (input: {
-  task: MigrationTask;
+  task: ReviewTask;
   record: RunRecord;
   meter: Meter;
   repoDir?: string;
