@@ -4,6 +4,7 @@ import {
   BookOpen,
   CaretRight,
   ClockCountdown,
+  FolderSimple,
   GithubLogo,
   GitPullRequest,
   List,
@@ -11,16 +12,19 @@ import {
   X,
 } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
-import { Link, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { Link, matchPath, NavLink, Route, Routes, useLocation } from 'react-router-dom';
 import { Brand } from '../components/Brand';
-import { PageHeading, WorkspaceMissing } from '../components/WorkspaceUI';
+import { WorkspaceMissing } from '../components/WorkspaceUI';
 import { PlatformsAndRules } from '../compliance';
 import { PROJECT_URL } from '../data';
+import { Repositories, RepositoryDetail } from './Repositories';
 import { Runs } from './Runs';
+import { WhatsBehind } from './WhatsBehind';
 import './workspace.css';
 
 const navigation = [
   { path: '/app', name: 'What’s behind', icon: ClockCountdown, exact: true },
+  { path: '/app/repos', name: 'Repositories', icon: FolderSimple },
   { path: '/app/runs', name: 'Runs', icon: GitPullRequest },
   { path: '/app/platforms', name: 'Platforms and rules', icon: ShieldCheck },
 ];
@@ -66,7 +70,7 @@ export function Workspace() {
   }, [menuOpen]);
   useEffect(() => setMenuOpen(false), [location.pathname]);
   const current = navigation.find((item) =>
-    item.exact ? location.pathname === item.path : location.pathname.startsWith(item.path),
+    matchPath({ path: item.path, end: Boolean(item.exact) }, location.pathname),
   );
   return (
     <div className="workspace">
@@ -131,7 +135,9 @@ export function Workspace() {
         </header>
         <main id="main-content" className="app-content">
           <Routes>
-            <Route index element={<WhatsBehindPlaceholder />} />
+            <Route index element={<WhatsBehind />} />
+            <Route path="repos" element={<Repositories />} />
+            <Route path="repos/:owner/:name" element={<RepositoryDetail />} />
             <Route path="runs" element={<Runs />} />
             <Route path="platforms" element={<PlatformsAndRules />} />
             <Route path="*" element={<WorkspaceMissing />} />
@@ -140,8 +146,4 @@ export function Workspace() {
       </div>
     </div>
   );
-}
-
-function WhatsBehindPlaceholder() {
-  return <PageHeading title="What’s behind" description="" example={false} />;
 }

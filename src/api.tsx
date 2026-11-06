@@ -18,7 +18,7 @@ export async function fetchApi<T>(
   if (response.status === 401) throw new ApiSignedOutError();
   const json = response.headers.get('content-type')?.includes('application/json');
   if (!json) throw new ApiUnavailableError();
-  if (response.status === 404) throw new ApiNotFoundError();
+  if (response.status === 404) throw new ApiNotFoundError(`${path} wasn’t found.`);
   if (!response.ok) throw new Error(`The API answered ${response.status}.`);
   const body: unknown = await response.json();
   if (!isExpected(body)) throw new Error('The API returned something unexpected.');

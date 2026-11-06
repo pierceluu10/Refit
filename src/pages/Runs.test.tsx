@@ -101,6 +101,12 @@ describe('runs', () => {
     expect(labels).toEqual(['Verified', 'Failed', 'Needs review', 'Not affected']);
   });
 
+  it('shows an unknown provider by its raw name', async () => {
+    renderRuns(respond(liveRuns));
+    await screen.findByRole('list', { name: 'Runs' });
+    expect(within(rows()[1]).getByText('test-provider')).toBeVisible();
+  });
+
   it('links a pull request only when the run has one', async () => {
     renderRuns(respond(liveRuns));
     await screen.findByRole('list', { name: 'Runs' });
@@ -112,6 +118,14 @@ describe('runs', () => {
       'Pull request for test-change-verified on test-owner/app (opens in a new tab)',
     );
     expect(within(rows()[1]).queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('shows a pull request address that is not a web address as plain text', async () => {
+    const pr = 'javascript:alert(1)';
+    renderRuns(respond([{ ...liveRuns[0], pr }]));
+    await screen.findByRole('list', { name: 'Runs' });
+    expect(screen.queryByRole('link', { name: /^Pull request/ })).not.toBeInTheDocument();
+    expect(screen.getByText('Pull request')).toBeVisible();
   });
 
   it('asks the API for one repository from a deep link', async () => {

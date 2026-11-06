@@ -1,8 +1,8 @@
-import { ArrowUpRight, ClockCounterClockwise } from '@phosphor-icons/react';
+import { ClockCounterClockwise } from '@phosphor-icons/react';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { RunView } from '../../shared/types.ts';
 import { ApiError, ApiLoading, ExampleNote, fetchApi, isList, useApi } from '../api';
-import { PageHeading, Status } from '../components/WorkspaceUI';
+import { ExternalLink, PageHeading, Status } from '../components/WorkspaceUI';
 import { providerName, runs as exampleRuns } from '../fixtures';
 
 export const RUNS_LIMIT = 50;
@@ -35,8 +35,8 @@ export function Runs() {
         title="Runs"
         description={
           repo
-            ? `Every finished run on ${repo}, newest first.`
-            : 'Every finished run across your repositories, newest first.'
+            ? `What Refit did about each change on ${repo}, newest first.`
+            : 'What Refit did about each change across your repositories, newest first.'
         }
         example={example}
       />
@@ -81,16 +81,12 @@ export function Runs() {
                   </p>
                 </div>
                 {run.pr && (
-                  <a
-                    className="text-link"
+                  <ExternalLink
                     href={run.pr}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={`Pull request for ${run.changeId} on ${run.repo} (opens in a new tab)`}
+                    label={`Pull request for ${run.changeId} on ${run.repo} (opens in a new tab)`}
                   >
                     Pull request
-                    <ArrowUpRight />
-                  </a>
+                  </ExternalLink>
                 )}
               </li>
             ))}
