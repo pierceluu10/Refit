@@ -30,7 +30,10 @@ export type PrBodyInput = {
   sandboxNote: string;
   notes?: string[]; // harness facts a reviewer must know, listed under Unproven
   checksRuntime?: string; // the runtime the after-checks ran on, e.g. "node 22"
+  baselineRuntime?: string; // the runtime the before-checks ran on, e.g. "node 18"
 };
+
+const SANDBOX_DEFAULT = 'the sandbox default';
 
 // The version the dependency moves from: the inventory's, else the change's affected versions.
 function fromVersion(task: ExternalTask): string | undefined {
@@ -150,8 +153,8 @@ export function writePrBody(input: PrBodyInput): string {
         ].join('\n')
       : '',
     `Where checks ran: ${input.sandboxNote}`,
-    input.checksRuntime
-      ? `Runtime: before on the sandbox default with the original code, after on ${input.checksRuntime}.`
+    input.checksRuntime || input.baselineRuntime
+      ? `Runtime: before on ${input.baselineRuntime ?? SANDBOX_DEFAULT} with the original code, after on ${input.checksRuntime ?? SANDBOX_DEFAULT}.`
       : '',
   ];
 
