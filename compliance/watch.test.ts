@@ -1,6 +1,9 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { RULE_FAMILIES, type RuleFamilyId } from './families.ts';
-import { fixtureFetcher, officialFixtures } from './fetch.ts';
+import { fixtureFetcher, httpFetcher, officialFixtures } from './fetch.ts';
 import { fakeModel, scriptedModel, type FakeTurn } from './model.ts';
 import { readRegulations } from './watch.ts';
 import { findClaims } from './wording.ts';
@@ -25,10 +28,10 @@ const CASES: Record<RuleFamilyId, Case[]> = {
   accessibility: [
     {
       slug: 'eaa-ecommerce-payment',
-      url: 'https://eur-lex.europa.eu/eli/dir/2019/882/oj/eng',
+      url: 'https://publications.europa.eu/resource/celex/32019L0882',
       name: 'European Accessibility Act, Annex I Section IV(g)',
       quote:
-        'ensuring accessibility of the functionality for identification, security and payment when delivered as part of a service instead of a product by making it perceivable, operable, understandable and robust;',
+        'ensuring the accessibility of the functionality for identification, security and payment when delivered as part of a service instead of a product by making it perceivable, operable, understandable and robust;',
       effectiveDate: '2025-06-28',
       appliesTo: 'checkout and login flows of e-commerce services',
     },
@@ -43,7 +46,7 @@ const CASES: Record<RuleFamilyId, Case[]> = {
   privacy: [
     {
       slug: 'eprivacy-5.3-consent',
-      url: 'https://eur-lex.europa.eu/eli/dir/2002/58/oj/eng',
+      url: 'https://publications.europa.eu/resource/celex/02002L0058-20091219',
       name: 'ePrivacy Directive Article 5(3)',
       quote:
         'is only allowed on condition that the subscriber or user concerned has given his or her consent',
@@ -51,7 +54,7 @@ const CASES: Record<RuleFamilyId, Case[]> = {
     },
     {
       slug: 'gdpr-17-erasure',
-      url: 'https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng',
+      url: 'https://publications.europa.eu/resource/celex/32016R0679',
       name: 'GDPR Article 17(1)',
       quote:
         'The data subject shall have the right to obtain from the controller the erasure of personal data concerning him or her without undue delay',
@@ -69,7 +72,7 @@ const CASES: Record<RuleFamilyId, Case[]> = {
   payments: [
     {
       slug: 'psd2-97-sca',
-      url: 'https://eur-lex.europa.eu/eli/dir/2015/2366/oj/eng',
+      url: 'https://publications.europa.eu/resource/celex/32015L2366',
       name: 'PSD2 Article 97(1)',
       quote: '(b) initiates an electronic payment transaction;',
       effectiveDate: '2019-09-14',
@@ -88,7 +91,7 @@ const CASES: Record<RuleFamilyId, Case[]> = {
   'ai-transparency': [
     {
       slug: 'ai-act-50.1-disclosure',
-      url: 'https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng',
+      url: 'https://publications.europa.eu/resource/celex/32024R1689',
       name: 'EU AI Act Article 50(1)',
       quote:
         'the natural persons concerned are informed that they are interacting with an AI system',
@@ -235,7 +238,7 @@ describe('watchRegulations on the saved official texts', () => {
     });
     expect(read.obligations).toHaveLength(1);
     expect(read.errors.join('\n')).toContain(
-      'could not read https://eur-lex.europa.eu/eli/dir/2019/882/oj/eng',
+      'could not read https://publications.europa.eu/resource/celex/32019L0882',
     );
   });
 
@@ -272,5 +275,16 @@ describe('watchRegulations on the saved official texts', () => {
       expect(f.sources.length).toBeGreaterThan(0);
       for (const s of f.sources) expect(pages[s.url], s.url).toBeDefined();
     }
+  });
+
+  it('reports an empty 2xx page as unread, not as an empty text', async () => {
+    const bot = httpFetcher({
+      cacheDir: mkdtempSync(join(tmpdir(), 'refit-fetch-')),
+      fetch: async () =>
+        new Response('', { status: 202, headers: { 'content-type': 'text/html' } }),
+    });
+    const page = await bot.fetch('https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng');
+    expect(page.ok).toBe(false);
+    expect(page.error).toMatch(/HTTP 202 with an empty page/);
   });
 });

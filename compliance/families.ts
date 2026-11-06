@@ -1,5 +1,7 @@
 // The rule families Refit reads tonight, with the official texts to start from. The sources are
 // starting points for the agent, not a whitelist: it may follow links to other official pages.
+// EU acts come from the EU Publications Office by CELEX number: EUR-Lex answers anything but a
+// browser with an empty bot check.
 
 export type RuleFamilyId = 'accessibility' | 'privacy' | 'payments' | 'ai-transparency';
 
@@ -21,7 +23,7 @@ export const RULE_FAMILIES: RuleFamily[] = [
     kind: 'regulation',
     sources: [
       {
-        url: 'https://eur-lex.europa.eu/eli/dir/2019/882/oj/eng',
+        url: 'https://publications.europa.eu/resource/celex/32019L0882',
         title: 'Directive (EU) 2019/882 (European Accessibility Act)',
       },
       {
@@ -39,13 +41,13 @@ export const RULE_FAMILIES: RuleFamily[] = [
     kind: 'regulation',
     sources: [
       {
-        url: 'https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng',
+        url: 'https://publications.europa.eu/resource/celex/32016R0679',
         title: 'Regulation (EU) 2016/679 (GDPR)',
       },
       {
-        url: 'https://eur-lex.europa.eu/eli/dir/2002/58/oj/eng',
+        url: 'https://publications.europa.eu/resource/celex/02002L0058-20091219',
         title: 'Directive 2002/58/EC (ePrivacy), Article 5(3) as amended by 2009/136/EC',
-        note: 'The consent-before-cookies rule lives here, not in the GDPR. The original text predates the 2009 amendment; prefer the consolidated version.',
+        note: 'The consent-before-cookies rule lives here, not in the GDPR. This is the consolidated text, with the 2009 amendment.',
       },
       {
         url: 'https://leginfo.legislature.ca.gov/faces/codes_displayText.xhtml?division=3.&part=4.&lawCode=CIV&title=1.81.5',
@@ -65,11 +67,11 @@ export const RULE_FAMILIES: RuleFamily[] = [
     kind: 'payment-rule',
     sources: [
       {
-        url: 'https://eur-lex.europa.eu/eli/dir/2015/2366/oj/eng',
+        url: 'https://publications.europa.eu/resource/celex/32015L2366',
         title: 'Directive (EU) 2015/2366 (PSD2), Article 97',
       },
       {
-        url: 'https://eur-lex.europa.eu/eli/reg_del/2018/389/oj/eng',
+        url: 'https://publications.europa.eu/resource/celex/32018R0389',
         title: 'Delegated Regulation (EU) 2018/389, RTS on strong customer authentication',
       },
       {
@@ -87,7 +89,7 @@ export const RULE_FAMILIES: RuleFamily[] = [
     kind: 'regulation',
     sources: [
       {
-        url: 'https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng',
+        url: 'https://publications.europa.eu/resource/celex/32024R1689',
         title: 'Regulation (EU) 2024/1689 (Artificial Intelligence Act)',
       },
     ],

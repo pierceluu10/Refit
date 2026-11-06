@@ -75,7 +75,13 @@ export function httpFetcher(
       let page: Page;
       try {
         const response = await doFetch(url, {
-          headers: { 'user-agent': USER_AGENT, accept: 'text/html,text/plain,*/*' },
+          // The EU Publications Office picks the format and language from these; without them it
+          // sends RDF metadata or every language at once.
+          headers: {
+            'user-agent': USER_AGENT,
+            accept: 'application/xhtml+xml,text/html;q=0.9,text/plain;q=0.8,*/*;q=0.5',
+            'accept-language': 'en',
+          },
           redirect: 'follow',
           signal: AbortSignal.timeout(30_000),
         });
@@ -95,15 +101,19 @@ export function httpFetcher(
             0,
             MAX_CHARS,
           );
-          page = response.ok
-            ? { url, ok: true, status: response.status, text }
-            : {
-                url,
-                ok: false,
-                status: response.status,
-                text: '',
-                error: `HTTP ${response.status}`,
-              };
+          // A bot check can answer 2xx with an empty page (EUR-Lex sends 202); that is not a read.
+          page =
+            response.ok && text.trim()
+              ? { url, ok: true, status: response.status, text }
+              : {
+                  url,
+                  ok: false,
+                  status: response.status,
+                  text: '',
+                  error: response.ok
+                    ? `HTTP ${response.status} with an empty page; the site may only serve browsers`
+                    : `HTTP ${response.status}`,
+                };
         }
       } catch (error) {
         page = {

@@ -1,18 +1,21 @@
 [
-  { "url": "https://eur-lex.europa.eu/eli/dir/2019/882/oj/eng", "file": "eaa.txt" },
+  { "url": "https://publications.europa.eu/resource/celex/32019L0882", "file": "eaa.txt" },
   { "url": "https://www.w3.org/TR/WCAG22/", "file": "wcag22.txt" },
-  { "url": "https://eur-lex.europa.eu/eli/reg/2016/679/oj/eng", "file": "gdpr.txt" },
-  { "url": "https://eur-lex.europa.eu/eli/dir/2002/58/oj/eng", "file": "eprivacy.txt" },
+  { "url": "https://publications.europa.eu/resource/celex/32016R0679", "file": "gdpr.txt" },
+  {
+    "url": "https://publications.europa.eu/resource/celex/02002L0058-20091219",
+    "file": "eprivacy.txt"
+  },
   {
     "url": "https://leginfo.legislature.ca.gov/faces/codes_displayText.xhtml?division=3.&part=4.&lawCode=CIV&title=1.81.5",
     "file": "ccpa.txt"
   },
   { "url": "https://cppa.ca.gov/regulations/", "file": "cppa-regs.txt" },
-  { "url": "https://eur-lex.europa.eu/eli/dir/2015/2366/oj/eng", "file": "psd2.txt" },
-  { "url": "https://eur-lex.europa.eu/eli/reg_del/2018/389/oj/eng", "file": "rts-sca.txt" },
+  { "url": "https://publications.europa.eu/resource/celex/32015L2366", "file": "psd2.txt" },
+  { "url": "https://publications.europa.eu/resource/celex/32018R0389", "file": "rts-sca.txt" },
   {
     "url": "https://docs-prv.pcisecuritystandards.org/PCI%20DSS/Standard/PCI-DSS-v4_0_1.pdf",
     "file": "pci-dss-4.txt"
   },
-  { "url": "https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng", "file": "ai-act.txt" }
+  { "url": "https://publications.europa.eu/resource/celex/32024R1689", "file": "ai-act.txt" }
 ]

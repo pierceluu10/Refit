@@ -47,7 +47,7 @@ const obligations: Obligation[] = [
   base(
     'ai-transparency:ai-act-50.1-disclosure',
     'EU AI Act Article 50(1)',
-    'https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng',
+    'https://publications.europa.eu/resource/celex/32024R1689',
     'the natural persons concerned are informed that they are interacting with an AI system',
     '2026-08-02',
   ),
@@ -121,7 +121,7 @@ describe('obligationsToChanges', () => {
     ]);
     expect(entries[2].evidence[0]).toContain('No chat or AI feature');
     expect(entries[2].evidence).toContain(
-      'source: https://eur-lex.europa.eu/eli/reg/2024/1689/oj/eng',
+      'source: https://publications.europa.eu/resource/celex/32024R1689',
     );
   });
 
