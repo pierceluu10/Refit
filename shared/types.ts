@@ -119,3 +119,68 @@ export type RunView = {
   summary: string; // one line: what changed, or why nothing did
   finishedAt: string;
 };
+
+// MVP (2026-11-06): anything outside the codebase that can force it to change. Additive only.
+
+export type MigrationKindMvp =
+  | 'runtime-eol' // a language or runtime version reaches end of life
+  | 'framework-major' // a framework's major version, e.g. Next.js, Django
+  | 'dependency-major' // a library's major version with breaking changes
+  | 'security-fix' // an advisory whose fix needs code changes
+  | 'container-image-eol' // a base image or OS version reaches end of life
+  | 'ci-deprecation'; // a CI action, image or runner version is retired
+
+export type DependencyKind =
+  'api' | 'sdk' | 'library' | 'framework' | 'runtime' | 'ai-model' | 'container-image' | 'ci';
+
+export type DependencyUsage = {
+  repo: string;
+  kind: DependencyKind;
+  name: string; // e.g. 'node', 'next', 'gpt-4o', 'stripe', 'node:18-bookworm', 'actions/checkout'
+  ecosystem?: string; // e.g. 'npm', 'pypi', 'docker', 'github-actions', 'openai'
+  version?: string;
+  declaredIn: { file: string; line?: number; text?: string }[]; // every place the version is set or implied
+  callSites?: ApiUsage['callSites']; // for APIs, SDKs and AI models
+  notes?: string;
+};
+
+export type ExternalChange = Omit<ProviderChange, 'kind'> & {
+  kind: MigrationKind | MigrationKindMvp;
+  dependencyKind: DependencyKind;
+  dependency: string; // matches DependencyUsage.name
+  fromVersions?: string[];
+  toVersion?: string; // the recommended target, when there is one
+  severity?: 'deadline' | 'security' | 'breaking' | 'notice';
+};
+
+export type ExternalTask = Omit<MigrationTask, 'change'> & {
+  change: ExternalChange;
+  dependencies: DependencyUsage[];
+};
+
+export type BehindItem = {
+  repo: string;
+  dependency: DependencyUsage;
+  change: ExternalChange;
+  deadline?: string;
+  status: 'open' | 'pr-open' | 'merged' | 'not-affected';
+  pr?: string;
+};
+
+export type ScanReport = {
+  repo: string;
+  scannedAt: string;
+  items: BehindItem[];
+  costUsd: number;
+  errors: string[]; // what couldn't be read, said honestly
+};
+
+// Entry points. Each owner exports these; everyone else codes against stubs until they land.
+export type InventoryDependencies = (repoDir: string, repo: string) => Promise<DependencyUsage[]>; // P2
+export type WatchDependency = (dep: DependencyUsage, since?: string) => Promise<ExternalChange[]>; // F1
+export type ScanRepo = (
+  repo: string,
+  dir: string,
+) => Promise<{ report: ScanReport; tasks: ExternalTask[] }>; // O1
+export type RunExternalTask = (task: ExternalTask, repoDir: string) => Promise<RunRecord>; // O2
+export type RetrieveExternalRecipes = (task: ExternalTask) => Promise<Recipe[]>; // O4
