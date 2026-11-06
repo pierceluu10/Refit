@@ -98,6 +98,21 @@ describe('createMatchAgent', () => {
     expect(create).not.toHaveBeenCalled();
   });
 
+  it('gives the answer less room near the cap, so even a full answer stays under it', async () => {
+    const { client, create } = fakeClient(agentOutput);
+    const capUsd = 0.2;
+    await createMatchAgent({ client, budget: createBudget(capUsd) })({ repo, changes, usages });
+
+    const [{ max_tokens: maxTokens, system, messages }] = create.mock.calls[0] as unknown as [
+      { max_tokens: number; system: string; messages: { content: string }[] },
+    ];
+    expect(maxTokens).toBeLessThan(16_000);
+    const chars = system.length + messages[0].content.length;
+    // Priced at the real rate of a dense prompt: three characters a token, on Opus.
+    const worstUsd = ((chars / 3) * 4 + maxTokens * 20) / 1e6;
+    expect(worstUsd).toBeLessThanOrEqual(capUsd);
+  });
+
   it('settles the hold whatever the call does', async () => {
     const budget = createBudget(2);
     const create = vi

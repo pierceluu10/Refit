@@ -28,6 +28,7 @@ export type MatchChanges = (input: {
 const MAX_TOKENS = 16000;
 // The least output a match call is sent with once the run's cap is close.
 const MIN_MATCH_TOKENS = 6000;
+const CHARS_PER_TOKEN = 2;
 // Changes per match call: 50 verdicts fit well inside MAX_TOKENS, and 160 in one call may not.
 export const MATCH_BATCH = 50;
 
@@ -158,8 +159,8 @@ export function messagesApi(opts: {
   return async ({ system, prompt, schema }) => {
     // No silent SDK retries: each try is one request against one hold, and the queue retries.
     const client = opts.client ?? new Anthropic({ maxRetries: 0 });
-    // shortcut: chars/3.5 token estimate, switch to messages.countTokens if the cap gets tight
-    const inputTokens = Math.ceil((system.length + prompt.length) / 3.5);
+    // shortcut: a high estimate, so a tight cap gives the answer less room; use messages.countTokens if that ever costs answers. Chars/3.5 passed the cap on 2026-11-06.
+    const inputTokens = Math.ceil((system.length + prompt.length) / CHARS_PER_TOKEN);
     // The call holds its worst case, so matches running at once cannot each spend the same remainder.
     // Near the cap the answer gets less room instead of the call being refused; spend still can't pass the hold.
     const inputUsd = worstCaseUsd(model, inputTokens, 0);

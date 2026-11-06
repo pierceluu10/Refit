@@ -88,7 +88,7 @@ export function formatReport(report: ScanItemReport): string {
     `  ${cell(item.deadline ?? '-', 11)} ${cell(item.change.severity ?? '-', 9)} ${cell(item.dependency.name, 22)} ${cell(`${item.dependency.version ?? '?'} → ${item.change.toVersion ?? '?'}`, 24)} ${cell(item.status, 13)} ${item.change.title}${item.pr ? `  ${item.pr}` : ''}`;
   return [
     `What's behind in ${report.repo} (scanned ${report.scannedAt})`,
-    `  ${open.length} open, ${clear.length} not affected; match cost $${report.costUsd.toFixed(4)}`,
+    `  ${open.length} open, ${clear.length} not affected; scan cost $${report.costUsd.toFixed(4)}`,
     ...(open.length ? [header, ...open.map(row)] : ['  nothing open']),
     ...(clear.length
       ? [
