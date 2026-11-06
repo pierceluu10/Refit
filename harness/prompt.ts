@@ -1,14 +1,86 @@
 // The harness system prompt, in the order set by "The harness system prompt" in REFIT-PLAN.md.
-import type { MigrationTask, Recipe, ToolPack } from '../shared/types.ts';
+// API migrations (MigrationTask) and every other external change (ExternalTask) share one prompt;
+// an ExternalTask adds the dependency, every place it is declared and the upgrade guidance.
+import type { ExternalTask, Recipe, ToolPack } from '../shared/types.ts';
 import { packageManagerBinary, type PackageManager } from './checks.ts';
 import { redactSecrets } from './secrets.ts';
-import type { CheckComparison, CheckRun } from './types.ts';
+import type { CheckComparison, CheckRun, HarnessTask, Runtime } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-01.10';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-06.1';
 
-// shortcut: `notes` is on MigrationTask in O1's branch only; drop this local type once that merges.
-export type TaskWithNotes = MigrationTask & { notes?: string };
+export type TaskWithNotes = HarnessTask;
+
+export const isExternalTask = (task: HarnessTask): task is ExternalTask =>
+  Array.isArray((task as Partial<ExternalTask>).dependencies) &&
+  typeof (task as ExternalTask).change.dependency === 'string';
+
+// The kinds where the code mostly stays and a version moves.
+const UPGRADE_KINDS = new Set([
+  'runtime-eol',
+  'framework-major',
+  'dependency-major',
+  'security-fix',
+  'container-image-eol',
+  'ci-deprecation',
+  'serverless-runtime',
+  'k8s-version',
+]);
+export const isUpgrade = (task: HarnessTask) =>
+  isExternalTask(task) && UPGRADE_KINDS.has(task.change.kind);
+
+// The language runtime the checks should run on after the change, when the change moves one.
+// A hint for the harness and the agent; the agent can run checks on any runtime it names.
+export function targetRuntime(task: HarnessTask): Runtime | undefined {
+  if (!isExternalTask(task) || !task.change.toVersion) return undefined;
+  const { dependency, dependencyKind, toVersion } = task.change;
+  if (!['runtime', 'container-image', 'infrastructure'].includes(dependencyKind)) return undefined;
+  const name = /^(?:node|nodejs)\b/i.test(dependency)
+    ? 'node'
+    : /^python\b/i.test(dependency)
+      ? 'python'
+      : undefined;
+  const version = /\d+(?:\.\d+)*/.exec(toVersion)?.[0];
+  return name && version ? { name, version } : undefined;
+}
+
+// What a good upgrade of each kind usually involves. Guidance the agent weighs, never rules.
+export const UPGRADE_PLAYBOOKS: Record<string, string> = {
+  'runtime-eol': [
+    '- Move every place the runtime version is set together: package.json `engines`, `.nvmrc`, `.node-version`, `.python-version`, `.tool-versions`, `pyproject.toml` `requires-python`, Dockerfile `FROM`, CI `node-version` / `python-version`, serverless `runtime`. `bump_version` finds them.',
+    '- Pick the newest supported LTS unless the change names a target. Read the runtime release notes for removals that touch this code (for Node: removed APIs, OpenSSL, ESM/CJS changes, `fetch`; for Python: removed stdlib modules, `distutils`, typing changes).',
+    '- Run the checks on the new runtime (`run_checks` with `runtime`). Passing on the old runtime proves nothing about the new one.',
+    '- If `@types/node` or similar typings are pinned, move them to the new major too, with the package manager.',
+  ].join('\n'),
+  'framework-major': [
+    "- Read the framework's official migration guide for every major you cross, one major at a time, and its codemods (`codemod` when available).",
+    '- Move peer dependencies that must move with it (for example react with next, or the matching eslint config), and nothing else.',
+    '- Build and test after the bump; framework majors break at build time more often than at runtime.',
+  ].join('\n'),
+  'dependency-major': [
+    "- Read the library's changelog or migration guide from the old major to the new (`migrationGuide`, `registryDiff`).",
+    '- Change the dependency with the package manager, then fix each call site the breaking changes touch.',
+  ].join('\n'),
+  'security-fix': [
+    '- Move to the first fixed version the advisory names, or the nearest one on the same major if that works. Quote the advisory in the PR.',
+    '- If the fix needs a major bump, treat it as a dependency-major upgrade and fix the call sites.',
+    '- If the vulnerable code path is not reachable from this repo, still bump it and say so; a reviewer decides.',
+  ].join('\n'),
+  'container-image-eol': [
+    '- Move the base image to a supported tag of the same image and variant (for example `node:18-bookworm` to `node:22-bookworm`), in every Dockerfile and compose file.',
+    '- If the image carries a language runtime, move the runtime everywhere else it is set too, and run the checks on it.',
+    "- Packages installed with apt or apk may have changed names in the newer OS release; check the Dockerfile's install lines.",
+  ].join('\n'),
+  'ci-deprecation': [
+    '- Move each deprecated action to its current major (`actionVersions`), and deprecated runner images to supported ones.',
+    "- Read the action's release notes for renamed or removed inputs and update the `with:` blocks.",
+    "- Checks here cannot run the workflow itself; say in the PR that the workflow's next run is the proof.",
+  ].join('\n'),
+  'model-retirement': [
+    '- Replace the retired model with the replacement the provider names (`modelReplacement`), in code, config and env templates.',
+    '- Check the request parameters the new model accepts (some drop temperature, max_tokens or tools); list output differences as behaviour changes.',
+  ].join('\n'),
+};
 
 // shortcut: memory's recipes carry more than shared/types.ts Recipe (its MemoryRecipe); read those
 // fields here until the contract grows them.
@@ -58,6 +130,7 @@ export type PromptInput = {
   tools: { name: string; description: string }[];
   budgetUsd: number;
   sandboxNote: string;
+  upgradePlaybooks?: Record<string, string>; // F2's, by kind
 };
 
 const quote = (text: string) =>
@@ -93,11 +166,16 @@ function taskSection(task: TaskWithNotes): string {
     return [head.join(', '), ...sites].join('\n');
   });
 
+  const external = isExternalTask(task) ? task.change : undefined;
   const facts = [
     `- Repository: ${task.repo}`,
     `- Change: ${change.title}`,
     `- Kind: ${change.kind}`,
     `- Provider: ${change.provider}`,
+    external && `- Dependency: ${external.dependency} (${external.dependencyKind})`,
+    external?.fromVersions?.length && `- Affected versions: ${external.fromVersions.join(', ')}`,
+    external?.toVersion && `- Recommended target: ${external.toVersion}`,
+    external?.severity && `- Severity: ${external.severity}`,
     change.effectiveDate && `- Effective date: ${change.effectiveDate}`,
     task.deadline && `- Deadline: ${task.deadline}`,
   ].filter(Boolean);
@@ -116,13 +194,54 @@ function taskSection(task: TaskWithNotes): string {
         ? usages.join('\n')
         : '- None recorded. Find the usage yourself: search the repo for the SDK, its imports, API hosts and the affected operations.',
     ].join('\n'),
+    isExternalTask(task) ? dependencySection(task) : '',
     task.notes ? `Notes from matching:\n${quote(task.notes)}` : '',
   ]
     .filter(Boolean)
     .join('\n\n');
 }
 
-function workflowSection(task: MigrationTask, toolPack: ToolPack, recipes: Recipe[]): string {
+function dependencySection(task: ExternalTask): string {
+  const lines = task.dependencies.map((dep) => {
+    const head = `- ${dep.name}${dep.version ? ` ${dep.version}` : ''} (${dep.kind}${dep.ecosystem ? `, ${dep.ecosystem}` : ''})${dep.notes ? `: ${dep.notes}` : ''}`;
+    const declared = dep.declaredIn.map(
+      (place) =>
+        `  - declared in ${place.file}${place.line ? `:${place.line}` : ''}${place.text ? `: \`${place.text.trim()}\`` : ''}`,
+    );
+    const sites = (dep.callSites ?? []).map(
+      (site) =>
+        `  - used at ${site.file}:${site.line} ${site.operation}${site.notes ? ` (${site.notes})` : ''}`,
+    );
+    return [head, ...declared, ...sites].join('\n');
+  });
+  return [
+    'Where the dependency is declared and used (from the inventory; it can miss places, so search too, and `bump_version` lists every place it can find):',
+    lines.length ? lines.join('\n') : '- None recorded. Find every place yourself.',
+  ].join('\n');
+}
+
+const UPGRADE_WORKFLOW = [
+  '1. Find every place the dependency is declared or implied (the list above, `bump_version` without `apply`, `search`), and every call site its change touches.',
+  '2. Read what changed between the current and the target version: the source above, release notes and migration guides (`fetch_url` and the upgrade tools).',
+  '3. Check memory for recipes from earlier runs.',
+  '4. Plan the smallest correct upgrade: the target version, the places to move together, and the code the breaking changes touch.',
+  "5. Move the version in every place (`bump_version` with `apply`, or edit), and change dependencies with the repo's package manager (`upgrade_package`) so it rewrites the lockfile.",
+  '6. Fix the code the new version breaks.',
+  '7. Run the checks, on the new runtime when the runtime moves (`run_checks` with `runtime`), and any validators or proof tools that fit.',
+  '8. Iterate until they pass, or until you can explain why they cannot.',
+  '9. Write the PR summary by calling `finish`.',
+].join('\n');
+
+function workflowSection(
+  task: HarnessTask,
+  toolPack: ToolPack,
+  recipes: Recipe[],
+  upgradePlaybooks: Record<string, string>,
+): string {
+  if (isExternalTask(task) && task.change.kind !== 'model-retirement' && !isApiKind(task)) {
+    const parts = ['## Workflow', UPGRADE_WORKFLOW];
+    return [...parts, ...guidance(task, toolPack, recipes, upgradePlaybooks)].join('\n\n');
+  }
   const parts = [
     '## Workflow',
     [
@@ -136,15 +255,43 @@ function workflowSection(task: MigrationTask, toolPack: ToolPack, recipes: Recip
       '8. Write the PR summary by calling `finish`.',
     ].join('\n'),
   ];
+  return [...parts, ...guidance(task, toolPack, recipes, upgradePlaybooks)].join('\n\n');
+}
 
-  const playbook = toolPack.playbooks[task.change.kind];
+// MigrationKind values: an ExternalTask of one of these is an API change and gets the API workflow.
+const API_KINDS = new Set([
+  'api-version',
+  'sdk-major',
+  'field-removed',
+  'field-renamed',
+  'endpoint-removed',
+  'rest-to-graphql',
+  'auth-change',
+  'webhook-payload',
+  'product-shutdown',
+  'pagination-or-limits',
+]);
+const isApiKind = (task: HarnessTask) => API_KINDS.has(task.change.kind);
+
+function guidance(
+  task: HarnessTask,
+  toolPack: ToolPack,
+  recipes: Recipe[],
+  upgradePlaybooks: Record<string, string>,
+): string[] {
+  const parts: string[] = [];
+  const kind = task.change.kind;
+  const playbook = (toolPack.playbooks as Record<string, string | undefined>)[kind];
   if (playbook) {
-    parts.push(
-      `### Provider playbook: ${toolPack.provider} / ${task.change.kind}`,
-      playbook.trim(),
-    );
+    parts.push(`### Provider playbook: ${toolPack.provider} / ${kind}`, playbook.trim());
   }
-
+  if (isExternalTask(task)) {
+    const upgrade = upgradePlaybooks[kind];
+    if (upgrade) parts.push(`### Upgrade playbook: ${kind}`, upgrade.trim());
+    const builtIn = UPGRADE_PLAYBOOKS[kind];
+    if (builtIn)
+      parts.push(`### What a ${kind} change usually involves (guidance, not rules)`, builtIn);
+  }
   if (recipes.length) {
     parts.push(
       '### Recipes from memory (guidance, not rules)',
@@ -152,20 +299,36 @@ function workflowSection(task: MigrationTask, toolPack: ToolPack, recipes: Recip
       renderRecipes(recipes),
     );
   }
+  return parts;
+}
 
-  return parts.join('\n\n');
+const ROLE_API =
+  'You are Refit, a senior engineer who migrates code when external APIs change. You always attempt the migration.';
+const ROLE_EXTERNAL =
+  'You are Refit, a senior engineer who keeps software from falling behind: when something outside the code changes (a runtime reaches end of life, a framework or library ships a breaking major, an advisory needs a fix, a base image, CI action or AI model is retired, an API changes), you change the code to match. You always attempt the change.';
+
+function upgradeDone(task: ExternalTask): string {
+  const runtime = targetRuntime(task);
+  return [
+    '- **verified** for an upgrade: the checks pass before the change on the old version and after it on the new version, and any validators or proof tools you ran pass. Only NEW failures count.',
+    runtime
+      ? `- This change moves the ${runtime.name} runtime to ${runtime.version}. The harness runs the final checks on it when the sandbox can provide it; run them on it yourself with \`run_checks\` \`runtime\`. If it cannot be provided, list that as unproven.`
+      : '',
+    '- Every place the version is declared moves together. List any place you left on purpose, and why.',
+    '- **needs-review**: state exactly what is unproven (for example a workflow file no check can run, or a runtime the sandbox could not provide), and every behaviour change the new version brings that this code may notice.',
+  ]
+    .filter(Boolean)
+    .join('\n');
 }
 
 export function buildSystemPrompt(input: PromptInput): string {
   const { task, toolPack, recipes, tools, budgetUsd, sandboxNote } = input;
+  const external = isExternalTask(task);
 
   const sections = [
-    [
-      '## Role',
-      'You are Refit, a senior engineer who migrates code when external APIs change. You always attempt the migration.',
-    ].join('\n\n'),
+    ['## Role', external ? ROLE_EXTERNAL : ROLE_API].join('\n\n'),
     taskSection(task),
-    workflowSection(task, toolPack, recipes),
+    workflowSection(task, toolPack, recipes, input.upgradePlaybooks ?? {}),
     [
       '## Tools',
       tools.map((tool) => `- \`${tool.name}\`: ${tool.description}`).join('\n'),
@@ -181,14 +344,21 @@ export function buildSystemPrompt(input: PromptInput): string {
         "- List as unproven what this run could have checked and didn't, or checked and couldn't prove. Leave out the standing limit that no run here makes live API calls: the sandbox has no credentials, and the PR says so on every run.",
         "- What your change may do differently that only a live call would show, such as a new model's output or a response's shape at a new API version, goes under behaviour changes, so the reviewer checks it.",
         '- A provider validator counts only if you called it: in `finish`, list the provider tools you ran by tool name. The harness grades them from its own record of those calls, not from your report.',
-      ].join('\n'),
-      "Always end by calling `finish`. If the code genuinely does not use the changed API, call `finish` with verdict 'not-affected' and explain why.",
+        isUpgrade(task) ? upgradeDone(task as ExternalTask) : '',
+      ]
+        .filter(Boolean)
+        .join('\n'),
+      external
+        ? "Always end by calling `finish`. If the code genuinely does not depend on what changed (for example it already runs a supported version), call `finish` with verdict 'not-affected' and explain why."
+        : "Always end by calling `finish`. If the code genuinely does not use the changed API, call `finish` with verdict 'not-affected' and explain why.",
     ].join('\n\n'),
     [
       '## Style',
       [
         '- Make the smallest correct change.',
-        '- Keep behaviour the same unless the API change forces otherwise, and say so.',
+        external
+          ? '- Keep behaviour the same unless the change forces otherwise, and say so.'
+          : '- Keep behaviour the same unless the API change forces otherwise, and say so.',
         "- Don't reformat unrelated code. Don't upgrade unrelated dependencies.",
         "- When a dependency must change, change it with the repo's own package manager and release (the kickoff message names them) and let it rewrite the lockfile. Never edit a lockfile by hand or switch package managers.",
         '- Before you call `finish`, look at your change with `diff`: the lockfile should change only for the dependencies you moved, and no file should change by accident.',
@@ -231,9 +401,11 @@ export function buildKickoffMessage(
   before: CheckRun[],
   installOutput?: string,
   packageManager?: string,
+  notes: string[] = [],
 ): string {
   const parts = ['Start the migration described in the system prompt.'];
   if (packageManager) parts.push(packageManager);
+  parts.push(...notes);
   if (installOutput) {
     parts.push(
       'Dependency install output (tail):',

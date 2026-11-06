@@ -1,7 +1,14 @@
 // The PR body: change, why, proof, unproven, behaviour changes. It states only facts passed in.
-import type { MigrationTask, RunRecord } from '../shared/types.ts';
+import type { ExternalTask, RunRecord } from '../shared/types.ts';
+import { isExternalTask, isUpgrade } from './prompt.ts';
 import { redactSecrets } from './secrets.ts';
-import type { CheckCommand, CheckComparison, FinishReport, ValidatorRun } from './types.ts';
+import type {
+  CheckCommand,
+  CheckComparison,
+  FinishReport,
+  HarnessTask,
+  ValidatorRun,
+} from './types.ts';
 import {
   claimMatches,
   failingCheckers,
@@ -10,7 +17,7 @@ import {
 } from './validators.ts';
 
 export type PrBodyInput = {
-  task: MigrationTask;
+  task: HarnessTask;
   outcome: RunRecord['outcome'];
   report?: FinishReport;
   comparisons: CheckComparison[];
@@ -22,7 +29,25 @@ export type PrBodyInput = {
   promptVersion: string;
   sandboxNote: string;
   notes?: string[]; // harness facts a reviewer must know, listed under Unproven
+  checksRuntime?: string; // the runtime the after-checks ran on, e.g. "node 22"
 };
+
+// The version the dependency moves from: the inventory's, else the change's affected versions.
+function fromVersion(task: ExternalTask): string | undefined {
+  const dep =
+    task.dependencies.find((d) => d.name === task.change.dependency) ?? task.dependencies[0];
+  return dep?.version ?? task.change.fromVersions?.join(', ');
+}
+
+// "Upgrade <dependency> <from> → <to>" for upgrades; the change's own title otherwise.
+export function prTitle(task: HarnessTask): string {
+  if (!isUpgrade(task)) return task.change.title;
+  const external = task as ExternalTask;
+  const from = fromVersion(external);
+  const to = external.change.toVersion;
+  const versions = from && to ? ` ${from} → ${to}` : to ? ` to ${to}` : '';
+  return `Upgrade ${external.change.dependency}${versions}`;
+}
 
 const BADGE: Record<RunRecord['outcome'], string> = {
   verified: 'Verified',
@@ -125,10 +150,26 @@ export function writePrBody(input: PrBodyInput): string {
         ].join('\n')
       : '',
     `Where checks ran: ${input.sandboxNote}`,
+    input.checksRuntime
+      ? `Runtime: before on the sandbox default with the original code, after on ${input.checksRuntime}.`
+      : '',
   ];
 
+  const external = isExternalTask(task) ? task : undefined;
+  const deadline = task.deadline ?? task.change.effectiveDate;
   const sections = [
-    `## ${task.change.title} [${BADGE[input.outcome]}]`,
+    `## ${prTitle(task)} [${BADGE[input.outcome]}]`,
+    external
+      ? list(
+          [
+            prTitle(task) !== task.change.title ? `Change: ${task.change.title}` : '',
+            `Kind: ${task.change.kind}`,
+            deadline ? `Deadline: ${deadline}` : '',
+            external.change.severity ? `Severity: ${external.change.severity}` : '',
+            `Source: ${task.change.source.url}`,
+          ].filter(Boolean),
+        )
+      : '',
     [
       '### Change',
       report?.summary ?? 'The agent did not report a summary.',
@@ -139,12 +180,15 @@ export function writePrBody(input: PrBodyInput): string {
     [
       '### Why',
       report?.why ?? 'The agent did not report why.',
+      !external && deadline ? `Deadline: ${deadline}` : '',
       task.change.source.quote
         .split('\n')
         .map((line) => `> ${line}`)
         .join('\n'),
       `Source: ${task.change.source.url}`,
-    ].join('\n\n'),
+    ]
+      .filter(Boolean)
+      .join('\n\n'),
     ['### Proof', ...proof.filter(Boolean)].join('\n\n'),
     ['### Unproven', unproven.length ? list(unproven) : 'Nothing known.'].join('\n\n'),
     ['### Behaviour changes', behaviour.length ? list(behaviour) : 'None intended.'].join('\n\n'),
@@ -154,5 +198,5 @@ export function writePrBody(input: PrBodyInput): string {
     ].join('\n\n'),
   ];
 
-  return redactSecrets(sections.join('\n\n') + '\n');
+  return redactSecrets(sections.filter(Boolean).join('\n\n') + '\n');
 }

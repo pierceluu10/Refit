@@ -1,13 +1,34 @@
 // Internal contracts between the harness modules. The public contract is shared/types.ts.
 import type {
   AgentTool,
+  ExternalTask,
   MigrationTask,
   Recipe,
+  RetrieveExternalRecipes,
   RetrieveRecipes,
+  RunProof,
   RunRecord,
   ToolPack,
 } from '../shared/types.ts';
 import type { BudgetLedger, ChargeRun } from './ledger.ts';
+
+// An API migration (runTask) or any other external change, such as an upgrade (runExternalTask).
+export type HarnessTask = MigrationTask | ExternalTask;
+
+// A language runtime the checks can run on, e.g. { name: 'node', version: '22' }.
+export type Runtime = { name: string; version: string };
+
+// Runs commands on a chosen runtime version inside the sandbox. shortcut: a local stub (tools.ts)
+// until O3's sandbox and checks land; it must never run anything outside the sandbox.
+export type RuntimeRunner = {
+  // Tries the runtime in the sandbox; `ok` only when the reported version matches.
+  probe(sandbox: Sandbox, runtime: Runtime): Promise<{ ok: boolean; detail: string }>;
+  // The command wrapped so it runs on that runtime.
+  wrap(runtime: Runtime, command: string): string;
+};
+
+// F2's upgrade tools and playbooks (providers/upgrades/), loaded per task.
+export type UpgradeKit = { tools: AgentTool[]; playbooks: Record<string, string> };
 
 export type ExecResult = { code: number; stdout: string; stderr: string; timedOut: boolean };
 
@@ -54,10 +75,16 @@ export type ValidatorRun = { tool: string; output: string; passed: boolean };
 
 export type ToolContext = {
   sandbox: Sandbox;
-  task: MigrationTask;
+  task: HarnessTask;
   toolPack: ToolPack;
-  retrieveRecipes: RetrieveRecipes;
+  retrieveRecipes: (task: HarnessTask) => Promise<Recipe[]>;
   checks: CheckCommand[];
+  // Upgrade tools from F2; recorded like ToolPack calls.
+  upgradeTools?: AgentTool[];
+  runProof?: RunProof;
+  runtimes?: RuntimeRunner;
+  // Called when checks ran on a runtime the probe confirmed, so the harness re-checks on it too.
+  onRuntime?: (runtime: Runtime) => void;
   onFinish: (report: FinishReport) => void;
   onToolPackCall?: (run: ValidatorRun) => void;
   // Registers an agent-named check: the harness runs it on the baseline and returns that run.
@@ -93,6 +120,10 @@ export type HarnessDeps = {
   session?: AgentSession;
   loadToolPack?: (provider: string) => Promise<ToolPack>;
   retrieveRecipes?: RetrieveRecipes;
+  retrieveExternalRecipes?: RetrieveExternalRecipes;
+  loadUpgradeKit?: (task: ExternalTask) => Promise<UpgradeKit>;
+  runProof?: RunProof;
+  runtimes?: RuntimeRunner;
   createSandbox?: (repoDir: string) => Promise<Sandbox>;
   budgetUsd?: number; // defaults to REFIT_AI_BUDGET_USD
   outDir?: string; // where the transcript, diff and PR body are written
@@ -113,6 +144,10 @@ export type HarnessRunRecord = RunRecord & {
   // Every tool call in order with what it returned, and the checks after each iteration: a short
   // stand-in for the transcript, for memory's recipe extraction.
   summary: string;
+  // Added for upgrades (2026-11-06). The PR title, e.g. "Upgrade node 18 → 22".
+  prTitle?: string;
+  // The runtime the final checks ran on, when the change moves one; undefined means the sandbox default.
+  checksRuntime?: string;
 };
 
 export type { Recipe };

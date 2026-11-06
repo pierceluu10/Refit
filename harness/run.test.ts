@@ -2,10 +2,19 @@ import { describe, expect, it } from 'vitest';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { MigrationTask, ToolPack } from '../shared/types.ts';
+import type { ExternalTask, MigrationKindMvp, MigrationTask, ToolPack } from '../shared/types.ts';
 import { scriptedSession, type ScriptedTurn } from './fake-session.ts';
-import { ESCALATION_MODEL, MODEL, decideOutcome, runTask } from './run.ts';
+import {
+  ESCALATION_MODEL,
+  MODEL,
+  decideOutcome,
+  loadUpgradeKit,
+  runExternalTask,
+  runTask,
+  upgradeKitFrom,
+} from './run.ts';
 import { createSandbox } from './sandbox.ts';
+import type { RuntimeRunner, Sandbox } from './types.ts';
 
 // Illustrative fixture task, not a real customer.
 const task: MigrationTask = {
@@ -369,5 +378,407 @@ describe('decideOutcome', () => {
     expect(decideOutcome({ ...input, after: [check(true)], validatorRuns: [lookup] })).toBe(
       'verified',
     );
+  });
+});
+
+// Upgrades (MVP 2026-11-06). An illustrative fixture shaped like the demo-node-api sample repo:
+// Node 18 everywhere, an old checkout action, a retired model id. Not a real customer repo.
+function upgradeRepo(): string {
+  const dir = mkdtempSync(join(tmpdir(), 'refit-upgrade-fixture-'));
+  mkdirSync(join(dir, 'src'));
+  mkdirSync(join(dir, '.github/workflows'), { recursive: true });
+  const manifest = {
+    name: 'demo-node-api-fixture',
+    version: '1.0.0',
+    type: 'module',
+    engines: { node: '>=18' },
+    scripts: { test: 'node check.js' },
+    dependencies: { express: '^4.21.0', stripe: '^14.0.0', lodash: '4.17.20' },
+  };
+  writeFileSync(join(dir, 'package.json'), JSON.stringify(manifest, null, 2) + '\n');
+  writeFileSync(
+    join(dir, 'package-lock.json'),
+    JSON.stringify({
+      name: 'demo-node-api-fixture',
+      version: '1.0.0',
+      lockfileVersion: 3,
+      requires: true,
+      packages: { '': { name: 'demo-node-api-fixture', version: '1.0.0' } },
+    }),
+  );
+  writeFileSync(join(dir, '.nvmrc'), '18\n');
+  writeFileSync(join(dir, 'Dockerfile'), 'FROM node:18-bookworm\nWORKDIR /app\nCOPY . .\n');
+  writeFileSync(
+    join(dir, '.github/workflows/ci.yml'),
+    [
+      'name: ci',
+      'on: [push]',
+      'jobs:',
+      '  test:',
+      '    runs-on: ubuntu-latest',
+      '    steps:',
+      '      - uses: actions/checkout@v2',
+      '      - uses: actions/setup-node@v3',
+      '        with:',
+      '          node-version: 18',
+      '      - run: npm test',
+      '',
+    ].join('\n'),
+  );
+  writeFileSync(
+    join(dir, 'src/ai.js'),
+    "export const MODEL = 'example-model-0613';\nexport const ask = (client, q) => client.chat({ model: MODEL, q });\n",
+  );
+  // The check passes on the default runtime, and on a switched runtime only when .nvmrc matches it,
+  // so a runtime upgrade is proven only when every declared version moved.
+  writeFileSync(
+    join(dir, 'check.js'),
+    `import { readFileSync } from 'node:fs';
+const runtime = process.env.REFIT_FAKE_RUNTIME;
+const nvmrc = readFileSync('.nvmrc', 'utf8').trim();
+if (runtime && runtime !== 'node' + nvmrc) throw new Error('.nvmrc says ' + nvmrc + ' but checks ran on ' + runtime);
+console.log('ok');
+`,
+  );
+  return dir;
+}
+
+// No network in tests: installs and package-manager upgrades succeed without touching the registry.
+async function offlineSandbox(dir: string): Promise<Sandbox> {
+  const box = await createSandbox(dir, { mode: 'local' });
+  return {
+    ...box,
+    exec: (command, options) =>
+      /^npm (ci|install)\b/.test(command)
+        ? Promise.resolve({
+            code: 0,
+            stdout: 'offline install (test stub)',
+            stderr: '',
+            timedOut: false,
+          })
+        : box.exec(command, options),
+  };
+}
+
+const fakeRuntimes = (available = true): RuntimeRunner => ({
+  wrap: (runtime, command) => `REFIT_FAKE_RUNTIME=${runtime.name}${runtime.version} ${command}`,
+  probe: async (_sandbox, runtime) =>
+    available
+      ? { ok: true, detail: `fake ${runtime.name} ${runtime.version}` }
+      : { ok: false, detail: `${runtime.name} ${runtime.version} not available (fake)` },
+});
+
+function externalTask(
+  kind: MigrationKindMvp | 'model-retirement',
+  change: Partial<ExternalTask['change']> &
+    Pick<ExternalTask['change'], 'dependency' | 'dependencyKind'>,
+  version?: string,
+): ExternalTask {
+  return {
+    id: `fixture-${kind}`,
+    repo: 'example/demo-node-api',
+    priority: 1,
+    deadline: '2027-04-30',
+    usages: [],
+    change: {
+      provider: change.dependency,
+      id: `fixture-${kind}-change`,
+      kind,
+      title: `Illustrative ${kind} change for ${change.dependency}`,
+      source: { url: 'https://example.com/illustrative-source', quote: 'An illustrative quote.' },
+      affects: {},
+      ...change,
+    },
+    dependencies: [
+      {
+        repo: 'example/demo-node-api',
+        kind: change.dependencyKind,
+        name: change.dependency,
+        version,
+        declaredIn: [{ file: 'package.json', line: 6 }],
+      },
+    ],
+  };
+}
+
+const finishUpgrade = (call: Parameters<ScriptedTurn>[0], summary: string) =>
+  call('finish', {
+    verdict: 'migrated',
+    summary,
+    why: 'The illustrative change forces it.',
+    validators: [],
+    unproven: [],
+    behaviourChanges: [],
+  });
+
+const upgradeDeps = (turns: ScriptedTurn[], extra: Record<string, unknown> = {}) => ({
+  session: scriptedSession(turns),
+  createSandbox: offlineSandbox,
+  loadToolPack: async (provider: string) => ({ provider, tools: [], playbooks: {} }),
+  loadUpgradeKit: async () => ({ tools: [], playbooks: {} }),
+  runtimes: fakeRuntimes(),
+  budgetUsd: 1,
+  turnReserveUsd: 0,
+  outDir: mkdtempSync(join(tmpdir(), 'refit-upgrade-out-')),
+  ...extra,
+});
+
+type KindCase = {
+  task: ExternalTask;
+  turn: ScriptedTurn;
+  diffHas: string[];
+  title: string;
+  runtime?: string;
+};
+
+const kindCases: Record<string, KindCase> = {
+  'runtime-eol': {
+    task: externalTask(
+      'runtime-eol',
+      { dependency: 'node', dependencyKind: 'runtime', fromVersions: ['18'], toVersion: '22' },
+      '18',
+    ),
+    turn: async (call) => {
+      await call('bump_version', { dependency: 'node', to: '22', apply: true });
+      await call('run_checks', { runtime: { name: 'node', version: '22' } });
+      await finishUpgrade(call, 'Moved Node 18 to 22 everywhere it is declared.');
+    },
+    diffHas: ['+22', '+FROM node:22-bookworm', '+          node-version: 22', '"node": ">=22"'],
+    title: 'Upgrade node 18 → 22',
+    runtime: 'node 22',
+  },
+  'framework-major': {
+    task: externalTask(
+      'framework-major',
+      { dependency: 'express', dependencyKind: 'framework', toVersion: '5.1.0' },
+      '4.21.0',
+    ),
+    turn: async (call) => {
+      await call('upgrade_package', { package: 'express@5.1.0' });
+      await call('bump_version', { dependency: 'express', to: '5.1.0', apply: true });
+      await finishUpgrade(call, 'Moved express 4 to 5.');
+    },
+    diffHas: ['+    "express": "^5.1.0"'],
+    title: 'Upgrade express 4.21.0 → 5.1.0',
+  },
+  'dependency-major': {
+    task: externalTask(
+      'dependency-major',
+      { dependency: 'stripe', dependencyKind: 'sdk', toVersion: '17.0.0' },
+      '14.0.0',
+    ),
+    turn: async (call) => {
+      await call('bump_version', { dependency: 'stripe', to: '17.0.0', apply: true });
+      await finishUpgrade(call, 'Moved stripe 14 to 17.');
+    },
+    diffHas: ['+    "stripe": "^17.0.0"'],
+    title: 'Upgrade stripe 14.0.0 → 17.0.0',
+  },
+  'security-fix': {
+    task: externalTask(
+      'security-fix',
+      {
+        dependency: 'lodash',
+        dependencyKind: 'library',
+        toVersion: '4.17.21',
+        severity: 'security',
+      },
+      '4.17.20',
+    ),
+    turn: async (call) => {
+      await call('bump_version', { dependency: 'lodash', to: '4.17.21', apply: true });
+      await finishUpgrade(call, 'Moved lodash to the fixed release.');
+    },
+    diffHas: ['+    "lodash": "4.17.21"'],
+    title: 'Upgrade lodash 4.17.20 → 4.17.21',
+  },
+  'container-image-eol': {
+    task: externalTask(
+      'container-image-eol',
+      {
+        dependency: 'node:18-bookworm',
+        dependencyKind: 'container-image',
+        toVersion: '22-bookworm',
+      },
+      '18-bookworm',
+    ),
+    turn: async (call) => {
+      await call('bump_version', { dependency: 'node', to: '22', apply: true });
+      await finishUpgrade(call, 'Moved the base image and the runtime with it.');
+    },
+    diffHas: ['+FROM node:22-bookworm'],
+    title: 'Upgrade node:18-bookworm 18-bookworm → 22-bookworm',
+    runtime: 'node 22',
+  },
+  'ci-deprecation': {
+    task: externalTask(
+      'ci-deprecation',
+      { dependency: 'actions/checkout', dependencyKind: 'ci', toVersion: 'v4' },
+      'v2',
+    ),
+    turn: async (call) => {
+      await call('bump_version', { dependency: 'actions/checkout', to: 'v4', apply: true });
+      await finishUpgrade(call, 'Moved actions/checkout to v4.');
+    },
+    diffHas: ['+      - uses: actions/checkout@v4'],
+    title: 'Upgrade actions/checkout v2 → v4',
+  },
+  'model-retirement': {
+    task: externalTask(
+      'model-retirement',
+      {
+        dependency: 'example-model-0613',
+        dependencyKind: 'ai-model',
+        toVersion: 'example-model-2',
+      },
+      undefined,
+    ),
+    turn: async (call) => {
+      await call('edit_file', {
+        path: 'src/ai.js',
+        old: "'example-model-0613'",
+        new: "'example-model-2'",
+      });
+      await finishUpgrade(call, 'Replaced the retired model id.');
+    },
+    diffHas: ["+export const MODEL = 'example-model-2';"],
+    title: 'Illustrative model-retirement change for example-model-0613',
+  },
+};
+
+describe('runExternalTask with a fake model, for every upgrade kind', () => {
+  for (const [kind, c] of Object.entries(kindCases)) {
+    it(`${kind}: edits, checks before and after, and writes the upgrade PR`, async () => {
+      const record = await runExternalTask(c.task, upgradeRepo(), upgradeDeps([c.turn]));
+      expect(record.outcome).toBe('verified');
+      for (const line of c.diffHas) expect(record.diff).toContain(line);
+      expect(record.prTitle).toBe(c.title);
+      expect(record.prBody).toContain(`## ${c.title} [Verified]`);
+      expect(record.prBody).toContain('Deadline: 2027-04-30');
+      expect(record.prBody).toContain('Source: https://example.com/illustrative-source');
+      expect(record.checks.find((check) => check.name === 'test')).toMatchObject({
+        before: 'pass',
+        after: 'pass',
+      });
+      expect(record.checksRuntime).toBe(c.runtime);
+      if (c.runtime) expect(record.prBody).toContain(`after on ${c.runtime}`);
+    });
+  }
+
+  it('catches a runtime bump that missed a declared place: the checks on the new runtime fail', async () => {
+    const c = kindCases['runtime-eol'];
+    const partial: ScriptedTurn = async (call) => {
+      await call('bump_version', {
+        dependency: 'node',
+        to: '22',
+        apply: true,
+        places: ['Dockerfile:1'],
+      });
+      await finishUpgrade(call, 'Moved only the Dockerfile.');
+    };
+    const record = await runExternalTask(
+      c.task,
+      upgradeRepo(),
+      upgradeDeps([partial], { maxIterations: 2 }),
+    );
+    expect(record.outcome).toBe('needs-review');
+    expect(record.checks.find((check) => check.name === 'test')?.after).toMatch(/^fail/);
+    expect(record.prBody).toContain('.nvmrc says 18 but checks ran on node22');
+  });
+
+  it('keeps an upgrade in needs-review, and says why, when the sandbox lacks the target runtime', async () => {
+    const c = kindCases['runtime-eol'];
+    const record = await runExternalTask(
+      c.task,
+      upgradeRepo(),
+      upgradeDeps([c.turn], { runtimes: fakeRuntimes(false) }),
+    );
+    expect(record.outcome).toBe('needs-review');
+    expect(record.checksRuntime).toBeUndefined();
+    expect(record.prBody).toContain('The checks could not run on node 22 in this sandbox');
+  });
+
+  it('ends a change the code does not depend on as not-affected', async () => {
+    const notAffected: ScriptedTurn = async (call) => {
+      await call('finish', {
+        verdict: 'not-affected',
+        summary: 'No change.',
+        why: 'This repo does not use the retired model.',
+        validators: [],
+        unproven: [],
+        behaviourChanges: [],
+      });
+    };
+    const record = await runExternalTask(
+      kindCases['model-retirement'].task,
+      upgradeRepo(),
+      upgradeDeps([notAffected]),
+    );
+    expect(record.outcome).toBe('not-affected');
+    expect(record.diff).toBe('');
+  });
+
+  it("gives the agent F2's upgrade tools and records their calls", async () => {
+    const endOfLife = {
+      name: 'endOfLife',
+      description: 'Illustrative stand-in for F2: end-of-life dates for a runtime',
+      inputSchema: { type: 'object', properties: { product: { type: 'string' } } },
+      run: async () => 'node 18: end of life 2025-04-30 (illustrative)',
+    };
+    const kit = await upgradeKitFrom(
+      { upgradeTools: [endOfLife], upgradePlaybooks: { 'runtime-eol': 'Use the LTS.' } },
+      kindCases['runtime-eol'].task,
+    );
+    expect(kit.tools.map((tool) => tool.name)).toEqual(['endOfLife']);
+    expect(kit.playbooks['runtime-eol']).toBe('Use the LTS.');
+    let systemPrompt = '';
+    const turn: ScriptedTurn = async (call, input) => {
+      systemPrompt = input.systemPrompt;
+      expect(await call('upgrades__endOfLife', { product: 'node' })).toContain('end of life');
+      await kindCases['runtime-eol'].turn(call, input);
+    };
+    const record = await runExternalTask(
+      kindCases['runtime-eol'].task,
+      upgradeRepo(),
+      upgradeDeps([turn], { loadUpgradeKit: async () => kit }),
+    );
+    expect(systemPrompt).toContain('### Upgrade playbook: runtime-eol');
+    expect(record.prBody).toContain('`upgrades__endOfLife`: pass');
+    expect(record.outcome).toBe('verified');
+  });
+
+  it('loads no upgrade tools while providers/upgrades has not landed', async () => {
+    const kit = await loadUpgradeKit(
+      kindCases['runtime-eol'].task,
+      new URL('./no-such-module.ts', import.meta.url).href,
+    );
+    expect(kit).toEqual({ tools: [], playbooks: {} });
+  });
+
+  it('keeps the run in needs-review when a proof check fails', async () => {
+    const turn: ScriptedTurn = async (call, input) => {
+      expect(await call('run_proof', { check: 'workflow-lint' })).toContain('failed');
+      await kindCases['ci-deprecation'].turn(call, input);
+    };
+    const record = await runExternalTask(
+      kindCases['ci-deprecation'].task,
+      upgradeRepo(),
+      upgradeDeps([turn], {
+        runProof: async (check: string) => ({
+          check,
+          passed: false,
+          evidence: ['illustrative: unknown input `node-version-file`'],
+        }),
+      }),
+    );
+    expect(record.outcome).toBe('needs-review');
+    expect(record.prBody).toContain('proof_check__workflow-lint');
+  });
+
+  it('still runs API tasks through runTask unchanged', async () => {
+    const record = await runTask(task, fixtureRepo(), deps([fixIt]));
+    expect(record.outcome).toBe('verified');
+    expect(record.prTitle).toBe(task.change.title);
+    expect(record.checksRuntime).toBeUndefined();
   });
 });

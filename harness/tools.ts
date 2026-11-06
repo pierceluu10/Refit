@@ -6,13 +6,22 @@ import type { AgentTool } from '../shared/types.ts';
 import {
   detectPackageManager,
   installCommand,
+  packageManagerBinary,
   packageManagerVersion,
   runChecks,
+  type PackageManager,
 } from './checks.ts';
 import { renderRecipes } from './prompt.ts';
 import { redactSecrets } from './secrets.ts';
 import { runPassed } from './validators.ts';
-import type { ExecResult, FinishReport, ToolContext } from './types.ts';
+import type {
+  ExecResult,
+  FinishReport,
+  Runtime,
+  RuntimeRunner,
+  Sandbox,
+  ToolContext,
+} from './types.ts';
 
 type Args = Record<string, unknown>;
 
@@ -128,6 +137,273 @@ async function listTree(dir: string, depth: number, prefix: string, out: string[
 
 function matchesGlob(relative: string, glob: string): boolean {
   return path.matchesGlob(glob.includes('/') ? relative : path.basename(relative), glob);
+}
+
+// Single-quotes a value for sh.
+export const shellQuote = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
+
+// shortcut: a local runtime switch until O3's sandbox and checks land. Node is the official
+// nodejs.org build for that version, fetched once into /tmp from inside the sandbox; Python is a
+// pythonX.Y binary the sandbox image already has. Both run only inside the sandbox, and the probe
+// reports honestly when the runtime is not there (no network, no such binary).
+export function nodeRuntimeCommand(version: string, command: string): string {
+  const v = version.replace(/^v/, '');
+  if (!/^\d+(\.\d+){0,2}$/.test(v)) return command;
+  const dist =
+    v.includes('.') && v.split('.').length === 3 ? `v${v}` : `latest-v${v.split('.')[0]}.x`;
+  const base = `https://nodejs.org/dist/${dist}`;
+  const fetchNode = [
+    'refit_os=$(uname -s | tr A-Z a-z)',
+    "refit_arch=$(uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/')",
+    `refit_file=$(curl -fsSL ${base}/SHASUMS256.txt | grep -o "node-v[0-9.]*-$refit_os-$refit_arch.tar.gz" | head -1)`,
+    `mkdir -p "$refit_node" && curl -fsSL "${base}/$refit_file" | tar -xz -C "$refit_node" --strip-components=1`,
+  ].join('; ');
+  return `refit_node=/tmp/refit-node-${v}; if [ ! -x "$refit_node/bin/node" ]; then ${fetchNode}; fi; PATH="$refit_node/bin:$PATH" sh -c ${shellQuote(command)}`;
+}
+
+export const localRuntimes: RuntimeRunner = {
+  wrap(runtime, command) {
+    if (runtime.name === 'node') return nodeRuntimeCommand(runtime.version, command);
+    if (runtime.name === 'python') {
+      const minor = runtime.version.split('.').slice(0, 2).join('.');
+      return [
+        `refit_py=$(command -v python${minor})`,
+        'refit_bin=$(mktemp -d)',
+        '[ -n "$refit_py" ] && ln -s "$refit_py" "$refit_bin/python3" && ln -s "$refit_py" "$refit_bin/python"',
+        `PATH="$refit_bin:$PATH" sh -c ${shellQuote(command)}`,
+      ].join('; ');
+    }
+    return command;
+  },
+  async probe(sandbox, runtime) {
+    const version =
+      runtime.name === 'node'
+        ? 'node --version'
+        : runtime.name === 'python'
+          ? 'python3 --version'
+          : '';
+    if (!version)
+      return { ok: false, detail: `no way to switch to ${runtime.name} in this sandbox` };
+    const result = await sandbox.exec(this.wrap(runtime, version), { timeoutMs: 5 * 60_000 });
+    const out = `${result.stdout}\n${result.stderr}`.trim();
+    const wanted = new RegExp(
+      `(?:^v|Python )${runtime.version.replace(/\./g, '\\.')}(?:\\.|\\s|$)`,
+      'm',
+    );
+    const ok = result.code === 0 && wanted.test(out);
+    const shown = out.split('\n').slice(-3).join(' | ').slice(0, 300);
+    return {
+      ok,
+      detail: ok
+        ? `${runtime.name} ${runtime.version} available: ${shown}`
+        : `${runtime.name} ${runtime.version} not available: ${shown || `exit ${result.code}`}`,
+    };
+  },
+};
+
+export const runtimeLabel = (runtime: Runtime) => `${runtime.name} ${runtime.version}`;
+
+// One place a dependency's version is set: the line and the version spec on it.
+export type VersionPlace = {
+  file: string;
+  line: number;
+  text: string;
+  spec: string;
+  note?: string;
+};
+
+const escapeRegex = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const VERSION_TOKEN = /\d+(?:\.\d+)*/;
+
+// Rewrites the version in a spec, keeping its operators and suffixes: "^18.2.0" + "22.11.0" →
+// "^22.11.0", ">=18" + "22.11.0" → ">=22", "nodejs16.x" + "22" → "nodejs22.x", "v2" + "4" → "v4".
+// Returns undefined when the spec has no single literal to move (a SHA, a list, a variable).
+export function replaceVersion(spec: string, to: string): string | undefined {
+  const target = VERSION_TOKEN.exec(to)?.[0];
+  if (!target) return undefined;
+  if (/^[0-9a-f]{40}$/i.test(spec) || /\$\{\{|\[/.test(spec) || spec.includes('||')) {
+    return undefined;
+  }
+  const match = VERSION_TOKEN.exec(spec);
+  if (!match) return undefined;
+  const count = match[0].split('.').length;
+  const parts = target.split('.');
+  const next = (count < parts.length ? parts.slice(0, count) : parts).join('.');
+  let out = spec.slice(0, match.index) + next + spec.slice(match.index + match[0].length);
+  // An upper bound such as "<3" in ">=2,<3" moves to the next major past the target.
+  out = out.replace(
+    /(<=?\s*)(\d+(?:\.\d+)*)/g,
+    (whole, op: string, bound: string, offset: number) => {
+      if (offset <= match.index) return whole;
+      const shape = bound.split('.').length;
+      const major = Number(parts[0]) + 1;
+      return op + [String(major), ...Array(shape - 1).fill('0')].join('.');
+    },
+  );
+  return out;
+}
+
+type LineMatcher = { files: (file: string) => boolean; pattern: RegExp };
+
+function versionMatchers(dependency: string): LineMatcher[] {
+  const name = dependency.trim();
+  const lower = name.toLowerCase();
+  const image = lower.split(':')[0];
+  const node = ['node', 'nodejs', 'node.js'].includes(image);
+  const python = ['python', 'python3', 'cpython'].includes(image);
+  const base = (file: string) => path.basename(file);
+  const isYaml = (file: string) => /\.ya?ml$/i.test(file);
+  const isWorkflow = (file: string) => /(^|\/)\.github\/workflows\/[^/]+\.ya?ml$/i.test(file);
+  const any = escapeRegex(name);
+  const matchers: LineMatcher[] = [
+    {
+      files: (f) => base(f) === 'package.json',
+      pattern: new RegExp(`"${escapeRegex(node ? 'node' : name)}"\\s*:\\s*"([^"]*)"`),
+    },
+    {
+      files: (f) => base(f) === '.tool-versions',
+      pattern: new RegExp(`^(?:${node ? 'nodejs|node' : python ? 'python' : any})\\s+(\\S+)`, 'i'),
+    },
+    {
+      files: (f) => /^dockerfile|\.dockerfile$|^containerfile/i.test(base(f)),
+      pattern: new RegExp(
+        `^\\s*FROM\\s+(?:--platform=\\S+\\s+)?(?:\\S+/)?${escapeRegex(image)}:(\\S+)`,
+        'i',
+      ),
+    },
+    {
+      files: isYaml,
+      pattern: new RegExp(
+        `^\\s*-?\\s*image:\\s*["']?(?:\\S+/)?${escapeRegex(image)}:([^\\s"']+)`,
+        'i',
+      ),
+    },
+    { files: isWorkflow, pattern: new RegExp(`uses:\\s*["']?${any}@([^\\s"'#]+)`, 'i') },
+    {
+      files: (f) => /^(requirements|constraints)[\w.-]*\.(txt|in)$/i.test(base(f)),
+      pattern: new RegExp(
+        `^\\s*${any}(?:\\[[^\\]]*\\])?\\s*([<>=!~][^#;\\s]*(?:\\s*,\\s*[<>=!~][^#;\\s]*)*)`,
+        'i',
+      ),
+    },
+    {
+      files: (f) => base(f) === 'pyproject.toml',
+      pattern: new RegExp(`^\\s*"?${any}"?\\s*=\\s*"([^"]*)"`, 'i'),
+    },
+    {
+      files: (f) => base(f) === 'pyproject.toml',
+      pattern: new RegExp(`"${any}(?:\\[[^\\]]*\\])?\\s*([<>=!~^][^";]*)"`, 'i'),
+    },
+  ];
+  if (node) {
+    matchers.push(
+      { files: (f) => ['.nvmrc', '.node-version'].includes(base(f)), pattern: /^\s*(\S+)\s*$/ },
+      { files: isWorkflow, pattern: /node-version:\s*["']?([^"'#\n]+?)["']?\s*(?:#.*)?$/ },
+      { files: isYaml, pattern: /^\s*runtime:\s*(nodejs[\w.]+)/ },
+    );
+  }
+  if (python) {
+    matchers.push(
+      { files: (f) => base(f) === '.python-version', pattern: /^\s*(\S+)\s*$/ },
+      {
+        files: (f) => base(f) === 'pyproject.toml',
+        pattern: /^\s*(?:requires-python|python)\s*=\s*"([^"]*)"/,
+      },
+      {
+        files: (f) => ['setup.py', 'setup.cfg'].includes(base(f)),
+        pattern: /python_requires\s*=\s*['"]?([^'",\n]+)/,
+      },
+      { files: isWorkflow, pattern: /python-version:\s*["']?([^"'#\n]+?)["']?\s*(?:#.*)?$/ },
+      { files: isYaml, pattern: /^\s*runtime:\s*(python[\d.]+)/ },
+    );
+  }
+  return matchers;
+}
+
+const LOCKFILES = new Set([
+  'package-lock.json',
+  'pnpm-lock.yaml',
+  'yarn.lock',
+  'poetry.lock',
+  'bun.lock',
+  'Pipfile.lock',
+]);
+
+// Every place a dependency's version is set that these patterns know. A helper for the agent: it
+// misses places it has no pattern for, so the agent searches too.
+export async function findVersionPlaces(dir: string, dependency: string): Promise<VersionPlace[]> {
+  const matchers = versionMatchers(dependency);
+  const places: VersionPlace[] = [];
+  for await (const full of walk(dir)) {
+    const file = path.relative(dir, full);
+    if (LOCKFILES.has(path.basename(file))) continue;
+    const relevant = matchers.filter((matcher) => matcher.files(file));
+    if (relevant.length === 0) continue;
+    if ((await stat(full)).size > SEARCH_MAX_FILE_BYTES) continue;
+    const lines = (await readFile(full, 'utf8').catch(() => '')).split('\n');
+    lines.forEach((text, index) => {
+      for (const matcher of relevant) {
+        const spec = matcher.pattern.exec(text)?.[1];
+        if (spec === undefined) continue;
+        places.push({ file, line: index + 1, text: text.trim(), spec: spec.trim() });
+        break;
+      }
+    });
+  }
+  return places;
+}
+
+// The command that changes one dependency with the repo's own package manager, install scripts off.
+export function upgradeCommand(
+  pm: PackageManager,
+  version: string | undefined,
+  pkg?: string,
+  dev = false,
+): string | undefined {
+  const bin = packageManagerBinary(pm, version);
+  const target = pkg ? shellQuote(pkg) : '';
+  switch (pm) {
+    case 'npm':
+      return pkg
+        ? `${bin} install ${target}${dev ? ' --save-dev' : ''} --ignore-scripts --no-audit --no-fund`
+        : `${bin} install --ignore-scripts --no-audit --no-fund`;
+    case 'pnpm':
+      return pkg
+        ? `${bin} add ${target}${dev ? ' --save-dev' : ''} --ignore-scripts`
+        : `${bin} install --no-frozen-lockfile --ignore-scripts`;
+    case 'yarn': {
+      const classic = pkg
+        ? `${bin} add ${target}${dev ? ' --dev' : ''} --ignore-scripts`
+        : `${bin} install --ignore-scripts`;
+      const berry = `YARN_ENABLE_SCRIPTS=false YARN_ENABLE_IMMUTABLE_INSTALLS=false ${bin} ${pkg ? `add ${target}${dev ? ' --dev' : ''}` : 'install'}`;
+      if (version) return /^1(\.|$)/.test(version) ? classic : berry;
+      return `if yarn --version | grep -q '^1\\.'; then ${classic}; else ${berry}; fi`;
+    }
+    case 'bun':
+      return pkg
+        ? `bun add ${target}${dev ? ' --dev' : ''} --ignore-scripts`
+        : 'bun install --ignore-scripts';
+    case 'pip':
+      return pkg ? `python3 -m pip install --only-binary=:all: ${target}` : installCommand('pip');
+    case 'poetry':
+      return pkg
+        ? `POETRY_INSTALLER_ONLY_BINARY=:all: PIP_ONLY_BINARY=:all: poetry add ${target}${dev ? ' --group dev' : ''}`
+        : 'POETRY_INSTALLER_ONLY_BINARY=:all: PIP_ONLY_BINARY=:all: poetry lock && POETRY_INSTALLER_ONLY_BINARY=:all: PIP_ONLY_BINARY=:all: poetry install --no-root';
+    case 'none':
+      return undefined;
+  }
+}
+
+export async function runOnRuntime(
+  sandbox: Sandbox,
+  runtimes: RuntimeRunner,
+  runtime: Runtime,
+  checks: { name: string; command: string }[],
+) {
+  return runChecks(
+    sandbox,
+    checks.map((check) => ({ name: check.name, command: runtimes.wrap(runtime, check.command) })),
+  );
 }
 
 export function buildTools(ctx: ToolContext): AgentTool[] {
@@ -319,10 +595,22 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
             required: ['name', 'command'],
           },
         },
+        runtime: {
+          type: 'object',
+          description:
+            'Run the checks on this runtime version instead of the sandbox default, e.g. {"name": "node", "version": "22"}. Use it after moving a runtime: passing on the old one proves nothing about the new one.',
+          properties: { name: { type: 'string' }, version: { type: 'string' } },
+          required: ['name', 'version'],
+        },
       },
       [],
       async (args) => {
         const notes: string[] = [];
+        const rawRuntime = (args.runtime ?? undefined) as Partial<Runtime> | undefined;
+        const runtime =
+          rawRuntime && typeof rawRuntime.name === 'string' && rawRuntime.version
+            ? { name: rawRuntime.name.toLowerCase(), version: String(rawRuntime.version) }
+            : undefined;
         for (const item of Array.isArray(args.add) ? args.add : []) {
           const { name, command } = (item ?? {}) as { name?: unknown; command?: unknown };
           if (typeof name !== 'string' || typeof command !== 'string' || !name || !command) {
@@ -351,7 +639,22 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
         if (selected.length === 0) {
           return `no check matches ${names.join(', ')}. Available: ${ctx.checks.map((c) => c.name).join(', ')}`;
         }
-        const runs = await runChecks(sandbox, selected);
+        let runs;
+        if (runtime) {
+          const runtimes = ctx.runtimes ?? localRuntimes;
+          const probe = await runtimes.probe(sandbox, runtime);
+          if (!probe.ok) {
+            return [
+              ...notes,
+              `${probe.detail}. The checks did not run. Run them without \`runtime\` to see the sandbox default, and list the runtime as unproven if no way to provide it works.`,
+            ].join('\n\n');
+          }
+          notes.push(`ran on ${probe.detail}`);
+          ctx.onRuntime?.(runtime);
+          runs = await runOnRuntime(sandbox, runtimes, runtime, selected);
+        } else {
+          runs = await runChecks(sandbox, selected);
+        }
         const report = runs
           .map((run) => {
             const head = `## ${run.name}: ${run.ok ? 'pass' : 'fail'}\ncommand: ${run.command}`;
@@ -427,11 +730,138 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
     ),
   ];
 
-  for (const packTool of ctx.toolPack.tools) {
-    const name = `${ctx.toolPack.provider}__${packTool.name}`
-      .replace(/[^a-zA-Z0-9_-]/g, '_')
-      .slice(0, 64);
-    tools.push({
+  tools.push(
+    tool(
+      'bump_version',
+      'Find every place a dependency version is set (package.json engines and dependencies, .nvmrc, .node-version, .python-version, .tool-versions, pyproject.toml, requirements*.txt, setup.py, Dockerfile FROM, compose and CI image lines, workflow `uses:` and `node-version`/`python-version`, serverless `runtime`). Without `apply` it only lists them; with `apply` it rewrites each listed literal to `to`, keeping operators and suffixes. It does not touch lockfiles: use `upgrade_package` after. It knows common patterns only, so search for anything else.',
+      {
+        dependency: {
+          type: 'string',
+          description: 'e.g. "node", "python", "next", "stripe", "actions/checkout"',
+        },
+        to: { type: 'string', description: 'Target version, e.g. "22", "3.12", "v4", "15.0.3"' },
+        apply: { type: 'boolean', description: 'Rewrite the places. Default false: list only' },
+        places: {
+          type: 'array',
+          items: { type: 'string' },
+          description: 'Only these places, as "file:line" from an earlier listing',
+        },
+      },
+      ['dependency'],
+      async (args) => {
+        const dependency = str(args, 'dependency');
+        const to = optStr(args, 'to');
+        const only = Array.isArray(args.places) ? args.places.map(String) : undefined;
+        const found = (await findVersionPlaces(sandbox.dir, dependency)).filter(
+          (place) => !only || only.includes(`${place.file}:${place.line}`),
+        );
+        if (found.length === 0) {
+          return `no place setting ${dependency} matched the known patterns. Search the repo for it; it may be set somewhere these patterns do not know.`;
+        }
+        if (args.apply !== true || !to) {
+          return [
+            `${found.length} place${found.length === 1 ? '' : 's'} set ${dependency}:`,
+            ...found.map((place) => {
+              const next = to ? replaceVersion(place.spec, to) : undefined;
+              return `- ${place.file}:${place.line}: \`${place.text}\` (version ${place.spec}${next ? ` → ${next}` : to ? ', no single literal to move; edit by hand' : ''})`;
+            }),
+            to ? 'Call again with apply: true to rewrite them.' : '',
+          ]
+            .filter(Boolean)
+            .join('\n');
+        }
+        const out: string[] = [];
+        const byFile = new Map<string, typeof found>();
+        for (const place of found)
+          byFile.set(place.file, [...(byFile.get(place.file) ?? []), place]);
+        for (const [file, places] of byFile) {
+          const full = await inside(file);
+          const lines = (await readFile(full, 'utf8')).split('\n');
+          for (const place of places) {
+            const next = replaceVersion(place.spec, to);
+            const line = lines[place.line - 1];
+            if (!next || next === place.spec || !line.includes(place.spec)) {
+              out.push(
+                `- ${file}:${place.line}: left \`${place.text}\` (no single literal to move; edit by hand if it must change)`,
+              );
+              continue;
+            }
+            lines[place.line - 1] = line.replace(place.spec, next);
+            out.push(`- ${file}:${place.line}: ${place.spec} → ${next}`);
+          }
+          await writeFile(full, lines.join('\n'));
+        }
+        out.push(
+          'Lockfiles were not touched. Run `upgrade_package` (or `install`) so the package manager rewrites them, then check `diff`.',
+        );
+        return out.join('\n');
+      },
+    ),
+    tool(
+      'upgrade_package',
+      "Change one dependency with the repo's own package manager and release, so it rewrites the lockfile (install scripts are off). With no package, re-resolves the whole lockfile after a manifest edit.",
+      {
+        package: {
+          type: 'string',
+          description:
+            'With its version, as the package manager takes it: "next@15.0.3", "stripe==11.1.0"',
+        },
+        dev: { type: 'boolean', description: 'A dev dependency. Default false' },
+      },
+      [],
+      async (args) => {
+        const pm = await detectPackageManager(sandbox.dir);
+        const command = upgradeCommand(
+          pm,
+          await packageManagerVersion(sandbox.dir, pm),
+          optStr(args, 'package'),
+          args.dev === true,
+        );
+        if (!command) {
+          return 'no lockfile or manifest found. Change the dependency with the shell tool.';
+        }
+        const result = await sandbox.exec(command, { timeoutMs: 15 * 60_000 });
+        const pipNote =
+          pm === 'pip'
+            ? '\npip installed it in the sandbox only; move the version in requirements files or pyproject.toml with `bump_version` or `edit_file`.'
+            : '';
+        return `package manager: ${pm}\ncommand: ${command}\n${formatExec(result)}${pipNote}`;
+      },
+    ),
+    tool(
+      'run_proof',
+      'Run a proof check beyond the tests, e.g. an accessibility scan, the scripts on a payment page, a Kubernetes manifest against a cluster version, or a workflow lint. Returns passed, failed or unknown with evidence. A failed or unknown proof keeps the run in needs-review.',
+      {
+        check: { type: 'string', description: 'The proof check to run' },
+        input: { type: 'object', description: 'Input the check needs, e.g. files or a URL path' },
+      },
+      ['check'],
+      async (args) => {
+        const check = str(args, 'check');
+        if (!ctx.runProof) {
+          return 'proof tools are not available in this run yet. Say in the PR which proof you would have run.';
+        }
+        const result = await ctx.runProof(check, args.input ?? {}, { repoDir: sandbox.dir });
+        const verdict =
+          result.passed === true ? 'passed' : result.passed === false ? 'failed' : 'unknown';
+        const output = truncate(
+          redactSecrets(
+            [`proof ${result.check}: ${verdict}`, ...result.evidence.map((e) => `- ${e}`)].join(
+              '\n',
+            ),
+          ),
+        );
+        const name = `proof_check__${check}`.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
+        ctx.onToolPackCall?.({ tool: name, output, passed: result.passed === true });
+        return output;
+      },
+    ),
+  );
+
+  // ToolPack and upgrade tools: every call is recorded, since a check or validate tool's result is proof.
+  const recorded = (prefix: string, packTool: AgentTool): AgentTool => {
+    const name = `${prefix}__${packTool.name}`.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
+    return {
       name,
       description: packTool.description,
       inputSchema: packTool.inputSchema,
@@ -446,7 +876,15 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
         ctx.onToolPackCall?.({ tool: name, output, passed: runPassed(out) });
         return output;
       },
-    });
+    };
+  };
+  for (const packTool of ctx.toolPack.tools) tools.push(recorded(ctx.toolPack.provider, packTool));
+  const taken = new Set(tools.map((t) => t.name));
+  for (const upgradeTool of ctx.upgradeTools ?? []) {
+    const wrapped = recorded('upgrades', upgradeTool);
+    if (taken.has(wrapped.name)) continue;
+    taken.add(wrapped.name);
+    tools.push(wrapped);
   }
 
   tools.push(
@@ -456,7 +894,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
       {
         verdict: { type: 'string', enum: ['migrated', 'not-affected'] },
         summary: { type: 'string', description: 'What changed' },
-        why: { type: 'string', description: 'Why the API change forced it' },
+        why: { type: 'string', description: 'Why the external change forced it' },
         validators: {
           type: 'array',
           description:
