@@ -512,6 +512,8 @@ Use subagents for the API, the lifecycle and notifications. Branch `mvp/app-api`
 ```text
 Update Refit's website and dashboard in src/ for "software that never falls behind." Read MVP-PLAN.md (sections 1–7), DESIGN.md and AGENTS.md on origin/mvp. Keep DESIGN.md's design system: polish, don't redesign.
 
+Replace the current site in place; don't build a second one. Rewrite the existing pages and components (src/pages/Landing.tsx, Docs.tsx, Workspace.tsx, Runs.tsx, Tasks.tsx, Demo.tsx, src/components/, src/data.ts) and keep the existing router, layout and URLs where they still make sense. Remove the old API-migration-only copy everywhere. Delete pages, routes and fixtures the new site no longer uses rather than leaving them behind, and update or replace their tests. No parallel "v2" pages, folders or routes.
+
 Deliver:
 - Landing page: "Software that never falls behind." Plain language a non-technical buyer gets in ten seconds: Refit keeps code current when APIs, AI models, runtimes, frameworks, libraries and CI change. How it works in four steps (install, scan, fix, prove). No invented customers, logos or metrics.
 - Pricing: Watch (free: maps everything your code depends on and alerts you); Paid ($319 a month for up to 50 repos, then $5 per extra repo up to 200); Enterprise (custom above 200 repos: private sandbox, audit trail, SSO). Billing starts after your first merged fix.
@@ -523,7 +525,7 @@ Deliver:
 - Data from P3's /api endpoints; until they land, fixture data visibly labelled "Example data."
 - Docs page: what Refit watches, what a PR contains, the hard limits, and how to pause or ignore something with .refit.yml.
 Tests for every new page. No AI spend.
-Use subagents for the landing and pricing, onboarding and docs, and the dashboard. Branch `mvp/site`, draft PR into `mvp`. Edit only src/, public/ and index.html, except src/compliance/, which P6 owns. Link to P6's Platforms and rules page from the dashboard navigation.
+Use subagents for the landing and pricing, onboarding and docs, and the dashboard. Branch `mvp/site`, draft PR into `mvp`. Edit only src/, public/ and index.html, except src/compliance/, which P6 owns. Add the route and navigation link for P6's Platforms and rules page in the existing router (import it from src/compliance/index.tsx, with a stub until it lands).
 ```
 
 ### P6: the Platforms and rules view, and audit export (Pierce)
@@ -533,7 +535,7 @@ Build the Platforms and rules view and the audit export. Read MVP-PLAN.md (secti
 
 Deliver:
 - app/audit/: GET /api/audit?repo= (O5's listAudit, with the same auth as P3's API) and GET /api/audit.csv for an export a compliance team can hand to an auditor. Exported from app/audit/index.ts; P1 mounts it.
-- src/compliance/: a Platforms and rules page:
+- src/compliance/: a Platforms and rules page that plugs into the existing site's router, layout and navigation (P4 adds the route and nav link), not a separate app:
   - Platforms: Kubernetes, serverless, app store, browser, TLS and login findings per repo, with deadlines, sources and PR status.
   - Rules: each obligation, whether it applies and why, what Refit changed, what each check showed, what a person or lawyer must confirm, and the PR.
   - The audit trail per repo, with an "Export CSV" button.
