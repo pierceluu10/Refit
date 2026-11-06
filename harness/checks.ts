@@ -1,6 +1,12 @@
 // Before/after checks. These are tooling defaults the agent can lean on, never gates.
 import { access, readFile, realpath } from 'node:fs/promises';
 import path from 'node:path';
+import {
+  createSandbox,
+  type Runtime,
+  type RuntimeSandbox,
+  type SandboxOptions,
+} from './sandbox.ts';
 import { redactSecrets } from './secrets.ts';
 import type { CheckCommand, CheckComparison, CheckRun, Sandbox } from './types.ts';
 
@@ -80,9 +86,23 @@ export function packageManagerBinary(pm: PackageManager, version?: string): stri
   return pm;
 }
 
-// Install scripts are always off, in Docker too: untrusted repo code runs only in a sandbox with
-// install scripts off (Otabek's rule, stricter than the plan; allowing them in Docker is for the founders).
-export function installCommand(pm: PackageManager, version?: string): string {
+// Install scripts are off by default, in Docker too. Only a Docker sandbox the agent asked to run them
+// in (createSandbox's installScripts) passes `scripts: true`; the local sandbox never does.
+export function installCommand(
+  pm: PackageManager,
+  version?: string,
+  options: { scripts?: boolean } = {},
+): string {
+  const command = safeInstallCommand(pm, version);
+  if (!options.scripts) return command;
+  return command
+    .replaceAll(' --ignore-scripts', '')
+    .replaceAll('YARN_ENABLE_SCRIPTS=false ', '')
+    .replaceAll(' --only-binary=:all:', '')
+    .replaceAll('POETRY_INSTALLER_ONLY_BINARY=:all: PIP_ONLY_BINARY=:all: ', '');
+}
+
+function safeInstallCommand(pm: PackageManager, version?: string): string {
   const bin = packageManagerBinary(pm, version);
   switch (pm) {
     case 'npm':
@@ -142,6 +162,7 @@ export async function detectChecks(
     if (scripts.test && !scripts.test.includes('no test specified')) {
       checks.push({ name: 'test', command: `${runner} run test` });
     }
+    if (scripts.lint) checks.push({ name: 'lint', command: `${runner} run lint` });
   }
 
   const pyproject = await readFile(path.join(dir, 'pyproject.toml'), 'utf8').catch(() => '');
@@ -161,12 +182,42 @@ export async function detectChecks(
   const command =
     '(python3 -m pytest --version >/dev/null 2>&1 || python3 -m pip install -q --only-binary=:all: pytest) && python3 -m pytest -q';
   if (pytest && python) checks.push({ name: 'pytest', command });
+  // Type check and lint where the repo configures them; the tool is installed as a wheel if missing.
+  const mypy =
+    pyproject.includes('[tool.mypy') ||
+    setupCfg.includes('[mypy') ||
+    (await exists(path.join(dir, 'mypy.ini')));
+  if (python && mypy) {
+    checks.push({
+      name: 'mypy',
+      command:
+        '(python3 -m mypy --version >/dev/null 2>&1 || python3 -m pip install -q --only-binary=:all: mypy) && python3 -m mypy .',
+    });
+  }
+  const ruff =
+    pyproject.includes('[tool.ruff') ||
+    (await exists(path.join(dir, 'ruff.toml'))) ||
+    (await exists(path.join(dir, '.ruff.toml')));
+  if (python && ruff) {
+    checks.push({
+      name: 'ruff',
+      command:
+        '(python3 -m ruff --version >/dev/null 2>&1 || python3 -m pip install -q --only-binary=:all: ruff) && python3 -m ruff check .',
+    });
+  }
   return checks;
 }
 
-export async function runChecks(sandbox: Sandbox, checks: CheckCommand[]): Promise<CheckRun[]> {
+// A check run with what a reviewer needs to trust it: the exact command, its exit code and a short
+// log tail. Structurally a CheckRun, so it goes anywhere one does.
+export type CheckRunDetail = CheckRun & { exitCode: number; timedOut: boolean };
+
+export async function runChecks(
+  sandbox: Sandbox,
+  checks: CheckCommand[],
+): Promise<CheckRunDetail[]> {
   const prefixes = [sandbox.dir, await realpath(sandbox.dir).catch(() => sandbox.dir)];
-  const runs: CheckRun[] = [];
+  const runs: CheckRunDetail[] = [];
   for (const check of checks) {
     const result = await sandbox.exec(check.command, { timeoutMs: CHECK_TIMEOUT_MS });
     let output = redactSecrets(`${result.stdout}\n${result.stderr}`);
@@ -179,6 +230,8 @@ export async function runChecks(sandbox: Sandbox, checks: CheckCommand[]): Promi
       ok,
       output: output.slice(-OUTPUT_TAIL),
       failures: failureSignatures(output, ok),
+      exitCode: result.code,
+      timedOut: result.timedOut,
     });
   }
   return runs;
@@ -248,4 +301,136 @@ export function compareChecks(before: CheckRun[], after: CheckRun[]): CheckCompa
       newFailures: (now?.failures ?? []).filter((failure) => !known.has(failure)),
     };
   });
+}
+
+// One line per check run for the PR and the run record: what ran, where, and how it ended.
+export type CheckRecord = {
+  phase: 'before' | 'after';
+  name: string;
+  command: string;
+  runtime: string; // e.g. 'node:20-bookworm (Docker)' or 'host node v22.12.0 (local, asked for node 20)'
+  exitCode: number;
+  timedOut: boolean;
+  ok: boolean;
+  logTail: string; // last lines of output, redacted
+};
+
+const LOG_TAIL_LINES = 20;
+const tail = (text: string) => text.trimEnd().split('\n').slice(-LOG_TAIL_LINES).join('\n');
+
+export type RuntimeCheckResult = {
+  runtime: string;
+  install?: { command: string; exitCode: number; logTail: string };
+  runs: CheckRunDetail[];
+  notes: string[];
+};
+
+export type RuntimeCheckOptions = {
+  checks?: CheckCommand[]; // defaults to the checks detected in the directory
+  mode?: SandboxOptions['mode'];
+  installScripts?: boolean;
+  create?: (dir: string, options: SandboxOptions) => Promise<RuntimeSandbox>;
+};
+
+function describeRuntime(sandbox: RuntimeSandbox, asked?: Runtime): string {
+  if (sandbox.mode === 'docker') return `${sandbox.image ?? 'default image'} (Docker)`;
+  const askedFor = asked ? `, asked for ${asked.name} ${asked.version}` : '';
+  return `host ${asked?.name === 'python' ? 'python3' : `node ${process.version}`} (local${askedFor})`;
+}
+
+// Installs and runs a directory's checks on one runtime, in a fresh sandbox over a copy of `dir`.
+// Never throws for a failing check: failures are the result. The sandbox is always disposed.
+export async function runChecksOnRuntime(
+  dir: string,
+  runtime: Runtime | undefined,
+  options: RuntimeCheckOptions = {},
+): Promise<RuntimeCheckResult> {
+  const create = options.create ?? createSandbox;
+  const sandbox = await create(dir, {
+    mode: options.mode,
+    runtime,
+    installScripts: options.installScripts,
+  });
+  try {
+    const pm = await detectPackageManager(sandbox.dir);
+    const pmVersion = await packageManagerVersion(sandbox.dir, pm);
+    const checks = options.checks ?? (await detectChecks(sandbox.dir, pm, pmVersion));
+    let install: RuntimeCheckResult['install'];
+    if (pm !== 'none' && checks.length > 0) {
+      const command = installCommand(pm, pmVersion, { scripts: sandbox.installScripts });
+      const result = await sandbox.exec(command, { timeoutMs: CHECK_TIMEOUT_MS });
+      install = {
+        command,
+        exitCode: result.code,
+        logTail: tail(redactSecrets(`${result.stdout}\n${result.stderr}`)),
+      };
+    }
+    const notes = [...sandbox.notes];
+    if (checks.length === 0) notes.push('No checks were found to run in this repo.');
+    return {
+      runtime: describeRuntime(sandbox, runtime),
+      install,
+      runs: await runChecks(sandbox, checks),
+      notes,
+    };
+  } finally {
+    await sandbox.dispose();
+  }
+}
+
+export type BeforeAfterInput = RuntimeCheckOptions & {
+  beforeDir: string; // the repo as it is
+  afterDir: string; // the repo with the change (e.g. the agent's sandbox copy)
+  before?: Runtime; // the current version; undefined means the default image for the repo
+  after?: Runtime; // the target version
+};
+
+export type BeforeAfterResult = {
+  before: RuntimeCheckResult;
+  after: RuntimeCheckResult;
+  comparisons: CheckComparison[];
+  // Failures after the change that were not there before. Old failures do not count against it.
+  newFailures: number;
+  records: CheckRecord[];
+  notes: string[];
+};
+
+// "Before" on the current version, "after" on the target version, each in its own sandbox, so a
+// runtime bump is proven on the runtime it moves to. Counts only new failures.
+export async function beforeAfterChecks(input: BeforeAfterInput): Promise<BeforeAfterResult> {
+  const before = await runChecksOnRuntime(input.beforeDir, input.before, input);
+  // The same checks both times, so a check the change adds or removes shows as such.
+  const checks = input.checks ?? before.runs.map(({ name, command }) => ({ name, command }));
+  const after = await runChecksOnRuntime(input.afterDir, input.after, { ...input, checks });
+  const comparisons = compareChecks(before.runs, after.runs);
+  const record = (phase: CheckRecord['phase'], result: RuntimeCheckResult) =>
+    result.runs.map((run) => ({
+      phase,
+      name: run.name,
+      command: run.command,
+      runtime: result.runtime,
+      exitCode: run.exitCode,
+      timedOut: run.timedOut,
+      ok: run.ok,
+      logTail: tail(run.output),
+    }));
+  const notes = [...new Set([...before.notes, ...after.notes])];
+  for (const [phase, result] of [
+    ['before', before],
+    ['after', after],
+  ] as const) {
+    if (result.install && result.install.exitCode !== 0) {
+      notes.push(
+        `The ${phase} install exited ${result.install.exitCode}; checks ran on what installed.`,
+      );
+    }
+  }
+  return {
+    before,
+    after,
+    comparisons,
+    newFailures: comparisons.reduce((sum, c) => sum + c.newFailures.length, 0),
+    records: [...record('before', before), ...record('after', after)],
+    notes,
+  };
 }

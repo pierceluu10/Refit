@@ -3,14 +3,17 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  beforeAfterChecks,
   compareChecks,
   detectChecks,
   detectPackageManager,
   failureSignatures,
   installCommand,
   packageManagerVersion,
+  runChecksOnRuntime,
   type PackageManager,
 } from './checks.ts';
+import type { RuntimeSandbox } from './sandbox.ts';
 import type { CheckRun } from './types.ts';
 
 const dirs: string[] = [];
@@ -284,5 +287,105 @@ describe('installCommand', () => {
     expect(installCommand('yarn', '3.6.1')).toBe(
       'YARN_ENABLE_SCRIPTS=false corepack yarn@3.6.1 install --immutable || YARN_ENABLE_SCRIPTS=false YARN_ENABLE_IMMUTABLE_INSTALLS=false corepack yarn@3.6.1 install',
     );
+  });
+});
+
+describe('more checks', () => {
+  it('adds lint from package.json and mypy and ruff where a Python repo configures them', async () => {
+    const node = await fixture({
+      'package.json': JSON.stringify({ scripts: { lint: 'eslint .' } }),
+    });
+    expect(await detectChecks(node, 'npm')).toEqual([{ name: 'lint', command: 'npm run lint' }]);
+    const py = await fixture({
+      'pyproject.toml': '[tool.mypy]\nstrict = true\n[tool.ruff]\nline-length = 100\n',
+    });
+    const names = (await detectChecks(py, 'pip')).map((check) => check.name);
+    expect(names).toEqual(['mypy', 'ruff']);
+  });
+
+  it('turns install scripts on only when asked', () => {
+    expect(installCommand('npm', undefined, { scripts: true })).toBe(
+      'npm ci --no-audit --no-fund || npm install --no-audit --no-fund',
+    );
+    expect(installCommand('yarn', '3.6.1', { scripts: true })).not.toContain('YARN_ENABLE_SCRIPTS');
+    expect(installCommand('pip', undefined, { scripts: true })).not.toContain('only-binary');
+    expect(installCommand('npm', undefined, { scripts: false })).toContain('--ignore-scripts');
+  });
+});
+
+describe('before/after checks on chosen runtimes', () => {
+  const failing = (lines: string[]) =>
+    `${lines.map((line) => `echo "${line}"`).join('\n')}\nexit ${lines.length ? 1 : 0}\n`;
+  const checks = [{ name: 'test', command: 'sh check.sh' }];
+
+  it('counts only new failures and records command, exit code and log tail', async () => {
+    const beforeDir = await fixture({ 'check.sh': failing(['FAIL src/old.test.ts > flaky']) });
+    const afterDir = await fixture({
+      'check.sh': failing(['FAIL src/old.test.ts > flaky', 'FAIL src/new.test.ts > breaks']),
+    });
+    const result = await beforeAfterChecks({
+      beforeDir,
+      afterDir,
+      before: { name: 'node', version: '18' },
+      after: { name: 'node', version: '22' },
+      checks,
+      mode: 'local',
+    });
+    expect(result.newFailures).toBe(1);
+    expect(result.comparisons[0].newFailures).toEqual(['FAIL src/new.test.ts > breaks']);
+    expect(result.records).toHaveLength(2);
+    expect(result.records[0]).toMatchObject({
+      phase: 'before',
+      name: 'test',
+      command: 'sh check.sh',
+      exitCode: 1,
+      ok: false,
+      timedOut: false,
+    });
+    expect(result.records[1].logTail).toContain('FAIL src/new.test.ts > breaks');
+    expect(result.records[0].runtime).toMatch(/local, asked for node 18/);
+    // Without Docker the runtimes were not really switched, and the notes say so.
+    expect(result.notes.join('\n')).toMatch(/Asked for node 22.*unproven/);
+  });
+
+  it('runs the after checks on the target runtime image', async () => {
+    const asked: string[] = [];
+    const dir = await fixture({ 'check.sh': failing([]) });
+    const create = async (
+      _dir: string,
+      options: { runtime?: { name: string; version: string } },
+    ) => {
+      asked.push(`${options.runtime?.name}@${options.runtime?.version}`);
+      const box: RuntimeSandbox = {
+        dir,
+        mode: 'docker',
+        image: `${options.runtime?.name}:${options.runtime?.version}-bookworm`,
+        installScripts: false,
+        notes: [],
+        exec: async () => ({ code: 0, stdout: 'ok\n', stderr: '', timedOut: false }),
+        diff: async () => '',
+        dispose: async () => {},
+      };
+      return box;
+    };
+    const result = await beforeAfterChecks({
+      beforeDir: dir,
+      afterDir: dir,
+      before: { name: 'python', version: '3.9' },
+      after: { name: 'python', version: '3.12' },
+      checks,
+      create,
+    });
+    expect(asked).toEqual(['python@3.9', 'python@3.12']);
+    expect(result.after.runtime).toBe('python:3.12-bookworm (Docker)');
+    expect(result.newFailures).toBe(0);
+  });
+
+  it('says so when a repo has no checks', async () => {
+    const result = await runChecksOnRuntime(await fixture({ 'README.md': 'hi' }), undefined, {
+      mode: 'local',
+    });
+    expect(result.runs).toEqual([]);
+    expect(result.notes).toContain('No checks were found to run in this repo.');
   });
 });
