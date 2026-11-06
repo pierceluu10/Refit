@@ -1,5 +1,6 @@
 import type {
   ApiUsage,
+  ExternalTask,
   InventoryRepo,
   MigrationTask,
   OpenPullRequest,
@@ -15,6 +16,7 @@ import type { Queue } from './queue.ts';
 import {
   audit,
   buildReport,
+  RULE_CHANGE_PREFIX,
   externalVerdictTask,
   scanExternal,
   watchExternalOrg,
@@ -22,6 +24,7 @@ import {
   type ApiScan,
   type ExternalDeps,
   type ExternalScan,
+  type Note,
   type ScanItemReport,
   type WatchExternal,
 } from './scan.ts';
@@ -39,7 +42,7 @@ export type LoopDeps = {
   // Head starts, never the limit: a watcher for each provider with a folder in providers/, by id.
   watchers: Record<string, WatchProvider>;
   // A watcher for any other provider an inventory finds (F4's anyProviderWatcher).
-  watchAny: (provider: string, hints: ProviderHints) => WatchProvider;
+  watchAny: (provider: string, hints: ProviderHints, note?: Note) => WatchProvider;
   match: MatchChanges;
   runTask: RunTask;
   openPullRequest: OpenPullRequest;
@@ -53,10 +56,17 @@ export type LoopDeps = {
   recordAudit?: RecordAudit;
   // Saves the repo's "what's behind" report after a run, for the dashboard.
   recordReport?: (report: ScanItemReport) => Promise<void>;
+  // What the run budget has seen in all, for a report's cost: parts spend on their own holds.
+  spentUsd?: () => number;
 };
 
 export type Org = { name: string; repos: { repo: string; dir: string }[] };
-export type RunOptions = { dryRun?: boolean; since?: string; capUsd?: number };
+export type RunOptions = {
+  dryRun?: boolean;
+  since?: string;
+  capUsd?: number;
+  tasks?: ExternalTask[]; // attempt only these, from an earlier scan
+};
 export type RunState = { costUsd: number; errors: string[] };
 // The changes to match one repo against, given its usage map.
 export type WatchRepo = (usages: ApiUsage[]) => Promise<ProviderChange[]>;
@@ -158,7 +168,11 @@ export function watchOrg(deps: LoopDeps, opts: RunOptions, state: RunState): Wat
       if (!reads.has(provider)) log(`watching ${provider}: no folder in providers/`);
     const lists = await Promise.all([
       ...folderReads(),
-      ...others.map(([provider, hints]) => read(provider, () => deps.watchAny(provider, hints))),
+      ...others.map(([provider, hints]) =>
+        read(provider, () =>
+          deps.watchAny(provider, hints, (error) => state.errors.push(`${provider}: ${error}`)),
+        ),
+      ),
     ]);
     return lists.flat();
   };
@@ -211,6 +225,28 @@ const emptyExternal: ExternalScan = {
   unmatched: [],
   costUsd: 0,
 };
+
+// An earlier scan's tasks, so nothing is read or matched again. API tasks keep their usages through
+// apiAsExternalTask, so they go back down the API path.
+function plannedScan(repo: string, tasks: ExternalTask[]): RepoScan {
+  const isApi = (task: ExternalTask) => task.change.dependencyKind === 'api';
+  return {
+    usages: [],
+    apiChanges: [],
+    api: {
+      tasks: tasks.filter(isApi) as unknown as MatchedTask[],
+      notAffected: [],
+      unmatched: [],
+    },
+    external: {
+      ...emptyExternal,
+      tasks: tasks
+        .filter((task) => !isApi(task))
+        .map((task) => ({ alsoResolves: [], ...task })) as unknown as ExternalScan['tasks'],
+    },
+    report: { repo, scannedAt: new Date().toISOString(), items: [], costUsd: 0, errors: [] },
+  };
+}
 
 // inventory → watch → match for one repo, API and external changes alike. Nothing runs here: the
 // result is the "what's behind" report and the tasks to attempt.
@@ -313,7 +349,8 @@ export async function scanTarget(
     costUsd,
     state.errors.slice(errorsBefore),
   );
-  for (const item of report.items)
+  // O5's obligationsToChanges already wrote the detected and not-affected entries for rule changes.
+  for (const item of report.items.filter((i) => !i.change.id.startsWith(RULE_CHANGE_PREFIX)))
     await audit(deps, state, {
       repo,
       changeId: item.change.id,
@@ -337,7 +374,9 @@ export async function runRepo(
   const log = deps.log ?? (() => {});
   const external =
     deps.external && (watchExternal ?? watchExternalOrg(deps.external, deps, opts, state));
-  const scan = await scanTarget(target, watch, external || undefined, deps, state);
+  const scan = opts.tasks
+    ? plannedScan(repo, opts.tasks)
+    : await scanTarget(target, watch, external || undefined, deps, state);
   const { usages } = scan;
 
   async function finish(task: AnyTask, result: LoopRecord): Promise<LoopRecord> {
@@ -456,7 +495,7 @@ export async function runRepo(
   );
   const records = await Promise.all([...verdicts, ...apiAttempts, ...externalAttempts]);
 
-  if (deps.recordReport) {
+  if (deps.recordReport && !opts.tasks) {
     // The report as it stands after the run: rows whose task opened a PR are pr-open.
     const prs = new Map(records.flatMap((r) => (r.pr ? [[r.taskId, r.pr] as const] : [])));
     const items = scan.report.items.map((item) =>

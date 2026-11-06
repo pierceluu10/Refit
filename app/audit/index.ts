@@ -1,5 +1,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { listAudit as listStoredAudit } from '../../compliance/index.ts';
+import {
+  listAudit as listStoredAudit,
+  listObligations as listStoredObligations,
+} from '../../compliance/index.ts';
 import { redactSecrets } from '../../harness/secrets.ts';
 import type { AuditEntry, Obligation } from '../../shared/types.ts';
 import { REPO_PATTERN } from '../types.ts';
@@ -21,7 +24,6 @@ export type AuditDeps = {
   isAuthorized: (authorization: string | undefined) => boolean;
   listRepos: () => Promise<string[]>;
   listAudit?: (repo: string) => Promise<AuditEntry[]>;
-  // shortcut: O5 exports no stored-obligation read and watchRegulations spends AI, so this answers [] until O5 adds one.
   listObligations?: () => Promise<Obligation[]>;
 };
 
@@ -52,7 +54,7 @@ export async function serveAudit(
   }
   const url = new URL(request.url ?? '/', 'http://localhost');
   if (url.pathname === OBLIGATIONS_PATH) {
-    sendJson(response, OK, (await deps.listObligations?.()) ?? []);
+    sendJson(response, OK, await (deps.listObligations ?? listStoredObligations)());
     return;
   }
   const repo = url.searchParams.get('repo') || undefined;

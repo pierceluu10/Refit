@@ -68,6 +68,8 @@ export function fakeOrchestrator(): Orchestrator {
 
 /** orchestrator/index.ts's scanRepo and runRepoJob once O1 exports them; the stand-ins until then. */
 export async function realOrchestrator(): Promise<Orchestrator & { note?: string }> {
+  // This test spends $0: with no key the orchestrator's offline stand-ins play every AI part.
+  delete process.env.ANTHROPIC_API_KEY;
   const module = (await import('../../orchestrator/index.ts')) as Record<string, unknown>;
   if (typeof module.scanRepo === 'function' && typeof module.runRepoJob === 'function') {
     return {
@@ -166,6 +168,7 @@ export async function runMvpSmoke(
       dir,
       openPullRequest,
       dryRun: options.dryRun,
+      tasks,
     });
 
     const byId = new Map<string, ExternalTask>(tasks.map((task) => [task.id, task]));

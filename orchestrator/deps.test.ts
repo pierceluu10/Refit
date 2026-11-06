@@ -3,9 +3,9 @@ import { mkdir, mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
-import { listProviderIds } from '../providers/core/registry.ts';
-import type { MigrationTask, RunRecord } from '../shared/types.ts';
+import { WatchFailedError } from '../providers/core/watcher.ts';
+import type { DependencyUsage, ExternalTask, MigrationTask, RunRecord } from '../shared/types.ts';
+import { listObligations } from '../compliance/index.ts';
 import { BudgetExceededError, createBudget } from './budget.ts';
 import {
   anyWatcher,
@@ -15,6 +15,7 @@ import {
   MIN_TASK_USD,
   TASK_USD,
 } from './deps.ts';
+import type { ExternalDeps } from './scan.ts';
 import { stubRunTask } from './stubs.ts';
 
 // The any-provider watcher, offline: it spends $0.30 of the ledger it is given and finds one change.
@@ -46,7 +47,14 @@ vi.mock('../providers/core/any-watcher.ts', () => ({
 // Each test may replace `run`; by default a harness run spends $0.75 and needs review.
 const harness = vi.hoisted(() => ({
   caps: [] as (number | undefined)[],
-  run: undefined as undefined | ((task: MigrationTask, budgetUsd: number) => Promise<RunRecord>),
+  chargesItself: false,
+  run: undefined as
+    | undefined
+    | ((
+        task: MigrationTask,
+        budgetUsd: number,
+        charge: (usd: number, label: string) => void,
+      ) => Promise<RunRecord>),
 }));
 
 const ran = (task: MigrationTask, costUsd: number): RunRecord => ({
@@ -58,27 +66,86 @@ const ran = (task: MigrationTask, costUsd: number): RunRecord => ({
   transcriptPath: '',
 });
 
-vi.mock('../harness/index.ts', () => ({
-  runTask: async (task: MigrationTask, _dir: string, deps: { budgetUsd: number }) => {
+// Like the real harness, it charges the run as it spends, so what it spent survives a throw.
+vi.mock('../harness/index.ts', () => {
+  const fakeRun = async (
+    task: MigrationTask,
+    _dir: string,
+    deps: { budgetUsd: number; chargeRun: (usd: number, label: string) => void },
+  ) => {
     harness.caps.push(deps.budgetUsd);
-    return harness.run ? harness.run(task, deps.budgetUsd) : ran(task, 0.75);
-  },
-}));
+    const record = await (harness.run
+      ? harness.run(task, deps.budgetUsd, deps.chargeRun)
+      : {
+          taskId: task.id,
+          outcome: 'needs-review',
+          diff: '',
+          checks: [],
+          costUsd: 0.75,
+          transcriptPath: '',
+        });
+    if (record.costUsd > 0 && !harness.chargesItself) deps.chargeRun(record.costUsd, 'turn');
+    return record;
+  };
+  return { runTask: fakeRun, runExternalTask: fakeRun };
+});
 
 // Each test may set `run`; an inventory charges its ledger as the real one does once the SDK returns.
 const inventory = vi.hoisted(() => ({
+  calls: 0,
   run: undefined as
     undefined | ((ledger: { record: (spend: object) => Promise<unknown> }) => Promise<void>),
 }));
 vi.mock('../inventory/index.ts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../inventory/index.ts')>()),
-  runInventory: async (
+  runDependencyInventory: async (
     _dir: string,
-    _repo: string,
+    repo: string,
     { ledger }: { ledger: { record: (spend: object) => Promise<unknown> } },
   ) => {
+    inventory.calls++;
     await inventory.run?.(ledger);
-    return { usages: [] };
+    return {
+      usages: [{ repo, provider: 'stripe', via: 'sdk', callSites: [] }],
+      dependencies: [{ repo, kind: 'runtime', name: 'node', declaredIn: [] }],
+      errors: ['the surfaces agent ended early'],
+    };
+  },
+}));
+
+// F1's watcher, offline: it spends $0.10 of the ledger it is given and notes what it could not read.
+const dependencyWatch = vi.hoisted(() => ({ caps: [] as number[] }));
+vi.mock('../providers/core/dependency-watcher.ts', () => ({
+  watchDependency: async (
+    dep: { name: string },
+    _since: string | undefined,
+    {
+      budget,
+      onReport,
+    }: {
+      budget: { capUsd: number; charge: (model: string, usage: object) => void };
+      onReport: (report: { errors: string[] }) => void;
+    },
+  ) => {
+    dependencyWatch.caps.push(budget.capUsd);
+    budget.charge('claude-sonnet-5-5', { inputTokens: 50_000, outputTokens: 0 });
+    onReport({ errors: [`could not read the ${dep.name} changelog`] });
+    return [{ id: `${dep.name}:change` }];
+  },
+}));
+
+// The rules agent, offline. Its ledger is the hold's; the store is the real one, in a temp folder.
+const rules = vi.hoisted(() => ({
+  reads: 0,
+  read: undefined as
+    undefined | (() => { obligations: { id: string }[]; errors: string[]; costUsd: number }),
+}));
+vi.mock('../compliance/index.ts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../compliance/index.ts')>()),
+  createComplianceModel: () => ({}),
+  readRegulations: async () => {
+    rules.reads++;
+    return rules.read!();
   },
 }));
 
@@ -98,7 +165,12 @@ afterEach(() => {
   vi.unstubAllEnvs();
   harness.caps = [];
   harness.run = undefined;
+  harness.chargesItself = false;
   inventory.run = undefined;
+  inventory.calls = 0;
+  dependencyWatch.caps = [];
+  rules.reads = 0;
+  rules.read = undefined;
   memory.caps = [];
   memory.commits = [];
 });
@@ -116,7 +188,7 @@ describe('createDeps', () => {
     expect(createDeps({ log: () => {} }).runTask).toBe(stubRunTask);
   });
 
-  it('wires every provider folder watcher and gives each task its share of one run budget', async () => {
+  it('reads no provider until the inventory finds it, and gives each task its share of one run budget', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
     const budget = createBudget(3);
     const deps = createDeps({ budget, log: () => {} });
@@ -125,7 +197,7 @@ describe('createDeps', () => {
     await deps.runTask(task('change'), '/unused');
     const skipped = await deps.runTask(task('change'), '/unused');
 
-    expect(Object.keys(deps.watchers)).toEqual(listProviderIds());
+    expect(deps.watchers).toEqual({});
     expect(harness.caps).toEqual([3, 2.25]);
     expect(budget.spentUsd()).toBe(1.5);
     // $1.50 left is below MIN_TASK_USD, so the third task never reaches the harness.
@@ -168,23 +240,23 @@ describe('createDeps', () => {
     expect(records.some((r) => r.outcome === 'failed')).toBe(true);
   });
 
-  it('records a harness that throws as failed, counting its whole share once', async () => {
+  it('records a harness that throws as failed, counting what it had spent once', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
     const budget = createBudget(8);
     const deps = createDeps({ budget, log: () => {} });
     let calls = 0;
-    harness.run = async () => {
+    harness.chargesItself = true;
+    harness.run = async (_task, _budgetUsd, charge) => {
       calls++;
+      charge(0.6, 'a turn');
       throw new Error('harness crashed');
     };
     // Through the queue, as the loop runs it: the failure comes back as a record, so no retry.
     const record = await deps.queue.add('task', () => deps.runTask(task('c'), '/unused'));
-    expect(record).toMatchObject({ outcome: 'failed', costUsd: TASK_USD });
-    expect((record as { note?: string }).note).toMatch(
-      /runTask failed: harness crashed; its spend is unknown/,
-    );
+    expect(record).toMatchObject({ outcome: 'failed', costUsd: 0.6 });
+    expect((record as { note?: string }).note).toMatch(/the harness failed: harness crashed/);
     expect(calls).toBe(1);
-    expect(budget.spentUsd()).toBe(TASK_USD);
+    expect(budget.spentUsd()).toBe(0.6);
     expect(budget.heldUsd()).toBe(0);
   });
 
@@ -203,15 +275,41 @@ describe('createDeps', () => {
     inventory.run = async () => {
       throw new Error('the Agent SDK exited');
     };
-    await expect(deps.inventory('/unused', 'acme/shop')).rejects.toThrow('the Agent SDK exited');
-    expect(budget.spentUsd()).toBe(DEFAULT_RUN_CAP_USD);
+    // Half of a small run; through the queue, so a failure this expensive is not paid for twice.
+    await expect(
+      deps.queue.add('inventory', () => deps.inventory('/unused', 'acme/shop')),
+    ).rejects.toThrow('the Agent SDK exited');
+    expect(inventory.calls).toBe(1);
+    expect(budget.spentUsd()).toBe(1.5);
 
     inventory.run = async (ledger) => {
-      await ledger.record({ repo: 'acme/shop', model: 'claude-sonnet-5-5', costUsd: 0.25 });
+      await ledger.record({ repo: 'acme/next', model: 'claude-sonnet-5-5', costUsd: 0.25 });
     };
-    await deps.inventory('/unused', 'acme/shop');
-    expect(budget.spentUsd()).toBeCloseTo(DEFAULT_RUN_CAP_USD + 0.25, 10);
+    await deps.inventory('/unused', 'acme/next');
+    expect(budget.spentUsd()).toBeCloseTo(1.75, 10);
     expect(budget.heldUsd()).toBe(0);
+  });
+
+  it('pays for one inventory a scan: the API path and the external path share it', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
+    const deps = createDeps({ budget: createBudget(3), log: () => {} });
+    const noted: string[] = [];
+
+    const usages = await deps.inventory('/unused', 'acme/shop');
+    const external = await (deps.external as ExternalDeps).inventoryDependencies(
+      '/unused',
+      'acme/shop',
+      (error) => noted.push(error),
+    );
+
+    expect(inventory.calls).toBe(1);
+    expect(usages.map((usage) => usage.provider)).toEqual(['stripe']);
+    expect(external.map((dep) => dep.name)).toEqual(['node']);
+    expect(noted).toEqual(['the surfaces agent ended early']);
+
+    // The next scan of the repo reads it again.
+    await deps.inventory('/unused', 'acme/shop');
+    expect(inventory.calls).toBe(2);
   });
 
   it('does not retry a refusal from the run budget', async () => {
@@ -225,6 +323,97 @@ describe('createDeps', () => {
       }),
     ).rejects.toThrow('the run cannot free enough');
     expect(calls).toBe(1);
+  });
+
+  it('does not retry a read that never got an answer', async () => {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
+    const deps = createDeps({ budget: createBudget(1), log: () => {} });
+    let calls = 0;
+    await expect(
+      deps.queue.add('read', async () => {
+        calls++;
+        throw new WatchFailedError({ provider: 'node', issues: [], summary: '' } as never);
+      }),
+    ).rejects.toBeInstanceOf(WatchFailedError);
+    expect(calls).toBe(1);
+  });
+});
+
+describe('reads on the external path', () => {
+  const node: DependencyUsage = {
+    repo: 'acme/shop',
+    kind: 'runtime',
+    name: 'node',
+    declaredIn: [],
+  };
+
+  async function realDeps(capUsd: number) {
+    vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
+    const dir = await mkdtemp(join(tmpdir(), 'refit-reads-'));
+    vi.stubEnv('REFIT_AUDIT_DIR', dir);
+    const budget = createBudget(capUsd);
+    const deps = createDeps({ budget, watchCache: join(dir, 'watch'), log: () => {} });
+    return { budget, external: deps.external as ExternalDeps };
+  }
+
+  it('reads a dependency once a day, keeps room for matching and notes what it could not read', async () => {
+    const { budget, external } = await realDeps(1);
+    const noted: string[] = [];
+
+    await external.watchDependency(node, undefined, (error) => noted.push(error));
+    await external.watchDependency(node, undefined, (error) => noted.push(error));
+
+    expect(dependencyWatch.caps).toHaveLength(1);
+    expect(dependencyWatch.caps[0]).toBeCloseTo(0.4);
+    expect(budget.spentUsd()).toBeCloseTo(0.1);
+    expect(budget.heldUsd()).toBe(0);
+    // The cached answer is as honest as the read.
+    expect(noted).toEqual([
+      'could not read the node changelog',
+      'could not read the node changelog',
+    ]);
+  });
+
+  it('refuses a read that would leave nothing for matching', async () => {
+    const { budget, external } = await realDeps(0.4);
+    await expect(external.watchDependency(node, undefined)).rejects.toThrow(/\$0\.4/);
+    expect(dependencyWatch.caps).toEqual([]);
+    expect(budget.spentUsd()).toBe(0);
+  });
+
+  it('holds nothing for a regulated surface, which the rules agent reads', async () => {
+    const { external } = await realDeps(0.1);
+    const surface: DependencyUsage = { ...node, kind: 'regulated-surface', name: 'signup form' };
+    await expect(external.watchDependency(surface, undefined)).resolves.toEqual([]);
+    expect(dependencyWatch.caps).toEqual([]);
+  });
+
+  it('stores what the rules read found for the dashboard, and reads again when nothing was read', async () => {
+    const { external } = await realDeps(3);
+    rules.read = () => ({ obligations: [], errors: ['payments: page down'], costUsd: 0 });
+    await expect(external.watchRegulations!(undefined)).rejects.toThrow('payments: page down');
+
+    rules.read = () => ({ obligations: [{ id: 'eaa' }], errors: ['privacy: unread'], costUsd: 0 });
+    const noted: string[] = [];
+    const found = await external.watchRegulations!(undefined, (error) => noted.push(error));
+    await external.watchRegulations!(undefined);
+
+    expect(found).toEqual([{ id: 'eaa' }]);
+    expect(rules.reads).toBe(2);
+    expect(noted).toEqual(['privacy: unread']);
+    expect(await listObligations()).toEqual([{ id: 'eaa' }]);
+  });
+
+  it('hands an upgrade to the harness whole, with one budget', async () => {
+    const { budget, external } = await realDeps(3);
+    const upgrade = {
+      ...task('upgrade'),
+      change: { id: 'upgrade', provider: 'node', dependency: 'node' },
+      dependencies: [node],
+    } as unknown as ExternalTask;
+    const record = await external.runExternalTask(upgrade, '/unused');
+    expect(record.costUsd).toBe(0.75);
+    expect(budget.spentUsd()).toBe(0.75);
   });
 });
 

@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ApiUsage, MigrationTask, ProviderChange, RunRecord } from '../shared/types.ts';
 import { runOrg, type LoopDeps } from './loop.ts';
 import { createMemoryQueue } from './queue.ts';
+import { apiAsExternalTask } from './scan.ts';
 import { stubMatch } from './stubs.ts';
 
 // Illustrative in-test data, not real provider changes.
@@ -181,17 +182,48 @@ describe('watching what the inventory finds', () => {
     hints: { hosts: ['api.resend.com'], docsUrls: ['https://resend.com/changelog'] },
   };
 
+  it('attempts only the tasks it is given, without reading or matching again', async () => {
+    const { deps } = fakeDeps([change('verified')], runTask);
+    deps.inventory = vi.fn(async () => usages);
+    deps.watchAny = vi.fn(() => async () => []);
+    deps.match = vi.fn(deps.match);
+    deps.recordReport = vi.fn(async () => {});
+    const task = apiAsExternalTask({
+      id: 'acme/shop:verified',
+      repo: 'acme/shop',
+      change: change('verified'),
+      usages,
+      priority: 1,
+    });
+
+    const summary = await runOrg(org, deps, { tasks: [task] });
+
+    expect(summary.records.map((r) => [r.taskId, r.outcome])).toEqual([
+      ['acme/shop:verified', 'verified'],
+    ]);
+    expect(deps.inventory).not.toHaveBeenCalled();
+    expect(deps.watchAny).not.toHaveBeenCalled();
+    expect(deps.match).not.toHaveBeenCalled();
+    expect(vi.mocked(deps.runTask)).toHaveBeenCalledOnce();
+    // The scan that planned these tasks saved the report; a planned run has none of its own.
+    expect(deps.recordReport).not.toHaveBeenCalled();
+  });
+
   it('gives a provider with no folder its own watcher, and its change becomes a task', async () => {
     const { deps } = fakeDeps([], runTask);
     deps.inventory = async () => [...usages, resend];
     deps.watchAny = vi.fn((provider: string) => async () => [change('resend-v2-send', provider)]);
     const summary = await runOrg(org, deps);
 
-    expect(deps.watchAny).toHaveBeenCalledExactlyOnceWith('resend', {
-      packages: ['resend'],
-      hosts: ['api.resend.com'],
-      docsUrls: ['https://resend.com/changelog'],
-    });
+    expect(deps.watchAny).toHaveBeenCalledExactlyOnceWith(
+      'resend',
+      {
+        packages: ['resend'],
+        hosts: ['api.resend.com'],
+        docsUrls: ['https://resend.com/changelog'],
+      },
+      expect.any(Function),
+    );
     const attempted = vi.mocked(deps.runTask).mock.calls.map(([task]) => task.change.id);
     expect(attempted).toEqual(['resend-v2-send']);
     expect(summary.records.map((r) => [r.taskId, r.outcome])).toEqual([

@@ -101,6 +101,7 @@ export type RunRepoJob = (input: {
   dir: string; // a fresh checkout to read; repo code never runs on the host
   openPullRequest: OpenPullRequest;
   dryRun?: boolean; // stop before opening PRs
+  tasks?: ExternalTask[]; // attempt only these, from an earlier scan, instead of running the whole loop
 }) => Promise<RunRecord[]>;
 
 // Where to look for a provider's changes. The inventory fills it (P5); the watchers read it (F4).
@@ -163,6 +164,8 @@ export type DependencyUsage = {
   declaredIn: { file: string; line?: number; text?: string }[]; // every place the version is set or implied
   callSites?: ApiUsage['callSites']; // for APIs, SDKs and AI models
   notes?: string;
+  hints?: ProviderHints; // where a watcher should look
+  package?: string; // the monorepo package directory that declares it
 };
 
 export type ExternalChange = Omit<ProviderChange, 'kind'> & {

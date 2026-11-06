@@ -2,7 +2,6 @@
 // agent reads the feeds and pages for its kind and writes ExternalChange[] with exact source quotes;
 // code fetches, caches, checks quotes and output shape, and records what could not be read.
 
-import { existsSync } from 'node:fs';
 import type {
   DependencyUsage,
   ExternalChange,
@@ -10,6 +9,7 @@ import type {
   ProviderHints,
   WatchPlatforms,
 } from '../../shared/types.ts';
+import { watchPlatforms } from '../platforms/index.ts';
 import {
   NOTHING_READ,
   runAnyWatch,
@@ -159,25 +159,13 @@ function emptyReport(
   };
 }
 
-const PLATFORMS_MODULE = new URL('../platforms/index.ts', import.meta.url);
-
-// shortcut: looked up at run time because F3's module lands on another branch tonight; make it a
-// static import once it is merged.
-async function loadPlatforms(): Promise<WatchPlatforms | undefined> {
-  if (!existsSync(PLATFORMS_MODULE)) return undefined;
-  const loaded = (await import(/* @vite-ignore */ PLATFORMS_MODULE.href)) as {
-    watchPlatforms?: WatchPlatforms;
-  };
-  return loaded.watchPlatforms;
-}
-
 async function watchPlatformDependency(
   dep: DependencyUsage,
   since: string | undefined,
   deps: DependencyWatchDeps,
   budget: BudgetLedger,
 ): Promise<DependencyWatchReport> {
-  const watch = deps.platforms === undefined ? await loadPlatforms() : deps.platforms;
+  const watch = deps.platforms === undefined ? watchPlatforms : deps.platforms;
   if (!watch) {
     return emptyReport(dep, [
       `platforms not read for ${dep.name}: providers/platforms/index.ts does not export watchPlatforms yet`,
@@ -227,9 +215,9 @@ export async function runDependencyWatch(
   if (dep.kind === 'platform' || dep.kind === 'infrastructure' || dep.kind === 'security-standard')
     return watchPlatformDependency(dep, since, deps, budget);
   if (dep.kind === 'regulated-surface')
-    return emptyReport(dep, [
-      `rules for ${dep.name} are not read here: compliance's watchRegulations and obligationsToChanges cover regulated surfaces`,
-    ]);
+    return emptyReport(dep, [], {
+      summary: `rules for ${dep.name} are not read here: compliance's watchRegulations and obligationsToChanges cover regulated surfaces`,
+    });
 
   const json = deps.json ?? cachingJsonFetcher(httpJsonFetcher());
   const groups = GROUPS_BY_KIND[dep.kind] ?? [];

@@ -1,7 +1,9 @@
-import type Anthropic from '@anthropic-ai/sdk';
-import { priceOf } from './models.ts';
+import { BudgetExceededError, usageCostUsd, worstCaseUsd } from '../shared/models.ts';
 
-export class BudgetExceededError extends Error {}
+export { BudgetExceededError, worstCaseUsd };
+
+// What a Messages API call cost.
+export const costOf = usageCostUsd;
 
 // Part of the run's cap set aside for one part (a watcher, an inventory, a task) while it runs.
 export type Hold = {
@@ -21,34 +23,6 @@ export type Budget = {
   // Records a cost that no hold covered.
   chargeUsd(costUsd: number): number;
 };
-
-// Prices come from the model layer (shared/models.ts once O3 lands), so no model defaults to another's price.
-function price(model: string) {
-  const p = priceOf(model);
-  if (!p)
-    throw new Error(
-      `No price for model ${model}; add it to the model layer (shared/models.ts) before spending.`,
-    );
-  return { cacheWrite: p.input * 1.25, cacheRead: p.input * 0.1, ...p };
-}
-
-// What a Messages API call cost.
-export function costOf(model: string, usage: Anthropic.Usage): number {
-  const p = price(model);
-  return (
-    (usage.input_tokens * p.input +
-      usage.output_tokens * p.output +
-      (usage.cache_creation_input_tokens ?? 0) * p.cacheWrite +
-      (usage.cache_read_input_tokens ?? 0) * p.cacheRead) /
-    1e6
-  );
-}
-
-// The most a call can cost: every input token plus a full max_tokens of output.
-export function worstCaseUsd(model: string, inputTokens: number, maxOutputTokens: number): number {
-  const p = price(model);
-  return (inputTokens * p.input + maxOutputTokens * p.output) / 1e6;
-}
 
 // The run-level dollar cap is a hard limit: refuse to build a budget without one.
 export function createBudget(capUsd = Number(process.env.REFIT_AI_BUDGET_USD)): Budget {

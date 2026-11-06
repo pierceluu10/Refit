@@ -8,18 +8,13 @@ import type {
   DependencyUsage,
   ExternalChange,
   ExternalTask,
-  InventoryDependencies,
-  InventorySurfaces,
   MigrationTask,
   Obligation,
-  ObligationsToChanges,
   ProviderChange,
   RunExternalTask,
   ScanReport,
-  WatchDependency,
-  WatchPlatforms,
-  WatchRegulations,
 } from '../shared/types.ts';
+import { SURFACE_KINDS } from '../inventory/surfaces/collector.ts';
 import {
   baseName,
   NO_VERDICT,
@@ -29,13 +24,26 @@ import {
 import type { LoopDeps, LoopRecord, RunOptions, RunState } from './loop.ts';
 import type { MatchedTask } from './match.ts';
 
+// What a part could not read, for ScanReport.errors.
+export type Note = (error: string) => void;
+
 export type ExternalDeps = {
-  inventoryDependencies: InventoryDependencies; // P2
-  inventorySurfaces?: InventorySurfaces; // P5
-  watchDependency: WatchDependency; // F1
-  watchPlatforms?: WatchPlatforms; // F3
-  watchRegulations?: WatchRegulations; // O5
-  obligationsToChanges?: ObligationsToChanges; // O5
+  // P2, with P5's surfaces in the same list. Platform, infrastructure and security-standard entries
+  // are read by F1's watcher, which hands them to F3.
+  inventoryDependencies: (repoDir: string, repo: string, note?: Note) => Promise<DependencyUsage[]>;
+  watchDependency: (
+    dep: DependencyUsage,
+    since: string | undefined,
+    note?: Note,
+  ) => Promise<ExternalChange[]>; // F1
+  watchRegulations?: (since: string | undefined, note?: Note) => Promise<Obligation[]>; // O5
+  obligationsToChanges?: (
+    repo: string,
+    surfaces: DependencyUsage[],
+    obligations: Obligation[],
+    repoDir: string,
+    note?: Note,
+  ) => Promise<ExternalChange[]>; // O5
   match: MatchExternal;
   runExternalTask: RunExternalTask; // O2
 };
@@ -52,18 +60,21 @@ export type ScanItemReport = Omit<ScanReport, 'items'> & { items: ScanItem[] };
 // The changes one repo faces, given its dependency map and surfaces.
 export type WatchExternal = (
   repo: string,
+  dir: string,
   dependencies: DependencyUsage[],
   surfaces: DependencyUsage[],
 ) => Promise<ExternalChange[]>;
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
+// O5's id for a change that comes from an obligation: rule:<obligation id>.
+export const RULE_CHANGE_PREFIX = 'rule:';
+
 const depKey = (dep: DependencyUsage) =>
   `${dep.kind}|${dep.ecosystem ?? ''}|${dep.name}|${dep.version ?? ''}`;
 
-// Reads each dependency once per org run: two repos on node 18 share one read. Platform watchers
-// (F3) see every dependency too, and decide for themselves what they cover. Rules are read once per
-// run and matched to each repo's surfaces by O5's agent.
+// Reads each dependency once per org run: two repos on node 18 share one read. Rules are read once
+// per run and matched to each repo's surfaces by O5's agent.
 export function watchExternalOrg(
   ext: ExternalDeps,
   deps: Pick<LoopDeps, 'queue' | 'log'>,
@@ -89,35 +100,41 @@ export function watchExternalOrg(
   const rules = () =>
     (obligations ??= ext.watchRegulations
       ? deps.queue
-          .add('watch:regulations', () => ext.watchRegulations!(opts.since))
+          .add('watch:regulations', () =>
+            ext.watchRegulations!(opts.since, (error) =>
+              state.errors.push(`regulations: ${error}`),
+            ),
+          )
           .catch((error) => {
             state.errors.push(`the regulations watcher failed: ${errorText(error)}`);
             return [];
           })
       : Promise.resolve([]));
 
-  return async (repo, dependencies, surfaces) => {
+  return async (repo, dir, dependencies, surfaces) => {
     const lists = await Promise.all([
-      ...dependencies.map((dep) =>
-        read(`dep:${depKey(dep)}`, `watch:${dep.name}`, () => ext.watchDependency(dep, opts.since)),
-      ),
-      ...(ext.watchPlatforms
-        ? [...dependencies, ...surfaces].map((dep) =>
-            read(`platform:${depKey(dep)}`, `watch-platform:${dep.name}`, () =>
-              ext.watchPlatforms!(dep, opts.since),
-            ),
-          )
-        : []),
+      // Rules, then surfaces: they are few, and a small cap should not lose them to the libraries.
       (async () => {
         const found = await rules();
         if (!found.length || !ext.obligationsToChanges) return [];
         return deps.queue
-          .add(`${repo}:rules`, () => ext.obligationsToChanges!(repo, surfaces, found))
+          .add(`${repo}:rules`, () =>
+            ext.obligationsToChanges!(repo, surfaces, found, dir, (error) =>
+              state.errors.push(`${repo}: rules: ${error}`),
+            ),
+          )
           .catch((error: unknown) => {
             state.errors.push(`${repo}: matching rules failed: ${errorText(error)}`);
             return [];
           });
       })(),
+      ...[...surfaces, ...dependencies].map((dep) =>
+        read(`dep:${depKey(dep)}`, `watch:${dep.name}`, () =>
+          ext.watchDependency(dep, opts.since, (error) =>
+            state.errors.push(`watch:${dep.name}: ${error}`),
+          ),
+        ),
+      ),
     ]);
     // The same change can come from two watchers (node the runtime, node the base image): keep one.
     const byId = new Map<string, ExternalChange>();
@@ -158,27 +175,31 @@ export async function scanExternal(
     unmatched: [],
     costUsd: 0,
   };
-  const [dependencies, surfaces] = await Promise.all([
-    deps.queue
-      .add(`${repo}:dependencies`, () => ext.inventoryDependencies(dir, repo))
-      .catch((error: unknown) => {
-        state.errors.push(`${repo}: dependency inventory failed: ${errorText(error)}`);
-        return [] as DependencyUsage[];
-      }),
-    ext.inventorySurfaces
-      ? deps.queue
-          .add(`${repo}:surfaces`, () => ext.inventorySurfaces!(dir, repo))
-          .catch((error: unknown) => {
-            state.errors.push(`${repo}: surface inventory failed: ${errorText(error)}`);
-            return [] as DependencyUsage[];
-          })
-      : Promise.resolve([] as DependencyUsage[]),
-  ]);
+  const all = await deps.queue
+    .add(`${repo}:dependencies`, () =>
+      ext.inventoryDependencies(dir, repo, (error) => state.errors.push(`${repo}: ${error}`)),
+    )
+    .catch((error: unknown) => {
+      state.errors.push(`${repo}: dependency inventory failed: ${errorText(error)}`);
+      return [] as DependencyUsage[];
+    });
+  const isSurface = (dep: DependencyUsage) =>
+    (SURFACE_KINDS as readonly string[]).includes(dep.kind);
+  const dependencies = all.filter((dep) => !isSurface(dep));
+  const surfaces = all.filter(isSurface);
+  // An API or SDK the usage map names is read on the API path, so nothing pays for the same changelog twice.
+  const unread = dependencies.filter(
+    (dep) =>
+      !usages.some(
+        (usage) =>
+          usage.provider.trim().toLowerCase() === baseName(dep.name) ||
+          usage.sdk?.name === dep.name,
+      ),
+  );
   const apiIds = new Set(apiChanges.map((c) => c.id));
   // A change the API path already has is matched there, once.
-  const changes = (await watch(repo, dependencies, surfaces)).filter((c) => !apiIds.has(c.id));
+  const changes = (await watch(repo, dir, unread, surfaces)).filter((c) => !apiIds.has(c.id));
   if (changes.length === 0) return { ...empty, dependencies, surfaces };
-  const all = [...dependencies, ...surfaces];
   log(`${repo}: ${all.length} dependency(ies), ${changes.length} external change(s) to match`);
   try {
     const result = await deps.queue.add(`${repo}:match-external`, () =>
@@ -267,7 +288,7 @@ export const asDependency = (usage: ApiUsage): DependencyUsage => ({
 });
 
 // An API task as an ExternalTask, so scanRepo returns every task in one shape.
-export const apiAsExternalTask = (task: MatchedTask): ExternalTask => ({
+export const apiAsExternalTask = (task: MigrationTask): ExternalTask => ({
   ...task,
   change: asExternalChange(task.change),
   dependencies: task.usages.map(asDependency),
@@ -382,7 +403,15 @@ export async function audit(
 ): Promise<void> {
   if (!deps.recordAudit) return;
   try {
-    await deps.recordAudit({ at: new Date().toISOString(), actor: 'refit', ...entry });
+    await deps.recordAudit({
+      at: new Date().toISOString(),
+      actor: 'refit',
+      // The Platforms and rules view finds a rule's entries through its obligation.
+      ...(entry.changeId.startsWith(RULE_CHANGE_PREFIX) && {
+        obligationId: entry.changeId.slice(RULE_CHANGE_PREFIX.length),
+      }),
+      ...entry,
+    });
   } catch (error) {
     state.errors.push(`audit ${entry.action} ${entry.changeId} failed: ${errorText(error)}`);
   }

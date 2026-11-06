@@ -3,36 +3,54 @@ import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
-import { runTask, type HarnessRunRecord } from '../harness/index.ts';
-import { DEFAULT_RUN_CAP_USD } from '../inventory/agent.ts';
-import { BudgetLedger as InventoryLedger, runInventory } from '../inventory/index.ts';
+import {
+  Budget as ComplianceBudget,
+  createComplianceModel,
+  matchObligations,
+  obligationsToChanges,
+  readRegulations,
+  recordAudit,
+  saveObligations,
+  watchRegulations,
+} from '../compliance/index.ts';
+import { runExternalTask, runTask, type HarnessRunRecord } from '../harness/index.ts';
+import {
+  BudgetLedger as InventoryLedger,
+  DEFAULT_DEPENDENCY_RUN_CAP_USD,
+  runDependencyInventory,
+} from '../inventory/index.ts';
+import {
+  createInventorySurfaces,
+  DEFAULT_RUN_CAP_USD as SURFACES_RUN_CAP_USD,
+} from '../inventory/surfaces/index.ts';
 import {
   Budget as MemoryBudget,
   createRetriever,
   defaultAi,
   defaultMemory,
+  JsonMemoryStore,
   learnFromRun,
+  recordScanReport,
 } from '../memory/index.ts';
 import { anyProviderWatcher } from '../providers/core/any-watcher.ts';
-import { BudgetLedger as WatchLedger } from '../providers/core/model.ts';
-import { folderWatcher, listProviderIds } from '../providers/core/registry.ts';
+import { watchDependency } from '../providers/core/dependency-watcher.ts';
+import { BudgetLedger as WatchLedger, watchModelId } from '../providers/core/model.ts';
+import { folderWatcher } from '../providers/core/registry.ts';
+import { WatchFailedError } from '../providers/core/watcher.ts';
 import { hintsFor, loadToolPack } from '../providers/toolkit/pack.ts';
-import { obligationsToChanges, recordAudit, watchRegulations } from '../compliance/index.ts';
 import type {
   MigrationTask,
   ProviderChange,
   ProviderHints,
-  RunExternalTask,
   RunRecord,
   ToolPack,
-  WatchDependency,
   WatchProvider,
 } from '../shared/types.ts';
 import { BudgetExceededError, type Budget, type Hold } from './budget.ts';
 import type { LoopDeps } from './loop.ts';
 import { createExternalMatchAgent } from './external-match.ts';
 import { createMatchAgent } from './match.ts';
-import type { AnyTask, ExternalDeps, ScanItemReport } from './scan.ts';
+import type { AnyTask, ExternalDeps, Note, ScanItemReport } from './scan.ts';
 import { createMemoryQueue, FinalError } from './queue.ts';
 import {
   stubInventory,
@@ -43,13 +61,11 @@ import {
   stubWatcher,
 } from './stubs.ts';
 import {
-  asMigrationTask,
   stubInventoryDependencies,
   stubMatchExternal,
   stubRunExternalTask,
   stubWatchDependency,
 } from './stubs-external.ts';
-import { loadUpstream } from './upstream.ts';
 
 // Run records go outside the target repo; Refit never writes into a repo except through a PR.
 export const defaultOut = join(tmpdir(), 'refit-runs.jsonl');
@@ -80,30 +96,37 @@ export const MIN_TASK_USD = 2;
 // The most one task holds of a small run, so several tasks run at once. In a big run a task may hold
 // a fair share of what is free instead: a CONCURRENCY-th of it. What it leaves goes back to the run.
 export const TASK_USD = 5;
-// One provider read. The six folder reads cost about $2.60 together on 2026-11-01's dev run.
+// The most one read of a provider, dependency or rule set holds, and the least worth starting it on.
 export const WATCH_USD = 1.5;
-// A watcher's ledger checks its cap only before a call, so its hold keeps one call's worst case spare.
-const WATCH_CALL_USD = 0.5;
+const WATCH_MIN_USD = 0.25;
+const SMALL_RUN_WATCH_USD = 0.4;
+// A read also holds this for a match call, so a small run's reads cannot use up what matching needs.
+const MATCH_FLOOR_USD = 0.2;
+// One inventory: P2's agent, then P5's on the same ledger. A small run keeps some for reading what it finds.
+const INVENTORY_USD = DEFAULT_DEPENDENCY_RUN_CAP_USD + SURFACES_RUN_CAP_USD;
+const INVENTORY_MIN_USD = 0.3;
+const INVENTORY_RUN_SHARE = 0.5;
+const DEPENDENCY_INVENTORY_SHARE = 0.6;
 // One recipe retrieval or extraction; memory refuses an Opus call whose worst case (about $0.40) passes its cap.
 export const MEMORY_USD = 1;
 // Parts in flight at once. The run budget's holds, not this, keep the spend under the cap.
 const CONCURRENCY = 4;
 
-const inflight = new Map<string, Promise<ProviderChange[]>>();
+const inflight = new Map<string, Promise<unknown>>();
 
 // Returns the cached result for key when there is one; otherwise runs the call and caches it.
 // Calls for the same key at the same time share one read, so jobs that start together pay once.
-export function cachedChanges(
+export function cachedChanges<T = ProviderChange[]>(
   dir: string,
   key: string,
-  call: () => Promise<ProviderChange[]>,
-): Promise<ProviderChange[]> {
+  call: () => Promise<T>,
+): Promise<T> {
   const file = join(dir, `${key.replace(/[^\w.-]+/g, '_')}.json`);
-  let read = inflight.get(file);
+  let read = inflight.get(file) as Promise<T> | undefined;
   if (!read) {
     read = (async () => {
       const cached = await readFile(file, 'utf8').catch(() => undefined);
-      if (cached !== undefined) return JSON.parse(cached) as ProviderChange[];
+      if (cached !== undefined) return JSON.parse(cached) as T;
       const changes = await call();
       await mkdir(dir, { recursive: true });
       await writeFile(file, JSON.stringify(changes));
@@ -133,26 +156,54 @@ async function held<L extends { readonly spentUsd: number }, T>(
   }
 }
 
-// A provider read, cached for the UTC day, holding WATCH_USD of the run while it reads.
-function readOncePerDay(
+// One read on its own ledger, which never spends the part of the hold kept for matching.
+async function heldRead<L extends { readonly spentUsd: number }, T>(
+  budget: Budget,
+  label: string,
+  ledger: (capUsd: number) => L,
+  call: (ledger: L) => Promise<T>,
+): Promise<T> {
+  const readUsd = Math.max(SMALL_RUN_WATCH_USD, Math.min(WATCH_USD, budget.capUsd / CONCURRENCY));
+  const hold = await budget.reserve(
+    label,
+    readUsd + MATCH_FLOOR_USD,
+    WATCH_MIN_USD + MATCH_FLOOR_USD,
+  );
+  let part: L | undefined;
+  try {
+    part = ledger(hold.usd - MATCH_FLOOR_USD);
+    return await call(part);
+  } finally {
+    hold.settle(part?.spentUsd ?? 0);
+  }
+}
+
+// A read, cached for the UTC day with what it could not read, so a cached answer stays as honest.
+async function readOncePerDay<T>(
   key: string,
   label: string,
   budget: Budget,
   cacheDir: string,
-  watcher: (ledger: WatchLedger) => WatchProvider,
-): WatchProvider {
-  return (since) => {
-    const day = new Date().toISOString().slice(0, 10);
-    return cachedChanges(cacheDir, `${key}-${since ?? 'latest'}-${day}`, () =>
-      held(
+  read: (ledger: WatchLedger, note: Note) => Promise<T>,
+  note?: Note,
+): Promise<T> {
+  const day = new Date().toISOString().slice(0, 10);
+  const { found, errors } = await cachedChanges(
+    cacheDir,
+    `${key}-${watchModelId()}-${day}`,
+    async () => {
+      const errors: string[] = [];
+      const found = await heldRead(
         budget,
         label,
-        WATCH_USD,
-        (capUsd) => new WatchLedger(capUsd - WATCH_CALL_USD),
-        (ledger) => watcher(ledger)(since),
-      ),
-    );
-  };
+        (capUsd) => new WatchLedger(capUsd),
+        (ledger) => read(ledger, (error) => errors.push(error)),
+      );
+      return { found, errors };
+    },
+  );
+  for (const error of errors) note?.(error);
+  return found;
 }
 
 // One provider folder's changelog watcher.
@@ -161,21 +212,33 @@ export function providerWatcher(
   budget: Budget,
   cacheDir = defaultWatchCache,
 ): WatchProvider {
-  return readOncePerDay(id, `the ${id} watcher`, budget, cacheDir, (ledger) =>
-    folderWatcher(id, { budget: ledger }),
-  );
+  return (since) =>
+    readOncePerDay(`${id}-${since ?? 'latest'}`, `the ${id} watcher`, budget, cacheDir, (ledger) =>
+      folderWatcher(id, { budget: ledger })(since),
+    );
 }
 
-// A watcher for a provider the inventory found that has no folder in providers/, led by its hints.
+// Any provider the inventory found, led by its hints; a folder in providers/ is a head start.
 export function anyWatcher(
   provider: string,
   hints: ProviderHints,
   budget: Budget,
   cacheDir = defaultWatchCache,
+  note?: Note,
 ): WatchProvider {
-  return readOncePerDay(`any-${provider}`, `the ${provider} watcher`, budget, cacheDir, (ledger) =>
-    anyProviderWatcher(provider, hints, { budget: ledger }),
-  );
+  return (since) =>
+    readOncePerDay(
+      `any-${provider}-${since ?? 'latest'}`,
+      `the ${provider} watcher`,
+      budget,
+      cacheDir,
+      (ledger, noted) =>
+        anyProviderWatcher(provider, hints, {
+          budget: ledger,
+          onReport: (report) => report.errors.forEach(noted),
+        })(since),
+      note,
+    );
 }
 
 // The commit a checkout is at, so memory's self-eval can rerun a task on what the run read. A read of
@@ -224,8 +287,9 @@ export function createDeps({
     retries: 2,
     backoffMs: 1000,
     log,
-    // A refusal from the run budget is final, so another try would only hold a slot.
-    shouldRetry: (error) => !(error instanceof BudgetExceededError),
+    // A refusal from any part's budget is final, and a read that never got an answer already had its turns.
+    shouldRetry: (error) =>
+      (error as Error).name !== BudgetExceededError.name && !(error instanceof WatchFailedError),
   });
   if (!process.env.ANTHROPIC_API_KEY) {
     log(
@@ -248,7 +312,7 @@ export function createDeps({
         watchDependency: stubWatchDependency(),
         match: stubMatchExternal,
         runExternalTask: stubRunExternalTask,
-        // O5's placeholders return nothing until the rules agent lands.
+        // With no key these read nothing and say why.
         watchRegulations,
         obligationsToChanges,
       },
@@ -264,16 +328,10 @@ export function createDeps({
     ...defaultMemory(),
     ...defaultAi(process.env, memoryBudget),
   });
-  const providerIds = listProviderIds();
   const appendRecord = stubRecordRun(out);
 
-  // A harness run on its own hold of the run budget, with recipes from memory. With `upgrade`, O2's
-  // runExternalTask runs the external task instead, on the same hold; it retrieves its own recipes.
-  const harnessTask = async (
-    task: MigrationTask,
-    dir: string,
-    upgrade?: { run: RunExternalTask; task: Parameters<RunExternalTask>[0] },
-  ): Promise<RunRecord> => {
+  // A harness run on its own hold of the run budget, with recipes from memory.
+  const harnessTask = async (task: AnyTask, dir: string): Promise<RunRecord> => {
     const freeUsd = budget.capUsd - budget.spentUsd() - budget.heldUsd();
     let hold: Hold;
     try {
@@ -291,76 +349,96 @@ export function createDeps({
         `not attempted: $${leftUsd.toFixed(2)} of the run cap left, below the $${MIN_TASK_USD} a task needs`,
       );
     }
+    // Charged as the harness spends, so a run that throws still reports what it cost.
     let spentUsd = 0;
     try {
       // Recipes come first, from what the hold has above the harness's minimum.
       const ai = memory(
         new MemoryBudget(Math.max(Math.min(MEMORY_USD, hold.usd - MIN_TASK_USD), 0)),
       );
-      const recipes = upgrade
-        ? []
-        : await createRetriever(ai)(task).catch((error) => {
-            log(`memory: no recipes for ${task.id}: ${error}`);
-            return [];
-          });
-      const recipesUsd = ai.budget.spentUsd;
-      // shortcut: a harness that throws reports no spend, so until it returns its whole share counts as spent; charge it live through the harness's chargeRun (O5) once that lands.
-      spentUsd = hold.usd;
-      const record = upgrade
-        ? await upgrade.run(upgrade.task, dir)
-        : await runTask(task, dir, {
-            budgetUsd: hold.usd - recipesUsd,
-            // Any provider: its own pack when its folder has one, plus the generic tools and
-            // playbooks, led by the inventory's hints. Only folder ids are ever imported.
-            loadToolPack: (provider): Promise<ToolPack> =>
-              loadToolPack(provider, { hints: hintsFor(task.usages) }),
-            retrieveRecipes: async () => recipes,
-          });
-      spentUsd = recipesUsd + record.costUsd;
-      return record;
+      const recipes = await createRetriever(ai)(task).catch((error) => {
+        log(`memory: no recipes for ${task.id}: ${error}`);
+        return [];
+      });
+      spentUsd = ai.budget.spentUsd;
+      const shared = {
+        budgetUsd: hold.usd - spentUsd,
+        chargeRun: (usd: number) => {
+          spentUsd += usd;
+        },
+        // Any provider: its own pack when its folder has one, plus the generic tools and
+        // playbooks, led by the inventory's hints. Only folder ids are ever imported.
+        loadToolPack: (provider: string): Promise<ToolPack> =>
+          loadToolPack(provider, { hints: hintsFor(task.usages ?? []) }),
+      };
+      return isExternalTask(task)
+        ? await runExternalTask(task, dir, {
+            ...shared,
+            retrieveExternalRecipes: async () => recipes,
+          })
+        : await runTask(task, dir, { ...shared, retrieveRecipes: async () => recipes });
     } catch (error) {
-      // Returned rather than thrown: a queue retry would count the share as spent again.
+      // Returned rather than thrown: a queue retry would pay for the whole attempt again.
       const message = error instanceof Error ? error.message : String(error);
-      return failed(
-        task.id,
-        spentUsd,
-        spentUsd > 0
-          ? `runTask failed: ${message}; its spend is unknown, so its whole $${spentUsd.toFixed(2)} share counts as spent`
-          : `runTask failed: ${message}`,
-      );
+      return failed(task.id, spentUsd, `the harness failed: ${message}`);
     } finally {
       hold.settle(spentUsd);
     }
   };
 
+  // P2's agent finds APIs and dependencies in one pass and P5's adds surfaces, so a scan pays for one
+  // inventory. The API path and the external path both read it; whichever comes second takes it.
+  const readInventory = async (dir: string, repo: string) => {
+    const hold = await budget.reserve(
+      `the ${repo} inventory`,
+      Math.max(INVENTORY_MIN_USD, Math.min(INVENTORY_USD, budget.capUsd * INVENTORY_RUN_SHARE)),
+      INVENTORY_MIN_USD,
+    );
+    // Inventory charges its ledger only once the Agent SDK returns a result, so until it returns its
+    // whole hold counts as spent.
+    let ledger: InventoryLedger | undefined;
+    let spentUsd = hold.usd;
+    try {
+      ledger = new InventoryLedger({ capUsd: hold.usd });
+      const report = await runDependencyInventory(dir, repo, {
+        ledger,
+        runCapUsd: hold.usd * DEPENDENCY_INVENTORY_SHARE,
+        surfaces: createInventorySurfaces({ ledger }),
+      });
+      spentUsd = ledger.spentUsd;
+      return report;
+    } catch (error) {
+      // Another try would pay for the same read again.
+      throw new FinalError(error instanceof Error ? error.message : String(error));
+    } finally {
+      hold.settle(Math.max(spentUsd, ledger?.spentUsd ?? 0));
+    }
+  };
+  const inventories = new Map<string, ReturnType<typeof readInventory>>();
+  const inventoryOnce = (dir: string, repo: string) => {
+    const key = `${repo}\n${dir}`;
+    const started = inventories.get(key);
+    if (started) {
+      inventories.delete(key);
+      return started;
+    }
+    const run = readInventory(dir, repo);
+    inventories.set(key, run);
+    return run;
+  };
+
   return {
-    inventory: async (dir, repo) => {
-      const hold = await budget.reserve(`the ${repo} inventory`, DEFAULT_RUN_CAP_USD);
-      // Inventory charges its ledger only once the Agent SDK returns a result, so until it returns
-      // its whole hold counts as spent.
-      let ledger: InventoryLedger | undefined;
-      let spentUsd = hold.usd;
-      try {
-        ledger = new InventoryLedger({ capUsd: hold.usd });
-        const { usages } = await runInventory(dir, repo, { ledger });
-        spentUsd = ledger.spentUsd;
-        return usages;
-      } finally {
-        hold.settle(Math.max(spentUsd, ledger?.spentUsd ?? 0));
-      }
-    },
-    watchers: Object.fromEntries(
-      providerIds.map((id) => [id, providerWatcher(id, budget, watchCache)]),
-    ),
-    watchAny: (provider, hints) => anyWatcher(provider, hints, budget, watchCache),
+    inventory: async (dir, repo) => (await inventoryOnce(dir, repo)).usages,
+    // Every provider is read through watchAny, only once the inventory has found it. A folder in
+    // providers/ is its head start, so nothing here pays to read a provider this org does not use.
+    watchers: {},
+    watchAny: (provider, hints, note) => anyWatcher(provider, hints, budget, watchCache, note),
     match: createMatchAgent({ budget }),
-    runTask: (task, dir) => harnessTask(task, dir),
+    runTask: harnessTask,
     // shortcut: a real PR needs the GitHub App's installation token and the repo's owner/name, which only the app has; the app passes its opener to runRepoJob.
     openPullRequest: stubOpenPullRequest,
-    recordRun: async (anyTask, record, dir) => {
-      await appendRecord(anyTask, record, dir);
-      // Memory takes the API task shape until O4 lands; the external change rides along in its notes.
-      const task = isExternalTask(anyTask) ? asMigrationTask(anyTask) : anyTask;
+    recordRun: async (task, record, dir) => {
+      await appendRecord(task, record, dir);
 
       const { recipeIds } = record as Partial<HarnessRunRecord>;
       const transcript = record.transcriptPath
@@ -395,34 +473,76 @@ export function createDeps({
     queue,
     log,
     external: {
-      // Until P2's agent lands, the manifest reader stands in, and says so in each dependency's notes.
-      inventoryDependencies: async (dir, repo) =>
-        ((await loadUpstream()).inventoryDependencies ?? stubInventoryDependencies())(dir, repo),
-      inventorySurfaces: async (dir, repo) => {
-        const surfaces = (await loadUpstream()).inventorySurfaces;
-        return surfaces ? surfaces(dir, repo) : [];
+      inventoryDependencies: async (dir, repo, note) => {
+        const report = await inventoryOnce(dir, repo);
+        report.errors.forEach((error) => note?.(error));
+        return report.dependencies;
       },
-      watchDependency: async (dep, since) => {
-        const watch: WatchDependency | undefined = (await loadUpstream()).watchDependency;
-        // Fixture changes in a real run would be invented findings, so an unwatched dependency is an error.
-        if (!watch)
-          throw new FinalError(`not watched: providers/index.ts has no watchDependency yet (F1)`);
-        return watch(dep, since);
+      watchDependency: async (dep, since, note) => {
+        // O5's rules agent reads these; F1 has nothing to read for them, so nothing is held.
+        if (dep.kind === 'regulated-surface') return [];
+        const place = [dep.kind, dep.ecosystem, dep.name, dep.version, since ?? 'latest'];
+        return readOncePerDay(
+          `dep-${place.join('-')}`,
+          `the ${dep.name} watcher`,
+          budget,
+          watchCache,
+          (ledger, noted) =>
+            watchDependency(dep, since, {
+              budget: ledger,
+              hints: dep.hints,
+              onReport: (report) => report.errors.forEach(noted),
+            }),
+          note,
+        );
       },
-      watchPlatforms: async (dep, since) => {
-        const watch = (await loadUpstream()).watchPlatforms;
-        return watch ? watch(dep, since) : [];
+      watchRegulations: async (since, note) => {
+        const day = new Date().toISOString().slice(0, 10);
+        const { obligations, errors } = await cachedChanges(
+          watchCache,
+          `regulations-${since ?? 'latest'}-${watchModelId()}-${day}`,
+          () =>
+            heldRead(
+              budget,
+              'the regulations watcher',
+              (capUsd) => new ComplianceBudget(capUsd),
+              async (ledger) => {
+                const read = await readRegulations(since, {
+                  model: createComplianceModel(process.env, ledger),
+                });
+                // Not cached: nothing was read, so the next run should try again.
+                if (read.obligations.length === 0 && read.errors.length > 0)
+                  throw new FinalError(read.errors.join('; '));
+                await saveObligations(read.obligations);
+                return { obligations: read.obligations, errors: read.errors };
+              },
+            ),
+        );
+        errors.forEach((error) => note?.(error));
+        return obligations;
       },
-      watchRegulations,
-      obligationsToChanges,
+      obligationsToChanges: (repo, surfaces, obligations, repoDir, note) =>
+        heldRead(
+          budget,
+          `the ${repo} rules match`,
+          (capUsd) => new ComplianceBudget(capUsd),
+          async (ledger) => {
+            const match = await matchObligations(repo, surfaces, obligations, {
+              model: createComplianceModel(process.env, ledger),
+              repoDir,
+            });
+            match.errors.forEach((error) => note?.(error));
+            return match.changes;
+          },
+        ),
       match: createExternalMatchAgent({ budget }),
-      runExternalTask: async (task, dir) => {
-        const run = (await loadUpstream()).runExternalTask;
-        // Until O2 lands, today's harness attempts the upgrade from the task's notes.
-        return harnessTask(asMigrationTask(task), dir, run && { run, task });
-      },
+      runExternalTask: harnessTask,
     } satisfies ExternalDeps,
     recordAudit,
-    recordReport: saveReport(reports),
+    recordReport: async (report) => {
+      await saveReport(reports)(report);
+      await recordScanReport(report, JsonMemoryStore.fromEnv());
+    },
+    spentUsd: () => budget.spentUsd(),
   };
 }

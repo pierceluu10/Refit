@@ -251,7 +251,8 @@ describe('watchDependency', () => {
       undefined,
       { budget },
     );
-    expect(report.errors[0]).toMatch(/watchRegulations/);
+    expect(report.errors).toEqual([]);
+    expect(report.summary).toMatch(/watchRegulations/);
     expect(report.failed).toBe(false);
   });
 

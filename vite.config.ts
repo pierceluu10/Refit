@@ -34,6 +34,8 @@ export default defineConfig(({ mode }) => ({
   // app/.env holds the app's credentials on a laptop that runs it; see app/SETUP.md.
   server: { proxy: devProxy(loadEnv(mode, 'app', 'REFIT_')) },
   test: {
+    // Tests never make a real model call, whatever this shell has set. REFIT_REAL_AI=1 opts in.
+    env: process.env.REFIT_REAL_AI ? {} : { ANTHROPIC_API_KEY: '', REFIT_AI_BUDGET_USD: '' },
     restoreMocks: true,
     passWithNoTests: true,
     projects: [

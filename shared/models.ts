@@ -62,7 +62,9 @@ export const MODEL_TABLE: Readonly<Record<ModelStep, StepModel>> = {
 };
 
 export class UnknownModelError extends Error {}
-export class BudgetExceededError extends Error {}
+export class BudgetExceededError extends Error {
+  override name = 'BudgetExceededError';
+}
 
 // The table id a reported model resolves to: the exact id, or the longest table id it starts with,
 // so a dated snapshot or a context suffix ('claude-opus-5-5[1m]') prices as its family.

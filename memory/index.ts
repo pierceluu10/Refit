@@ -104,8 +104,10 @@ export async function recordVerdict(
     const demoted = await recordRecipeOutcome(run, deps);
     const { extraction } = run;
     const distilled = extraction?.status === 'done' && extraction.mode === 'recipe';
+    // A PR merged as it was says nothing the first distilling didn't hear.
     const humanDiffIsNew =
       run.humanDiff !== undefined &&
+      run.humanDiff.trim() !== run.record.diff.trim() &&
       !(extraction?.status === 'done' && extraction.humanDiffSha === sha(run.humanDiff));
     return learn(run, demoted, deps, succeeded(run.record) && (!distilled || humanDiffIsNew));
   });
