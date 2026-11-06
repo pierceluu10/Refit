@@ -13,6 +13,8 @@ export type WeeklyScanDeps = {
   enqueue: JobQueue['enqueue'];
   intervalMs?: number;
   weekMs?: number;
+  // The sweep only queues scans, so this sees the reports from before them.
+  afterSweep?: () => Promise<void>;
 };
 
 const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error));
@@ -44,6 +46,7 @@ export function createWeeklyScan({
   enqueue,
   intervalMs = HOUR_MS,
   weekMs = WEEK_MS,
+  afterSweep,
 }: WeeklyScanDeps) {
   let timer: NodeJS.Timeout | undefined;
   let sweeping: Promise<void> | undefined;
@@ -68,6 +71,11 @@ export function createWeeklyScan({
     // Nothing got queued, likely a GitHub outage: leave the state so the next hourly check tries again.
     if (installations.length > 0 && failed === installations.length) return;
     await writeState();
+    try {
+      await afterSweep?.();
+    } catch (error) {
+      console.error(`weekly scan: the step after the sweep failed: ${messageOf(error)}`);
+    }
   }
 
   const sweep = () => (sweeping ??= runSweep().finally(() => (sweeping = undefined)));

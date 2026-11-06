@@ -42,6 +42,7 @@ export type JobRunnerDeps = {
   ) => Promise<ExistingPullRequest | undefined>;
   beforeOpenPullRequest: BeforeOpenPullRequest;
   notifyRun: NotifyRun;
+  refreshConflicts: (job: ScanJob) => Promise<void>;
   readSettings: (dir: string) => Promise<RepoSettings>;
   isIgnored: (settings: RepoSettings, change: ExternalChange) => boolean;
   reports: ReportStore;
@@ -120,6 +121,19 @@ export function createJobRunner(deps: JobRunnerDeps) {
       });
     }
     console.log(`scanned ${job.repo}: ${items.length} item(s), ${toRun.length} task(s) queued`);
+    // A deadline alert must still fire when no task ran.
+    await logged(`notifying about the scan of ${job.repo}`, async () =>
+      deps.notifyRun({
+        installationId: job.installationId,
+        repo: job.repo,
+        records: [],
+        report: await deps.reports.latest(job.repo),
+      }),
+    );
+    // A task with an open PR isn't queued above, so this is what re-runs one that now conflicts.
+    await logged(`checking the open PRs of ${job.repo} for conflicts`, () =>
+      deps.refreshConflicts(job),
+    );
   }
 
   async function run(job: RunJob, dir: string, signal: AbortSignal) {

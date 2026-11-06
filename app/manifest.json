@@ -8,6 +8,7 @@
   "public": false,
   "default_permissions": {
     "contents": "write",
+    "workflows": "write",
     "pull_requests": "write",
     "checks": "write",
     "metadata": "read"

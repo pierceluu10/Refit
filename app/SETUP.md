@@ -20,6 +20,9 @@ install. Run everything from the repo root.
 ### Before you start
 
 - [ ] Docker is running (`docker info`). The harness runs repo code only in its sandbox.
+- [ ] A founder has granted **Workflows: Read and write** (section 2) and approved it on the
+      `refit-dev` install. Without it, GitHub refuses commits that touch `.github/workflows/`, so a CI
+      PR ends as a failed run.
 - [ ] `ln -s "$HOME/.config/refit/app.env" app/.env`, if the link isn't there. That file holds the
       App's credentials and `REFIT_SERVICE_TOKEN`.
 - [ ] `ANTHROPIC_API_KEY` and `REFIT_AI_BUDGET_USD` are exported in terminal 2's shell, or set in
@@ -133,6 +136,7 @@ Sidebar → **Permissions & events**. Under **Repository permissions**, set each
 | Contents      | Read and write                                |
 | Pull requests | Read and write                                |
 | Checks        | Read and write                                |
+| Workflows     | Read and write                                |
 | Metadata      | Read-only (mandatory; it can't be turned off) |
 
 Set every other repository permission to No access, unless it is already set and something still

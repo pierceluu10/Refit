@@ -176,6 +176,7 @@ async function startApp({ settings }: { settings?: string } = {}) {
       openPullRequestFor: (id) => createOpenPullRequest(tokens, id, github.fetchImpl),
       findPullRequest: (id, task) => findPullRequestFor(tokens, id, github.fetchImpl)(task),
       beforeOpenPullRequest: async () => ({}),
+      refreshConflicts: async () => {},
       notifyRun: async ({ records }) => void notified.push(records),
       readSettings: readRepoSettings,
       isIgnored,
@@ -245,7 +246,7 @@ describe('the app loop', () => {
       { path: 'package.json', mode: '100644', type: 'blob', content: UPGRADED },
     ]);
     expect(app.github.calls.some((c) => c.path.includes('/merge'))).toBe(false);
-    expect(app.notified).toHaveLength(1);
+    expect(app.notified.filter((records) => records.length > 0)).toHaveLength(1);
     expect((await app.reports.latest(REPO))?.items[0]).toMatchObject({
       status: 'pr-open',
       pr: PR_URL,

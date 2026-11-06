@@ -30,7 +30,11 @@ const host = process.env.HOST ?? DEFAULT_HOST;
 const tokens = createInstallationTokens(config.appId, config.privateKey);
 const stateDir = dirname(config.queueFile);
 const reports = createReportStore(join(stateDir, 'reports'));
-const parts = await loadParts({ reports, tokens });
+const parts = await loadParts({
+  reports,
+  tokens,
+  listRuns: () => defaultMemory().store.listRuns(),
+});
 
 const queue = await createFileQueue(
   config.queueFile,
@@ -40,9 +44,15 @@ const queue = await createFileQueue(
     scanRepo: parts.scanRepo,
     runTasks: parts.runTasks,
     openPullRequestFor: (installationId) => createOpenPullRequest(tokens, installationId),
-    findPullRequest: (installationId, task) => findPullRequestFor(tokens, installationId)(task),
+    findPullRequest: async (installationId, task) =>
+      (await findPullRequestFor(tokens, installationId)(task)) ??
+      parts.findOpenPullRequest(installationId, task),
     beforeOpenPullRequest: parts.beforeOpenPullRequest,
     notifyRun: parts.notifyRun,
+    refreshConflicts: ({ installationId, repo }) =>
+      parts.refreshConflicts(repo, installationId, (task) =>
+        queue.enqueue({ kind: 'run', installationId, repo, task }),
+      ),
     readSettings: readRepoSettings,
     isIgnored,
     reports,
@@ -84,6 +94,7 @@ const weekly = createWeeklyScan({
   listInstallations: () => listInstallations(createAppJwt(config.appId, config.privateKey)),
   listRepos: async (installationId) => listInstallationRepos(await tokens.token(installationId)),
   enqueue: (job) => queue.enqueue(job),
+  afterSweep: async () => parts.sendWeeklyDigest(await reports.list()),
 });
 weekly.start();
 

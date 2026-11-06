@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import type { RunRepoJob, ScanRepo } from '../shared/types.ts';
+import type { ExternalTask, RunRepoJob, ScanReport, ScanRepo } from '../shared/types.ts';
 import type { ReportStore } from './reports.ts';
 import type {
   BeforeOpenPullRequest,
@@ -25,9 +25,27 @@ export type Parts = {
   routes: Route[];
   beforeOpenPullRequest: BeforeOpenPullRequest;
   notifyRun: NotifyRun;
+  // Finds a PR the lifecycle moved a task onto, which a lookup by the task's own branch can't see.
+  findOpenPullRequest: FindOpenPullRequest;
+  // Re-runs tasks whose open PRs conflict with the default branch.
+  refreshConflicts: (
+    repo: string,
+    installationId: number,
+    rerun: (task: ExternalTask) => Promise<void>,
+  ) => Promise<void>;
+  sendWeeklyDigest: (reports: ScanReport[]) => Promise<void>;
 };
 
-export type PartsDeps = { reports: ReportStore; tokens: InstallationTokens };
+export type PartsDeps = {
+  reports: ReportStore;
+  tokens: InstallationTokens;
+  listRuns: () => Promise<unknown[]>;
+};
+
+type FindOpenPullRequest = (
+  installationId: number,
+  task: ExternalTask,
+) => Promise<{ url: string; state: 'open' } | undefined>;
 
 type RealRunRepoJob = (
   input: Omit<Parameters<RunRepoJob>[0], 'openPullRequest'> & {
@@ -46,8 +64,29 @@ type Audit = {
     deps: { isAuthorized: IsServiceToken; listRepos: () => Promise<string[]> },
   ) => Promise<void>;
 };
-type Lifecycle = { createBeforeOpenPullRequest: (deps: PartsDeps) => BeforeOpenPullRequest };
-type Notify = { notifyRun: NotifyRun };
+type Lifecycle = {
+  createBeforeOpenPullRequest: (deps: PartsDeps) => BeforeOpenPullRequest;
+  createFindOpenPullRequest: (deps: { tokens: InstallationTokens }) => FindOpenPullRequest;
+  findTaskForPr: (listRuns: PartsDeps['listRuns']) => unknown;
+  refreshConflicts: (
+    repo: string,
+    options: {
+      installationId: number;
+      tokens: InstallationTokens;
+      findTask: unknown;
+      rerun: (task: ExternalTask) => Promise<void>;
+    },
+  ) => Promise<unknown>;
+};
+type Notify = { notifyRun: NotifyRun; sendWeeklyDigest: (reports: ScanReport[]) => Promise<void> };
+
+export type Modules = {
+  orchestrator: Partial<Orchestrator>;
+  api: Partial<Api>;
+  audit: Partial<Audit>;
+  lifecycle: Partial<Lifecycle>;
+  notify: Partial<Notify>;
+};
 
 // Only the module itself being missing means it hasn't landed; a broken import inside it still throws.
 export async function loadOptional<T>(
@@ -93,18 +132,12 @@ function auditRoute(
   };
 }
 
-export async function loadParts(
+export function buildParts(
+  { orchestrator, api, audit, lifecycle, notify }: Modules,
   deps: PartsDeps,
-  env: NodeJS.ProcessEnv = process.env,
-  warn: (line: string) => void = console.warn,
-): Promise<Parts> {
-  const [orchestrator, api, audit, lifecycle, notify] = await Promise.all([
-    loadOptional<Orchestrator>('../orchestrator/index.ts'),
-    loadOptional<Api>('./api/index.ts'),
-    loadOptional<Audit>('./audit/index.ts'),
-    loadOptional<Lifecycle>('./lifecycle/index.ts'),
-    loadOptional<Notify>('./notify/index.ts'),
-  ]);
+  env: NodeJS.ProcessEnv,
+  warn: (line: string) => void,
+): Parts {
   const stub = <T>(part: string, real: T | undefined, fallback: T): T => {
     if (real === undefined) warn(`using a stub for ${part}: its module hasn't landed`);
     return real ?? fallback;
@@ -118,6 +151,7 @@ export async function loadParts(
   const runRepoJob = orchestrator.runRepoJob;
   const apiRoutes = stub('the report API', api.createApiRoutes?.(deps), undefined);
   const auditRoutes = stub('the audit API', auditRoute(audit, deps, isServiceToken), undefined);
+  const { tokens, listRuns } = deps;
   return {
     scanRepo: stub('scanRepo', orchestrator.scanRepo, stubScanRepo),
     runTasks: async (input) => {
@@ -132,5 +166,31 @@ export async function loadParts(
       async () => ({}),
     ),
     notifyRun: stub('notifications', notify.notifyRun, async () => {}),
+    findOpenPullRequest:
+      lifecycle.createFindOpenPullRequest?.({ tokens }) ?? (async () => undefined),
+    refreshConflicts: async (repo, installationId, rerun) => {
+      await lifecycle.refreshConflicts?.(repo, {
+        installationId,
+        tokens,
+        findTask: lifecycle.findTaskForPr?.(listRuns),
+        rerun,
+      });
+    },
+    sendWeeklyDigest: notify.sendWeeklyDigest ?? (async () => {}),
   };
+}
+
+export async function loadParts(
+  deps: PartsDeps,
+  env: NodeJS.ProcessEnv = process.env,
+  warn: (line: string) => void = console.warn,
+): Promise<Parts> {
+  const [orchestrator, api, audit, lifecycle, notify] = await Promise.all([
+    loadOptional<Orchestrator>('../orchestrator/index.ts'),
+    loadOptional<Api>('./api/index.ts'),
+    loadOptional<Audit>('./audit/index.ts'),
+    loadOptional<Lifecycle>('./lifecycle/index.ts'),
+    loadOptional<Notify>('./notify/index.ts'),
+  ]);
+  return buildParts({ orchestrator, api, audit, lifecycle, notify }, deps, env, warn);
 }

@@ -104,6 +104,7 @@ function fakes(overrides: Partial<JobRunnerDeps> = {}) {
     },
     findPullRequest: async () => undefined,
     beforeOpenPullRequest: async () => ({}),
+    refreshConflicts: async () => {},
     notifyRun: async ({ repo, records, report }) => {
       calls.push(`notify ${repo} ${records.length} ${report?.items[0]?.status}`);
     },
@@ -130,13 +131,59 @@ describe('scan job', () => {
   it('checks out, scans, stores the report, queues one run per task and deletes the checkout', async () => {
     const fake = fakes();
     await fake.run(SCAN, live());
-    expect(fake.calls).toEqual([`checkout token-${INSTALLATION} ${REPO}`, `scan ${REPO} true`]);
+    expect(fake.calls).toEqual([
+      `checkout token-${INSTALLATION} ${REPO}`,
+      `scan ${REPO} true`,
+      `notify ${REPO} 0 open`,
+    ]);
     expect(fake.queued).toEqual([
       { kind: 'run', installationId: INSTALLATION, repo: REPO, task: taskOf('node') },
       { kind: 'run', installationId: INSTALLATION, repo: REPO, task: taskOf('flask') },
     ]);
     expect(await fake.reports.latest(REPO)).toMatchObject(reportOf('node', 'flask'));
     expect(existsSync(fake.dir())).toBe(false);
+  });
+
+  it('after storing the report it notifies with no records, then checks open PRs for conflicts', async () => {
+    const order: string[] = [];
+    const fake = fakes({
+      scanRepo: async () => ({ report: reportOf('node'), tasks: [] }),
+      notifyRun: async ({ records, report }) => {
+        order.push(`notify ${records.length} ${report?.items.length}`);
+      },
+      refreshConflicts: async (job) => void order.push(`conflicts ${job.repo}`),
+    });
+    await fake.run(SCAN, new AbortController().signal);
+    expect(order).toEqual(['notify 0 1', `conflicts ${REPO}`]);
+  });
+
+  it('a failing notify or conflict check is logged and fails nothing', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const fake = fakes({
+      scanRepo: async () => ({ report: reportOf('node'), tasks: [taskOf('node')] }),
+      notifyRun: async () => {
+        throw new Error('slack is down');
+      },
+      refreshConflicts: async () => {
+        throw new Error('github is down');
+      },
+    });
+    await fake.run(SCAN, new AbortController().signal);
+    expect(fake.queued).toHaveLength(1);
+    expect(errors.mock.calls.flat().join('\n')).toMatch(/slack is down[\s\S]*github is down/);
+  });
+
+  it('a paused repo gets no notification or conflict check', async () => {
+    const refreshConflicts = vi.fn<JobRunnerDeps['refreshConflicts']>();
+    const notifyRun = vi.fn<JobRunnerDeps['notifyRun']>();
+    const fake = fakes({
+      refreshConflicts,
+      notifyRun,
+      readSettings: async () => ({ ...NO_SETTINGS, paused: true }),
+    });
+    await fake.run(SCAN, new AbortController().signal);
+    expect(refreshConflicts).not.toHaveBeenCalled();
+    expect(notifyRun).not.toHaveBeenCalled();
   });
 
   it('a paused repo is not scanned, and its older report stays', async () => {

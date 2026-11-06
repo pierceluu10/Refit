@@ -87,6 +87,30 @@ describe('createWeeklyScan', () => {
     expect(jobs).toHaveLength(after);
   });
 
+  it('runs afterSweep once the state is written, and a failure there loses nothing', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await setup().scan.start();
+    time = START + WEEK;
+    let stateAtDigest = 0;
+    const { scan, jobs } = setup({
+      afterSweep: async () => {
+        stateAtDigest = await lastSweep();
+        throw new Error('slack is down');
+      },
+    });
+    await scan.start();
+    scan.stop();
+    expect(stateAtDigest).toBe(START + WEEK);
+    expect(jobs).toHaveLength(2);
+    expect(errors).toHaveBeenCalledWith(expect.stringContaining('slack is down'));
+  });
+
+  it('does not run afterSweep when the week has not passed', async () => {
+    const afterSweep = vi.fn(async () => {});
+    await setup({ afterSweep }).scan.start();
+    expect(afterSweep).not.toHaveBeenCalled();
+  });
+
   it('skips suspended installations', async () => {
     const { scan, jobs } = setup({
       listInstallations: async () => [

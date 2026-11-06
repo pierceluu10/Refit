@@ -3,7 +3,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { loadOptional, serviceTokenCheck, stubScanRepo } from './parts.ts';
+import type { ExternalTask } from '../shared/types.ts';
+import { buildParts, loadOptional, serviceTokenCheck, stubScanRepo } from './parts.ts';
+import type { Modules, PartsDeps } from './parts.ts';
 
 let dir: string;
 beforeEach(async () => {
@@ -60,5 +62,88 @@ describe('stubScanRepo', () => {
     expect(report.items).toEqual([]);
     expect(report.scannedAt).toBe('2026-11-06T00:00:00.000Z');
     expect(report.errors[0]).toMatch(/Nothing was scanned/);
+  });
+});
+
+describe('buildParts', () => {
+  const NONE: Modules = { orchestrator: {}, api: {}, audit: {}, lifecycle: {}, notify: {} };
+  const TOKENS = { token: async () => 'ghs_test_installation_token' };
+  const DEPS = {
+    reports: { list: async () => [{ repo: 'org/a' }] },
+    tokens: TOKENS,
+    listRuns: async () => [],
+  } as unknown as PartsDeps;
+  const TASK = { id: 'illustrative-task' } as ExternalTask;
+
+  it('warns once per missing part, and every stub is safe to call', async () => {
+    const warnings: string[] = [];
+    const parts = buildParts(NONE, DEPS, {}, (line) => warnings.push(line));
+    expect(warnings.join('\n')).toMatch(/scanRepo/);
+    expect(warnings.join('\n')).toMatch(/PR lifecycle/);
+    expect(parts.routes).toEqual([]);
+    expect(await parts.findOpenPullRequest(1, TASK)).toBeUndefined();
+    await parts.refreshConflicts('org/a', 1, async () => {});
+    await parts.sendWeeklyDigest([]);
+    await expect(parts.runTasks({} as never)).rejects.toThrow(/no runRepoJob/);
+  });
+
+  it("passes P3's lifecycle what it asked for, including the rerun", async () => {
+    const seen: unknown[] = [];
+    const findTask = () => undefined;
+    const rerun = async () => {};
+    const parts = buildParts(
+      {
+        ...NONE,
+        lifecycle: {
+          createFindOpenPullRequest: ({ tokens }) => {
+            seen.push(tokens);
+            return async () => ({ url: 'https://example.com/illustrative', state: 'open' });
+          },
+          findTaskForPr: (listRuns) => {
+            seen.push(listRuns);
+            return findTask;
+          },
+          refreshConflicts: async (repo, options) => void seen.push(repo, options),
+        },
+      },
+      DEPS,
+      {},
+      () => {},
+    );
+    expect((await parts.findOpenPullRequest(1, TASK))?.state).toBe('open');
+    await parts.refreshConflicts('org/a', 7, rerun);
+    expect(seen).toEqual([
+      TOKENS,
+      DEPS.listRuns,
+      'org/a',
+      { installationId: 7, tokens: TOKENS, findTask, rerun },
+    ]);
+  });
+
+  it('only sends audit paths to the audit route, with the service-token check', async () => {
+    const calls: unknown[] = [];
+    const isServiceToken = () => true;
+    const parts = buildParts(
+      {
+        ...NONE,
+        api: { isServiceToken },
+        audit: {
+          AUDIT_PATHS: ['/api/audit'],
+          serveAudit: async (_request, _response, { isAuthorized, listRepos }) => {
+            calls.push(isAuthorized, await listRepos());
+          },
+        },
+      },
+      DEPS,
+      {},
+      () => {},
+    );
+    const [route] = parts.routes;
+    const request = (url: string, method = 'GET') => ({ url, method }) as never;
+    expect(await route(request('/api/other'), {} as never)).toBe(false);
+    expect(await route(request('/api/audit', 'POST'), {} as never)).toBe(false);
+    expect(calls).toEqual([]);
+    expect(await route(request('/api/audit?repo=org/a'), {} as never)).toBe(true);
+    expect(calls).toEqual([isServiceToken, ['org/a']]);
   });
 });
