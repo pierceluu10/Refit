@@ -1,0 +1,90 @@
+{
+  "note": "Commands read from each linked page on the retrieved date. A head start, not a full list.",
+  "retrieved": "2026-11-06",
+  "packages": {
+    "next": [
+      {
+        "command": "npx @next/codemod upgrade major",
+        "applies": "moves to the next major and runs the codemods for it; also takes patch, minor, a version such as 16, or a tag",
+        "url": "https://nextjs.org/docs/app/guides/upgrading/codemods",
+        "official": true
+      },
+      {
+        "command": "npx @next/codemod <transform> <path>",
+        "applies": "one named transform; the linked page lists them per version",
+        "url": "https://nextjs.org/docs/app/guides/upgrading/codemods",
+        "official": true
+      }
+    ],
+    "react": [
+      {
+        "command": "npx codemod@latest react/19/migration-recipe",
+        "applies": "React 18 to 19",
+        "url": "https://react.dev/blog/2024/04/25/react-19-upgrade-guide",
+        "official": true
+      },
+      {
+        "command": "npx types-react-codemod@latest preset-19 ./path-to-app",
+        "applies": "@types/react changes for React 19",
+        "url": "https://react.dev/blog/2024/04/25/react-19-upgrade-guide",
+        "official": true
+      }
+    ],
+    "express": [
+      {
+        "command": "npx codemod@latest @expressjs/<codemod-name>",
+        "applies": "Express 4 to 5; the linked page names each one, e.g. back-redirect-deprecated, pluralize-method-names",
+        "url": "https://expressjs.com/en/guide/migrating-5.html",
+        "official": true
+      }
+    ],
+    "eslint": [
+      {
+        "command": "npx @eslint/migrate-config .eslintrc.json",
+        "applies": "eslintrc to flat config",
+        "url": "https://eslint.org/docs/latest/use/configure/migration-guide",
+        "official": true
+      }
+    ],
+    "tailwindcss": [
+      {
+        "command": "npx @tailwindcss/upgrade",
+        "applies": "Tailwind CSS v3 to v4",
+        "url": "https://tailwindcss.com/docs/upgrade-guide",
+        "official": true
+      }
+    ],
+    "pydantic": [
+      {
+        "command": "bump-pydantic <path>",
+        "applies": "Pydantic V1 to V2; bump-pydantic --diff <path> previews",
+        "url": "https://github.com/pydantic/bump-pydantic",
+        "official": true
+      }
+    ],
+    "openai": [
+      {
+        "command": "openai migrate",
+        "applies": "the Python SDK's move to v1",
+        "url": "https://github.com/openai/openai-python/discussions/742",
+        "official": true
+      }
+    ],
+    "django": [
+      {
+        "command": "git ls-files -z -- '*.py' | xargs -0r django-upgrade",
+        "applies": "rewrites the files it is given to fix Django deprecation warnings; it does not recurse through directories",
+        "url": "https://django-upgrade.readthedocs.io/en/latest/usage.html",
+        "official": false
+      }
+    ],
+    "python": [
+      {
+        "command": "pyupgrade --py3XX-plus <files>",
+        "applies": "rewrites syntax for a newer Python; use the flag for your target, e.g. --py37-plus",
+        "url": "https://github.com/asottile/pyupgrade",
+        "official": false
+      }
+    ]
+  }
+}

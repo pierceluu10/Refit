@@ -1,0 +1,606 @@
+{
+  "info": {
+    "name": "Django",
+    "version": "6.1.3",
+    "summary": "A high-level Python web framework that encourages rapid development and clean, pragmatic design.",
+    "project_urls": {
+      "Documentation": "https://docs.djangoproject.com/",
+      "Funding": "https://www.djangoproject.com/fundraising/",
+      "Homepage": "https://www.djangoproject.com/",
+      "Release notes": "https://docs.djangoproject.com/en/stable/releases/",
+      "Source": "https://github.com/django/django",
+      "Tracker": "https://code.djangoproject.com/"
+    },
+    "requires_python": ">=3.12"
+  },
+  "releases": {
+    "4.2": [
+      {
+        "upload_time": "2023-04-03T08:36:11",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.1": [
+      {
+        "upload_time": "2023-05-03T12:58:27",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.10": [
+      {
+        "upload_time": "2024-02-06T14:53:58",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.11": [
+      {
+        "upload_time": "2024-03-04T08:56:53",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.12": [
+      {
+        "upload_time": "2024-05-06T16:41:14",
+        "yanked": true,
+        "yanked_reason": "Release files have Windows end-of-line characters and are missing executable bits."
+      }
+    ],
+    "4.2.13": [
+      {
+        "upload_time": "2024-05-07T17:22:58",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.14": [
+      {
+        "upload_time": "2024-07-09T14:03:07",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.15": [
+      {
+        "upload_time": "2024-08-06T13:16:35",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.16": [
+      {
+        "upload_time": "2024-09-03T14:01:55",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.17": [
+      {
+        "upload_time": "2024-12-04T15:16:27",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.18": [
+      {
+        "upload_time": "2025-01-14T14:27:36",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.19": [
+      {
+        "upload_time": "2025-02-05T14:01:52",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.2": [
+      {
+        "upload_time": "2023-06-05T14:09:31",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.20": [
+      {
+        "upload_time": "2025-03-06T12:58:44",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.21": [
+      {
+        "upload_time": "2025-05-07T14:07:01",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.22": [
+      {
+        "upload_time": "2025-06-04T13:53:33",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.23": [
+      {
+        "upload_time": "2025-06-10T10:06:28",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.24": [
+      {
+        "upload_time": "2025-09-03T13:13:51",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.25": [
+      {
+        "upload_time": "2025-10-01T15:05:46",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.26": [
+      {
+        "upload_time": "2025-11-05T14:08:20",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.27": [
+      {
+        "upload_time": "2025-12-02T14:01:44",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.28": [
+      {
+        "upload_time": "2026-02-03T13:55:09",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.29": [
+      {
+        "upload_time": "2026-03-03T13:56:36",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.3": [
+      {
+        "upload_time": "2023-07-03T07:57:20",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.30": [
+      {
+        "upload_time": "2026-04-07T14:05:38",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.4": [
+      {
+        "upload_time": "2023-08-01T17:30:17",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.5": [
+      {
+        "upload_time": "2023-09-04T10:58:22",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.6": [
+      {
+        "upload_time": "2023-10-04T14:58:34",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.7": [
+      {
+        "upload_time": "2023-11-01T06:59:15",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.8": [
+      {
+        "upload_time": "2023-12-04T08:34:42",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "4.2.9": [
+      {
+        "upload_time": "2024-01-02T09:16:15",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.0": [
+      {
+        "upload_time": "2023-12-04T13:12:41",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.0.1": [
+      {
+        "upload_time": "2024-01-02T09:16:20",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.0.10": [
+      {
+        "upload_time": "2024-12-04T15:13:01",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.0.11": [
+      {
+        "upload_time": "2025-01-14T14:28:46",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.0.12": [
+      {
+        "upload_time": "2025-02-05T14:10:14",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.0.13": [
+      {
+        "upload_time": "2025-03-06T12:56:05",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.0.14": [
+      {
+        "upload_time": "2025-04-02T11:24:36",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.0.2": [
+      {
+        "upload_time": "2024-02-06T14:53:28",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.0.3": [
+      {
+        "upload_time": "2024-03-04T08:56:57",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.0.4": [
+      {
+        "upload_time": "2024-04-03T14:56:56",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.0.5": [
+      {
+        "upload_time": "2024-05-06T16:46:37",
+        "yanked": true,
+        "yanked_reason": "Release files have Windows end-of-line characters and are missing executable bits."
+      }
+    ],
+    "5.0.6": [
+      {
+        "upload_time": "2024-05-07T16:55:41",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.0.7": [
+      {
+        "upload_time": "2024-07-09T14:07:00",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.0.8": [
+      {
+        "upload_time": "2024-08-06T13:28:41",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.0.9": [
+      {
+        "upload_time": "2024-09-03T14:01:32",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.1": [
+      {
+        "upload_time": "2024-08-07T13:33:52",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.1.1": [
+      {
+        "upload_time": "2024-09-03T14:01:12",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.1.10": [
+      {
+        "upload_time": "2025-06-04T13:53:07",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.1.11": [
+      {
+        "upload_time": "2025-06-10T10:12:42",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.1.12": [
+      {
+        "upload_time": "2025-09-03T13:09:30",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.1.13": [
+      {
+        "upload_time": "2025-10-01T14:25:28",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.1.14": [
+      {
+        "upload_time": "2025-11-05T14:07:53",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.1.15": [
+      {
+        "upload_time": "2025-12-02T14:01:27",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.1.2": [
+      {
+        "upload_time": "2024-10-08T14:53:05",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.1.3": [
+      {
+        "upload_time": "2024-11-05T05:24:21",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.1.4": [
+      {
+        "upload_time": "2024-12-04T15:09:01",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.1.5": [
+      {
+        "upload_time": "2025-01-14T14:28:11",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.1.6": [
+      {
+        "upload_time": "2025-02-05T14:16:00",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.1.7": [
+      {
+        "upload_time": "2025-03-06T12:52:12",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.1.8": [
+      {
+        "upload_time": "2025-04-02T11:19:51",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.1.9": [
+      {
+        "upload_time": "2025-05-07T14:06:37",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2": [
+      {
+        "upload_time": "2025-04-02T13:08:01",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.1": [
+      {
+        "upload_time": "2025-05-07T14:06:10",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.10": [
+      {
+        "upload_time": "2026-01-06T18:55:20",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.11": [
+      {
+        "upload_time": "2026-02-03T13:52:42",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.12": [
+      {
+        "upload_time": "2026-03-03T13:56:01",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.13": [
+      {
+        "upload_time": "2026-04-07T14:02:08",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.14": [
+      {
+        "upload_time": "2026-05-05T13:57:25",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.15": [
+      {
+        "upload_time": "2026-06-03T13:03:31",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.16": [
+      {
+        "upload_time": "2026-07-07T13:52:11",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.17": [
+      {
+        "upload_time": "2026-08-04T15:03:59",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.18": [
+      {
+        "upload_time": "2026-10-06T13:01:04",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.19": [
+      {
+        "upload_time": "2026-11-03T15:22:03",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.2": [
+      {
+        "upload_time": "2025-06-04T13:52:33",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.3": [
+      {
+        "upload_time": "2025-06-10T10:13:58",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.4": [
+      {
+        "upload_time": "2025-07-02T18:47:35",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.5": [
+      {
+        "upload_time": "2025-08-06T08:26:23",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.6": [
+      {
+        "upload_time": "2025-09-03T13:03:47",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.7": [
+      {
+        "upload_time": "2025-10-01T14:22:49",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.8": [
+      {
+        "upload_time": "2025-11-05T14:07:28",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "5.2.9": [
+      {
+        "upload_time": "2025-12-02T14:01:03",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "6.0": [
+      {
+        "upload_time": "2025-12-03T16:26:16",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ],
+    "6.1": [
+      {
+        "upload_time": "2026-08-05T19:21:47",
+        "yanked": false,
+        "yanked_reason": null
+      }
+    ]
+  }
+}

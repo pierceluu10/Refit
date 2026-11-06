@@ -23,8 +23,8 @@ export type FakeResponse = {
   location?: string;
 };
 
-export function recorded(file: string): string {
-  return readFileSync(join(RECORDED_DIR, file), 'utf8');
+export function recorded(file: string, dir = RECORDED_DIR): string {
+  return readFileSync(join(dir, file), 'utf8');
 }
 
 /**
@@ -33,8 +33,9 @@ export function recorded(file: string): string {
  */
 export function recordedFetch(
   extra: Record<string, FakeResponse> = {},
+  dir = RECORDED_DIR,
 ): FetchLike & { calls: string[] } {
-  const manifest = JSON.parse(recorded('manifest.json')) as { entries: RecordedEntry[] };
+  const manifest = JSON.parse(recorded('manifest.json', dir)) as { entries: RecordedEntry[] };
   const calls: string[] = [];
   const fetch = (async (url: string, init?: { method?: string }) => {
     const method = init?.method ?? 'GET';
@@ -42,7 +43,7 @@ export function recordedFetch(
     const override = extra[`${method} ${url}`] ?? extra[url];
     const entry = manifest.entries.find((e) => e.url === url && e.method === method);
     const status = override?.status ?? entry?.status ?? 404;
-    const body = override ? override.body : entry ? recorded(entry.file) : 'not recorded';
+    const body = override ? override.body : entry ? recorded(entry.file, dir) : 'not recorded';
     const headers = new Map<string, string>([
       ['content-type', override?.contentType ?? entry?.contentType ?? 'text/plain'],
     ]);

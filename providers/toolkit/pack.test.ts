@@ -40,7 +40,7 @@ describe('resolveProviderFolder', () => {
     expect(resolveProviderFolder('meta-graph')).toBe('meta');
     expect(resolveProviderFolder('GitHub API')).toBe('github');
     expect(resolveProviderFolder('metabase')).toBeUndefined();
-    expect(resolveProviderFolder('anthropic')).toBeUndefined();
+    expect(resolveProviderFolder('mistral')).toBeUndefined();
     expect(resolveProviderFolder('../core')).toBeUndefined();
     expect(resolveProviderFolder('toolkit')).toBeUndefined();
     expect(providerSlug('Google Gemini API')).toBe('google-gemini-api');
@@ -83,27 +83,25 @@ describe('loadToolPack', () => {
   });
 
   it('gives an unknown provider the generic pack and playbooks, led by the inventory hints', async () => {
-    const pack = await loadToolPack('Anthropic', {
+    const pack = await loadToolPack('Mistral', {
       fetch: null,
       hints: {
-        packages: ['@anthropic-ai/sdk (npm)'],
-        hosts: ['api.anthropic.com'],
-        docsUrls: ['https://docs.anthropic.com/en/api/versioning', 'http://localhost:8080/docs'],
+        packages: ['@mistralai/mistralai (npm)'],
+        hosts: ['api.mistral.ai'],
+        docsUrls: ['https://docs.mistral.ai/api', 'http://localhost:8080/docs'],
       },
     });
-    expect(pack.provider).toBe('anthropic');
+    expect(pack.provider).toBe('mistral');
     expect(pack.tools.map((t) => t.name)).toEqual(['search_docs', ...GENERIC]);
     expect(Object.keys(pack.playbooks).sort()).toEqual([...MIGRATION_KINDS].sort());
-    expect(tool(pack, 'package_lookup').description).toContain('@anthropic-ai/sdk (npm)');
+    expect(tool(pack, 'package_lookup').description).toContain('@mistralai/mistralai (npm)');
     const sources = await tool(pack, 'fetch_changelog').run({}, ctx);
-    expect(sources).toContain(
-      'docs page from the inventory: https://docs.anthropic.com/en/api/versioning',
-    );
+    expect(sources).toContain('docs page from the inventory: https://docs.mistral.ai/api');
     // A local URL from a hint is never offered or fetched.
     expect(sources).not.toContain('localhost');
     const none = await tool(pack, 'search_docs').run({ query: 'api versioning header' }, ctx);
-    expect(none).toContain('No anthropic docs passages matched');
-    expect(none).toContain('https://docs.anthropic.com/en/api/versioning');
+    expect(none).toContain('No mistral docs passages matched');
+    expect(none).toContain('https://docs.mistral.ai/api');
   });
 
   it('puts the generic playbook into the harness prompt for a provider with no folder', async () => {
@@ -139,7 +137,7 @@ describe('loadToolPack', () => {
   });
 
   it('lets the docs search find pages the other tools read in the same run', async () => {
-    const pack = await loadToolPack('anthropic', { fetch: recordedFetch() });
+    const pack = await loadToolPack('some-new-api', { fetch: recordedFetch() });
     await tool(pack, 'fetch_changelog').run(
       { url: 'https://cdn.jsdelivr.net/npm/@anthropic-ai/sdk@latest/CHANGELOG.md' },
       ctx,

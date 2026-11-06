@@ -1,0 +1,242 @@
+{
+  "note": "Real responses recorded for the upgrade tool tests, trimmed as each entry says. Test input only.",
+  "recordedAt": "2026-11-06T05:19:04Z",
+  "entries": [
+    {
+      "file": "eol-nodejs.json",
+      "url": "https://endoflife.date/api/nodejs.json",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-06T05:19:04Z"
+    },
+    {
+      "file": "eol-django.json",
+      "url": "https://endoflife.date/api/django.json",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-06T05:19:04Z"
+    },
+    {
+      "file": "eol-all.json",
+      "url": "https://endoflife.date/api/all.json",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-06T05:19:04Z"
+    },
+    {
+      "file": "npm-express.json",
+      "url": "https://registry.npmjs.org/express",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "kept 4.18.2, 4.21.x and 5.x; version, deprecated and engines fields only"
+    },
+    {
+      "file": "npm-express-4.18.2.json",
+      "url": "https://registry.npmjs.org/express/4.18.2",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "kept manifest fields"
+    },
+    {
+      "file": "npm-express-latest.json",
+      "url": "https://registry.npmjs.org/express/5.3.0",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "kept manifest fields"
+    },
+    {
+      "file": "gh-express-releases.json",
+      "url": "https://api.github.com/repos/expressjs/express/releases?per_page=100",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "kept 12 recent 4.2x and 5.x releases; bodies cut to 4000 chars"
+    },
+    {
+      "file": "guide-express-5.txt",
+      "url": "https://expressjs.com/en/guide/migrating-5.html",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/html",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "first 60000 characters"
+    },
+    {
+      "file": "npm-next.json",
+      "url": "https://registry.npmjs.org/next",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "kept a few 14, 15 and 16 versions; version, deprecated and engines fields only"
+    },
+    {
+      "file": "guide-next-15.txt",
+      "url": "https://nextjs.org/docs/app/guides/upgrading/version-15",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/markdown",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "first 20000 characters; recorded from the .md form of the page"
+    },
+    {
+      "file": "pypi-django.json",
+      "url": "https://pypi.org/pypi/django/json",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "kept the 4.2 to 6.x releases and their first file"
+    },
+    {
+      "file": "pypi-django-4.2.1.json",
+      "url": "https://pypi.org/pypi/Django/4.2.1/json",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "kept requires fields"
+    },
+    {
+      "file": "pypi-django-5.0.json",
+      "url": "https://pypi.org/pypi/Django/5.0/json",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "kept requires fields"
+    },
+    {
+      "file": "guide-django-5.0.txt",
+      "url": "https://docs.djangoproject.com/en/stable/releases/5.0/",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/html",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "first 90000 characters"
+    },
+    {
+      "file": "guide-node-22-to-24.txt",
+      "url": "https://nodejs.org/en/blog/migrations/v22-to-v24",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/html",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "first 90000 characters"
+    },
+    {
+      "file": "guide-python-3.13.txt",
+      "url": "https://docs.python.org/3/whatsnew/3.13.html",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/html",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "first 90000 characters"
+    },
+    {
+      "file": "gh-checkout-repo.json",
+      "url": "https://api.github.com/repos/actions/checkout",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "kept 3 fields"
+    },
+    {
+      "file": "gh-checkout-releases.json",
+      "url": "https://api.github.com/repos/actions/checkout/releases?per_page=100",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "kept tag, date and flags"
+    },
+    {
+      "file": "action-checkout-v3.txt",
+      "url": "https://raw.githubusercontent.com/actions/checkout/v3/action.yml",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/plain",
+      "recordedAt": "2026-11-06T05:19:04Z"
+    },
+    {
+      "file": "action-checkout-v4.txt",
+      "url": "https://raw.githubusercontent.com/actions/checkout/v4/action.yml",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/plain",
+      "recordedAt": "2026-11-06T05:19:04Z"
+    },
+    {
+      "file": "action-checkout-v5.txt",
+      "url": "https://raw.githubusercontent.com/actions/checkout/v5/action.yml",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/plain",
+      "recordedAt": "2026-11-06T05:19:04Z"
+    },
+    {
+      "file": "action-checkout-v6.txt",
+      "url": "https://raw.githubusercontent.com/actions/checkout/v6/action.yml",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/plain",
+      "recordedAt": "2026-11-06T05:19:04Z"
+    },
+    {
+      "file": "docker-node-readme.txt",
+      "url": "https://raw.githubusercontent.com/docker-library/docs/master/node/README.md",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/plain",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "kept through the supported tags"
+    },
+    {
+      "file": "docker-node-18-bookworm.json",
+      "url": "https://hub.docker.com/v2/repositories/library/node/tags/18-bookworm",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "kept 4 fields"
+    },
+    {
+      "file": "docker-bitnami-node-tags.json",
+      "url": "https://hub.docker.com/v2/repositories/bitnami/node/tags?page_size=100&ordering=last_updated",
+      "method": "GET",
+      "status": 200,
+      "contentType": "application/json",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "kept 5 tags and 4 fields"
+    },
+    {
+      "file": "models-anthropic.txt",
+      "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/markdown",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "recorded from the .md form of the page"
+    },
+    {
+      "file": "models-google.txt",
+      "url": "https://ai.google.dev/gemini-api/docs/deprecations",
+      "method": "GET",
+      "status": 200,
+      "contentType": "text/html",
+      "recordedAt": "2026-11-06T05:19:04Z",
+      "trimmed": "first 90000 characters"
+    }
+  ]
+}
