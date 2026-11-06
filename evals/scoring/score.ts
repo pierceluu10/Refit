@@ -6,6 +6,85 @@ import type { RepoResult } from '../runner/types.ts';
 
 export type Outcome = 'verified' | 'needs-review' | 'not-affected' | 'failed';
 
+/** The families scores are split by. A label for reading results, never a gate on a task. */
+export type ChangeFamily =
+  | 'api'
+  | 'runtime'
+  | 'framework'
+  | 'library'
+  | 'security'
+  | 'model'
+  | 'image'
+  | 'ci'
+  | 'platform'
+  | 'rules'
+  | 'other'
+  /** Repos the match agent found no task in: graded not-affected, with no change kind. */
+  | 'no-task';
+
+export const FAMILY_ORDER: ChangeFamily[] = [
+  'api',
+  'runtime',
+  'framework',
+  'library',
+  'security',
+  'model',
+  'image',
+  'ci',
+  'platform',
+  'rules',
+  'other',
+  'no-task',
+];
+
+const FAMILY_OF: Record<string, ChangeFamily> = {
+  'api-version': 'api',
+  'sdk-major': 'api',
+  'field-removed': 'api',
+  'field-renamed': 'api',
+  'endpoint-removed': 'api',
+  'rest-to-graphql': 'api',
+  'auth-change': 'api',
+  'webhook-payload': 'api',
+  'product-shutdown': 'api',
+  'pagination-or-limits': 'api',
+  'model-retirement': 'model',
+  'runtime-eol': 'runtime',
+  'serverless-runtime': 'runtime',
+  'framework-major': 'framework',
+  'dependency-major': 'library',
+  'security-fix': 'security',
+  'container-image-eol': 'image',
+  'ci-deprecation': 'ci',
+  'k8s-version': 'platform',
+  'cloud-deprecation': 'platform',
+  'platform-policy': 'platform',
+  'mobile-os': 'platform',
+  'browser-change': 'platform',
+  'tls-crypto': 'platform',
+  'auth-standard': 'platform',
+  'payment-rule': 'rules',
+  regulation: 'rules',
+};
+
+export function familyOf(kind: string): ChangeFamily {
+  return FAMILY_OF[kind] ?? 'other';
+}
+
+/** One change family's slice of a run. Rates are over that family's graded units. */
+export type FamilyScore = {
+  units: number;
+  counts: Record<Outcome, number>;
+  rates: Record<Outcome, number>;
+  /** Started tasks of this family the agent attempted. Must be 1. */
+  attemptedRate: number;
+  /** Repos with at least one graded unit of this family. */
+  repos: number;
+  /** What this family's tasks spent (RunRecord.costUsd), excluding inventory, watch and match. */
+  costUsd: number;
+  costPerRepoUsd: number;
+};
+
 export type Score = {
   repos: number;
   /** Repos the dollar cap stopped before they started. The run is incomplete if this is > 0. */
@@ -35,6 +114,8 @@ export type Score = {
   /** Advisory reviewer opinions, for reading next to the grades. Never part of a rate. */
   reviewerOpinions: Record<string, number>;
   verifiedPrs: { repo: string; taskId: string; pr?: string }[];
+  /** The same rates, attempts and cost split by change family (API, runtime, framework, ...). */
+  byFamily: Partial<Record<ChangeFamily, FamilyScore>>;
 };
 
 const zero = (): Record<Outcome, number> => ({
@@ -53,6 +134,24 @@ export function scoreResults(results: RepoResult[]): Score {
   let started = 0;
   let attempted = 0;
   let unrunTasks = 0;
+  const families = new Map<
+    ChangeFamily,
+    {
+      counts: Record<Outcome, number>;
+      started: number;
+      attempted: number;
+      repos: Set<string>;
+      costUsd: number;
+    }
+  >();
+  const family = (name: ChangeFamily) => {
+    let entry = families.get(name);
+    if (!entry) {
+      entry = { counts: zero(), started: 0, attempted: 0, repos: new Set(), costUsd: 0 };
+      families.set(name, entry);
+    }
+    return entry;
+  };
 
   for (const repo of results) {
     if (repo.verdict === 'unrun') {
@@ -62,6 +161,9 @@ export function scoreResults(results: RepoResult[]): Score {
     if (repo.verdict === 'not-affected') {
       counts['not-affected'] += 1;
       repoCounts['not-affected'] += 1;
+      const none = family('no-task');
+      none.counts['not-affected'] += 1;
+      none.repos.add(repo.repo);
       continue;
     }
     if (repo.verdict === 'error' || (repo.tasks.length === 0 && repo.verdict === 'tasks')) {
@@ -78,8 +180,14 @@ export function scoreResults(results: RepoResult[]): Score {
         continue;
       }
       started += 1;
-      if (task.attempted) attempted += 1;
-      else {
+      const slice = family(familyOf(task.kind));
+      slice.started += 1;
+      slice.repos.add(repo.repo);
+      slice.costUsd += task.record?.costUsd ?? 0;
+      if (task.attempted) {
+        attempted += 1;
+        slice.attempted += 1;
+      } else {
         attemptBugs.push({
           repo: repo.repo,
           taskId: task.taskId,
@@ -88,6 +196,7 @@ export function scoreResults(results: RepoResult[]): Score {
       }
       const outcome = task.record?.outcome ?? 'failed';
       counts[outcome] += 1;
+      slice.counts[outcome] += 1;
       outcomes.push(outcome);
       if (outcome === 'verified') {
         verifiedPrs.push({
@@ -145,7 +254,48 @@ export function scoreResults(results: RepoResult[]): Score {
     costByPart,
     reviewerOpinions,
     verifiedPrs,
+    byFamily: Object.fromEntries(
+      FAMILY_ORDER.flatMap((name) => {
+        const entry = families.get(name);
+        if (!entry) return [];
+        const familyUnits = Object.values(entry.counts).reduce((sum, value) => sum + value, 0);
+        const familyRates = zero();
+        for (const key of Object.keys(entry.counts) as Outcome[]) {
+          familyRates[key] = familyUnits === 0 ? 0 : entry.counts[key] / familyUnits;
+        }
+        const score: FamilyScore = {
+          units: familyUnits,
+          counts: entry.counts,
+          rates: familyRates,
+          attemptedRate: entry.started === 0 ? 1 : entry.attempted / entry.started,
+          repos: entry.repos.size,
+          costUsd: entry.costUsd,
+          costPerRepoUsd: entry.repos.size === 0 ? 0 : entry.costUsd / entry.repos.size,
+        };
+        return [[name, score]];
+      }),
+    ),
   };
+}
+
+/** The by-family table: rates, attempts and task cost per repo for each change family. */
+export function formatByFamily(score: Score): string[] {
+  const rows = FAMILY_ORDER.flatMap((name) => {
+    const slice = score.byFamily[name];
+    return slice ? [[name, slice] as const] : [];
+  });
+  if (rows.length === 0) return [];
+  return [
+    '',
+    'By change family (task cost only; inventory, watch and match are in the cost by part):',
+    '',
+    '| Family | Units | Verified | Needs review | Not affected | Failed | Attempted | Task cost per repo |',
+    '| --- | --- | --- | --- | --- | --- | --- | --- |',
+    ...rows.map(
+      ([name, slice]) =>
+        `| ${name} | ${slice.units} | ${pct(slice.rates.verified)} | ${pct(slice.rates['needs-review'])} | ${pct(slice.rates['not-affected'])} | ${pct(slice.rates.failed)} | ${pct(slice.attemptedRate)} | ${usd(slice.costPerRepoUsd)} |`,
+    ),
+  ];
 }
 
 /** Reads every RepoResult JSON under a directory (shard artifacts can be nested). */
@@ -204,6 +354,8 @@ export function formatReport(score: Score, title = 'Refit eval'): string {
     ...(['verified', 'needs-review', 'not-affected', 'failed'] as const).map(
       (key) => `| ${key} | ${score.counts[key]} | ${pct(score.rates[key])} |`,
     ),
+    '',
+    ...formatByFamily(score),
     '',
     `Attempted: ${pct(score.attemptedRate)} (must be 100%)`,
     ...score.attemptBugs.map(

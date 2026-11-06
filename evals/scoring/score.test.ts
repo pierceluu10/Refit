@@ -215,3 +215,46 @@ describe('hand-check log', () => {
     expect(Array.isArray(readReviews())).toBe(true);
   });
 });
+
+describe('scores by change family', () => {
+  const kinded = (taskId: string, outcome: RunRecord['outcome'], kind: string, extra = {}) => ({
+    ...task(taskId, outcome, extra),
+    kind,
+  });
+  const results = [
+    repo('o/node', 'tasks', [
+      kinded('1', 'verified', 'runtime-eol'),
+      kinded('2', 'needs-review', 'model-retirement'),
+      kinded('3', 'verified', 'ci-deprecation'),
+    ]),
+    repo('o/py', 'tasks', [
+      kinded('4', 'needs-review', 'runtime-eol'),
+      kinded('5', 'failed', 'framework-major', { attempted: false, noAttemptReason: 'threw' }),
+      kinded('6', 'verified', 'api-version'),
+    ]),
+    repo('o/clean', 'not-affected', []),
+  ];
+
+  it('splits rates, attempts and task cost by family', () => {
+    const { byFamily } = scoreResults(results);
+    expect(Object.keys(byFamily)).toEqual([
+      'api',
+      'runtime',
+      'framework',
+      'model',
+      'ci',
+      'no-task',
+    ]);
+    expect(byFamily.runtime).toMatchObject({ units: 2, repos: 2, attemptedRate: 1 });
+    expect(byFamily.runtime?.rates.verified).toBeCloseTo(0.5);
+    expect(byFamily.runtime?.costPerRepoUsd).toBeCloseTo(0.1);
+    expect(byFamily.framework?.attemptedRate).toBe(0);
+    expect(byFamily['no-task']?.counts['not-affected']).toBe(1);
+  });
+
+  it('prints the by-family table in the report', () => {
+    const report = formatReport(scoreResults(results));
+    expect(report).toContain('| runtime | 2 | 50.0% | 50.0% | 0.0% | 0.0% | 100.0% | $0.1000 |');
+    expect(report).toContain('| framework | 1 |');
+  });
+});
