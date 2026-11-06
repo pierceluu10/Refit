@@ -2,7 +2,7 @@
 // changes it. Scoring reads RunRecord.outcome and nothing here.
 import { readFile, realpath, stat } from 'node:fs/promises';
 import { basename, join, sep } from 'node:path';
-import type { MigrationTask, RunRecord } from '../../shared/types.ts';
+import type { ExternalTask, MigrationTask, RunRecord } from '../../shared/types.ts';
 import type { Meter } from '../runner/types.ts';
 import type { ModelClient } from './model.ts';
 
@@ -17,12 +17,21 @@ export type AdvisoryReview = {
   model: string;
 };
 
-export const REVIEWER_PROMPT_VERSION = 'reviewer-v2';
+/** A PR's task: an API change, or an external change such as an upgrade or a model retirement. */
+export type ReviewTask = MigrationTask | ExternalTask;
 
-export const REVIEWER_SYSTEM = `You are a senior engineer giving a second opinion on a pull request that Refit, an AI migration agent, opened after an external API changed.
+export function isExternal(task: ReviewTask): task is ExternalTask {
+  return 'dependencies' in task && Array.isArray(task.dependencies);
+}
+
+export const REVIEWER_PROMPT_VERSION = 'reviewer-v3';
+
+export const REVIEWER_SYSTEM = `You are a senior engineer giving a second opinion on a pull request that Refit, an AI agent, opened after something outside the code changed: an external API, or a runtime, framework, library, AI model, base image or CI version that reached end of life or a new major.
 
 Read the change, the quoted source, the diff and the checks. Think about:
 - whether the diff actually handles the API change at every affected call site;
+- for an upgrade, whether the version moved in every place it is declared (for example package.json engines, .nvmrc, .python-version, pyproject.toml, Dockerfile FROM, CI matrices and lockfiles), and whether the lockfile was regenerated rather than hand-edited;
+- for an upgrade, behaviour the new version changes that the code relies on (removed APIs, changed defaults, dropped platforms), and whether the checks ran on the new version at all;
 - behaviour the diff changes beyond what the API change forces;
 - anything the checks do not prove (untested paths, live calls, webhooks, types that only look right);
 - whether the PR's grade (verified or needs-review) matches what the checks show.
@@ -76,10 +85,16 @@ const SKIPPED =
   /^(?:\.env(?!\.(?:example|sample|template|dist)$).*|\.envrc|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|poetry\.lock|Pipfile\.lock|bun\.lockb?)$/;
 
 /** Files the diff touches, then the call-site files the match agent named, without repeats. */
-export function contextPaths(task: MigrationTask, record: RunRecord): string[] {
+export function contextPaths(task: ReviewTask, record: RunRecord): string[] {
   const touched = [...record.diff.matchAll(/^\+\+\+ b\/(.+)$/gm)].map((match) => match[1]?.trim());
   const sites = task.usages.flatMap((usage) => usage.callSites.map((site) => site.file));
-  return [...new Set([...touched, ...sites])].filter(
+  const declared = isExternal(task)
+    ? task.dependencies.flatMap((dep) => [
+        ...dep.declaredIn.map((place) => place.file),
+        ...(dep.callSites ?? []).map((site) => site.file),
+      ])
+    : [];
+  return [...new Set([...touched, ...sites, ...declared])].filter(
     (path): path is string =>
       typeof path === 'string' && path !== '' && !SKIPPED.test(basename(path)),
   );
@@ -116,7 +131,7 @@ export async function readContextFiles(repoDir: string, paths: string[]): Promis
 }
 
 export function buildReviewPrompt(
-  task: MigrationTask,
+  task: ReviewTask,
   record: RunRecord,
   files: ContextFile[] = [],
 ): string {
@@ -139,6 +154,7 @@ export function buildReviewPrompt(
     task.change.effectiveDate ? `Effective: ${task.change.effectiveDate}` : '',
     `Source: ${task.change.source.url}`,
     `Quote: "${task.change.source.quote}"`,
+    ...upgradeLines(task),
     '',
     'Affected call sites the match agent named:',
     sites || '- (none listed)',
@@ -161,6 +177,25 @@ export function buildReviewPrompt(
   ]
     .filter((line, index, lines) => line !== '' || lines[index - 1] !== '')
     .join('\n');
+}
+
+// For an external change: the dependency, the target and every place its version is declared.
+function upgradeLines(task: ReviewTask): string[] {
+  if (!isExternal(task)) return [];
+  const { change } = task;
+  const target = change.toVersion ? ` → ${change.toVersion}` : '';
+  return [
+    `Dependency: ${change.dependency} (${change.dependencyKind})${change.fromVersions?.length ? ` from ${change.fromVersions.join(', ')}` : ''}${target}`,
+    change.severity ? `Severity: ${change.severity}` : '',
+    '',
+    'Where the dependency is declared (before the change):',
+    ...task.dependencies.flatMap((dep) =>
+      dep.declaredIn.map(
+        (place) =>
+          `- ${place.file}${place.line ? `:${place.line}` : ''} ${dep.name}${dep.version ? `@${dep.version}` : ''}${place.text ? ` (${place.text})` : ''}`,
+      ),
+    ),
+  ];
 }
 
 const OPINIONS = new Set(['looks-right', 'has-concerns', 'unsure']);
@@ -217,7 +252,7 @@ export function createReviewer(client: ModelClient) {
     meter,
     repoDir,
   }: {
-    task: MigrationTask;
+    task: ReviewTask;
     record: RunRecord;
     meter: Meter;
     repoDir?: string;
