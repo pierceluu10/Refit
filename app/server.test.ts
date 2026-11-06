@@ -1,5 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
+import { request as httpRequest } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -169,6 +170,21 @@ describe('webhook server', () => {
     });
     expect((await fetch(`${base}/api/report`)).status).toBe(500);
     expect(errors).toHaveBeenCalledWith('GET /api/report request failed: route broke');
+  });
+
+  it('answers 400 to a request target that is not a valid URL, and keeps serving', async () => {
+    const { base } = await start();
+    const { hostname, port } = new URL(base);
+    const status = await new Promise<number | undefined>((resolve, reject) => {
+      httpRequest({ hostname, port, path: '//' }, (response) => {
+        response.resume();
+        resolve(response.statusCode);
+      })
+        .on('error', reject)
+        .end();
+    });
+    expect(status).toBe(400);
+    expect((await fetch(`${base}/healthz`)).status).toBe(200);
   });
 
   it('serves /healthz and 404s everything else', async () => {

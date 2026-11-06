@@ -105,7 +105,9 @@ export function createWebhookServer(deps: WebhookServerDeps): Server {
         response.end();
       });
     };
-    const path = new URL(request.url ?? '/', 'http://localhost').pathname;
+    // A target like `//` isn't a valid URL, and throwing here would take the whole process down.
+    const path = URL.parse(request.url ?? '/', 'http://localhost')?.pathname;
+    if (path === undefined) return response.writeHead(BAD_REQUEST).end();
     if (request.method === 'POST' && path === WEBHOOK_PATH) {
       return answer('webhook', receiveWebhook(request, response, deps));
     }
