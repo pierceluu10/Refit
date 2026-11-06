@@ -164,8 +164,7 @@ export function watchOrg(deps: LoopDeps, opts: RunOptions, state: RunState): Wat
 
   return async (usages) => {
     const others = [...unlistedProviders(usages, folders)];
-    for (const [provider] of others)
-      if (!reads.has(provider)) log(`watching ${provider}: no folder in providers/`);
+    for (const [provider] of others) if (!reads.has(provider)) log(`watching ${provider}`);
     const lists = await Promise.all([
       ...folderReads(),
       ...others.map(([provider, hints]) =>

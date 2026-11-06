@@ -167,6 +167,23 @@ describe('watchRegulations on the saved official texts', () => {
     expect(read.obligations[0].needsHuman[0]).toContain('not found word for word');
   });
 
+  it('asks again when a submission arrives cut off with no input', async () => {
+    const c = CASES.accessibility[1];
+    const model = scriptedModel([
+      { tools: [{ name: 'read_page', input: { url: c.url } }] },
+      { tools: [{ name: 'submit_obligations', input: {} }] },
+      { tools: [{ name: 'submit_obligations', input: { obligations: [obligation(c)] } }] },
+    ]);
+    const read = await readRegulations(undefined, {
+      model,
+      fetcher,
+      families: [family('accessibility')],
+      now,
+    });
+    expect(read.obligations).toHaveLength(1);
+    expect(read.errors.join('\n')).not.toContain('no obligations were written');
+  });
+
   it('flags a quote from a page it never read', async () => {
     const c = CASES['ai-transparency'][0];
     const read = await readRegulations(undefined, {

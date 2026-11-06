@@ -89,6 +89,8 @@ export type WatchOptions = {
 };
 
 const PAGE_CHUNK = 20_000;
+// A family's obligations all arrive in one tool call, with their quotes.
+const MAX_READ_TOKENS = 16_000;
 
 function pageTools(fetcher: Fetcher, pages: Map<string, Page>): LoopTool[] {
   const load = async (url: string) => {
@@ -233,6 +235,15 @@ function submitTool(): Submit<{ drafts: Draft[]; unread: { url: string; reason: 
       },
     },
     accept(input) {
+      // A call cut off at max_tokens arrives with no input at all.
+      if (!Array.isArray(input.obligations) && rewrites < 2) {
+        rewrites++;
+        return {
+          ok: false,
+          feedback:
+            'Your submission arrived with no obligations, probably cut off for length. Submit again with shorter fields, and one obligation per distinct duty.',
+        };
+      }
       const raw = Array.isArray(input.obligations) ? input.obligations : [];
       const drafts: Draft[] = [];
       const problems: string[] = [];
@@ -315,6 +326,7 @@ export async function readFamily(
     prompt,
     tools: pageTools(options.fetcher, pages),
     submit: submitTool(),
+    maxTokens: MAX_READ_TOKENS,
   });
   const errors: string[] = [];
   let drafts: Draft[] = [];

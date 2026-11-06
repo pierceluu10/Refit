@@ -46,7 +46,7 @@ import type {
   ToolPack,
   WatchProvider,
 } from '../shared/types.ts';
-import { BudgetExceededError, type Budget, type Hold } from './budget.ts';
+import { BudgetExceededError, worstCaseUsd, type Budget, type Hold } from './budget.ts';
 import type { LoopDeps } from './loop.ts';
 import { createExternalMatchAgent } from './external-match.ts';
 import { createMatchAgent } from './match.ts';
@@ -98,7 +98,9 @@ export const MIN_TASK_USD = 2;
 export const TASK_USD = 5;
 // The most one read of a provider, dependency or rule set holds, and the least worth starting it on.
 export const WATCH_USD = 1.5;
-const WATCH_MIN_USD = 0.25;
+// A read's first call: a changelog page and an answer, priced for the watch model.
+const READ_START_INPUT_TOKENS = 100_000;
+const READ_START_OUTPUT_TOKENS = 8_000;
 const SMALL_RUN_WATCH_USD = 0.4;
 // A read also holds this for a match call, so a small run's reads cannot use up what matching needs.
 const MATCH_FLOOR_USD = 0.2;
@@ -167,7 +169,8 @@ async function heldRead<L extends { readonly spentUsd: number }, T>(
   const hold = await budget.reserve(
     label,
     readUsd + MATCH_FLOOR_USD,
-    WATCH_MIN_USD + MATCH_FLOOR_USD,
+    worstCaseUsd(watchModelId(), READ_START_INPUT_TOKENS, READ_START_OUTPUT_TOKENS) +
+      MATCH_FLOOR_USD,
   );
   let part: L | undefined;
   try {

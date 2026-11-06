@@ -102,7 +102,11 @@ export function formatReport(report: ScanItemReport): string {
 
 async function scan(args: ReturnType<typeof parse>): Promise<number> {
   // The run-level dollar cap is a hard limit: createBudget throws without REFIT_AI_BUDGET_USD.
-  const budget = process.env.ANTHROPIC_API_KEY ? createBudget() : undefined;
+  const budget = process.env.ANTHROPIC_API_KEY
+    ? createBudget(undefined, (label, spentUsd) =>
+        console.error(`spent $${spentUsd.toFixed(4)} on ${label}`),
+      )
+    : undefined;
   const scanRepo = createScanRepo(createDeps({ budget }));
   // SECURITY: a scan only reads the checkouts; nothing in them runs.
   const reports: ScanItemReport[] = [];

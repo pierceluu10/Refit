@@ -25,7 +25,10 @@ export type Budget = {
 };
 
 // The run-level dollar cap is a hard limit: refuse to build a budget without one.
-export function createBudget(capUsd = Number(process.env.REFIT_AI_BUDGET_USD)): Budget {
+export function createBudget(
+  capUsd = Number(process.env.REFIT_AI_BUDGET_USD),
+  onSettle?: (label: string, spentUsd: number) => void,
+): Budget {
   if (!Number.isFinite(capUsd) || capUsd <= 0) {
     throw new Error(
       'Set REFIT_AI_BUDGET_USD (or pass a cap) to a positive dollar amount before running AI.',
@@ -44,7 +47,7 @@ export function createBudget(capUsd = Number(process.env.REFIT_AI_BUDGET_USD)): 
   // Float sums of holds drift by ~1e-16; this keeps a hold of exactly what is left grantable.
   const free = () => Math.max(capUsd - spent - held, 0) + 1e-9;
 
-  function grant(maxUsd: number): Hold {
+  function grant(label: string, maxUsd: number): Hold {
     const usd = Math.max(Math.min(free() - 1e-9, maxUsd), 0);
     held += usd;
     open++;
@@ -58,6 +61,7 @@ export function createBudget(capUsd = Number(process.env.REFIT_AI_BUDGET_USD)): 
         const cost = Number.isFinite(spentUsd) && spentUsd >= 0 ? spentUsd : usd;
         held = --open === 0 ? 0 : held - usd;
         spent += cost;
+        onSettle?.(label, cost);
         wake();
         return cost;
       },
@@ -66,7 +70,7 @@ export function createBudget(capUsd = Number(process.env.REFIT_AI_BUDGET_USD)): 
 
   const refusal = (waiter: { label: string; minUsd: number }) =>
     new BudgetExceededError(
-      `AI budget: $${(capUsd - spent).toFixed(2)} of the $${capUsd} cap left; ${waiter.label} needs $${waiter.minUsd.toFixed(2)}.`,
+      `AI budget: $${(capUsd - spent).toFixed(4)} of the $${capUsd} cap left; ${waiter.label} needs $${waiter.minUsd.toFixed(4)}.`,
     );
 
   // Grants every waiter that fits, oldest first. Spent only grows, so a waiter whose minimum is more
@@ -77,7 +81,7 @@ export function createBudget(capUsd = Number(process.env.REFIT_AI_BUDGET_USD)): 
       const fits = free() >= waiter.minUsd;
       if (!fits && waiter.minUsd <= capUsd - spent + 1e-9) continue;
       waiting.splice(waiting.indexOf(waiter), 1);
-      if (fits) waiter.resolve(grant(waiter.maxUsd));
+      if (fits) waiter.resolve(grant(waiter.label, waiter.maxUsd));
       else waiter.reject(refusal(waiter));
     }
     if (open > 0) return;
