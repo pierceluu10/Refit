@@ -9,902 +9,1200 @@
     "curated": "2026-11-06"
   },
   "frozenAt": "2026-11-06",
-  "purpose": "Development set for upgrade tasks rather than API changes: 20 public repos (12 JavaScript/TypeScript on npm, 8 Python on PyPI) pinned to an end-of-life runtime (Node.js 8 to 20, Python 3.7 to 3.9), an end-of-life framework major (Next.js 12, 13 and 14; Django 2.2 and 4.x) or a deprecated build tool (Create React App), each with a test suite the agent can use to prove its migration. 13 are runtime-eol, 6 framework-major and 1 dependency-major.",
-  "criteria": "Curated by hand on 2026-11-06, not recovered from Refit's history. Candidates came from GitHub code search for root .nvmrc files naming Node 14, 16 or 18, root .python-version files naming Python 3.7, 3.8 or 3.9, runtime.txt naming python-3.8, and package.json files naming Next.js 12 or 13 or react-scripts 4; repository search then supplied stars, fork, archived and size. Kept: public, not archived, not a fork, 10 to 5000 stars, under about 50 MB, pushed since mid-2024, not in any other evals/sets/dev/*.json, and a test command (package.json scripts.test, tox, pytest config or a Makefile target) with real test files present. Each repo was shallow-cloned at the default-branch HEAD recorded here (checked against git ls-remote on 2026-11-06), and every declaredIn line was copied from the file at that commit by a script, not retyped. Only files were read: no install, build or test was run, because untrusted repo code may run only in the sandbox and none was available, so every tests.ran is false and no repo is known to pass its own suite today. End-of-life dates were read from the Node.js Release working group's schedule.json and from endoflife.date's product files on GitHub, both pinned to a commit (endoflife.date's own site and API were not reachable from the curation machine); each quote is the exact line for that cycle (the cycle name sits on a nearby line, not in the quote). The Create React App quote is from its own README. The 'to' version is a suggested supported target (Node 24, Python 3.13, Next.js 16, Django 5.2), not something any project announced. Where a repo declares several versions (pyenv lists, CI matrices, tox envlists), 'from' is the version named by the repo's primary declaration (its .nvmrc or .node-version, the default line of .python-version, engines, requires-python or the framework dependency), and the entry's note says where declarations disagree. Repos are ordered by SHA-256 of \"upgrade-dev-20:<owner/name>\" (lower-cased), so a run with a small cap reaches them in an order nobody picked.",
+  "purpose": "Development set for Refit's upgrade benchmark: 20 public JavaScript/TypeScript and Python repos (12 npm, 8 PyPI), each pinned at a default-branch commit where it still runs on an end-of-life Node.js or Python (12 repos) or an old framework major (8 repos: Vue 2, Nuxt 2, Next.js 12 and 14, React 16, Express 4, Django 3.2, Flask 2.2), with a real test suite. Each entry lists every line that declares the old version, so a run can check that the upgrade moved all of them and that the tests still pass.",
+  "criteria": "Curated by hand on 2026-11-06, not recovered from Refit's history. Status read that day: endoflife.date (api/nodejs.json, api/python.json) gives Node 14 EOL 2023-04-30, 16 2023-09-11, 18 2025-04-30, 20 2026-04-30 (supported: 22, 24, 26) and Python 3.6 EOL 2021-12-23, 3.7 2023-06-27, 3.8 2024-10-07, 3.9 2025-10-31; nodejs.org/en/about/previous-releases lists Node 14, 16, 18 and 20 as EOL, and devguide.python.org/versions lists the same Python dates; Python 3.10 also reached end of life on 2026-10-01 per the devguide, but this set's cutoff is Node <= 20 and Python <= 3.9, so 3.10 lines are not recorded in declaredIn. Framework status from the frameworks' own pages: Vue 2 EOL 2023-12-31, Nuxt 2 EOL 2024-06-30, Next.js 12-14 listed as unsupported (16 is Active LTS), React 19 stable 2024-12-05, Express 5 announced 2024-10-15, Django 3.2 out of support since 2024-04-01, Flask 3.0.0 released 2023-09-30. Candidates came from GitHub repository search (`language:JavaScript stars:30..3000 pushed:>2025-10-15 size:<30000 archived:false fork:false`, `language:TypeScript stars:30..3000 pushed:>2025-10-15 size:<30000 archived:false fork:false`, `language:Python stars:30..3000 pushed:>2025-10-15 size:<30000 archived:false fork:false`, `language:TypeScript stars:20..2000 pushed:>2025-11-01 size:<30000 archived:false fork:false`, `topic:nextjs stars:10..3000 pushed:>2025-10-15 size:<40000 archived:false fork:false`, `topic:vue stars:10..3000 pushed:>2025-10-15 size:<40000 archived:false fork:false`, `topic:django stars:10..3000 pushed:>2025-10-15 size:<40000 archived:false fork:false`, `topic:react stars:20..3000 pushed:>2025-10-01 size:<30000 archived:false fork:false`, `topic:expressjs stars:20..3000 pushed:>2025-10-01 size:<30000 archived:false fork:false`, and first passes `topic:nextjs stars:20..3000 pushed:2023-01-01..2025-09-01 size:<50000 archived:false fork:false`, `topic:vue stars:20..3000 pushed:2022-12-01..2025-10-01 size:<50000 archived:false fork:false`, `topic:nuxt stars:10..3000 pushed:2022-12-01..2025-10-01 size:<50000 archived:false fork:false`, `language:TypeScript stars:30..1500 pushed:2023-03-01..2025-08-01 size:<20000 archived:false fork:false`, `language:JavaScript stars:40..2000 pushed:2023-01-01..2025-06-30 size:<30000 archived:false fork:false`) and GitHub code search (`\"node-version: 14\" test path:.github/workflows` and the same for 14.x, 16, 16.x and 18, `node-version 14 \"npm test\" path:.github/workflows` and the same with 16, 18 and 20, `FROM node:20 filename:Dockerfile`, `\"python-version: 3.6\" pytest path:.github/workflows` and the same for 3.7, 3.8 and 3.9, `\"manage.py test\" path:.github/workflows`, `\"manage.py test\" \"python-version: 3.8\" path:.github/workflows` and the same with 3.6, 3.7 and 3.9, `FROM python:3.9 pytest filename:Dockerfile`, `\"python-version: 3.8\" \"pip install -r requirements.txt\" pytest path:.github/workflows`, `nuxt 2.15.8 jest filename:package.json`, `express supertest jest filename:package.json`, `flask pytest path:.github/workflows`, `Django==3.2 filename:requirements.txt`, `Django==4.1 filename:requirements.txt`, `Flask==1.1 filename:requirements.txt`, `Flask==1.1.4 filename:requirements.txt`, `Flask==2.0 filename:requirements.txt`, `Flask==2.0.3 filename:requirements.txt`, `Flask==2.2 pytest filename:requirements.txt`, `Flask==2.3 pytest filename:requirements.txt`). Most hits were too old: for many repos whose HEAD dates from 2023-2024 GitHub no longer lists any Actions run (and no check runs) on that commit, so there was nothing to cite, and the searches that worked were the ones limited to recent pushes. Each hit was screened by reading package.json, .nvmrc, .node-version, setup.py, pyproject.toml, tox.ini, requirements and Dockerfiles at the default-branch HEAD. Kept: public, not archived, not a fork or template, under 50 MB, pushed since 2022-11-06, a handful of stars or owned by a real organization, not owned by refit-dev and not in any other file under evals/sets/dev/; a test command plus test files; and, for 19 of 20, a GitHub Actions run on exactly the pinned commit whose workflow runs the tests and concluded success (ciRun). swellstores/origin-theme has no CI (evidence no-ci). Dropped: no Actions run left at HEAD (sapegin/mrm, nytimes/react-tracking) or tests workflow switched off (nemanjam/nextjs-prisma-boilerplate); CircleCI-only repos (AlisProject/frontend-application, nishinoshake/aws-rough, acmucsd/membership-portal); no test files (PostHog/HouseWatch, most Next.js and Nuxt starters); failing or cancelled CI (CityOfPhiladelphia/ais, signorrayan/RedTeam_toolkit, lobehub/lobe-vidol); native addons or heavy ML installs (Blizzard/node-rdkafka, ranisalt/node-argon2, benedekrozemberczki/pytorch_geometric_temporal); a 5-star teaching repo (sp41mer/drf-test-examples); san650/ember-cli-page-object (Node 14, but its tests need a browser); and, to keep the language and version mix, tediousjs/node-mssql, broofa/mime, cerebroapp/cerebro, apache/casbin-express-authz, kawalcovid19/wargabantuwarga.com, vxgmichel/aioconsole, wee-slack/wee-slack and HumeAI/hume-python-sdk. fromVersion is the runtime a repo runs on (Docker image, .nvmrc, its single CI version) or, for a library, its declared floor; toVersion is Node 24, Python 3.12 or the framework's current major (for Django the current LTS, 5.2, rather than 6.1). declaredIn holds every line at the pinned commit that sets or implies the EOL runtime (Node <= 20, Python <= 3.9) or the old framework major, including companion packages tied to it (vue-template-compiler, enzyme-adapter-react-16, Werkzeug 2); lockfiles, docs and comments are not recorded. Every declaredIn line was read at the pinned commit (re-check with `node evals/sets/check-callsites.ts upgrade-dev-20`), every quote was re-read on its page on 2026-11-06, and no repo code was installed or run. Repos are ordered by SHA-256 of \"upgrade-dev-20:<owner/name>\" (lower-cased), so a run with a small cap reaches them in an order nobody picked.",
   "repos": [
     {
-      "repo": "psevensas/DjangoChannelsGraphqlWs",
-      "commit": "1ade107f61a1c39bdfd5896d186416fe642a5ec3",
-      "provider": "django",
-      "language": "Python",
-      "ecosystem": "pypi",
-      "packageManager": "poetry",
+      "repo": "Disfactory/frontend",
+      "commit": "0ab230897a28af7661688499a611e04071c918c5",
+      "language": "TypeScript",
+      "ecosystem": "npm",
+      "packageManager": "npm",
+      "stars": 20,
+      "sizeKb": 13847,
       "defaultBranch": "master",
-      "stars": 280,
       "pendingChange": {
         "kind": "framework-major",
-        "dependency": "django",
-        "from": "4",
-        "to": "5.2",
-        "title": "Django 4 is end of life",
-        "effectiveDate": "2026-04-07",
+        "dependency": "vue",
+        "fromVersion": "2",
+        "toVersion": "3",
+        "title": "Vue 2 is past end of life",
+        "effectiveDate": "2023-12-31",
         "source": {
-          "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/c03a7e5f5517150dd1d1eb55c3eb9d51dac496a4/products/django.md",
-          "quote": "eol: 2026-04-07"
+          "url": "https://v2.vuejs.org/lts/",
+          "quote": "Vue 2 will reach End of Life (EOL) on December 31st, 2023."
+        }
+      },
+      "declaredIn": [
+        {
+          "file": "package.json",
+          "line": 20,
+          "text": "    \"vue\": \"2.7.16\","
+        },
+        {
+          "file": "package.json",
+          "line": 24,
+          "text": "    \"vuetify\": \"^2.3.17\""
+        },
+        {
+          "file": "package.json",
+          "line": 28,
+          "text": "    \"@testing-library/vue\": \"5.9.0\","
+        },
+        {
+          "file": "package.json",
+          "line": 42,
+          "text": "    \"@vue/vue2-jest\": \"27.0.0\","
+        },
+        {
+          "file": "package.json",
+          "line": 61,
+          "text": "    \"vue-template-compiler\": \"2.7.16\","
+        }
+      ],
+      "tests": {
+        "command": "npm test",
+        "framework": "jest",
+        "testFiles": 1,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/Disfactory/frontend/actions/runs/41810534470"
+      },
+      "why": "A civic-tech app on Vue 2.7 + Vuetify 2 + Vue CLI with Vue 2-only test tooling (@vue/vue2-jest, @testing-library/vue 5); moving to Vue 3 drags Vuetify 3 and the test stack with it. It also pins Node 16 in .nvmrc and CI.",
+      "checkedAt": "2026-11-06"
+    },
+    {
+      "repo": "Kozea/pygal",
+      "commit": "42fb1fbe089418b863059b823acfc465dd359138",
+      "language": "Python",
+      "ecosystem": "pypi",
+      "packageManager": "pip",
+      "stars": 2773,
+      "sizeKb": 8052,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "kind": "runtime-eol",
+        "dependency": "python",
+        "fromVersion": "3.8",
+        "toVersion": "3.12",
+        "title": "Python 3.8 is past end of life",
+        "effectiveDate": "2024-10-07",
+        "source": {
+          "url": "https://peps.python.org/pep-0569/",
+          "quote": "As of 2024-10-07, 3.8 has reached the end-of-life phase of its release cycle."
+        }
+      },
+      "declaredIn": [
+        {
+          "file": "setup.py",
+          "line": 59,
+          "text": "    python_requires=\">=3.8\","
+        },
+        {
+          "file": "tox.ini",
+          "line": 2,
+          "text": "envlist = py38,py39,py310,py311,py312,pypy"
+        },
+        {
+          "file": "tox.ini",
+          "line": 17,
+          "text": "    3.9 = py39"
+        },
+        {
+          "file": "tox.ini",
+          "line": 18,
+          "text": "    3.8 = py38"
+        },
+        {
+          "file": ".github/workflows/ci.yml",
+          "line": 22,
+          "text": "          - \"3.8\""
+        },
+        {
+          "file": ".github/workflows/ci.yml",
+          "line": 23,
+          "text": "          - \"3.9\""
+        }
+      ],
+      "tests": {
+        "command": "python -m pytest pygal/test",
+        "framework": "pytest",
+        "testFiles": 22,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/Kozea/pygal/actions/runs/29813694979"
+      },
+      "why": "A popular SVG charting library with python_requires >=3.8 and py38/py39 in tox and the CI matrix; a typical library floor bump across setup.py, tox and CI.",
+      "checkedAt": "2026-11-06"
+    },
+    {
+      "repo": "SectorLabs/django-postgres-extra",
+      "commit": "1aa0122b3815ea35d2073ae0d9aea3ff88048dee",
+      "language": "Python",
+      "ecosystem": "pypi",
+      "packageManager": "pip",
+      "stars": 767,
+      "sizeKb": 1337,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "kind": "runtime-eol",
+        "dependency": "python",
+        "fromVersion": "3.7",
+        "toVersion": "3.12",
+        "title": "Python 3.7 is past end of life",
+        "effectiveDate": "2023-06-27",
+        "source": {
+          "url": "https://peps.python.org/pep-0537/",
+          "quote": "As of 2023-06-27, 3.7 has reached the end-of-life phase of its release cycle."
         }
       },
       "declaredIn": [
         {
           "file": "pyproject.toml",
-          "line": 52,
-          "text": "Django = \"^4\""
+          "line": 28,
+          "text": "    \"Programming Language :: Python :: 3.7\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 29,
+          "text": "    \"Programming Language :: Python :: 3.8\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 30,
+          "text": "    \"Programming Language :: Python :: 3.9\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 36,
+          "text": "requires-python = \">=3.7\""
         },
         {
           "file": "pyproject.toml",
           "line": 48,
-          "text": "python = \"^3.8.0\""
+          "text": "    \"poethepoet==0.34.0; python_version >= '3.9'\","
         },
-        {
-          "file": ".python-version",
-          "line": 3,
-          "text": "3.8.16"
-        }
-      ],
-      "tests": {
-        "command": "poetry run pytest",
-        "definedIn": "pyproject.toml [tool.tox] commands = poetry run pytest {posargs}",
-        "files": "11 test files under tests/",
-        "ran": false
-      },
-      "why": "Django Channels GraphQL library pinned to Django ^4 (the 4.x line ended with 4.2 on 2026-04-07) and Python ^3.8.",
-      "note": "The quoted EOL date is the one for Django 4.2, the last 4.x release."
-    },
-    {
-      "repo": "bluelabsio/records-mover",
-      "commit": "43f79f8f70cdf9a71c747835cd157e58cd65aad7",
-      "provider": "python",
-      "language": "Python",
-      "ecosystem": "pypi",
-      "packageManager": "pip",
-      "defaultBranch": "main",
-      "stars": 39,
-      "pendingChange": {
-        "kind": "runtime-eol",
-        "dependency": "python",
-        "from": "3.8",
-        "to": "3.13",
-        "title": "Python 3.8 is end of life",
-        "effectiveDate": "2024-10-07",
-        "source": {
-          "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/c03a7e5f5517150dd1d1eb55c3eb9d51dac496a4/products/python.md",
-          "quote": "eol: 2024-10-07"
-        }
-      },
-      "declaredIn": [
         {
           "file": "pyproject.toml",
-          "line": 24,
-          "text": "requires-python = \">=3.8\""
+          "line": 49,
+          "text": "    \"poethepoet==0.30.0; python_version >= '3.8' and python_version < '3.9'\","
         },
         {
-          "file": "Dockerfile.dev",
-          "line": 1,
-          "text": "FROM cimg/python:3.9"
+          "file": "pyproject.toml",
+          "line": 50,
+          "text": "    \"poethepoet==0.19.0; python_version >= '3.7' and python_version < '3.8'\","
         },
         {
-          "file": ".github/workflows/test.yml",
-          "line": 12,
-          "text": "        python-version: [\"3.8\", \"3.9\"]"
-        }
-      ],
-      "tests": {
-        "command": "make test",
-        "definedIn": "Makefile target test: unit component (pytest tests/unit, pytest tests/component)",
-        "files": "172 test_*.py files under tests/ (114 unit, 49 component, 9 integration)",
-        "ran": false
-      },
-      "why": "Data-movement library with a large pytest suite, tested in CI only on Python 3.8 and 3.9 and developed in a cimg/python:3.9 image.",
-      "note": "Integration tests need databases and are not part of make test."
-    },
-    {
-      "repo": "paulocheque/django-dynamic-fixture",
-      "commit": "7160dd935859690d7a3083623bf2f101878496b6",
-      "provider": "python",
-      "language": "Python",
-      "ecosystem": "pypi",
-      "packageManager": "pip",
-      "defaultBranch": "master",
-      "stars": 387,
-      "pendingChange": {
-        "kind": "runtime-eol",
-        "dependency": "python",
-        "from": "3.7",
-        "to": "3.13",
-        "title": "Python 3.7 is end of life",
-        "effectiveDate": "2023-06-27",
-        "source": {
-          "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/c03a7e5f5517150dd1d1eb55c3eb9d51dac496a4/products/python.md",
-          "quote": "eol: 2023-06-27"
-        }
-      },
-      "declaredIn": [
+          "file": "pyproject.toml",
+          "line": 53,
+          "text": "    \"psycopg2==2.9.10; python_version >= '3.8'\","
+        },
         {
-          "file": ".python-version",
-          "line": 1,
-          "text": "3.7.17"
+          "file": "pyproject.toml",
+          "line": 54,
+          "text": "    \"psycopg2==2.9.9; python_version >= '3.7' and python_version < '3.8'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 55,
+          "text": "    \"types-psycopg2==2.9.21.20250516; python_version >= '3.9'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 56,
+          "text": "    \"types-psycopg2==2.9.8; python_version < '3.9'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 57,
+          "text": "    \"pytest==8.4.0; python_version > '3.8'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 58,
+          "text": "    \"pytest==7.0.1; python_version <= '3.8'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 59,
+          "text": "    \"pytest-benchmark==5.1.0; python_version > '3.8'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 60,
+          "text": "    \"pytest-benchmark==3.4.1; python_version <= '3.8'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 61,
+          "text": "    \"pytest-django==4.11.1; python_version > '3.7'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 62,
+          "text": "    \"pytest-django==4.5.2; python_version <= '3.7'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 63,
+          "text": "    \"pytest-cov==6.1.1; python_version > '3.8'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 64,
+          "text": "    \"pytest-cov==4.0.0; python_version <= '3.8'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 65,
+          "text": "    \"coverage==7.8.2; python_version > '3.8'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 66,
+          "text": "    \"coverage==7.6.1; python_version >= '3.8' and python_version <= '3.8'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 67,
+          "text": "    \"coverage==6.2; python_version <= '3.7'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 68,
+          "text": "    \"tox==4.26.0; python_version > '3.8'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 69,
+          "text": "    \"tox==3.28.0; python_version <= '3.8'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 70,
+          "text": "    \"freezegun==1.5.2; python_version > '3.7'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 71,
+          "text": "    \"freezegun==1.2.2; python_version <= '3.7'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 72,
+          "text": "    \"syrupy==4.9.1; python_version >= '3.9'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 73,
+          "text": "    \"syrupy==2.3.1; python_version <= '3.8'\","
         },
         {
           "file": "tox.ini",
-          "line": 3,
-          "text": "    py38-django40"
+          "line": 7,
+          "text": "    py37-dj{20,21,22,30,31,32}-psycopg{28,29}"
+        },
+        {
+          "file": "tox.ini",
+          "line": 8,
+          "text": "    {py38,py39,py310}-dj{21,22,30,31,32,40}-psycopg{28,29}"
+        },
+        {
+          "file": "tox.ini",
+          "line": 9,
+          "text": "    {py38,py39,py310,py311}-dj{41}-psycopg{28,29}"
+        },
+        {
+          "file": ".github/workflows/test.yml",
+          "line": 44,
+          "text": "          - python-version: \"3.7\""
+        },
+        {
+          "file": ".github/workflows/test.yml",
+          "line": 47,
+          "text": "          - python-version: \"3.8\""
+        },
+        {
+          "file": ".github/workflows/test.yml",
+          "line": 50,
+          "text": "          - python-version: \"3.9\""
         }
       ],
       "tests": {
-        "command": "pytest",
-        "definedIn": "pytest.ini plus tox.ini [testenv] commands = pytest -n 3 --create-db --reuse-db --no-migrations",
-        "files": "22 test files under django_dynamic_fixture/",
-        "ran": false
+        "command": "tox",
+        "framework": "pytest",
+        "testFiles": 42,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/SectorLabs/django-postgres-extra/actions/runs/37361005352"
       },
-      "why": "Popular Django test-fixture library with a large pytest suite; pyenv default 3.7 and tox envs from py38 on Django 4.0 to 4.2.",
-      "note": "Django 4.0 to 4.2 in tox are also end of life; recorded as a runtime change only."
+      "why": "A Django/PostgreSQL library whose floor is Python 3.7, with python_version-conditional test pins for 3.7-3.9, tox envs and a CI matrix to prune together; tests need a Postgres server (CI uses a service container).",
+      "checkedAt": "2026-11-06"
     },
     {
-      "repo": "Specifyapp/parsers",
-      "commit": "70eb4aa89e5b5b586680eb1f756506ee3f457b19",
-      "provider": "node",
+      "repo": "tech-conferences/confs.tech",
+      "commit": "331d0462a578eb6ee1bea44003dd2a1bb39a9c37",
       "language": "TypeScript",
       "ecosystem": "npm",
-      "packageManager": "yarn",
-      "defaultBranch": "master",
-      "stars": 122,
+      "packageManager": "npm",
+      "stars": 1763,
+      "sizeKb": 8992,
+      "defaultBranch": "main",
       "pendingChange": {
         "kind": "runtime-eol",
         "dependency": "node",
-        "from": "16",
-        "to": "24",
-        "title": "Node.js 16 is end of life",
-        "effectiveDate": "2023-09-11",
+        "fromVersion": "20",
+        "toVersion": "24",
+        "title": "Node.js 20 is past end of life",
+        "effectiveDate": "2026-04-30",
         "source": {
-          "url": "https://raw.githubusercontent.com/nodejs/Release/6065a837c0c151577f449c666fec019069ffba77/schedule.json",
-          "quote": "\"end\": \"2023-09-11\""
+          "url": "https://nodejs.org/en/about/previous-releases"
         }
       },
       "declaredIn": [
         {
           "file": ".nvmrc",
           "line": 1,
-          "text": "16.10"
+          "text": "20.9.0"
         }
       ],
       "tests": {
-        "command": "yarn test",
-        "definedIn": "package.json scripts.test = \"jest --coverage --runInBand\"",
-        "files": "40 test files, one per parser under parsers/ plus tests/",
-        "ran": false
+        "command": "CI=true npm test",
+        "framework": "jest",
+        "testFiles": 2,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/tech-conferences/confs.tech/actions/runs/40717004426"
       },
-      "why": "Design-token parser collection with one Jest test per parser, pinned to Node 16.10 in .nvmrc.",
-      "note": "No engines field or CI node-version pin found; .nvmrc is the only declaration."
+      "why": "An active React app whose only Node pin is .nvmrc 20.9.0, which every workflow reads through node-version-file; the upgrade is one line plus whatever the ejected CRA toolchain needs on Node 24.",
+      "checkedAt": "2026-11-06"
     },
     {
-      "repo": "counsyl/capone",
-      "commit": "3a764ae1c34799b900588231d686e38a09f32148",
-      "provider": "django",
+      "repo": "smeijer/next-runtime",
+      "commit": "fe1ec6945cffad962f700792060b0212bcd463ca",
+      "language": "TypeScript",
+      "ecosystem": "npm",
+      "packageManager": "npm",
+      "stars": 583,
+      "sizeKb": 2774,
+      "defaultBranch": "main",
+      "pendingChange": {
+        "kind": "framework-major",
+        "dependency": "next",
+        "fromVersion": "12",
+        "toVersion": "16",
+        "title": "Next.js 12 is unsupported; Next.js 16 is the current major",
+        "effectiveDate": "2025-10-21",
+        "source": {
+          "url": "https://nextjs.org/support-policy",
+          "quote": "Each major version will remain in Maintenance LTS for two years following the initial release."
+        }
+      },
+      "declaredIn": [
+        {
+          "file": "package.json",
+          "line": 90,
+          "text": "    \"next\": \"^12.0.3\","
+        },
+        {
+          "file": "package.json",
+          "line": 102,
+          "text": "    \"next\": \">=11.1.2\","
+        }
+      ],
+      "tests": {
+        "command": "npm test",
+        "framework": "jest",
+        "testFiles": 11,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/smeijer/next-runtime/actions/runs/23213551032"
+      },
+      "why": "A library for Next.js getServerSideProps that develops and tests against Next 12 and React 17 (unit tests plus jest-playwright e2e pages); the upgrade has to move the dev pin, the peer range and the React 17 test stack.",
+      "checkedAt": "2026-11-06"
+    },
+    {
+      "repo": "debba/less2scss",
+      "commit": "e071bd3350f20856d6ba45893e7c4fb3f3fbe374",
+      "language": "JavaScript",
+      "ecosystem": "npm",
+      "packageManager": "npm",
+      "stars": 41,
+      "sizeKb": 307,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "kind": "runtime-eol",
+        "dependency": "node",
+        "fromVersion": "14",
+        "toVersion": "24",
+        "title": "Node.js 14 is past end of life",
+        "effectiveDate": "2023-04-30",
+        "source": {
+          "url": "https://nodejs.org/en/blog/announcements/node-18-eol-support",
+          "quote": "Node.js 18 and all earlier versions are End-Of-Life."
+        }
+      },
+      "declaredIn": [
+        {
+          "file": "package.json",
+          "line": 12,
+          "text": "    \"node\": \">=14\""
+        },
+        {
+          "file": ".github/workflows/ci.yml",
+          "line": 18,
+          "text": "          node-version: 14"
+        },
+        {
+          "file": ".github/workflows/npm-publish.yml",
+          "line": 12,
+          "text": "          node-version: 10"
+        }
+      ],
+      "tests": {
+        "command": "npm test",
+        "framework": "ava",
+        "testFiles": 3,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/debba/less2scss/actions/runs/21903212920"
+      },
+      "why": "A small CLI library: engines and CI pin Node 14 and the publish job still runs Node 10, so the upgrade has to move all three while keeping the ava suite green.",
+      "checkedAt": "2026-11-06"
+    },
+    {
+      "repo": "crimx/ext-saladict",
+      "commit": "1673df15690842847f4c5369f8113f26d4aa2604",
+      "language": "TypeScript",
+      "ecosystem": "npm",
+      "packageManager": "yarn",
+      "stars": 13417,
+      "sizeKb": 16554,
+      "defaultBranch": "dev",
+      "pendingChange": {
+        "kind": "runtime-eol",
+        "dependency": "node",
+        "fromVersion": "16",
+        "toVersion": "24",
+        "title": "Node.js 16 is past end of life",
+        "effectiveDate": "2023-09-11",
+        "source": {
+          "url": "https://nodejs.org/en/blog/announcements/nodejs16-eol",
+          "quote": "We are moving the End-of-Life date of Node.js 16 by seven months to coincide with the end of support of OpenSSL 1.1.1 on September 11th, 2023."
+        }
+      },
+      "declaredIn": [
+        {
+          "file": ".nvmrc",
+          "line": 1,
+          "text": "v16.20.2"
+        },
+        {
+          "file": "package.json",
+          "line": 36,
+          "text": "    \"node\": \"<= 16.20.2\""
+        },
+        {
+          "file": ".github/workflows/build.yml",
+          "line": 15,
+          "text": "          node-version: 16.20.2"
+        },
+        {
+          "file": ".github/workflows/pr.yml",
+          "line": 15,
+          "text": "          node-version: 16.20.2"
+        }
+      ],
+      "tests": {
+        "command": "yarn test --testPathIgnorePatterns 'components/dictionaries'",
+        "framework": "jest",
+        "testFiles": 24,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/crimx/ext-saladict/actions/runs/42150529486"
+      },
+      "why": "A popular browser extension that caps engines at <= 16.20.2 and pins Node 16.20.2 in .nvmrc and both workflows; lifting the cap on a webpack 4 / React 16 build is a realistic, non-trivial runtime upgrade.",
+      "checkedAt": "2026-11-06"
+    },
+    {
+      "repo": "robotpy/cxxheaderparser",
+      "commit": "f2759fb6bd8723d70f7fdd99c6d145350f302f45",
       "language": "Python",
       "ecosystem": "pypi",
       "packageManager": "pip",
+      "stars": 153,
+      "sizeKb": 673,
+      "defaultBranch": "main",
+      "pendingChange": {
+        "kind": "runtime-eol",
+        "dependency": "python",
+        "fromVersion": "3.6",
+        "toVersion": "3.12",
+        "title": "Python 3.6 is past end of life",
+        "effectiveDate": "2021-12-23",
+        "source": {
+          "url": "https://peps.python.org/pep-0494/",
+          "quote": "As of 2021-12-23, 3.6 has reached the end-of-life phase of its release cycle."
+        }
+      },
+      "declaredIn": [
+        {
+          "file": "pyproject.toml",
+          "line": 10,
+          "text": "requires-python = \">=3.6\""
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 32,
+          "text": "    \"dataclasses; python_version < '3.7'\","
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 51,
+          "text": "target-version = [\"py36\"]"
+        },
+        {
+          "file": ".github/workflows/dist.yml",
+          "line": 31,
+          "text": "        python-version: 3.8"
+        },
+        {
+          "file": ".github/workflows/dist.yml",
+          "line": 50,
+          "text": "        python-version: 3.8"
+        },
+        {
+          "file": ".github/workflows/dist.yml",
+          "line": 71,
+          "text": "        python-version: 3.8"
+        },
+        {
+          "file": ".github/workflows/dist.yml",
+          "line": 91,
+          "text": "        - 3.7"
+        },
+        {
+          "file": ".github/workflows/dist.yml",
+          "line": 92,
+          "text": "        - 3.8"
+        },
+        {
+          "file": ".github/workflows/dist.yml",
+          "line": 93,
+          "text": "        - 3.9"
+        }
+      ],
+      "tests": {
+        "command": "cd tests && python -m pytest",
+        "framework": "pytest",
+        "testFiles": 56,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/robotpy/cxxheaderparser/actions/runs/38168424413"
+      },
+      "why": "A pure-Python C++ header parser that still declares requires-python >=3.6 (with a dataclasses backport marker and black py36 target), builds on 3.8 and tests 3.7-3.13 in CI; a clean library floor bump with a large pytest suite.",
+      "checkedAt": "2026-11-06"
+    },
+    {
+      "repo": "zmh-program/next-whois",
+      "commit": "d9b4acfb7d5e8879b8b0986b6d170b1d7afac747",
+      "language": "TypeScript",
+      "ecosystem": "npm",
+      "packageManager": "pnpm",
+      "stars": 594,
+      "sizeKb": 6780,
+      "defaultBranch": "main",
+      "pendingChange": {
+        "kind": "framework-major",
+        "dependency": "next",
+        "fromVersion": "14",
+        "toVersion": "16",
+        "title": "Next.js 14 is unsupported; Next.js 16 is the current major",
+        "effectiveDate": "2025-10-21",
+        "source": {
+          "url": "https://nextjs.org/support-policy",
+          "quote": "Each major version will remain in Maintenance LTS for two years following the initial release."
+        }
+      },
+      "declaredIn": [
+        {
+          "file": "package.json",
+          "line": 40,
+          "text": "    \"next\": \"14.2.35\","
+        }
+      ],
+      "tests": {
+        "command": "pnpm test",
+        "framework": "vitest",
+        "testFiles": 1,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/zmh-program/next-whois/actions/runs/22655593835"
+      },
+      "why": "A pages-router app pinned to Next 14.2.35 with next-pwa and next-i18next; a common two-major Next upgrade checked by typecheck, vitest and next build. Its Dockerfile also pins node:18-alpine.",
+      "checkedAt": "2026-11-06"
+    },
+    {
+      "repo": "znick/anytask",
+      "commit": "34713bc0a2c3979e5331be0f89e366976d94c27d",
+      "language": "Python",
+      "ecosystem": "pypi",
+      "packageManager": "pip",
+      "stars": 37,
+      "sizeKb": 8739,
       "defaultBranch": "master",
-      "stars": 55,
       "pendingChange": {
         "kind": "framework-major",
         "dependency": "django",
-        "from": "4.2",
-        "to": "5.2",
-        "title": "Django 4.2 is end of life",
-        "effectiveDate": "2026-04-07",
+        "fromVersion": "3.2",
+        "toVersion": "5.2",
+        "title": "Django 3.2 is past end of life",
+        "effectiveDate": "2024-04-01",
         "source": {
-          "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/c03a7e5f5517150dd1d1eb55c3eb9d51dac496a4/products/django.md",
-          "quote": "eol: 2026-04-07"
+          "url": "https://www.djangoproject.com/download/",
+          "quote": "These release series no longer receive security updates or bug fixes."
         }
       },
       "declaredIn": [
         {
           "file": "requirements.txt",
-          "line": 2,
-          "text": "Django>=1.11,<5"
+          "line": 13,
+          "text": "django==3.2.25"
         },
         {
-          "file": "tox.ini",
-          "line": 2,
-          "text": "envlist = {py36,py38,py39}-{1.11,2.2,3.2,4.2}, flake8"
-        },
-        {
-          "file": ".github/workflows/django.yml",
-          "line": 34,
-          "text": "        python-version: [3.6, 3.8, 3.9]"
+          "file": "requirements_local.txt",
+          "line": 3,
+          "text": "django==3.2.25"
         }
       ],
       "tests": {
-        "command": "pytest --cov=capone --cov-fail-under 100",
-        "definedIn": "tox.ini [testenv] commands",
-        "files": "7 test files under capone/tests/",
-        "ran": false
+        "command": "cd anytask && python manage.py compilemessages && python manage.py test",
+        "framework": "unittest",
+        "testFiles": 20,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/znick/anytask/actions/runs/40598292906"
       },
-      "why": "Double-entry ledger Django app allowing Django>=1.11,<5 on Python 3.6 to 3.9, with a 100% coverage gate.",
-      "note": "Requirements allow Django 1.11 through 4.2; every one of those lines is end of life. The quoted date is for 4.2, the newest allowed."
+      "why": "A course and assignment tracking app (courses, schools, contests, issues) pinned to Django 3.2.25 with old django-* add-ons, running on Python 3.8 in Docker and CI; a real app-level Django upgrade checked by 20 test modules (CI starts a MinIO service for S3).",
+      "checkedAt": "2026-11-06"
     },
     {
-      "repo": "CondeNast/xml-to-react",
-      "commit": "40716448c7fd2d3f011c03581c45abf60964e489",
-      "provider": "node",
-      "language": "JavaScript",
+      "repo": "scniro/react-codemirror2",
+      "commit": "4956ac5feccdb36f1ed3eade823f3b0c98a7c155",
+      "language": "TypeScript",
       "ecosystem": "npm",
       "packageManager": "npm",
+      "stars": 1701,
+      "sizeKb": 5312,
       "defaultBranch": "master",
-      "stars": 44,
-      "pendingChange": {
-        "kind": "runtime-eol",
-        "dependency": "node",
-        "from": "8",
-        "to": "24",
-        "title": "Node.js 8 is end of life",
-        "effectiveDate": "2019-12-31",
-        "source": {
-          "url": "https://raw.githubusercontent.com/nodejs/Release/6065a837c0c151577f449c666fec019069ffba77/schedule.json",
-          "quote": "\"end\": \"2019-12-31\""
-        }
-      },
-      "declaredIn": [
-        {
-          "file": ".nvmrc",
-          "line": 1,
-          "text": "8.16"
-        },
-        {
-          "file": ".travis.yml",
-          "line": 4,
-          "text": "  - \"6\""
-        },
-        {
-          "file": ".travis.yml",
-          "line": 5,
-          "text": "  - \"8\""
-        }
-      ],
-      "tests": {
-        "command": "npm test",
-        "definedIn": "package.json scripts.test = \"jest --silent=true\"",
-        "files": "3 test files under test/",
-        "ran": false
-      },
-      "why": "Small React 16 library on Jest 24 pinned to Node 8 (.nvmrc) and tested on Node 6 and 8 in Travis.",
-      "note": "Travis CI config is probably no longer run; recorded as a declaration only."
-    },
-    {
-      "repo": "wix-incubator/autoviews",
-      "commit": "7060bf5cb3ffd57cafa3b8421261d956efc52395",
-      "provider": "node",
-      "language": "TypeScript",
-      "ecosystem": "npm",
-      "packageManager": "yarn",
-      "defaultBranch": "master",
-      "stars": 16,
-      "pendingChange": {
-        "kind": "runtime-eol",
-        "dependency": "node",
-        "from": "18",
-        "to": "24",
-        "title": "Node.js 18 is end of life",
-        "effectiveDate": "2025-04-30",
-        "source": {
-          "url": "https://raw.githubusercontent.com/nodejs/Release/6065a837c0c151577f449c666fec019069ffba77/schedule.json",
-          "quote": "\"end\": \"2025-04-30\""
-        }
-      },
-      "declaredIn": [
-        {
-          "file": ".nvmrc",
-          "line": 1,
-          "text": "18.13.0"
-        },
-        {
-          "file": ".github/workflows/website.yml",
-          "line": 31,
-          "text": "          node-version: 16.x"
-        }
-      ],
-      "tests": {
-        "command": "yarn test",
-        "definedIn": "package.json scripts.test = \"lerna run test --stream --parallel\"",
-        "files": "16 test files under packages/core/tests/",
-        "ran": false
-      },
-      "why": "Lerna monorepo (React 17, Jest 27) pinned to Node 18.13.0 in .nvmrc, with the docs site still built on Node 16.",
-      "note": "Main CI uses node-version '*' (latest), so only .nvmrc and the website workflow pin an old Node."
-    },
-    {
-      "repo": "charliewilco/downwrite",
-      "commit": "85b31acc5724690009126f02cd20f010bb7ad0f8",
-      "provider": "next",
-      "language": "TypeScript",
-      "ecosystem": "npm",
-      "packageManager": "yarn",
-      "defaultBranch": "main",
-      "stars": 102,
       "pendingChange": {
         "kind": "framework-major",
-        "dependency": "next",
-        "from": "12",
-        "to": "16",
-        "title": "Next.js 12 is end of life",
-        "effectiveDate": "2022-11-21",
+        "dependency": "react",
+        "fromVersion": "16",
+        "toVersion": "19",
+        "title": "React 19 is the current major",
+        "effectiveDate": "2024-12-05",
         "source": {
-          "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/c03a7e5f5517150dd1d1eb55c3eb9d51dac496a4/products/nextjs.md",
-          "quote": "eol: 2022-11-21"
+          "url": "https://react.dev/blog/2024/12/05/react-19",
+          "quote": "React 19 is now stable!"
         }
       },
       "declaredIn": [
         {
           "file": "package.json",
-          "line": 49,
-          "text": "\t\t\"next\": \"^12.1.1\","
-        },
-        {
-          "file": ".github/workflows/build.yml",
-          "line": 11,
-          "text": "        node-version: [14.x, 16.x]"
-        }
-      ],
-      "tests": {
-        "command": "yarn test",
-        "definedIn": "package.json scripts.test = \"jest --runInBand\"",
-        "files": "5 test files under src/tests/unit/",
-        "ran": false
-      },
-      "why": "Next.js 12 writing app on React 17 and Jest 27, built in CI on Node 14 and 16."
-    },
-    {
-      "repo": "Lawouach/WebSocket-for-Python",
-      "commit": "21dc60e632b346b0575f17ae2cb5a1263df4a4df",
-      "provider": "python",
-      "language": "Python",
-      "ecosystem": "pypi",
-      "packageManager": "pip",
-      "defaultBranch": "master",
-      "stars": 1128,
-      "pendingChange": {
-        "kind": "runtime-eol",
-        "dependency": "python",
-        "from": "3.9",
-        "to": "3.13",
-        "title": "Python 3.9 is end of life",
-        "effectiveDate": "2025-10-31",
-        "source": {
-          "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/c03a7e5f5517150dd1d1eb55c3eb9d51dac496a4/products/python.md",
-          "quote": "eol: 2025-10-31"
-        }
-      },
-      "declaredIn": [
-        {
-          "file": ".python-version",
-          "line": 1,
-          "text": "3.9.4"
-        },
-        {
-          "file": "tox.ini",
-          "line": 7,
-          "text": "envlist = py27,py36,py37,py38,py39,py310,py311,py312"
-        },
-        {
-          "file": ".github/workflows/python-package.yml",
-          "line": 19,
-          "text": "        python-version: [\"3.7\", \"3.8\", \"3.9\", \"3.10\", \"3.11\", \"3.12\"]"
-        }
-      ],
-      "tests": {
-        "command": "pytest",
-        "definedIn": "tox.ini [testenv] commands = pytest",
-        "files": "10 test files under test/",
-        "ran": false
-      },
-      "why": "Long-lived WebSocket library whose pyenv default is 3.9 and whose tox envlist still starts at py27.",
-      "note": "The tox envlist and CI matrix reach further back (py27, 3.7); from is the pyenv default."
-    },
-    {
-      "repo": "lincolnloop/django-alive",
-      "commit": "da82d50182bf2e3285e941bdc8014e308b730279",
-      "provider": "python",
-      "language": "Python",
-      "ecosystem": "pypi",
-      "packageManager": "pip",
-      "defaultBranch": "main",
-      "stars": 41,
-      "pendingChange": {
-        "kind": "runtime-eol",
-        "dependency": "python",
-        "from": "3.7",
-        "to": "3.13",
-        "title": "Python 3.7 is end of life",
-        "effectiveDate": "2023-06-27",
-        "source": {
-          "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/c03a7e5f5517150dd1d1eb55c3eb9d51dac496a4/products/python.md",
-          "quote": "eol: 2023-06-27"
-        }
-      },
-      "declaredIn": [
-        {
-          "file": "Dockerfile",
-          "line": 1,
-          "text": "FROM python:3.7"
-        },
-        {
-          "file": ".python-version",
-          "line": 1,
-          "text": "3.7.5"
-        }
-      ],
-      "tests": {
-        "command": "pytest --cov --cov-append --cov-report=",
-        "definedIn": "tox.ini [testenv] commands",
-        "files": "4 test files under django_alive/tests/",
-        "ran": false
-      },
-      "why": "Django health-check app whose Dockerfile and pyenv default are still Python 3.7, while CI already tests 3.8 to 3.13.",
-      "note": "Only the dev Dockerfile and .python-version are stale; the test matrix in CI is newer."
-    },
-    {
-      "repo": "Bryght7/zapquaker",
-      "commit": "db31331d85adae9a3ba3a511f111d1226ad5c660",
-      "provider": "react-scripts",
-      "language": "TypeScript",
-      "ecosystem": "npm",
-      "packageManager": "npm",
-      "defaultBranch": "master",
-      "stars": 58,
-      "pendingChange": {
-        "kind": "dependency-major",
-        "dependency": "react-scripts",
-        "from": "3.4.3",
-        "to": "vite",
-        "title": "Create React App (react-scripts) is deprecated",
-        "source": {
-          "url": "https://raw.githubusercontent.com/facebook/create-react-app/6254386531d263688ccfa542d0e628fbc0de0b28/README.md",
-          "quote": "it is now in long-term stasis"
-        }
-      },
-      "declaredIn": [
-        {
-          "file": "package.json",
-          "line": 23,
-          "text": "    \"react-scripts\": \"3.4.3\","
+          "line": 65,
+          "text": "    \"@types/react\": \"16.9.35\","
         },
         {
           "file": "package.json",
-          "line": 6,
-          "text": "    \"node\": \"14.14.0\""
+          "line": 71,
+          "text": "    \"enzyme-adapter-react-16\": \"1.15.2\","
         },
         {
-          "file": ".nvmrc",
-          "line": 1,
-          "text": "v14.14.0"
+          "file": "package.json",
+          "line": 81,
+          "text": "    \"react\": \"16.13.1\","
+        },
+        {
+          "file": "package.json",
+          "line": 82,
+          "text": "    \"react-dom\": \"16.13.1\","
+        },
+        {
+          "file": "package.json",
+          "line": 84,
+          "text": "    \"react-test-renderer\": \"16.13.1\","
         }
       ],
       "tests": {
         "command": "npm test",
-        "definedIn": "package.json scripts.test = \"react-scripts test\"",
-        "files": "6 test files under src/components/",
-        "ran": false
+        "framework": "jest",
+        "testFiles": 3,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/scniro/react-codemirror2/actions/runs/18786274414"
       },
-      "why": "Create React App 3 project (React 16, TypeScript 3.7) with an exact Node 14.14.0 engine: moving off react-scripts means a new build and test runner.",
-      "note": "The target is a judgement call: the CRA README recommends a React framework; vite is one common choice, not one the project chose."
+      "why": "A popular React component library that builds and tests against React 16.13 with enzyme-adapter-react-16; there is no enzyme adapter for React 19, so the test suite itself has to be migrated.",
+      "checkedAt": "2026-11-06"
     },
     {
-      "repo": "jcmcneal/react-step-wizard",
-      "commit": "eeec4054a6a32c283e2f5f9cd233a16aa6c9e4d7",
-      "provider": "node",
+      "repo": "spring-io/antora-ui-spring",
+      "commit": "00618195cca8f5e6cae541163dc011650b1973c3",
       "language": "JavaScript",
       "ecosystem": "npm",
       "packageManager": "npm",
-      "defaultBranch": "master",
-      "stars": 588,
+      "stars": 19,
+      "sizeKb": 2873,
+      "defaultBranch": "main",
       "pendingChange": {
         "kind": "runtime-eol",
         "dependency": "node",
-        "from": "16",
-        "to": "24",
-        "title": "Node.js 16 is end of life",
+        "fromVersion": "16",
+        "toVersion": "24",
+        "title": "Node.js 16 is past end of life",
         "effectiveDate": "2023-09-11",
         "source": {
-          "url": "https://raw.githubusercontent.com/nodejs/Release/6065a837c0c151577f449c666fec019069ffba77/schedule.json",
-          "quote": "\"end\": \"2023-09-11\""
+          "url": "https://nodejs.org/en/blog/announcements/nodejs16-eol",
+          "quote": "We are moving the End-of-Life date of Node.js 16 by seven months to coincide with the end of support of OpenSSL 1.1.1 on September 11th, 2023."
         }
       },
       "declaredIn": [
         {
           "file": ".nvmrc",
           "line": 1,
-          "text": "16.5.0"
+          "text": "16"
         },
-        {
-          "file": ".github/workflows/pull-request.yml",
-          "line": 18,
-          "text": "          node-version: 20.13.1"
-        }
-      ],
-      "tests": {
-        "command": "npm test",
-        "definedIn": "package.json scripts.test = \"jest --config=jest.config.json\"",
-        "files": "1 test file (src/index.test.js, 312 lines) plus a Jest snapshot",
-        "ran": false
-      },
-      "why": "React 16 component library on Jest 25 and webpack 4 with .nvmrc on Node 16; CI already moved to Node 20.13.1, which is also end of life.",
-      "note": "Only one test file, but it is substantial."
-    },
-    {
-      "repo": "tomjschuster/sequelize-ui",
-      "commit": "bc4b7fed6cd2e9b3c58f9351c0d30258a81b96f8",
-      "provider": "next",
-      "language": "TypeScript",
-      "ecosystem": "npm",
-      "packageManager": "npm",
-      "defaultBranch": "main",
-      "stars": 299,
-      "pendingChange": {
-        "kind": "framework-major",
-        "dependency": "next",
-        "from": "14",
-        "to": "16",
-        "title": "Next.js 14 is end of life",
-        "effectiveDate": "2025-10-26",
-        "source": {
-          "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/c03a7e5f5517150dd1d1eb55c3eb9d51dac496a4/products/nextjs.md",
-          "quote": "eol: 2025-10-26"
-        }
-      },
-      "declaredIn": [
         {
           "file": "package.json",
-          "line": 52,
-          "text": "    \"next\": \"^14.2.3\","
+          "line": 15,
+          "text": "    \"node\": \">=16.0.0\""
         },
         {
-          "file": ".node-version",
+          "file": ".github/workflows/pr.yml",
+          "line": 14,
+          "text": "        node-version: '16'"
+        },
+        {
+          "file": ".github/workflows/push.yml",
+          "line": 16,
+          "text": "        node-version: '16'"
+        },
+        {
+          "file": ".github/workflows/release.yml",
+          "line": 16,
+          "text": "        node-version: '16'"
+        },
+        {
+          "file": ".gitlab-ci.yml",
           "line": 1,
-          "text": "20.9.0"
-        },
-        {
-          "file": ".github/workflows/ci.yml",
-          "line": 20,
-          "text": "          node-version: '20.x'"
+          "text": "image: node:10.14.2-stretch"
         }
       ],
       "tests": {
         "command": "npm test",
-        "definedIn": "package.json scripts.test = \"jest\"",
-        "files": "32 test files, mostly under __tests__/ folders",
-        "ran": false
+        "framework": "mocha",
+        "testFiles": 4,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/spring-io/antora-ui-spring/actions/runs/23063187046"
       },
-      "why": "Next.js 14 app with a broad Jest suite, also pinned to Node 20 (end of life 2026-04-30) in .node-version and CI."
+      "why": "The UI bundle for Spring's Antora docs sites: Node 16 sits in .nvmrc, engines and three workflows, and a leftover GitLab job still uses node:10, so every declaration has to move together around a gulp build.",
+      "checkedAt": "2026-11-06"
     },
     {
-      "repo": "folke/ultra-runner",
-      "commit": "5ef1b2aa7e4045d053fb9f072c4be5344f8c2597",
-      "provider": "node",
+      "repo": "dethcrypto/dethcode",
+      "commit": "b8cdb1067af97504c784250ff87bdd3474c31b0a",
       "language": "TypeScript",
       "ecosystem": "npm",
       "packageManager": "pnpm",
-      "defaultBranch": "master",
-      "stars": 1248,
+      "stars": 1367,
+      "sizeKb": 616,
+      "defaultBranch": "main",
       "pendingChange": {
         "kind": "runtime-eol",
         "dependency": "node",
-        "from": "14",
-        "to": "24",
-        "title": "Node.js 14 is end of life",
-        "effectiveDate": "2023-04-30",
+        "fromVersion": "18",
+        "toVersion": "24",
+        "title": "Node.js 18 is past end of life",
+        "effectiveDate": "2025-04-30",
         "source": {
-          "url": "https://raw.githubusercontent.com/nodejs/Release/6065a837c0c151577f449c666fec019069ffba77/schedule.json",
-          "quote": "\"end\": \"2023-04-30\""
+          "url": "https://nodejs.org/en/blog/announcements/node-18-eol-support",
+          "quote": "Node.js 18 and all earlier versions are End-Of-Life."
         }
       },
       "declaredIn": [
         {
           "file": ".nvmrc",
           "line": 1,
-          "text": "14.16.0"
+          "text": "18"
         },
         {
           "file": "package.json",
-          "line": 13,
-          "text": "    \"node\": \">=10.0.0\""
+          "line": 20,
+          "text": "    \"@types/node\": \"^16.11.12\","
         },
         {
-          "file": ".github/workflows/build.yml",
-          "line": 15,
-          "text": "        node-version: [12.x]"
+          "file": "package.json",
+          "line": 48,
+          "text": "    \"node\": \"^18.x\","
+        },
+        {
+          "file": "packages/vscode-host/.nvmrc",
+          "line": 1,
+          "text": "18"
+        },
+        {
+          "file": "packages/vscode-host/package.json",
+          "line": 34,
+          "text": "    \"node\": \"^18.x\""
+        },
+        {
+          "file": ".github/workflows/ci.yml",
+          "line": 19,
+          "text": "          node-version: 18"
+        },
+        {
+          "file": ".github/workflows/deploy.yml",
+          "line": 19,
+          "text": "          node-version: 18"
         }
       ],
       "tests": {
-        "command": "npm test",
-        "definedIn": "package.json scripts.test = \"npx jest --runInBand\"",
-        "files": "10 *.ts test files under __tests__/ (plus a fixture workspace)",
-        "ran": false
+        "command": "pnpm test",
+        "framework": "mocha",
+        "testFiles": 2,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/dethcrypto/dethcode/actions/runs/18123032339"
       },
-      "why": "Monorepo script runner pinned to Node 14 in .nvmrc and Node 12 in CI, on Jest 26; the runtime bump likely drags the test toolchain with it.",
-      "note": "CI (Node 12.x) and .nvmrc (Node 14) disagree; both are end of life."
+      "why": "A small pnpm workspace app (VS Code for the web over Ethereum contracts) pinning Node 18 in two .nvmrc files, two engines fields and both workflows, with @types/node still on 16.",
+      "checkedAt": "2026-11-06"
     },
     {
-      "repo": "konstructio/console",
-      "commit": "21fef7122745eaf6ab1ade97884c201cea3de8c2",
-      "provider": "next",
-      "language": "TypeScript",
+      "repo": "swellstores/origin-theme",
+      "commit": "c78345dc35bf20ea42d0c68d4c1e829ed97e33e2",
+      "language": "JavaScript",
       "ecosystem": "npm",
       "packageManager": "yarn",
-      "defaultBranch": "main",
-      "stars": 10,
+      "stars": 100,
+      "sizeKb": 3732,
+      "defaultBranch": "master",
       "pendingChange": {
         "kind": "framework-major",
-        "dependency": "next",
-        "from": "13",
-        "to": "16",
-        "title": "Next.js 13 is end of life",
-        "effectiveDate": "2024-12-21",
+        "dependency": "nuxt",
+        "fromVersion": "2",
+        "toVersion": "4",
+        "title": "Nuxt 2 is past end of life",
+        "effectiveDate": "2024-06-30",
         "source": {
-          "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/c03a7e5f5517150dd1d1eb55c3eb9d51dac496a4/products/nextjs.md",
-          "quote": "eol: 2024-12-21"
+          "url": "https://nuxt.com/blog/nuxt2-eol",
+          "quote": "Nuxt 2 will reach End of Life (EOL) on June 30th, 2024."
         }
       },
       "declaredIn": [
         {
           "file": "package.json",
-          "line": 42,
-          "text": "    \"next\": \"13.5.6\","
-        },
-        {
-          "file": ".nvmrc",
-          "line": 1,
-          "text": "v18.20.4"
+          "line": 32,
+          "text": "    \"nuxt\": \"^2.15.8\","
         },
         {
           "file": "package.json",
-          "line": 119,
-          "text": "    \"node\": \">=18\""
+          "line": 36,
+          "text": "    \"vue\": \"^2.6.14\","
         },
         {
           "file": "package.json",
-          "line": 126,
-          "text": "    \"node\": \"18.18.0\","
+          "line": 41,
+          "text": "    \"vue-server-renderer\": \"^2.6.14\","
         },
         {
-          "file": "Dockerfile",
-          "line": 1,
-          "text": "FROM node:18-alpine AS base"
+          "file": "package.json",
+          "line": 43,
+          "text": "    \"vue-template-compiler\": \"^2.6.14\","
         }
       ],
       "tests": {
         "command": "yarn test",
-        "definedIn": "package.json scripts.test = \"jest --silent\"",
-        "files": "17 test files, mostly under __tests__/ folders",
-        "ran": false
+        "framework": "jest",
+        "testFiles": 3,
+        "evidence": "no-ci"
       },
-      "why": "Next.js 13.5.6 app (React 18, Jest 28) that is also pinned to Node 18 in .nvmrc, volta and the Dockerfile, so the framework bump and the runtime bump meet.",
-      "note": "Stars are at the low end (10)."
+      "why": "Swell's official Nuxt 2 storefront theme (Vue 2, Vuex, @nuxtjs modules, engines Node 16.20); the hardest kind of framework-major move, with only a small jest suite and no CI to lean on.",
+      "checkedAt": "2026-11-06"
     },
     {
-      "repo": "caktus/django-pagelets",
-      "commit": "d2eb7268247d5e740722e6a67578c188ffacbd86",
-      "provider": "django",
+      "repo": "sassoftware/viya4-ark",
+      "commit": "b5efda421a9a392b47575ae7c4d3965bce8577f5",
       "language": "Python",
       "ecosystem": "pypi",
       "packageManager": "pip",
-      "defaultBranch": "master",
-      "stars": 55,
-      "pendingChange": {
-        "kind": "framework-major",
-        "dependency": "django",
-        "from": "2.2",
-        "to": "5.2",
-        "title": "Django 2.2 is end of life",
-        "effectiveDate": "2022-04-11",
-        "source": {
-          "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/c03a7e5f5517150dd1d1eb55c3eb9d51dac496a4/products/django.md",
-          "quote": "eol: 2022-04-11"
-        }
-      },
-      "declaredIn": [
-        {
-          "file": "tox.ini",
-          "line": 25,
-          "text": "    Django>=2.2,<3.0"
-        },
-        {
-          "file": "tox.ini",
-          "line": 2,
-          "text": "envlist = {py36,py37,py38,py39}-{2.2,3.0,3.1},"
-        },
-        {
-          "file": ".github/workflows/test.yml",
-          "line": 35,
-          "text": "        python-version: [3.6, 3.7, 3.8, 3.9]"
-        }
-      ],
-      "tests": {
-        "command": "python runtests.py",
-        "definedIn": "tox.ini [testenv] commands = python -Werror runtests.py",
-        "files": "1 test module (pagelets/tests/test_cases.py)",
-        "ran": false
-      },
-      "why": "Reusable Django app tested only against Django 2.2 to 3.1 on Python 3.6 to 3.9: a two-major framework jump.",
-      "note": "GitHub labels the repo JavaScript (bundled static files); the package is Python. Small test suite."
-    },
-    {
-      "repo": "Scoop-Tech/scpx-wallet",
-      "commit": "aef85469ad2f4e96d59c7ac8ab8a635926c7b7db",
-      "provider": "node",
-      "language": "JavaScript",
-      "ecosystem": "npm",
-      "packageManager": "npm",
-      "defaultBranch": "master",
-      "stars": 19,
-      "pendingChange": {
-        "kind": "runtime-eol",
-        "dependency": "node",
-        "from": "14",
-        "to": "24",
-        "title": "Node.js 14 is end of life",
-        "effectiveDate": "2023-04-30",
-        "source": {
-          "url": "https://raw.githubusercontent.com/nodejs/Release/6065a837c0c151577f449c666fec019069ffba77/schedule.json",
-          "quote": "\"end\": \"2023-04-30\""
-        }
-      },
-      "declaredIn": [
-        {
-          "file": ".nvmrc",
-          "line": 1,
-          "text": "14.16.0"
-        },
-        {
-          "file": "package.json",
-          "line": 110,
-          "text": "        \"node\": \"14.16.0\","
-        }
-      ],
-      "tests": {
-        "command": "npm test",
-        "definedIn": "package.json scripts.test = \"cross-env NODE_ENV=test NODE_OPTIONS=--experimental-worker jest --runInBand --forceExit --verbose --coverage --env=node\"",
-        "files": "10 test files under tests/ (8 in tests/lean, 1 e2e)",
-        "ran": false
-      },
-      "why": "Crypto wallet CLI with engineStrict and an exact Node 14.16.0 engine, on Jest 21.",
-      "note": "Has both package-lock.json and yarn.lock; npm chosen because .travis.yml runs npm run test. .travis.yml was not cited because it holds a token-like env value."
-    },
-    {
-      "repo": "vigetlabs/microcosm",
-      "commit": "c5a352cc432fece5c526e25c604363570b2418ee",
-      "provider": "node",
-      "language": "JavaScript",
-      "ecosystem": "npm",
-      "packageManager": "yarn",
-      "defaultBranch": "master",
-      "stars": 484,
-      "pendingChange": {
-        "kind": "runtime-eol",
-        "dependency": "node",
-        "from": "10",
-        "to": "24",
-        "title": "Node.js 10 is end of life",
-        "effectiveDate": "2021-04-30",
-        "source": {
-          "url": "https://raw.githubusercontent.com/nodejs/Release/6065a837c0c151577f449c666fec019069ffba77/schedule.json",
-          "quote": "\"end\": \"2021-04-30\""
-        }
-      },
-      "declaredIn": [
-        {
-          "file": ".nvmrc",
-          "line": 1,
-          "text": "10.14.2"
-        },
-        {
-          "file": ".circleci/config.yml",
-          "line": 5,
-          "text": "    - image: circleci/node:10"
-        }
-      ],
-      "tests": {
-        "command": "yarn test",
-        "definedIn": "package.json scripts.test = \"jest --config test/dev.config.json --maxWorkers=2\"",
-        "files": "81 test files under test/",
-        "ran": false
-      },
-      "why": "State-management library with a large Jest 23 suite, pinned to Node 10 in .nvmrc and the CircleCI image: a long jump that exercises old toolchain upgrades."
-    },
-    {
-      "repo": "zmbc/shakespearelang",
-      "commit": "0bfaff901b7eb5d5640bccdd294de7db50b647e6",
-      "provider": "python",
-      "language": "Python",
-      "ecosystem": "pypi",
-      "packageManager": "poetry",
+      "stars": 37,
+      "sizeKb": 3312,
       "defaultBranch": "main",
-      "stars": 111,
       "pendingChange": {
         "kind": "runtime-eol",
         "dependency": "python",
-        "from": "3.8",
-        "to": "3.13",
-        "title": "Python 3.8 is end of life",
+        "fromVersion": "3.8",
+        "toVersion": "3.12",
+        "title": "Python 3.8 is past end of life",
         "effectiveDate": "2024-10-07",
         "source": {
-          "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/c03a7e5f5517150dd1d1eb55c3eb9d51dac496a4/products/python.md",
-          "quote": "eol: 2024-10-07"
+          "url": "https://peps.python.org/pep-0569/",
+          "quote": "As of 2024-10-07, 3.8 has reached the end-of-life phase of its release cycle."
         }
       },
       "declaredIn": [
         {
-          "file": "pyproject.toml",
-          "line": 16,
-          "text": "python = \"^3.8\""
+          "file": ".github/workflows/ci-validation.yml",
+          "line": 26,
+          "text": "    - name: Set up Python 3.8"
         },
         {
-          "file": "tox.ini",
-          "line": 3,
-          "text": "envlist = py38, py39, py310"
-        },
-        {
-          "file": ".github/workflows/main.yml",
-          "line": 24,
-          "text": "        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12']"
+          "file": ".github/workflows/ci-validation.yml",
+          "line": 29,
+          "text": "        python-version: 3.8"
         }
       ],
       "tests": {
         "command": "pytest",
-        "definedIn": "tox.ini [testenv] commands: pytest",
-        "files": "17 test files under shakespearelang/tests/",
-        "ran": false
+        "framework": "pytest",
+        "testFiles": 20,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/sassoftware/viya4-ark/actions/runs/38807103116"
       },
-      "why": "Interpreter for the Shakespeare programming language with a solid pytest suite, declaring python = \"^3.8\"."
+      "why": "SAS's Viya 4 admin toolkit runs and tests only on Python 3.8 in CI with no declared floor; the upgrade moves the CI runtime and has to keep flake8 and 20 pytest modules passing on 3.12.",
+      "checkedAt": "2026-11-06"
     },
     {
-      "repo": "alexreardon/tiny-invariant",
-      "commit": "b5587cf4ba45e257bce49053c3345b6614324252",
-      "provider": "node",
-      "language": "TypeScript",
-      "ecosystem": "npm",
-      "packageManager": "yarn",
-      "defaultBranch": "master",
-      "stars": 1865,
+      "repo": "CyberCX-STA/PurpleOps",
+      "commit": "6b26189ddcec916ba2987271c5622ab6cce76a4d",
+      "language": "Python",
+      "ecosystem": "pypi",
+      "packageManager": "pip",
+      "stars": 317,
+      "sizeKb": 1032,
+      "defaultBranch": "main",
       "pendingChange": {
-        "kind": "runtime-eol",
-        "dependency": "node",
-        "from": "18",
-        "to": "24",
-        "title": "Node.js 18 is end of life",
-        "effectiveDate": "2025-04-30",
+        "kind": "framework-major",
+        "dependency": "flask",
+        "fromVersion": "2.2",
+        "toVersion": "3.1",
+        "title": "Flask 3 is the current major",
+        "effectiveDate": "2023-09-30",
         "source": {
-          "url": "https://raw.githubusercontent.com/nodejs/Release/6065a837c0c151577f449c666fec019069ffba77/schedule.json",
-          "quote": "\"end\": \"2025-04-30\""
+          "url": "https://flask.palletsprojects.com/en/stable/changes/"
         }
       },
       "declaredIn": [
         {
-          "file": ".nvmrc",
-          "line": 1,
-          "text": "18.4.0"
+          "file": "requirements.txt",
+          "line": 19,
+          "text": "Flask==2.2.5"
         },
         {
-          "file": ".github/workflows/test.yml",
-          "line": 23,
-          "text": "          node-version-file: '.nvmrc'"
+          "file": "requirements.txt",
+          "line": 68,
+          "text": "Werkzeug==2.3.6"
         }
       ],
       "tests": {
-        "command": "yarn test",
-        "definedIn": "package.json scripts.test = \"yarn jest\"",
-        "files": "4 *.spec.ts files under test/",
-        "ran": false
+        "command": "python -m pytest -v",
+        "framework": "pytest",
+        "testFiles": 10,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/CyberCX-STA/PurpleOps/actions/runs/35056445818"
       },
-      "why": "Small, widely used TypeScript library whose CI reads its Node version from an .nvmrc pinned to Node 18; a Jest suite covers the behaviour."
+      "why": "A purple-team operations app pinned to Flask 2.2.5 and Werkzeug 2.3 with a tangle of Flask extensions (Flask-Security and Flask-Security-Too, flask-mongoengine); CI runs the pytest suite in its Docker image.",
+      "checkedAt": "2026-11-06"
+    },
+    {
+      "repo": "Rahix/tbot",
+      "commit": "82984dc68d0c2bf0200488bd0b79805556474822",
+      "language": "Python",
+      "ecosystem": "pypi",
+      "packageManager": "pip",
+      "stars": 102,
+      "sizeKb": 8499,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "kind": "runtime-eol",
+        "dependency": "python",
+        "fromVersion": "3.9",
+        "toVersion": "3.12",
+        "title": "Python 3.9 is past end of life",
+        "effectiveDate": "2025-10-31",
+        "source": {
+          "url": "https://peps.python.org/pep-0596/",
+          "quote": "As of 2025-10-31, 3.9 has reached the end-of-life phase of its release cycle."
+        }
+      },
+      "declaredIn": [
+        {
+          "file": ".github/workflows/ci.yml",
+          "line": 20,
+          "text": "          python-version: 3.9"
+        },
+        {
+          "file": "pyproject.toml",
+          "line": 16,
+          "text": "python_version = \"3.9\""
+        },
+        {
+          "file": "setup.cfg",
+          "line": 19,
+          "text": "python_requires = >=3.6"
+        },
+        {
+          "file": "selftest/mypy.ini",
+          "line": 2,
+          "text": "python_version = 3.6"
+        }
+      ],
+      "tests": {
+        "command": "python -m pytest selftest/",
+        "framework": "pytest",
+        "testFiles": 20,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/Rahix/tbot/actions/runs/42092857358"
+      },
+      "why": "An embedded-testing tool whose CI and mypy target Python 3.9 while setup.cfg and the selftest mypy config still say 3.6; the upgrade must raise all four together and keep the typed selftests green.",
+      "checkedAt": "2026-11-06"
+    },
+    {
+      "repo": "panagiop/node.js-clean-architecture",
+      "commit": "5248815b761261ca269c3d7e45f32e5f82c3ad31",
+      "language": "JavaScript",
+      "ecosystem": "npm",
+      "packageManager": "npm",
+      "stars": 1166,
+      "sizeKb": 181,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "kind": "framework-major",
+        "dependency": "express",
+        "fromVersion": "4",
+        "toVersion": "5",
+        "title": "Express 5 is the current major",
+        "effectiveDate": "2024-10-15",
+        "source": {
+          "url": "https://expressjs.com/en/blog/2024-10-15-v5-release",
+          "quote": "The focus of this release is on dropping old Node.js version support, addressing security concerns, and simplifying maintenance."
+        }
+      },
+      "declaredIn": [
+        {
+          "file": "package.json",
+          "line": 31,
+          "text": "    \"express\": \"^4.17.1\","
+        }
+      ],
+      "tests": {
+        "command": "npm test",
+        "framework": "mocha",
+        "testFiles": 2,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/panagiop/node.js-clean-architecture/actions/runs/18800723586"
+      },
+      "why": "A well-known Express 4 reference API (routes, middlewares, Mongo and Redis adapters) with no lockfile; Express 5 changes path matching and removed signatures. Its CI matrix also still runs Node 12 and 14.",
+      "checkedAt": "2026-11-06"
+    },
+    {
+      "repo": "planetlabs/datalake",
+      "commit": "9c22f721797551d7674f579ca40556d3800bd9f4",
+      "language": "Python",
+      "ecosystem": "pypi",
+      "packageManager": "pip",
+      "stars": 18,
+      "sizeKb": 1512,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "kind": "runtime-eol",
+        "dependency": "python",
+        "fromVersion": "3.9",
+        "toVersion": "3.12",
+        "title": "Python 3.9 is past end of life",
+        "effectiveDate": "2025-10-31",
+        "source": {
+          "url": "https://peps.python.org/pep-0596/",
+          "quote": "As of 2025-10-31, 3.9 has reached the end-of-life phase of its release cycle."
+        }
+      },
+      "declaredIn": [
+        {
+          "file": "Dockerfile",
+          "line": 1,
+          "text": "FROM python:3.9-slim"
+        },
+        {
+          "file": "Dockerfile",
+          "line": 49,
+          "text": "        -d /usr/local/lib/python3.9/site-packages/ \\"
+        },
+        {
+          "file": ".gitlab-ci.yml",
+          "line": 7,
+          "text": "  image: python:3.9-alpine"
+        },
+        {
+          "file": ".github/workflows/actions.yml",
+          "line": 10,
+          "text": "        python: [3.8, 3.9, \"3.10\", 3.12]"
+        },
+        {
+          "file": "client/pyproject.toml",
+          "line": 15,
+          "text": "requires-python = \">=3.8\""
+        },
+        {
+          "file": "client/pyproject.toml",
+          "line": 27,
+          "text": "    'pyblake2>=0.9.3; python_version<\"3.6\"',"
+        }
+      ],
+      "tests": {
+        "command": "make test-ingester test-api && cd client && python -m pytest --import-mode=importlib ./datalake/tests/",
+        "framework": "pytest",
+        "testFiles": 27,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/planetlabs/datalake/actions/runs/37348463765"
+      },
+      "why": "Planet's file-archive service (ingester, API, client) runs its API and ingester in a python:3.9 image (with a hard-coded python3.9 site-packages path) and tests the client on 3.8-3.12; the upgrade spans the Dockerfile, GitLab and GitHub CI and the client floor.",
+      "checkedAt": "2026-11-06"
+    },
+    {
+      "repo": "archiverjs/node-archiver",
+      "commit": "52d1d349dfa2bf17956ecab56f477736688a9c5e",
+      "language": "JavaScript",
+      "ecosystem": "npm",
+      "packageManager": "npm",
+      "stars": 2980,
+      "sizeKb": 1185,
+      "defaultBranch": "master",
+      "pendingChange": {
+        "kind": "runtime-eol",
+        "dependency": "node",
+        "fromVersion": "18",
+        "toVersion": "24",
+        "title": "Node.js 18 is past end of life",
+        "effectiveDate": "2025-04-30",
+        "source": {
+          "url": "https://nodejs.org/en/blog/announcements/node-18-eol-support",
+          "quote": "Node.js 18 and all earlier versions are End-Of-Life."
+        }
+      },
+      "declaredIn": [
+        {
+          "file": "package.json",
+          "line": 25,
+          "text": "    \"node\": \">=18\""
+        },
+        {
+          "file": ".github/workflows/nodejs.yml",
+          "line": 17,
+          "text": "        node-version: [18.x, 20.x]"
+        },
+        {
+          "file": ".github/workflows/npmpublish.yml",
+          "line": 18,
+          "text": "          node-version: 20.20.2"
+        }
+      ],
+      "tests": {
+        "command": "npm test",
+        "framework": "mocha",
+        "testFiles": 2,
+        "evidence": "ci-passed",
+        "ciRun": "https://github.com/archiverjs/node-archiver/actions/runs/25544482114"
+      },
+      "why": "A widely used streaming archive library whose engines floor is Node 18 and whose CI matrix and publish job test only EOL Node 18/20; a library-style upgrade of the floor and the test matrix.",
+      "checkedAt": "2026-11-06"
     }
   ]
 }

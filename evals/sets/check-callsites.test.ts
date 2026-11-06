@@ -34,6 +34,36 @@ describe('checkCallSites', () => {
     ]);
     expect(reads).toEqual(['src/a.ts', 'gone.ts']);
   });
+
+  it('checks declaredIn lines the same way, after an entry’s call sites', async () => {
+    const checks = await checkCallSites(
+      [
+        {
+          ...entry([{ file: 'src/a.ts', line: 1, text: 'x' }]),
+          declaredIn: [
+            { file: '.nvmrc', line: 1, text: '16' },
+            { file: 'package.json', line: 3, text: '    "node": "16.x"' },
+          ],
+        },
+      ],
+      async (_repo, _commit, file) =>
+        ({
+          'src/a.ts': 'x\n',
+          '.nvmrc': '16\n',
+          'package.json': '{\n  "engines": {\n    "node": "18.x"\n  }\n}\n',
+        })[file],
+    );
+    expect(checks).toEqual([
+      { repo: 'o/r', file: 'src/a.ts', line: 1 },
+      { repo: 'o/r', file: '.nvmrc', line: 1 },
+      {
+        repo: 'o/r',
+        file: 'package.json',
+        line: 3,
+        problem: `line reads ${JSON.stringify('    "node": "18.x"')}`,
+      },
+    ]);
+  });
 });
 
 const KINDS: MigrationKind[] = [

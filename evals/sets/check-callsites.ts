@@ -1,8 +1,9 @@
-// Re-checks a curated dev set by hand-check data: every recorded call site must still read the
-// same at the repo's pinned commit. It reads each file from GitHub at that commit; nothing is
-// cloned, installed or run.
+// Re-checks a curated dev set by hand-check data: every recorded call site (callSites) and every
+// line that declares a pinned version (declaredIn) must still read the same at the repo's pinned
+// commit. It reads each file from GitHub at that commit; nothing is cloned, installed or run.
 //
 //   node evals/sets/check-callsites.ts longtail-dev-20
+//   node evals/sets/check-callsites.ts upgrade-dev-20
 import { resolve } from 'node:path';
 import { loadDevSet, type RepoEntry } from './index.ts';
 
@@ -11,7 +12,9 @@ export type CallSite = { file: string; line: number; text: string };
 export type CallSiteCheck = { repo: string; file: string; line: number; problem?: string };
 
 const callSitesOf = (entry: RepoEntry): CallSite[] =>
-  Array.isArray(entry.callSites) ? (entry.callSites as CallSite[]) : [];
+  [entry.callSites, entry.declaredIn].flatMap((sites) =>
+    Array.isArray(sites) ? (sites as CallSite[]) : [],
+  );
 
 /** Compares each recorded line with the file at the pinned commit. */
 export async function checkCallSites(
@@ -68,7 +71,7 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename
   for (const check of bad)
     console.log(`MISMATCH ${check.repo} ${check.file}:${check.line}: ${check.problem}`);
   console.log(
-    `${set.name}: ${checks.length - bad.length} of ${checks.length} call sites match at their pinned commits (${set.repos.length} repos)`,
+    `${set.name}: ${checks.length - bad.length} of ${checks.length} recorded lines match at their pinned commits (${set.repos.length} repos)`,
   );
   process.exitCode = bad.length === 0 ? 0 : 1;
 }
