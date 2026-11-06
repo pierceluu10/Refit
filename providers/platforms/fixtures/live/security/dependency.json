@@ -1,0 +1,7 @@
+{
+  "repo": "cli",
+  "kind": "security-standard",
+  "name": "tls-certificates",
+  "notes": "Deploy config pins a one-year TLS certificate renewed by hand, and a mail script logs in to smtp.office365.com with a username and password.",
+  "declaredIn": []
+}

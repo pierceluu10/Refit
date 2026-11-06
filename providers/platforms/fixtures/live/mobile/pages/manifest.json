@@ -1,0 +1,27 @@
+{
+  "provider": "android",
+  "fetchedAt": "2026-11-06T05:40:44.037Z",
+  "note": "Every page one run read, cut to what the agent was shown (at most 120000 characters). Test input only.",
+  "sources": [
+    {
+      "id": "support-google-com-googleplay-android-developer-answer-11926878",
+      "url": "https://support.google.com/googleplay/android-developer/answer/11926878",
+      "status": 200,
+      "ok": true,
+      "file": "support-google-com-googleplay-android-developer-answer-11926878.txt",
+      "chars": 12849,
+      "truncated": false,
+      "sha256": "f6f844f35a86bd054c56c4feb106be87ed6fcd8ab2690e560d86cdce8decf640"
+    },
+    {
+      "id": "developer-android-com-google-play-requirements-target-sdk",
+      "url": "https://developer.android.com/google/play/requirements/target-sdk",
+      "status": 200,
+      "ok": true,
+      "file": "developer-android-com-google-play-requirements-target-sdk.txt",
+      "chars": 15036,
+      "truncated": true,
+      "sha256": "85024fd815eaae4deae13d076bab847c88f543c834174dd149dc220cbb2c0975"
+    }
+  ]
+}

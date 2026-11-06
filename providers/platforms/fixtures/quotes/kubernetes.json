@@ -1,0 +1,8 @@
+{
+  "k8s-releases": "The Kubernetes project maintains release branches for the most recent three minor releases (1.37, 1.36, 1.35).",
+  "k8s-deprecation-guide": "The extensions/v1beta1 and networking.k8s.io/v1beta1 API versions of Ingress is no longer served as of v1.22.",
+  "k8s-eol": "\"cycle\": \"1.34\", \"releaseDate\": \"2025-08-27\", \"eol\": \"2026-10-27\"",
+  "eks-versions": "A minor version is under standard support in Amazon EKS for the first 14 months after it’s released.",
+  "gke-schedule": "This page provides an estimated release schedule for each supported minor version in the release channels.",
+  "aks-versions": "The Kubernetes community releases minor versions roughly every four months."
+}

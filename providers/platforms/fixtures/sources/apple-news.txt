@@ -1,0 +1,96 @@
+Latest News - Apple Developer
+
+https://developer.apple.com/news/
+
+en
+Wed, 04 Nov 2026 08:00:56 PST
+Custom
+Copyright 2026, Apple Inc.
+
+Now available: Retention messages for subscriptions
+
+https://developer.apple.com/news/?id=fk9ps3gv
+https://developer.apple.com/news/?id=fk9ps3gv
+Reduce cancellations with retention messages that remind subscribers of your subscription's value as they decide whether to cancel. Retention messages appear in the cancellation flow and can include text, images, or a special offer. In App Store Connect, you can configure retention messages for your auto-renewable subscriptions, including subscriber eligibility and the wait time between messages. With the Retention Messaging API , you can choose which message to show each subscriber based on their subscription details. API access is available by request. Configure retention messages in App Store Connect Learn about auto-renewable subscriptions
+
+Wed, 04 Nov 2026 08:00:56 PST
+
+Siri AI is now open to all developers
+
+https://developer.apple.com/news/?id=gdk2umrf
+https://developer.apple.com/news/?id=gdk2umrf
+Starting today with the iOS 27.3, iPadOS 27.3, macOS 27.3, and visionOS 27.3 betas, a new Developer Preview enables any developer to integrate their app with Siri AI, giving businesses and developers new ways to reach and serve their customers. Siri AI, an entirely new version of Siri that is profoundly more capable, conversational, and personal, is designed to be deeply integrated into Apple’s operating systems and the apps people use every day, including the apps from our vast ecosystem of developers. Thousands of developers have already built integrations with Siri to let users ask for directions, manage a to-do list, send a message, or catch up on an audiobook. Siri AI is available in many languages, including English, French, Japanese, Korean, Portuguese, and Spanish and will soon expand to support Traditional Chinese, Norwegian, Turkish, and Vietnamese. People around the world are turning to Siri AI to get things done every day, which means more customers can discover and use apps just by asking. Today’s preview allows any app to bring its content and actions directly into Siri AI by using App Intents, making it easier for all apps to tap into Siri AI’s newest capabilities, including personal context understanding, onscreen awareness, natural language, and more. So people can just ask for help in their own words, and Siri AI carries out any custom action you’ve built, from checking a delivery to booking a reservation to placing an order. For complex requests, we’re also introducing skills to let you teach Siri AI how to combine several actions into a single experience. And Siri AI can now surface any entity in the Spotlight semantic index, not just the ones that fit an existing schema. We started rolling out these new capabilities across many Apple apps, including Calendar, Files, Finder, Journal, Mail, Maps, Messages, Music, Notes, Photos, Preview, Reminders, Safari, Shortcuts, and Weather, so users can do things like find a coffee shop they visited last week or archive files that haven’t been opened in over a year. There are many more actions available now as examples for you to reference. To see what you can do in each app, just ask Siri AI. This developer beta offers a sneak peek at Siri AI app intents for developers. With this early Developer Preview, your app can work directly with Siri AI, giving you a first look at new ways to reach and serve your customers. This preview provides early access before first shipping to customers in a few months; and with submission to the App Store opening up in the spring, developers have time to explore, build, and help shape their experiences before launch. Try it out and share your feedback. As you explore early, we will follow up with more details about the terms and usage policies for experiences enabled through Siri AI. More to share soon. To learn more about the new APIs, how to use them, and how to evaluate your app’s experience with Siri AI, read new documentation . You can also connect with Apple engineers in Apple Intelligence Group Labs on November 4–5 to ask questions, get advice, and follow the discussion. Sign up for November 5, 6–7 p.m. (PT)
+Siri AI is available in beta in iOS 27.3, iPadOS 27.3, macOS 27.3, watchOS 27.3, and visionOS 27.3 and requires an Apple Intelligence-enabled device set to a supported language. It is available in English, French, Japanese, Korean, Portuguese, and Spanish. Some features may not be available in all regions or languages.
+
+Siri AI is currently unavailable in the EU in iOS, iPadOS, and watchOS. Apple is working constructively with the EU in an attempt to find a path forward.
+
+Siri AI is not available for users under 13.
+
+Certain Apple Intelligence features that rely on server-side models are subject to daily usage limits, including but not limited to Siri AI, intelligent photo editing tools, Image Playground, and AFM 3 Cloud models in Shortcuts. Daily limits may vary by feature, request complexity, system demand, system policies, and other factors. Expanded access to such features will be available for a fee in the future. Use of these features is subject to the Apple Intelligence terms and conditions. Learn more at support.apple.com/148587.
+
+Tue, 03 Nov 2026 10:00:20 PST
+
+Get ready with the latest beta releases
+
+https://developer.apple.com/news/?id=6gpufove
+https://developer.apple.com/news/?id=6gpufove
+The beta versions of iOS 27.3, iPadOS 27.3, macOS 27.3, tvOS 27.3, visionOS 27.3, and watchOS 27.3 are now available. Get your apps ready by confirming they work as expected on these releases. And make sure to build and test with Xcode 27.3 to take advantage of the advancements in the latest SDKs. View downloads and release notes Learn about testing a beta OS Learn about sending feedback
+
+Tue, 03 Nov 2026 08:00:26 PST
+
+Upcoming: New age rating content descriptors in App Store Connect
+
+https://developer.apple.com/news/?id=yxkh08us
+https://developer.apple.com/news/?id=yxkh08us
+Starting November 16, 2026, App Store Connect will include new content descriptors to help ensure your app’s age ratings accurately reflect its features and are in accordance with local regulations. When completing the age rating questionnaire in App Store Connect, you’ll need to declare whether your app includes:
+Shared Location: Sharing of real-world location with another person or group.
+Dating and Relationships: Features that enable dating or relationship connections between real people and/or a virtual companion that engages a user in sexual or romantic content.
+You must provide these declarations when submitting an app update or making changes to your age rating questionnaire. All apps must have these declarations completed by January 12, 2027. Apps that include Dating and Relationships receive a minimum age rating of 18+. Apps that include Shared Location may not have an impact on their minimum age rating in some regions. In Brazil, local regulations require an A16 rating for Shared Location and an A18 rating for Dating and Relationships. If you believe your app qualifies for a lower age rating in Brazil — for example, if your app provides location sharing specifically designed for parents and children — you can request an official rating directly from Brazil’s Ministry of Justice and Public Security (MJSP/Ministério da Justiça e Segurança Pública). Once verified, the official rating will display on the App Store in Brazil. Learn more about Brazil age ratings
+
+Mon, 02 Nov 2026 09:30:07 PST
+
+Adjustments to the Taiwan storefront of the App Store on iOS and iPadOS
+
+https://developer.apple.com/news/?id=w9mxlhek
+https://developer.apple.com/news/?id=w9mxlhek
+Apple is making changes to the Taiwan storefront of the App Store, following discussions with the Taiwan Fair Trade Commission. As of October 31, 2026, the commission rate for standard Apple In-App Purchase and paid app transactions will be 26% on the Taiwan storefront of the App Store on iOS and iPadOS. Currently, that rate is 30%. Signing the updated terms by October 31 is not required to receive the benefit of these commission rate changes starting that date. The Apple Developer Program License Agreement has been revised to support updated policies. You can sign in to your account to accept the updated terms. 查看繁體中文翻譯 Translations of the updated agreement will be available on the Apple Developer website within one month.
+
+Thu, 29 Oct 2026 08:00:56 PDT
+
+Say hello to Touch on Mac
+
+https://developer.apple.com/news/?id=i9boeiqc
+https://developer.apple.com/news/?id=i9boeiqc
+Start getting ready for MacBook Pro with Touch today. Watch new developer videos, sign up for Group Labs, and check out new articles and resources. Explore now
+
+Wed, 28 Oct 2026 10:00:55 PDT
+
+Offer your subscriptions to businesses and schools
+
+https://developer.apple.com/news/?id=yfo21auu
+https://developer.apple.com/news/?id=yfo21auu
+Starting today, organizations and educational institutions can purchase subscriptions to apps in volume with multiseat purchasing. This makes it easy for organizations that use Apple Business or Apple School Manager to discover and purchase your auto-renewable subscription. Organizations can purchase the seats they need through a single Apple In-App Purchase, then assign and manage those seats using their existing device management tools. Organizations can also add and remove seats at any time depending on their needs. Multiseat purchasing for subscriptions is enabled by default in App Store Connect, unless you’ve previously adjusted this setting. This makes your subscription available for purchase through Apple Business, Apple School Manager, and the App Store. You can change these availability options at any time. Note about multiseat purchasing and groups Multiseat purchasing in App Store Connect also supports subscriptions for groups. Starting in November 2026, you can configure and test your group purchases in your Sandbox Apple Account to prepare for launch. This winter, group purchases will be available on the App Store, letting people buy multiple seats for your subscription and invite others to access it. Manage purchase options for an auto-renewable subscription App Store Connect API: Configuring multiseat subscriptions for organizations Offer subscriptions to groups and organizations
+
+Thu, 22 Oct 2026 11:00:08 PDT
+
+Updated App Review Guidelines are now available
+
+https://developer.apple.com/news/?id=92th7e5i
+https://developer.apple.com/news/?id=92th7e5i
+The App Review Guidelines have been revised to support new features, updated policies, and to provide clarification. App Review Guidelines
+Before You Submit: Added links to additional documentation.
+1.2: Clarified app content and app types that are subject to this guideline, and potential Developer Code of Conduct violation for failing to implement appropriate safeguards or remediating violations after notice.
+2.3.14: New guideline covering creative assets.
+2.5.19: New guideline clarifies long-standing policy on hidden, dormant, or undocumented features, formerly covered in Guideline 2.3.1.
+3.1.1(a): Removed bullet point on Music Streaming Services Entitlements, which is now incorporated in the bullet point on StoreKit External Purchase Link Entitlements; clarified that links may be provided to a permitted destination.
+5: Clarified that apps found to facilitate human trafficking and/or the exploitation of children will be removed from the App Store and blocked from alternative distribution.
+After You Submit: Added links to additional documentation.
+Translations of the updated guidelines will be available on the Apple Developer website within one month.
+
+Fri, 16 Oct 2026 13:05:42 PDT
+
+Strengthening App Review Guidelines against nonconsensual intimate imagery and bait-and-switch apps
+
+https://developer.apple.com/news/?id=vvzx6cul
+https://developer.apple.com/news/?id=vvzx6cul
+The App Review Guidelines are a core part of the

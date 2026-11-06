@@ -1,0 +1,45 @@
+{
+  "note": "Hand-checked against the saved pages on 2026-11-06. Example fixture.",
+  "changes": [
+    {
+      "provider": "android",
+      "id": "android:play-target-api-36-aug-2026",
+      "kind": "platform-policy",
+      "title": "Google Play: since 2026-08-31 new apps and updates must target API 36 (extension to 2026-11-01); repo targets 33 so updates are blocked",
+      "source": {
+        "url": "https://support.google.com/googleplay/android-developer/answer/11926878",
+        "quote": "New apps and app updates must target Android 16 (API level 36) or higher to be submitted to Google Play"
+      },
+      "affects": {
+        "operations": ["targetSdk", "targetSdkVersion"],
+        "sdk": "android"
+      },
+      "effectiveDate": "2026-08-31",
+      "dependencyKind": "platform",
+      "dependency": "android",
+      "fromVersions": ["targetSdk 33"],
+      "toVersion": "API level 36",
+      "severity": "deadline"
+    },
+    {
+      "provider": "android",
+      "id": "android:play-existing-apps-api-35-availability",
+      "kind": "platform-policy",
+      "title": "Google Play: existing apps targeting below API 35 (repo is 33) are hidden from new users on newer Android versions since 2026-08-31; extension to 2026-11-01 possible",
+      "source": {
+        "url": "https://support.google.com/googleplay/android-developer/answer/11926878",
+        "quote": "Existing apps must target Android 15 (API level 35) or higher to remain available to new users on devices running Android OS higher than your app’s target API level."
+      },
+      "affects": {
+        "operations": ["targetSdk"],
+        "sdk": "android"
+      },
+      "effectiveDate": "2026-08-31",
+      "dependencyKind": "platform",
+      "dependency": "android",
+      "fromVersions": ["targetSdk 33"],
+      "toVersion": "API level 35 or higher (36 for updates)",
+      "severity": "deadline"
+    }
+  ]
+}

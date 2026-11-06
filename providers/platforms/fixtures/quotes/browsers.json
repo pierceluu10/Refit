@@ -1,0 +1,10 @@
+{
+  "chromestatus-deprecated": "Remove FencedFrame element and window.fence APIs",
+  "chrome-release-notes": "Release notes from Chrome 155 are available on Chrome Status.",
+  "chrome-mv2-timeline": "All remaining Manifest V2 extensions have been removed from the Chrome Web Store.",
+  "safari-release-notes": "Learn about changes for Safari and Safari View Controller for iOS, iPadOS, macOS, and in visionOS",
+  "webkit-feed": "Safari Technology Preview Release 256 is now available for download for macOS Golden Gate and macOS Tahoe.",
+  "firefox-dev-releases": "Below you'll find links to the developer release notes for every Firefox release.",
+  "firefox-releases": "Firefox release notes are specific to each version of the application.",
+  "mozilla-addons-feed": "enterprise add-ons will launch on addons.mozilla.org (AMO) on December 1, 2026"
+}

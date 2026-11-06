@@ -1,0 +1,118 @@
+Azure service updates
+https://www.microsoft.com/releasecommunications/api/v2/Azure/rss Azure service updates
+Thu, 05 Nov 2026 23:19:48 Z 1440 577668 https://azure.microsoft.com/updates?id=577668 Launched Networking Security Azure Front Door Features Security [Launched] Generally Available: Azure Front Door TLS key exchange policy with post-quantum support
+Azure Front Door now supports configurable TLS key exchange
+policies, including hybrid post-quantum key exchange, to help you prepare for
+evolving cryptographic threats while meeting your security and client
+compatibility requirements. Choose a predefined
+Thu, 05 Nov 2026 23:19:48 Z
+2026-11-05T23:19:48Z
+579280 https://azure.microsoft.com/updates?id=579280 Launched Networking Security Application Gateway Web Application Firewall Features Security [Launched] Generally Available: WAF Insights for Azure Application Gateway
+WAF Insights for Azure Application Gateway Web Application Firewall (WAF) is now generally available. WAF Insights is a built-in experience in the WAF policy that brings WAF logs and metrics together in interactive dashboards, so you can investigate block
+Thu, 05 Nov 2026 17:11:31 Z
+2026-11-05T17:11:31Z
+579300 https://azure.microsoft.com/updates?id=579300 Launched Databases Hybrid + multicloud Azure Database for PostgreSQL Feature [Launched] Generally Available: Azure Database for PostgreSQL stable REST API version 2026-10-01
+The Azure Database for PostgreSQL Flexible Server REST API version 2026-10-01 is now generally available. This stable API release introduces expanded capabilities for maintenance management, immutable backups, multi-tenant encryption (cross-tenant custome
+Wed, 04 Nov 2026 18:42:12 Z
+2026-11-04T18:42:12Z
+578966 https://azure.microsoft.com/updates?id=578966 Networking Azure Route Server Features Generally Available: Route maps for Azure Route Server
+Route maps for Azure Route Server are now generally available in the Azure public cloud. Route maps provide fine-grained control over inbound and outbound routing across hybrid connections. Customers can manage routes advertised to and from Azure Route Se
+Wed, 04 Nov 2026 18:39:41 Z
+2026-11-04T18:39:41Z
+579507 https://azure.microsoft.com/updates?id=579507 In preview Networking Security Azure Firewall Features Security [In preview] Public Preview: Azure Firewall IPv6 now supports application rules
+Azure Firewall now supports application rules in IPv6
+Public Preview, enabling layer 7 filtering for IPv6 HTTP and HTTPS traffic. The
+enhancement extends application-level controls to IPv6 and dual-stack
+deployments, helping customers maintain consistent
+Wed, 04 Nov 2026 18:09:43 Z
+2026-11-04T18:09:43Z
+transition-to-azure-ad-to-query-data-from-azure-monitor-application-insights-by-31-march-2026 https://azure.microsoft.com/updates?id=transition-to-azure-ad-to-query-data-from-azure-monitor-application-insights-by-31-march-2026 DevOps Management and governance Application Insights Azure Monitor Retirements Retirement: Transition to Entra ID (formerly known as Azure AD) to query data from Azure Monitor application insights by March 31, 2027
+*Note: We have extended the retirement date to March 31, 2027.On March 31, 2027 API keys used query application
+insights will be retired. You'll need to transition to
+Microsoft Entra ID (formerly known as Azure AD) which provides all the
+functionality of
+Mon, 15 May 2023 19:51:58 Z
+2026-11-04T17:40:28Z
+579162 https://azure.microsoft.com/updates?id=579162 In preview Storage Compute Azure Disk Storage Virtual Machines Compliance Management Feature [In preview] Public Preview: Multi-disk crash-consistent VM restore points for Premium SSD v2 and Ultra Disks on VMs with SCSI disk controller
+Multi-disk crash-consistent restore points for Azure virtual machines with Premium SSD v2 and Ultra data disks are now available in public preview on VMs with SCSI disk controllers. You can use this to capture the agent-less crash consistent restore point
+Wed, 04 Nov 2026 17:13:51 Z
+2026-11-04T17:13:51Z
+576382 https://azure.microsoft.com/updates?id=576382 In preview Networking Security Application Gateway Features [In preview] Public Preview: JWT validation for Application Gateway for Containers
+Application Gateway for Containers now supports centralized
+JSON Web Token validation through the AuthPolicy custom resource. Teams can
+validate a token signature, issuer, lifetime, and configured audience by using
+signing keys retrieved from a trusted HT
+Tue, 03 Nov 2026 21:17:08 Z
+2026-11-03T21:17:08Z
+576388 https://azure.microsoft.com/updates?id=576388 In preview Networking Security Application Gateway Features [In preview] Public Preview: MCP gateway for Application Gateway for Containers
+Application Gateway for Containers now supports Model
+Context Protocol routing through the new MCPRoute custom resource. Platform
+teams can publish MCP servers behind a stable hostname and path while
+centralizing TLS, JWT validation, Web Application Firew
+Tue, 03 Nov 2026 21:16:36 Z
+2026-11-03T21:16:36Z
+576393 https://azure.microsoft.com/updates?id=576393 In preview Networking Security Application Gateway Features [In preview] Public Preview: Private ingress for Application Gateway for Containers
+Application
+Gateway for Containers now supports private frontends that are reachable only
+through approved Azure Private Link private endpoints. This enables
+organizations to keep internal applications, shared services, and cross-cluster
+traffic on privat
+Tue, 03 Nov 2026 21:15:46 Z
+2026-11-03T21:15:46Z
+578655 https://azure.microsoft.com/updates?id=578655 In preview Storage Storage Accounts Azure Storage Discovery Feature [In preview] Public Preview: Advanced capacity insights are now available in Azure Storage Discovery
+Advanced capacity insights are now available for preview in Azure Storage Discovery. Storage Discovery now provides greater visibility into storage usage through insights such as access patterns, data age, storage tiers, object size distribution, retentio
+Tue, 03 Nov 2026 20:20:29 Z
+2026-11-03T20:20:29Z
+579305 https://azure.microsoft.com/updates?id=579305 In preview Databases Hybrid + multicloud Azure SQL Database Azure SQL Managed Instance Feature [In preview] Public Preview: Extend immutability for PITR backups for Azure SQL Database and Azure SQL Managed Instance
+With this enhancement, you have the ability to lock your retention to the configured PITR retention, beyond the default 7 days of immutable backups that are already available. This is especially useful for financial customers who typically have 35 days of
+Tue, 03 Nov 2026 18:36:12 Z
+2026-11-03T18:36:12Z
+578926 https://azure.microsoft.com/updates?id=578926 Launched Management and governance Migration Azure Site Recovery Feature [Launched] Generally Available: Enhanced Azure Site Recovery support for VMSS Flex
+Azure Site Recovery now offers an enhanced disaster recovery experience for virtual machines in Virtual Machine Scale Sets with flexible orchestration. The update improves target configuration and end-to-end recovery workflows, including failover, reprote
+Tue, 03 Nov 2026 18:32:01 Z
+2026-11-03T18:32:01Z
+577975 https://azure.microsoft.com/updates?id=577975 In preview Management and governance Migration Azure Migrate Features Services [In preview] Public Preview: On-prem NAS share discovery and assessment are now available using Azure Migrate
+Azure
+Migrate now supports discovery and assessment for network-attached storage,
+allowing customers and partners to plan migrations of Dell PowerScale (OneFS)
+and NetApp ONTAP storage to Azure. The Azure Migrate appliance connects
+directly to your NAS cl
+Mon, 02 Nov 2026 19:37:11 Z
+2026-11-02T19:37:11Z
+576255 https://azure.microsoft.com/updates?id=576255 Retirements Retirement: OT security in Microsoft Defender for IoT
+This is the formal notice that Microsoft plans to deprecate the operational technology (OT) security component of Microsoft Defender for IoT. The service will be fully deprecated in October 2029, following a three-year transition period.This change applie
+Mon, 02 Nov 2026 19:22:28 Z
+2026-11-02T19:22:28Z
+574541 https://azure.microsoft.com/updates?id=574541 Launched Databases Hybrid + multicloud Azure Database for PostgreSQL Feature [Launched] Generally Available: Change from virtual network integration to a private endpoint capable network configuration in Azure Database for PostgreSQL flexible server
+You now have greater flexibility in network design for Azure Database for PostgreSQL Flexible Server workloads. Now you can change existing VNet-integrated servers from delegated-subnet networking to a private endpoint-capable configuration, enabling secu
+Mon, 02 Nov 2026 19:20:33 Z
+2026-11-02T19:20:33Z
+570498 https://azure.microsoft.com/updates?id=570498 Web Azure Fluid Relay Retirements Retirement: Azure Fluid Relay
+On June 2, 2027, we will retire Azure Fluid Relay. After this date, Azure Fluid Relay will reach end of availability, and workloads that continue to depend on the service may experience disruption.The Fluid Framework remains available as an open-source fr
+Mon, 02 Nov 2026 19:01:41 Z
+2026-11-02T19:01:41Z
+578628 https://azure.microsoft.com/updates?id=578628 Launched Storage Analytics Azure Blob Storage Azure Data Lake Storage Azure Storage Actions Services Feature [Launched] Generally Available: Azure Storage Actions adds automatic task updates, execution controls, and case-sensitive matching
+Azure Storage Actions is introducing three enhancements to simplify task management and give you more control over automated data operations across Azure Blob and Data Lake Storage:Automatic propagation of task definition updates: When you update a storag
+Mon, 02 Nov 2026 18:34:01 Z
+2026-11-02T18:34:01Z
+577992 https://azure.microsoft.com/updates?id=577992 Launched Databases Hybrid + multicloud Azure SQL Database Feature [Launched] Generally Available: Restart databases in Azure SQL DB via the Azure portal
+You can now restart or fail over databases directly from the Azure portal, including single databases, Hyperscale databases, and databases in elastic pools, without writing scripts against the Rest API or contacting support. Learn more.
+Mon, 02 Nov 2026 18:02:48 Z
+2026-11-02T18:02:48Z
+579021 https://azure.microsoft.com/updates?id=579021 Launched Integration Service Bus Feature [Launched] Generally Available: Geo-Replication on partitioned namespaces for Azure Service Bus Premium
+Geo-Replication on partitioned namespaces for
+Azure Service Bus Premium is now generally available. You can now combine the
+throughput benefits of partitioning with the reliability of replicating your
+messages and metadata to a secondary Azure region. Par
+Mon, 02 Nov 2026 18:00:51 Z
+2026-11-02T18:00:51Z
+579111 https://azure.microsoft.com/updates?id=579111 Launched Hybrid + multicloud Management and governance Migration Azure Arc Azure Site Recovery Management Feature [Launched] Generally Available: Azure Site Recovery for Azure Local
+Azure Site Recovery support for Azure Local is now generally available, making enterprise-grade disaster recovery simpler, accessible, easier to setup and secure than ever before. Customers can protect supported Windows and Linux virtual machines by repli
+Mon, 02 Nov 2026 17:49:48 Z
+2026-11-02T17:49:48Z
+577491 https://azure.microsoft.com/updates?id=577491 In preview Databases Hybrid + multicloud Azure SQL Database Feature [In preview] Public Preview: Support database-level managed identity (including FIC) in Create Database Scoped Credential T-SQL
+With database-level managed identity in Azure SQL Database, you can use a user-assigned managed identity for each database to query files in Azure Blob Storage and Azure Data Lake Storage Gen2 through external tables and OPENROWSET. You can authenticate t
+Fri, 30 Oct 2026 17:16:27 Z
+2026-10-30T17:16:27Z
+578850 https://azure.microsoft.com/updates?id=578850 Launched Feature [Launched] Generally Available: Large OS Disk Encryption for Azure Confidential VM migrations
+Large OS Disk Encry

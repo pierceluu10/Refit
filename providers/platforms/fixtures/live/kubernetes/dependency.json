@@ -1,0 +1,8 @@
+{
+  "repo": "cli",
+  "kind": "infrastructure",
+  "name": "kubernetes",
+  "version": "extensions/v1beta1",
+  "notes": "A Kubernetes manifest declares an Ingress with apiVersion extensions/v1beta1; no managed service is named.",
+  "declaredIn": []
+}

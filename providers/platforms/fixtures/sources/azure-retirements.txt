@@ -1,0 +1,222 @@
+Table of contents
+
+Exit editor mode
+
+Ask Learn
+
+Ask Learn
+
+Reading mode
+
+Table of contents
+
+Read in English
+
+Add
+
+Add to Plans
+
+Edit
+
+Copy Markdown
+
+Print
+
+Note
+
+Access to this page requires authorization. You can try signing in or changing directories.
+
+Access to this page requires authorization. You can try changing directories.
+
+# Service Retirement workbook
+
+Feedback
+
+Summarize this article for me
+
+Azure Advisor helps you assess and improve the continuity of your business-critical applications. It's important to be aware of upcoming Azure services and feature retirements to understand their impact on your workloads and plan migration.
+
+## Overview of workbook
+
+The Service Retirement workbook provides a single centralized resource level view of service retirements. It helps you assess impact, evaluate options, and plan for migration from retiring services and features. The workbook template is available in Azure Advisor gallery.
+
+## Open the Service Retirement workbook
+
+To open the Service Retirement workbook, complete the following actions.
+On Advisor | Workbooks | Gallery.
+
+- Select All or Public Templates.
+
+- Under Azure Advisor, select Service Retirement.
+
+To directly access the Service Retirement workbook, see Service Retirement workbook "Service Retirement workbook | Advisor | Microsoft Azure").
+
+The workbook shows a list and a map view of service retirements that impact your resources or services. Each service has a planned retirement date, the number of impacted resources, and migration instructions that include the recommended alternative service.
+
+- Use filters for subscription. resource group, and location to focus on a specific workload.
+
+- Use sorting to find services that are scheduled to retire and have the most impact on your workload.
+
+- Use the export feature to share the report with your team to help plan your migration.
+
+Note
+
+The workbook contains information about a subset of services and features in the current retirement lifecycle. The workbook contains information regarding every retirement but it does not provide service level information for every service. The Azure Advisor team continues to add more services to the workbook.
+
+To learn more about the lifecycle status of all Azure services, see Azure Updates.
+
+## Contents and capabilities of Service Retirement workbook
+
+The Service Retirement workbook template provides the following views to show the list of your services and resources impacted by retirement of a service.
+To learn about how to create a custom view for your workbook, see Edit a workbook.
+
+-
+Impacted Services
+
+-
+All Services
+
+-
+Retired Services
+
+The view named Impacted Services provides three filters, a map, and two tables to locate resources impacted by scheduled service retirement.
+The following drop-down menus filter the Retiring Azure services table.
+
+- Subscription
+
+- Resource group
+
+- Location
+The Retiring Azure services table provides data in the column under the following headings.
+
+- Service Name is the name of your impacted service.
+
+- Retiring Feature
+
+- Retirement Date
+
+- Actions
+
+- # Resources
+
+If you select the check box next to one or more service names in the Retiring Azure services table, the resources associated with the service names are shown in the ... resources affected by the selected service retirement... table.
+
+The ... resources affected by the selected service retirement... table provides data in the column under the following headings.
+
+- Subscription
+
+- Type
+
+- Retiring Feature
+
+- Retirement Date
+
+- Resource Group
+
+- Location
+
+- Resource Name is the name of your impacted resource.
+
+- Tags
+
+- Action
+
+- Subscription Id
+
+The view named All Services provides a table to locate services impacted by a scheduled service retirement.
+The view named All Services indicates in the column under the Is available under the impacted Services? heading that one or more of your features, resources, or services are listed on the Impacted Services view.
+The Retiring Azure services table provides data in the column under the following headings.
+
+- Service Name is the name of your impacted service.
+
+- Retiring Feature
+
+- Retirement Date
+
+- Actions
+
+- Is Available under the Impacted Service?
+
+The view named Retired Services provides a table to locate services that are retired.
+The Retired Azure Services and Features table provides data in the column under the following headings.
+
+- Service Name is the name of your impacted service.
+
+- Retiring Feature
+
+- Retirement Date
+
+- Actions
+
+## Share resources and services impacted by retirement
+
+To share with partners or your team the features, resources, and services impacted by retirement of an Azure feature; select the Export to Excel icon or the More icon > Export to Excel.
+
+Note
+
+The exported table is only provided in the .xlsx file format and only includes the current filtered data.
+
+## Frequently asked questions (F.A.Q.s)
+
+### What is included in the workbook and what isn't included that must be manually checked?
+
+The view named All Services provides details for all of the services that are undergoing Retirement cycle. The column under the Is available under the impacted Services? heading indicates that analysis of impacted resource is available for a specific retirement. A YES value means specific retirement information is available in Impacted Services view, where analysis of impacted resources is available. The resource-level information for other services is currently not available in the workbook.
+
+### Is an API available to automate the pull of the workbook data rather than running and exporting the workbook results?
+
+Yes, Azure Advisor APIs provide a way to set up a pull of the retirements data rather than running and exporting results from the workbook. You can also use Azure Resource Graph as an alternative way to query that same data. For a guide on utilizing these options, see Service Upgrade and Retirement recommendations.
+
+### How do you modify the workbook template to build a personalized view?
+
+To learn how to build a view, see Edit a workbook.
+
+### Does the All Services view support resource level impact analysis?
+
+The view named Impacted Services only shows the resource level impact for a subset of services. You must migrate impacted resources that aren't listed in the Impacted Services view. To receive all retirement notifications including reminders, you must configure the alerts at the subscription level.
+The view named All Service shows all retirements and indicates if a retirement is available in the Impacted Services view.
+
+## Related articles
+
+For more information, see the following articles.
+
+- 3-Year Notification Subset
+
+- What is Azure Service Health?
+
+- Microsoft Community Hub
+
+- Announcing the public preview of Service Retirement Workbook in Azure Advisor
+
+- How to visualize Service retirements in Azure Advisor
+
+- Microsoft Azure
+
+- Azure Updates
+
+## Feedback
+
+Was this page helpful?
+
+Yes
+
+No
+
+No
+
+Need help with this topic?
+
+Want to try using Ask Learn to clarify or guide you through this topic?
+
+Ask Learn
+
+Ask Learn
+
+Suggest a fix?
+
+##
+Additional resources
+
+-
+
+Last updated on
+2026-03-10

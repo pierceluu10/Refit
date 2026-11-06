@@ -1,0 +1,27 @@
+{
+  "provider": "kubernetes",
+  "fetchedAt": "2026-11-06T05:40:45.161Z",
+  "note": "Every page one run read, cut to what the agent was shown (at most 120000 characters). Test input only.",
+  "sources": [
+    {
+      "id": "kubernetes-io-docs-reference-using-api-deprecation-guide",
+      "url": "https://kubernetes.io/docs/reference/using-api/deprecation-guide/",
+      "status": 200,
+      "ok": true,
+      "file": "kubernetes-io-docs-reference-using-api-deprecation-guide.txt",
+      "chars": 15036,
+      "truncated": true,
+      "sha256": "457b1bec9a00ef99fbc3e3eca11e81d120c6a16c4d45561ea03b84c055ddb4bd"
+    },
+    {
+      "id": "endoflife-date-api-kubernetes-json",
+      "url": "https://endoflife.date/api/kubernetes.json",
+      "status": 200,
+      "ok": true,
+      "file": "endoflife-date-api-kubernetes-json.txt",
+      "chars": 3990,
+      "truncated": false,
+      "sha256": "71db4eb123e64a28cc5b920b530e280d50826c40bb0c3d0cffd9eb2d9686910b"
+    }
+  ]
+}

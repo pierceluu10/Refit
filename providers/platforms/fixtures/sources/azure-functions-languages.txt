@@ -1,0 +1,429 @@
+Table of contents
+
+Exit editor mode
+
+Ask Learn
+
+Ask Learn
+
+Reading mode
+
+Table of contents
+
+Read in English
+
+Add
+
+Add to Plans
+
+Edit
+
+Copy Markdown
+
+Print
+
+Note
+
+Access to this page requires authorization. You can try signing in or changing directories.
+
+Access to this page requires authorization. You can try changing directories.
+
+# Supported languages in Azure Functions
+
+Feedback
+
+Summarize this article for me
+
+This article explains the levels of support offered for your preferred language when you use Azure Functions. It also describes strategies for creating function apps when you use languages that aren't natively supported.
+
+There are two levels of support:
+
+- Generally available (GA) - Fully supported and approved for production use.
+
+- Preview - Not yet supported, but expected to reach GA status in the future.
+
+## Languages by runtime version
+
+Make sure to select your preferred development language at the top of the article.
+
+The following table shows the .NET versions supported by Azure Functions.
+
+The supported version of .NET depends on both your Functions runtime version and your selected execution model.
+
+-
+Isolated worker model
+
+-
+In-process model
+
+Your function app code runs in a separate .NET worker process. Use with supported versions of .NET and .NET Framework. For more information, see Guide for running C# Azure Functions in the isolated worker model.
+
+Important
+
+Support will end for the in-process model on November 10, 2026. We highly recommend that you migrate your apps to the isolated worker model for full support.
+
+Your function app code runs in the same process as the Functions host process. This model supports only Long Term Support (LTS) versions of .NET. For more information, see Develop C# class library functions using Azure Functions.
+
+-
+v4.x
+
+-
+v4.x
+
+Supported version
+Support level
+Expected end-of-support date
+
+.NET 8 (LTS)
+GA
+November 10, 2026
+
+Support for .NET 6 reached the end of official support on November 12, 2024.
+
+Important
+
+The in-process model currently only supports .NET 8. To be able to update your function app to use a later .NET version, you must migrate to the isolated worker model.
+
+For more information, see Develop C# class library functions using Azure Functions and Azure Functions legacy C# script (.csx) developer reference.
+
+Supported version
+Support level
+Expected end-of-support date
+
+.NET 10
+GA
+November 14, 2028
+
+.NET 9
+GA
+November 10, 20261
+
+.NET 8
+GA
+November 10, 2026
+
+.NET Framework 4.8.1
+GA
+See .NET Framework Support Policy
+
+1 .NET 9 previously had an expected end-of-support date of May 12, 2026. During the .NET 9 service window, the .NET team extended support for STS versions to 24 months, starting with .NET 9. For more information, see the blog post.
+
+Note
+
+.NET 9 is the last .NET version supported for Linux Consumption plan apps. Newer .NET versions aren't added to Linux Consumption. For more information, see Migrate Consumption plan apps to the Flex Consumption plan.
+
+.NET 6 reached the end of official support on November 12, 2024.
+
+.NET 7 reached the end of official support on May 14, 2024.
+
+For more information, see Guide for running C# Azure Functions in the isolated worker model.
+
+The following table shows the language versions supported for Java function apps:
+
+Supported version
+Support level
+Supported until
+
+Java 25
+GA
+May 2029
+
+Java 21
+GA
+September 2028
+
+Java 17
+GA
+September 2027
+
+Java 11
+GA
+September 2027
+
+Java 8
+GA
+September 2027
+
+Note
+
+Java 21 is the last Java version supported for Linux Consumption plan apps. Newer Java versions aren't added to Linux Consumption. For more information, see Migrate Consumption plan apps to the Flex Consumption plan.
+
+For more information on developing and running Java function apps, see Azure Functions Java developer guide.
+
+The following table shows the language versions supported for Node.js function apps:
+
+Supported version
+Support level
+Expected end-of-support date
+
+Node.js 24
+GA
+April 30, 2028
+
+Node.js 22
+GA
+April 30, 2027
+
+TypeScript is supported through transpiling to JavaScript. For more information, see Azure Functions Node.js developer guide.
+
+Note
+
+Node.js 22 is the last Node.js version supported for Linux Consumption plan apps. Newer Node.js versions aren't added to Linux Consumption. For more information, see Migrate Consumption plan apps to the Flex Consumption plan.
+
+The following table shows the language versions supported for PowerShell function apps:
+
+Supported version
+Support level
+Expected end-of-support date
+
+PowerShell 7.6
+GA
+November 14, 2028
+
+PowerShell 7.4
+GA
+November 10, 2026
+
+PowerShell 7.6 is supported on all Azure Functions hosting plans except Linux Consumption, including Premium and Dedicated on Windows and Linux, Windows Consumption, and Flex Consumption.
+
+Important
+
+Before you upgrade a Linux Consumption plan app from PowerShell 7.4 to PowerShell 7.6, you must first migrate the app to the Flex Consumption plan. PowerShell 7.4 is the last version supported on the Linux Consumption plan.
+
+For more information, see Azure Functions PowerShell developer guide.
+
+The following table shows the language versions supported for Python function apps:
+
+Supported version
+Support level
+Expected end-of-support date
+
+Python 3.15
+Preview
+April 2030
+
+Python 3.14
+GA
+April 2029
+
+Python 3.13
+GA
+October 2029
+
+Python 3.12
+GA
+October 2028
+
+Python 3.11
+GA
+October 2027
+
+Note
+
+Python 3.12 is the last Python version supported for Linux Consumption plan apps. Newer Python versions aren't added to Linux Consumption. For more information, see Migrate Consumption plan apps to the Flex Consumption plan.
+
+For more information, see Azure Functions Python developer guide.
+
+The following table shows the Go versions supported by Azure Functions:
+
+Supported version
+Support level
+Expected end-of-support date
+
+Go 1.24 or later
+GA
+See the Go release policy1
+
+1 Each major Go release is supported until two newer major releases are available.
+
+Note
+
+Go support is available only for function apps hosted in the Flex Consumption plan.
+
+For more information, see Azure Functions Go developer reference.
+
+For information about planned changes to language support, see the Azure roadmap updates.
+
+## Managed Linux images for affected existing apps
+
+Existing function apps keep their selected managed Linux image until you change the app configuration. If an existing Python 3.11 or Java 8, 11, or 17 app on an Elastic Premium or Dedicated (App Service) plan uses Debian Bullseye, use the following values to select a newer Linux distribution while retaining the same language version:
+
+Language version
+Debian Bullseye value
+Newer distribution
+Newer image value
+
+Python 3.11
+Python|3.11|2.0
+Debian Bookworm
+Python|3.11|3.0
+
+Java 8
+Java|8|2.0
+Ubuntu Noble
+Java|8|4.0
+
+Java 11
+Java|11|2.0
+Ubuntu Noble
+Java|11|4.0
+
+Java 17
+Java|17|2.0
+Ubuntu Noble
+Java|17|4.0
+
+For instructions to test and change the managed image, see Update the managed Linux image. For apps on the Linux Consumption plan, migrate to the Flex Consumption plan.
+
+## Language support details
+
+The following table shows which languages supported by Functions can run on Linux or Windows. It also indicates whether there's support for editing each language in the Azure portal. The language is based on the Runtime stack option you select when you create your function app in the Azure portal. This value is the same as the --worker-runtime option that you specify when you use the func init command in Azure Functions Core Tools.
+
+Language
+Runtime stack
+Linux
+Windows
+In-portal editing1
+
+C# (isolated worker model)
+.NET
+✓
+✓
+
+C# (in-process model)
+.NET
+✓
+✓
+2
+
+JavaScript
+Node.js
+✓
+✓
+✓
+
+Python
+Python
+✓
+X
+✓ 1
+
+Java
+Java
+✓
+✓
+
+PowerShell
+PowerShell Core
+✓
+✓
+✓
+
+TypeScript
+Node.js
+✓
+✓
+
+Go
+Go
+✓
+
+Rust/other
+Custom Handlers
+✓
+✓
+
+- In-portal editing isn't currently supported when running in the Flex Consumption plan. When in-portal editing isn't available, you must instead develop your function apps locally.
+
+- Although we recommend local development for C# apps, you can use the portal to develop and test C# script functions that use the in-process model. For more information, see Create a C# script app.
+
+- In-portal editing for Python is only supported when running in the Consumption plan.
+
+Important
+
+Function apps still running the end-of-life v3 runtime on Linux in a Consumption plan stop running after September 30, 2026. To avoid service disruption, migrate your app to the v4 runtime.
+
+The option to host function apps on Linux in a Consumption plan is retiring on 30 September 2028. The Linux Consumption plan isn't getting any new features or language versions. Apps running on Windows in a Consumption plan aren't currently affected. Migrate your apps to the Flex Consumption plan before the retirement date.
+
+For more information on operating system and language support, see Operating system support.
+
+For more information about how to maintain full-support coverage while running your function apps in Azure, see Azure Functions language stack support policy.
+
+### Language major version support
+
+Functions provides a guarantee of support for the major versions of supported programming languages. For most languages, there are minor or patch versions released to update a supported major version. Examples of minor or patch versions include Python 3.9.1 and Node 14.17. After new minor versions of supported languages become available, the minor versions used by your function apps are automatically upgraded to these newer minor or patch versions.
+
+Note
+
+Functions can remove the support of older minor versions after a new minor version is available. For this reason, you shouldn't pin your function apps to a specific minor or patch version of a programming language.
+
+## Custom handlers
+
+Custom handlers are lightweight web servers that receive events from the Functions host. You can implement a custom handler in any language that supports HTTP primitives. As a result, you can use custom handlers to create function apps in languages that aren't officially supported. For more information, see Azure Functions custom handlers.
+
+## Language extensibility
+
+The Functions runtime is designed to offer language extensibility. The JavaScript, Java, and Python languages are built with this extensibility.
+
+## ODBC driver support
+
+The following table lists the support that Open Database Connectivity (ODBC) driver versions offer for Python function apps:
+
+Driver version
+Python version
+
+ODBC driver 18
+≥ Python 3.11
+
+ODBC driver 17
+≤ Python 3.10
+
+## Next steps
+
+-
+Isolated worker model
+
+-
+In-process model
+
+.NET isolated worker process reference.
+
+In-process C# developer reference
+
+Java developer reference
+
+Node.js developer reference
+
+PowerShell developer reference
+
+Python developer reference
+
+Go developer reference
+
+## Feedback
+
+Was this page helpful?
+
+Yes
+
+No
+
+No
+
+Need help with this topic?
+
+Want to try using Ask Learn to clarify or guide you through this topic?
+
+Ask Learn
+
+Ask Learn
+
+Suggest a fix?
+
+##
+Additional resources
+
+-
+
+Last updated on
+2026-10-22

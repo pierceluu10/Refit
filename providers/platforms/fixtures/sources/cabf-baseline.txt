@@ -1,0 +1,198 @@
+Home »
+Working Groups »
+Server Cert WG »
+Baseline Requirements »
+Requirements
+
+# Latest Baseline Requirements
+
+Version: 2.3.1Date: 4-Oct-2026
+
+# 1. INTRODUCTION
+
+## 1.1 Overview
+
+This document describes an integrated set of technologies, protocols,
+identity-proofing, lifecycle management, and auditing requirements that
+are necessary (but not sufficient) for the issuance and management of
+Publicly-Trusted TLS Server Certificates; Certificates that are trusted
+by virtue of the fact that their corresponding Root Certificate is
+distributed in widely-available application software. The requirements
+are not mandatory for Certification Authorities unless and until they
+become adopted and enforced by relying-party Application Software
+Suppliers.
+Notice to Readers
+The CP for the Issuance and Management of Publicly-Trusted TLS Server
+Certificates describe a subset of the requirements that a Certification
+Authority must meet in order to issue Publicly Trusted TLS Server
+Certificates. This document serves two purposes: to specify Baseline
+Requirements and to provide guidance and requirements for what a CA
+should include in its CPS. Except where explicitly stated otherwise,
+these Requirements apply only to relevant events that occur on or after
+2012-07-01 (the original effective date of these requirements).
+These Requirements do not address all of the issues relevant to the
+issuance and management of Publicly-Trusted TLS Server Certificates. In
+accordance with RFC 3647 and to
+facilitate a comparison of other certificate policies and CPSs (e.g. for
+policy mapping), this document includes all sections of the RFC 3647
+framework. However, rather than beginning with a “no stipulation”
+comment in all empty sections, the CA/Browser Forum is leaving such
+sections initially blank until a decision of “no stipulation” is made.
+The CA/Browser Forum may update these Requirements from time to time, in
+order to address both existing and emerging threats to online security.
+In particular, it is expected that a future version will contain more
+formal and comprehensive audit requirements for delegated functions.
+These Requirements only address Certificates intended to be used for
+authenticating servers accessible through the Internet. Similar
+requirements for code signing, S/MIME, time-stamping, VoIP, IM, Web
+services, etc. may be covered in future versions.
+These Requirements do not address the issuance, or management of
+Certificates by enterprises that operate their own Public Key
+Infrastructure for internal purposes only, and for which the Root
+Certificate is not distributed by any Application Software Supplier.
+These Requirements are applicable to all Certification Authorities
+within a chain of trust. They are to be flowed down from the Root
+Certification Authority through successive Subordinate Certification
+Authorities.
+
+## 1.2 Document name and
+identification
+
+This certificate policy (CP) contains the requirements for the
+issuance and management of publicly-trusted TLS Server certificates, as
+adopted by the CA/Browser Forum.
+The following Certificate Policy identifiers are reserved for use by
+CAs to assert compliance with this document (OID arc 2.23.140.1.2) as
+follows:
+{joint-iso-itu-t(2) international-organizations(23) ca-browser-forum(140) certificate-policies(1) baseline-requirements(2) domain-validated(1)} (2.23.140.1.2.1);
+and
+{joint-iso-itu-t(2) international-organizations(23) ca-browser-forum(140) certificate-policies(1) baseline-requirements(2) organization-validated(2)} (2.23.140.1.2.2);
+and
+{joint-iso-itu-t(2) international-organizations(23) ca-browser-forum(140) certificate-policies(1) baseline-requirements(2) individual-validated(3)} (2.23.140.1.2.3).
+
+### 1.2.1 Revisions
+
+Ver. Ballot Description Adopted Effective*
+1.0.0 62 Version 1.0 of the Baseline Requirements Adopted 2011-11-22 2012-07-01
+1.0.1 71 Revised Auditor Qualifications 2012-05-08 2013-01-01
+1.0.2 75 Non-critical Name Constraints allowed as exception to RFC 5280 2012-06-08 2012-06-08
+1.0.3 78 Revised Domain/IP Address Validation, High Risk Requests, and Data
+Sources 2012-06-22 2012-06-22
+1.0.4 80 OCSP responses for non-issued certificates 2012-08-02 2013-08-02
+– 83 Network and Certificate System Security Requirements adopted 2013-08-03 2013-01-01
+1.0.5 88 User-assigned country code of XX allowed 2012-09-12 2012-09-12
+1.1.0 – Published as Version 1.1 with no changes from 1.0.5 2012-09-14 2012-09-14
+1.1.1 93 Reasons for Revocation and Public Key Parameter checking 2012-11-07 2012-11-07
+1.1.2 96 Wildcard certificates and new gTLDs 2013-02-20 2013-02-20
+1.1.3 97 Prevention of Unknown Certificate Contents 2013-02-21 2013-02-21
+1.1.4 99 Add DSA Keys (BR v.1.1.4) 2013-05-03 2013-05-03
+1.1.5 102 Revision to subject domainComponent language in Section 9.2.3 2013-05-31 2013-05-31
+1.1.6 105 Technical Constraints for Subordinate Certificate Authorities 2013-07-29 2013-07-29
+1.1.7 112 Replace Definition of “Internal Server Name” with “Internal
+Name” 2014-04-03 2014-04-03
+1.1.8 120 Affiliate Authority to Verify Domain 2014-06-05 2014-06-05
+1.1.9 129 Clarification of PSL mentioned in Section 11.1.3 2014-08-04 2014-08-04
+1.2.0 125 CAA Records 2014-10-14 2015-04-15
+1.2.1 118 SHA-1 Sunset 2014-10-16 2014-11-16
+1.2.2 134 Application of RFC 5280 to Pre-certificates 2014-10-16 2014-10-16
+1.2.3 135 ETSI Auditor Qualifications 2014-10-16 2014-10-16
+1.2.4 144 Validation Rules for .onion Names 2015-02-18 2015-02-18
+1.2.5 148 Issuer Field Correction 2015-04-02 2015-04-02
+1.3.0 146 Convert Baseline Requirements to RFC 3647 Framework 2015-04-16 2015-04-16
+1.3.1 151 Addition of Optional OIDs for Indicating Level of Validation 2015-09-28 2015-09-28
+1.3.2 156 Amend Sections 1 and 2 of Baseline Requirements 2015-12-03 2016-12-03
+1.3.3 160 Amend Section 4 of Baseline Requirements 2016-02-04 2016-02-04
+1.3.4 162 Sunset of Exceptions 2016-03-15 2016-03-15
+1.3.5 168 Baseline Requirements Corrections (Revised) 2016-05-10 2016-05-10
+1.3.6 171 Updating ETSI Standards in CABF documents 2016-07-01 2016-07-01
+1.3.7 164 Certificate Serial Number Entropy 2016-07-08 2016-09-30
+1.3.8 169 Revised Validation Requirements 2016-08-05 2017-03-01
+1.3.9 174 Reform of Requirements Relating to Conflicts with Local Law 2016-08-29 2016-11-27
+1.4.0 173 Removal of requirement to cease use of public key due to incorrect
+info 2016-07-28 2016-09-11
+1.4.1 175 Addition of givenName and surname 2016-09-07 2016-09-07
+1.4.2 181 Removal of some validation methods listed in Section 3.2.2.4 2017-01-07 2017-01-07
+1.4.3 187 Make CAA Checking Mandatory 2017-03-08 2017-09-08
+1.4.4 193 825-day Certificate Lifetimes 2017-03-17 2018-03-01
+1.4.5 189 Amend Section 6.1.7 of Baseline Requirements 2017-04-14 2017-05-14
+1.4.6 195 CAA Fixup 2017-04-17 2017-05-18
+1.4.7 196 Define “Audit Period” 2017-04-17 2017-05-18
+1.4.8 199 Require commonName in Root and Intermediate Certificates 2017-05-09 2017-06-08
+1.4.9 204 Forbid DTPs from doing Domain/IP Ownership 2017-07-11 2017-08-11
+1.5.0 212 Canonicalise formal name of the Baseline Requirements 2017-09-01 2017-10-01
+1.5.1 197 Effective Date of Ballot 193 Provisions 2017-05-01 2017-06-02
+1.5.2 190 Add Validation Methods with Minor Corrections 2017-09-19 2017-10-19
+1.5.3 214 CAA Discovery CNAME Errata 2017-09-27 2017-10-27
+1.5.4 215 Fix Ballot 190 Errata 2017-10-04 2017-11-05
+1.5.5 217 Sunset RFC 2527 2017-12-21 2018-03-09
+1.5.6 218 Remove validation methods #1 and #5 2018-02-05 2018-03-09
+1.5.7 220 Minor Cleanups (Spring 2018) 2018-03-30 2018-04-29
+1.5.8 219 Clarify handling of CAA Record Sets with no “issue”/“issuewild”
+property tag 2018-04-10 2018-05-10
+1.5.9 223 Update BR Section 8.4 for CA audit criteria 2018-05-15 2018-06-14
+1.6.0 224 WhoIs and RDAP 2018-05-22 2018-06-22
+1.6.1 SC006 Revocation Timeline Extension 2018-09-14 2018-10-14
+1.6.2 SC012 Sunset of Underscores in dNSNames 2018-11-09 2018-12-10
+1.6.3 SC013 CAA Contact Property and Associated E-mail Validation Methods 2018-12-25 2019-02-01
+1.6.4 SC014 Updated Phone Validation Methods 2019-01-31 2019-03-16
+1.6.4 SC015 Remove Validation Method Number 9 2019-02-05 2019-03-16
+1.6.4 SC007 Update IP Address Validation Methods 2019-02-08 2019-03-16
+1.6.5 SC016 Other Subject Attributes 2019-03-15 2019-04-16
+1.6.6 SC019 Phone Contact with DNS CAA Phone Contact v2 2019-05-20 2019-09-09
+1.6.7 SC023 Precertificates 2019-11-14 2019-12-19
+1.6.7 SC024 Fall Cleanup v2 2019-11-12 2019-12-19
+1.6.8 SC025 Define New HTTP Domain Validation Methods v2 2020-01-31 2020-03-03
+1.6.9 SC027 Version 3 Onion Certificates 2020-02-19 2020-03-27
+1.7.0 SC029 Pandoc-Friendly Markdown Formatting Changes 2020-03-20 2020-05-04
+1.7.1 SC030 Disclosure of Registration / Incorporating Agency 2020-07-13 2020-08-20
+1.7.1 SC031 Browser Alignment 2020-07-16 2020-08-20
+1.7.2 SC033 TLS Using ALPN Method 2020-08-14 2020-09-22
+1.7.3 SC028 Logging and Log Retention 2020-09-10 2020-10-19
+1.7.3 SC035 Cleanups and Clarifications 2020-09-09 2020-10-19
+1.7.4 SC041 Reformat the BRs, EVGs, and NCSSRs 2021-02-24 2021-04-05
+1.7.5 SC042 398-day Re-use Period 2021-04-22 2021-06-02
+1.7.6 SC044 Clarify Acceptable Status Codes 2021-04-30 2021-06-03
+1.7.7 SC046 Sunset the CAA Exception for DNS Operator 2021-06-02 2021-07-12
+1.7.8 SC045 Wildcard Domain Validation 2021-06-02 2021-07-13
+1.7.9 SC047 Sunset subject:organizationalUnitName 2021-06-30 2021-08-16
+1.8.0 SC048 Domain Name and IP Address Encoding 2021-07-22 2021-08-25
+1.8.1 SC050 Remove the requirements of 4.1.1 2021-11-22 2021-12-23
+1.8.2 SC053 Sunset for SHA-1 OCSP Signing 2022-01-26 2022-03-04
+1.8.3 SC051 Reduce and Clarify Log and Records Archival Retention
+Requirements 2022-03-01 2022-04-15
+1.8.4 SC054 Onion Cleanup 2022-03-24 2022-04-23
+1.8.5 SC056 2022 Cleanup 2022-10-25 2022-11-30
+1.8.6 SC058 Require distributionPoint in sharded CRLs 2022-11-07 2022-12-11
+1.8.7 SC061 New CRL entries must have a Revocation Reason Code 2023-04-01 2023-07-15
+2.0.0 SC062 Certificate Profiles Update 2023-04-22 2023-09-15
+2.0.1 SC063 Make OCSP optional, require CRLs, and incentivize automation 2023-08-17 2024-03-15
+2.0.2 SC066 2023 Cleanup 2023-11-23 2024-01-08
+2.0.3 SC069 Clarify router and firewall logging requirements 2024-03-13 2024-04-15
+2.0.4 SC065 Convert EVGs into RFC 3647 format 2024-03-15 2024-05-15
+2.0.5 SC073 Compromised and weak keys 2024-05-03 2024-07-01
+2.0.6 SC075 Pre-sign linting 2024-06-28 2024-08-06
+2.0.7 SC067 Require Multi-Perspective Issuance Corroboration 2024-08-02 2024-09-06
+2.0.8 SC077 Update WebTrust Audit name in Section 8.4 and References 2024-09-02 2024-10-02
+2.0.9 SC078 Subject organizationName alignment for DBA / Assumed Name 2024-10-02 2024-11-08
+2.1.0 SC076 Clarify and improve OCSP requirements 2024-09-26 2024-11-14
+2.1.1 SC079 Allow more than one Certificate Policy in a Cross-Certified
+Subordinate CA Certificate 2024-09-30 2024-11-14
+2.1.2 SC080 Strengthen WHOIS lookups and Sunset Methods 3.2.2.4.2 and
+3.2.2.4.15 2024-11-07 2024-12-16
+2.1.3 SC083 Winter 2024-2025 Cleanup Ballot 2025-01-23 2025-02-24
+2.1.4 SC084 DNS Labeled with ACME Account ID Validation Method 2025-01-28 2025-03-01
+2.1.5 SC081 Introduce Schedule of Reducing Validity and Data Reuse Periods 2025-04-11 2025-05-16
+2.1.6 SC085 Require Validation of DNSSEC (when present) for CAA and DCV
+Lookups 2025-06-19 2025-07-21
+2.1.7 SC089 Mass Revocation Planning 2025-07-23 2025-08-25
+2.1.8 SC092 Sunset Precertificate Signing CAs 2025-10-03 2025-11-04
+2.1.9 SC088 DNS TXT Record with Persistent Value DCV Method 2025-10-09 2025-11-10
+2.2.0 SC086 Sunset the Inclusion of Address and Routing Parameter Area
+Names 2025-11-13 2025-12-15
+2.2.1 SC091 Sunset 3.2.2.5.3 Reverse Address Lookup Validation, 2025-11-13 2025-12-16
+2.2.1 SC091 new DNS-based validation using Persistent DCV TXT Record for IP
+addresses 2025-11-13 2025-12-16
+2.2.2 SC090 Gradually sunset remaining email-based, phone-based, and ‘crossover’
+validation methods 2025-11-20 2026-01-12
+2.2.3 SC094 DNSSEC exception in email DCV methods 2026-01-15 2026-02-16
+2.2.4 SC096 Carve-out for D

@@ -1,0 +1,457 @@
+# Google Cloud Platform Services Subject to the Deprecation Policy
+Details of the Deprecation Policy are included in the agreement under which you receive Google Cloud Platform Services.
+The Google Cloud Platform Services described at https://cloud.google.com/terms/services are subject to the Deprecation Policy (as set forth in your applicable terms of service). Any versions, features, or functionality of the Services that are pre-general availability are excluded from the Deprecation Policy. See launch stages for further information about Google Cloud Platform launch stages.
+
+Previous versions (Last modified June 1, 2021)
+March 31, 2021September 24, 2020August 19, 2020July 22, 2020June 30, 2020June 17, 2020February 25, 2020January 13, 2020December 3, 2019November 14, 2019October 25, 2019August 13, 2019January 31, 2019November 27, 2018September 27, 2018September 5, 2018August 16, 2018August 3, 2018July 18, 2018June 14, 2018November 16, 2017November 13, 2017June 22, 2017May 31, 2017
+
+menu
+
+
+search send
+
+Docs Support
+Console Sign in
+
+Start free
+
+Start free
+
+Contact us
+
+close
+- Accelerate your digital transformation
+
+- Whether your business is early in its journey or well on its way to digital transformation, Google Cloud can help solve your toughest challenges.
+
+- Learn more
+
+- Key benefits
+
+- Why Google Cloud
+Top reasons businesses choose us.
+
+- AI and Agents
+Get enterprise-ready AI.
+
+- Multicloud
+Run your apps wherever you need them.
+
+- Global infrastructure
+Build on the same infrastructure as Google.
+
+- Data Cloud
+Make smarter decisions with unified data.
+
+- Modern Infrastructure Cloud
+Next generation of cloud infrastructure.
+
+- Security
+Protect your users, data, and apps.
+
+- Productivity and collaboration
+Connect your teams with AI-powered apps.
+
+- Reports and insights
+
+- Executive insights
+Curated C-suite perspectives.
+
+- Analyst reports
+Read what industry analysts say about us.
+
+- Whitepapers
+Browse and download popular whitepapers.
+
+- Customer stories
+Explore case studies and videos.
+
+close
+- Industry Solutions
+
+- Application Modernization
+
+- Artificial Intelligence
+
+- APIs and Applications
+
+- Data Analytics
+
+- Databases
+
+- Infrastructure Modernization
+
+- Productivity and Collaboration
+
+- Security
+
+- Startups and SMB
+
+See all solutions
+
+-
+Industry Solutions
+Reduce cost, increase operational agility, and capture new market opportunities.
+
+-
+Retail
+Analytics and collaboration tools for the retail value chain.
+
+-
+Consumer Packaged Goods
+Solutions for CPG digital transformation and brand growth.
+
+-
+Financial Services
+Computing, data management, and analytics tools for financial services.
+
+-
+Healthcare and Life Sciences
+Advance research at scale and empower healthcare innovation.
+
+-
+Media and Entertainment
+Solutions for content production and distribution operations.
+
+-
+Telecommunications
+Hybrid and multi-cloud services to deploy and monetize 5G.
+
+-
+Games
+AI-driven solutions to build and scale games faster.
+
+-
+Manufacturing
+Migration and AI tools to optimize the manufacturing value chain.
+
+-
+Supply Chain and Logistics
+Enable sustainable, efficient, and resilient data-driven operations across supply chain and logistics operations.
+
+-
+Government
+Data storage, AI, and analytics solutions for government agencies.
+
+-
+Education
+Teaching tools to provide more engaging learning experiences.
+
+- Not seeing what you're looking for?
+
+- See all industry solutions
+
+-
+Application Modernization
+Modernize, automate, and scale your application and data portfolio using enterprise AI, intelligent engineering practices, and cloud-native infrastructure.
+
+- Google Cloud Modernize
+Unified program and AI-powered tools for end-to-end cloud migration and modernization.
+
+- Application Modernization with AI
+AI-assisted code refactoring, assessment, and transformation for legacy applications.
+
+- Gemini for business
+Enterprise-ready generative AI and agents to accelerate innovation across your organization.
+
+- AI Hypercomputer
+Integrated supercomputing architecture to train, tune, and serve AI workloads.
+
+- Mainframe Modernization
+Automated tools and AI-driven guidance for moving your mainframe apps to the cloud.
+
+- Database Modernization
+Fully managed database services to migrate, manage, and modernize enterprise data.
+
+- Data Lake Modernization
+Unify and govern multimodal data on an open, high-performance cloud data lake.
+
+- Data Warehouse Modernization
+Migrate and modernize your enterprise data warehouse for serverless analytics and AI.
+
+- APIs
+Unlock legacy applications and build new digital channels using APIs and automation.
+
+- Platform Eng
+Managed services and golden paths to build, manage, and scale internal developer platforms.
+
+- DevOps Best Practices
+Processes and resources for implementing DevOps in your org.
+
+- SRE Principles
+Tools and resources for adopting SRE in your org.
+
+-
+Artificial Intelligence
+Add intelligence and efficiency to your business with AI and machine learning.
+
+- Gemini for customer experience
+Build and manage agents that live across the entire customer lifecycle.
+
+- Gemini for enterprise
+Unified agentic portfolio for your entire organization.
+
+- AI Commerce Search
+Google-quality search and product recommendations for retailers.
+
+- Google Cloud with Gemini
+AI assistants for application development, coding, and more.
+
+- Physical AI
+Simulate, train, and operate the next generation of robots, autonomous vehicles, industrial devices, and machines.
+
+-
+APIs and Applications
+Speed up the pace of innovation without coding, using APIs, apps, and automation.
+
+- New Business Channels Using APIs
+Attract and empower an ecosystem of developers and partners.
+
+- Unlocking Legacy Applications Using APIs
+Cloud services for extending and modernizing legacy apps.
+
+- Open Banking APIx
+Simplify and accelerate secure delivery of open banking compliant APIs.
+
+-
+Data Analytics
+Generate instant insights from data at any scale with a serverless, fully managed analytics platform that significantly simplifies analytics.
+
+- Data Migration
+Migrate and modernize your data warehouse and data lakes with AI-powered migration services.
+
+- Data Lakehouse
+Unify and govern your multimodal data with a high-performance and open data lakehouse.
+
+- Real-time Analytics
+Insights from ingesting, processing, and analyzing event streams.
+
+- Marketing Analytics
+Solutions for collecting, analyzing, and activating customer data.
+
+- Datasets
+Data from Google, public, and commercial providers to enrich your analytics and AI initiatives.
+
+- Business Intelligence
+Solutions for modernizing your BI stack and creating rich data experiences.
+
+- Data Analytics Agents
+Built-in agents for data lifecycle and tools to build your own agents.
+
+- Geospatial Analytics
+A comprehensive platform to solve for geospatial use cases at scale.
+
+- Data Science
+Managed services and integrated workflows to build, manage, and scale data science.
+
+-
+Databases
+Migrate and manage enterprise data with security, reliability, high availability, and fully managed data services.
+
+- Database Migration
+Guides and tools to simplify your database migration life cycle.
+
+- Database Modernization
+Upgrades to modernize your operational database infrastructure.
+
+- Databases for Games
+Build global, live games with Google Cloud databases.
+
+- Google Cloud Databases
+Database services to migrate, manage, and modernize data.
+
+- Migrate Oracle workloads to Google Cloud
+Rehost, replatform, rewrite your Oracle workloads.
+
+- Open Source Databases
+Fully managed open source databases with enterprise-grade support.
+
+- SQL Server on Google Cloud
+Options for running SQL Server virtual machines on Google Cloud.
+
+- Gemini for Databases
+Supercharge database development and management with AI.
+
+-
+Infrastructure Modernization
+Migrate core systems rapidly and modernize enterprise workloads with AI-powered infrastructure and automated cloud solutions.
+
+- Google Cloud Modernize
+Unified program and AI-powered tools for end-to-end cloud migration and modernization.
+
+- Gemini for business
+Enterprise-ready generative AI and agents to accelerate innovation across your organization.
+
+- AI Hypercomputer
+Integrated supercomputing architecture to train, tune, and serve AI workloads.
+
+- Rapid Migration and Modernization Program (RaMP)
+End-to-end migration program to simplify and accelerate your path to the cloud.
+
+- Data Center Exits
+Migration solutions for moving VMs, apps, databases, and workloads out of data centers.
+
+- Application Modernization & Migration
+Discovery, assessment, and migration tools for moving and modernizing applications.
+
+- Database Modernization & Migration
+Fully managed database services to migrate, manage, and modernize enterprise data.
+
+- Cross-Cloud Networking
+Simplify hybrid and multicloud networking, and secure your workloads, data, and users.
+
+- High Performance Computing (HPC)
+Compute, storage, and networking options to support any high-performance workload.
+
+- VMware
+Fully managed, native VMware Cloud Foundation software stack on Google Cloud.
+
+- SAP
+Certified infrastructure and AI solutions for running SAP applications and SAP HANA.
+
+- Windows
+Tools, licenses, and partner solutions for running enterprise Windows workloads.
+
+-
+Productivity and Collaboration
+Change the way teams work with solutions designed for humans and built for impact.
+
+- Google Workspace
+Collaboration and productivity tools for enterprises.
+
+- Google Workspace Essentials
+Secure video meetings and modern collaboration for teams.
+
+- Cloud Identity
+Unified platform for IT admins to manage user devices and apps.
+
+- Chrome Enterprise
+ChromeOS, Chrome Browser, and Chrome devices built for business.
+
+-
+Security
+Detect, investigate, and respond to online threats to help protect your business.
+
+- Agentic SOC
+Delivering better security outcomes with AI agents.
+
+- Web App and API Protection
+Threat and fraud protection for your web applications and APIs.
+
+- Security and Resilience Framework
+Solutions for each phase of the security and resilience life cycle.
+
+- Risk and compliance as code (RCaC)
+Solution to modernize your governance, risk, and compliance function with automation.
+
+- Software Supply Chain Security
+Solution for improving end-to-end software supply chain security.
+
+- Security Foundation
+Recommended products to help achieve a strong security posture.
+
+- Google Cloud Cybershield™
+Strengthen nationwide cyber defense.
+
+-
+Startups and SMB
+Accelerate startup and SMB growth with tailored solutions and programs.
+
+- Startup Program
+Get financial, business, and technical support to take your startup to the next level.
+
+- Small and Medium Business
+Explore solutions for web hosting, app development, AI, and analytics.
+
+- Software as a Service
+Build better SaaS products, scale efficiently, and grow your business.
+
+close
+- Featured Products
+
+- AI and Machine Learning
+
+- Business Intelligence
+
+- Compute
+
+- Containers
+
+- Data Analytics
+
+- Databases
+
+- Developer Tools
+
+- Distributed Cloud
+
+- Hybrid and Multicloud
+
+- Industry Specific
+
+- Integration Services
+
+- Management Tools
+
+- Maps and Geospatial
+
+- Media Services
+
+- Migration
+
+- Networking
+
+- Operations
+
+- Productivity and Collaboration
+
+- Security and Identity
+
+- Serverless
+
+- Storage
+
+- Web3
+
+See all products (100+)
+
+- Featured Products
+
+-
+Gemini for business
+Secure platform to discover, create, run, and govern AI agents for employees.
+
+-
+Gemini platform
+Unified platform for ML models, generative AI, and agent building.
+
+-
+Compute Engine
+Virtual machines running in Google’s data center.
+
+-
+Cloud Storage
+Object storage that’s secure, durable, and scalable.
+
+-
+BigQuery
+Autonomous data to AI platform for analytics and data science.
+
+-
+Cloud Run
+Fully managed environment for running containerized apps.
+
+-
+Google Kubernetes Engine
+Managed environment for running containerized apps.
+
+-
+Looker
+Platform for BI, data applications, and embedded analytics.
+
+-
+Apigee API Management
+Manage the full life cycle of APIs anywhere with visibility and control.
+
+-
+Cloud SQ

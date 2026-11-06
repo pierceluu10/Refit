@@ -1,0 +1,456 @@
+tag:google.com,2016:gcp-release-notes
+Google Cloud Platform (GCP) - Release notes
+
+Google Cloud Platform
+
+2026-11-05T00:00:00-08:00
+
+November 05, 2026
+
+tag:google.com,2016:gcp-release-notes#November_05_2026
+2026-11-05T00:00:00-08:00
+
+## Apigee Edge for Public Cloud
+
+### Announcement
+
+Scheduled maintenance of Management/Control Plane for the Apigee Edge for Public Cloud on November 6, 2026.
+
+Scheduled maintenance of Management/Control Plane for the Apigee Edge for Public Cloud production will take place on Friday, November 6, 2026, from 9:00 PM PT to
+10:00 PM PT (Saturday, November 7, 2026, from 5:00 AM UTC to 6:00 AM UTC). This
+maintenance follows the monthly maintenance window schedule documented in the
+Apigee Edge release notes archive.
+
+During the scheduled maintenance window, the following services will be
+temporarily unavailable, and attempts to access them will return a 4xx status
+code:
+
+- Management Services UI
+
+- Management Services APIs
+
+- Monetization Management APIs
+
+- New proxy deployments
+
+- DevPortal Service
+
+- Microgateway Services
+
+- Edge Query (Analytics Stats APIs)
+
+Runtime API calls to deployed API proxies are unaffected. While access to
+analytics queries may be temporarily unavailable during the maintenance window, all
+analytics and metrics data from this period will be available once maintenance
+ends.
+
+## BigQuery
+
+### Change
+
+The BigQuery Metadata curation console page has been removed. You can now
+use Knowledge Catalog to schedule Cloud Storage discovery scans,
+manage data profiling
+and data quality,
+and perform related data governance tasks.
+
+### Feature
+
+Conversational analytics in BigQuery
+is now available in the asia-northeast1 (Tokyo) location. For more
+information, see Locations.
+
+## Data Studio
+
+### Feature
+
+You can now combine tables vertically in Data Studio blends by using the
+Union merge operator, which appends rows across up to five tables and
+removes duplicate rows. In addition, blend UI labels now use merge (such as
+Merge another table, Merge conditions, and Hide repeated merge
+fields) to encompass both join and union operations. For more information, see
+How blends work in Data Studio and
+Create, edit, and manage blends.
+
+## Gemini Enterprise Agent Platform
+
+### Feature
+
+Gemini Omni 1.2 Flash
+
+Gemini Omni 1.2 Flash
+(gemini-omni-1.2-flash) is available in
+General Availability (GA).
+Gemini Omni 1.2 Flash is an omni-modal foundation model that processes text,
+image, and video inputs to generate text and high-definition video with
+synchronized audio through the
+Interactions API.
+
+Gemini Omni 1.2 Flash introduces the following capabilities:
+
+- Standalone video upscaling: Upscale previously generated videos from
+360p to 720p or 1080p, and from 720p to 1080p or 4K using task: "upscale".
+See Upscale videos.
+
+- Extended video generation and editing duration: Generate or edit videos
+up to 15 seconds in length across text-to-video, image-to-video,
+reference-to-video, and video editing tasks (up to 10 seconds for
+first-and-last-frame interpolation and video extension).
+
+- Reference-guided video editing and extension: Supply up to 2 reference
+images along with an input video when editing or extending videos. See
+Edit videos and
+Extend videos.
+
+- Deterministic generation and billing labels: Specify seed for
+reproducible video outputs and attach custom labels to Interactions API
+requests.
+
+- Standard PayGo and Provisioned Throughput: Available with
+Standard Pay-as-you-go (PayGo)
+and
+Provisioned Throughput
+(685 tokens per second per GSU).
+
+### Fixed
+
+CodeMender updates (v0.18.0)
+
+This release introduces updates to CodeMender:
+
+- Verification tool-turn guardrails: Added exploratory tool-turn limits to cm verify sessions to prevent unbounded command execution loops.
+
+- Release notes link in update prompts: Added a direct link to DevSite release notes when CodeMender prompts to update to a newer CLI version.
+
+- Agent IAM diagnostic guidance: Added actionable roles/aiplatform.agentsUser IAM binding commands to CLI setup and error messages for service account and CI/CD environments.
+
+- Bug fixes:
+
+- Improved the reliability of agent sessions, including verification and resumed sessions.
+
+- Improved compatibility across shell environments.
+
+- Improved the sign-in flow during interactive activation.
+
+- Improved error reporting when the service is temporarily unavailable.
+
+- Includes security and stability improvements.
+
+For more information, see the CodeMender documentation.
+
+## Google SecOps
+
+### Feature
+
+[Spotlight Feature] Case activity tagging
+
+You can now use custom tags for individual activities, comments, tasks, and
+actions on the Case Wall, and filter the wall view by those tags. This allows
+you to categorize specific observations and filter the timeline to view only the
+entries relevant to your investigation or team.
+
+For more information, see Add a tag to a Case Wall activity.
+
+## Model Armor
+
+### Feature
+
+You can enable or disable the child sexual abuse material (CSAM) filter in
+Model Armor templates and floor settings, and configure granular
+confidence levels (High, Medium and above, and Low and above).
+
+For more information, see Model Armor
+filters and Create and manage
+templates.
+
+## Security Command Center
+
+### Deprecated
+
+Data Security Posture Management (DSPM) is no longer available to new organizations. If
+DSPM is already enabled for your organization, you retain full
+access until its scheduled shutdown on February 1, 2027. For more information,
+see Deprecations and shut down features and
+alternative detection capabilities.
+
+November 04, 2026
+
+tag:google.com,2016:gcp-release-notes#November_04_2026
+2026-11-04T00:00:00-08:00
+
+## API Gateway
+
+### Announcement
+
+Negative backend deadlines are no longer deprecated
+
+The deprecation of negative backend deadline values announced on
+October 23, 2026 is withdrawn. In an OpenAPI 2.0 x-google-backend
+extension or a gRPC BackendRule, a negative deadline continues to
+use the default deadline, the same as 0, and won't be rejected.
+OpenAPI 3.x backends still reject a negative deadline.
+
+For more information, see OpenAPI 2.0 extensions and OpenAPI 3.x extensions.
+
+## AlloyDB for PostgreSQL
+
+### Feature
+
+Direct Iceberg access in AlloyDB for PostgreSQL is available for PostgreSQL 18
+and later (in Preview).
+This feature lets you query Apache Iceberg tables in Cloud Storage or Lakehouse
+runtime catalog and accelerate analytical queries using the AlloyDB columnar
+engine.
+
+For more information, see
+Access Iceberg data from
+AlloyDB.
+
+### Feature
+
+Syncing data from BigQuery into AlloyDB is generally available
+(GA). This feature
+lets you copy or mirror analytical tables from BigQuery into AlloyDB for
+low-latency operational access using the alloydb_sync extension.
+
+For more information, see
+Sync BigQuery data to AlloyDB.
+
+### Feature
+
+AlloyDB Express is available in
+Preview for
+PostgreSQL 18. Optimized for rapid prototyping and for workflows that use AI
+coding agents, this configuration provides the following features:
+
+- Fast provisioning
+
+- Scale-to-zero compute when idle
+
+- A monthly free tier for the first 12 months of usage
+
+- One-click upgrades to AlloyDB for PostgreSQL
+
+For more information, see
+AlloyDB Express overview.
+
+## Apigee Operator for kubernetes
+
+### Announcement
+
+On November 4, 2026, we released an updated version of Apigee.
+
+### Feature
+
+The Apigee Operator for Kubernetes version 1.1.2 is now available.
+
+### Security
+
+Bug ID
+Description
+
+521387476, 521388685, 521389473, 521389648, 521390401, 521390431, 521418315, 521467563, 521470029, 521523106, 521532318, 522502328, 522502515, 522502723, 522508097, 522515015, 522515987, 523406508, 524990439, 525000385, 525013469, 545525835, 545535262, 545546643, 545547894, 545594793, 545595426, 545604082, 545605504, 545613200, 545619209, 546865118, 549708263, 572097689, 572100132
+Security fixes for Netty in the Apigee Operator for Kubernetes. Upgraded Netty to 4.1.137.Final. This addresses the following vulnerabilities:
+- CVE-2026-33870
+
+- CVE-2026-33871
+
+- CVE-2026-41417
+
+- CVE-2026-42578
+
+- CVE-2026-42579
+
+- CVE-2026-42580
+
+- CVE-2026-42581
+
+- CVE-2026-42583
+
+- CVE-2026-42584
+
+- CVE-2026-42585
+
+- CVE-2026-42587
+
+- CVE-2026-44249
+
+- CVE-2026-45416
+
+- CVE-2026-45673
+
+- CVE-2026-45674
+
+- CVE-2026-47244
+
+- CVE-2026-47691
+
+- CVE-2026-48043
+
+- CVE-2026-50010
+
+- CVE-2026-50020
+
+- CVE-2026-50560
+
+- CVE-2026-55831
+
+- CVE-2026-55833
+
+- CVE-2026-56745
+
+- CVE-2026-56746
+
+- CVE-2026-56819
+
+- CVE-2026-59898
+
+- CVE-2026-59899
+
+- CVE-2026-59900
+
+- CVE-2026-59901
+
+- CVE-2026-59903
+
+- CVE-2026-59921
+
+- CVE-2026-73508
+
+- CVE-2026-75595
+
+- CVE-2026-75596
+
+527492626, 527495614, 527497578, 527498733, 545553137, 572096453, 572096754, 572096884, 572097054, 572097090, 572097183, 572098198, 572098299, 572099894, 572100881, 578504005
+Security fixes for Jackson in the Apigee Operator for Kubernetes. Upgraded Jackson to 2.21.7. This addresses the following vulnerabilities:
+- CVE-2026-18401
+
+- CVE-2026-19032
+
+- CVE-2026-54512
+
+- CVE-2026-54513
+
+- CVE-2026-54514
+
+- CVE-2026-54515
+
+- CVE-2026-59888
+
+- CVE-2026-59889
+
+- CVE-2026-68494
+
+- CVE-2026-68497
+
+- CVE-2026-77310
+
+- CVE-2026-83557
+
+- CVE-2026-89407
+
+- CVE-2026-89425
+
+- CVE-2026-91776
+
+- CVE-2026-91777
+
+521477919, 545546100, 545555197, 545603496, 545608493
+Security fixes for Jetty in the Apigee Operator for Kubernetes. Upgraded Jetty to 12.0.36. This addresses the following vulnerabilities:
+- CVE-2025-11143
+
+- CVE-2026-1605
+
+- CVE-2026-2332
+
+- CVE-2026-6790
+
+- CVE-2026-8384
+
+- CVE-2026-10050
+
+- CVE-2026-10051
+
+522503039
+Security fixes for Vert.x in the Apigee Operator for Kubernetes. Upgraded Vert.x to 4.5.35. This addresses the following vulnerabilities:
+- CVE-2026-1002
+
+- CVE-2026-6860
+
+579151884
+Security fixes for Guava in the Apigee Operator for Kubernetes. Upgraded Guava to 33.7.2-jre. This addresses the following vulnerabilities:
+- CVE-2026-102554
+
+## Bigtable
+
+### Feature
+
+Bigtable offers conversational analytics, which lets you query your
+operational data using natural language. This feature uses the
+Conversational Analytics API
+and is in Preview.
+For more information, see Conversational analytics for Bigtable overview.
+
+### Feature
+
+The QueryData tool lets you query the data in your database using
+conversational language and build data agents.
+This feature is available in Preview.
+For more information, see QueryData tool overview.
+
+## Cloud Run
+
+### Feature
+
+Cloud Run ephemeral disk is in General Availability (GA). Ephemeral disk allows you to mount a volume that persists only for the duration of your service, job, or worker pool instance.
+
+## Cloud SQL for SQL Server
+
+### Feature
+
+Cloud SQL for SQL Server now supports read pool autoscaling
+(GA),
+which helps you more easily manage your application's workload needs.
+
+This feature automates read pool scale in and scale out operations based on one
+or both of the following conditions:
+
+- Allowed CPU usage of the read pool
+
+- Allowed number of client connections to the read pool
+
+## Cloud Storage
+
+### Feature
+
+You can pause hard deletions for a bucket when you need more time to restore
+soft-deleted objects before they're permanently deleted. For more information,
+see
+Pause permanent (hard) deletions of soft-deleted objects.
+
+## Gemini Enterprise
+
+### Feature
+
+Gemini Enterprise: Switch between teams in the mobile app
+
+You can switch between multiple teams in the Gemini Enterprise mobile app
+without logging out and rescanning the QR code. (Teams were previously called
+instances.)
+
+When you open a team for the first time, the mobile app saves it to your teams
+list. Additionally, you can rename teams in the list and you can remove teams
+from your list.
+
+This feature is generally available (GA). For more information, see
+Teams in Use the mobile
+app.
+
+## Gemini Enterprise Agent Platform
+
+### Feature
+
+AlphaGenome gRPC and unified HTTP serving support
+
+AlphaGenome (alphagenome-004) now supports unified HTTP/2 gRPC streaming and
+chunked binary protobuf HTTP streaming on Gemini Enterprise Ag

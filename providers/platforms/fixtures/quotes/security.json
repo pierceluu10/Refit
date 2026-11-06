@@ -1,0 +1,10 @@
+{
+  "cabf-sc081": "Eventual reduction of maximum validity period from 398 days to 47 days",
+  "cabf-baseline": "Latest Baseline Requirements Version: 2.3.1",
+  "letsencrypt-feed": "A Good Day for Cryptography",
+  "chrome-root-program": "this program determines which website certificates Chrome trusts by default",
+  "rfc-8996": "This document formally deprecates Transport Layer Security (TLS)",
+  "exchange-basic-auth": "Basic authentication is now disabled in all tenants.",
+  "google-less-secure-apps": "you and your users must use OAuth with third-party apps",
+  "github-changelog": "Usage metrics API adds code review details and addressed rate"
+}

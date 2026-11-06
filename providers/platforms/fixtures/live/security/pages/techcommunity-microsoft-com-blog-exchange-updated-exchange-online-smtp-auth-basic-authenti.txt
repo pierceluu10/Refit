@@ -1,0 +1,362 @@
+## Blog Post
+
+Exchange Team Blog
+1 MIN READ
+
+# Updated Exchange Online SMTP AUTH Basic Authentication Deprecation Timeline
+
+The_Exchange_Team Platinum Contributor
+
+Jan 27, 2026
+
+We understand that many customers continue to face real challenges modernizing legacy email workflows and need sufficient time to adopt viable, secure alternatives. Based on customer feedback and visibility into adoption progress, we are refining the Exchange Online SMTP AUTH Basic Authentication Deprecation timeline to provide clearer milestones and additional runway.
+
+- Now to December 2026: SMTP AUTH Basic Authentication behavior remains unchanged.
+
+- End of December 2026: SMTP AUTH Basic Authentication will be disabled by default for existing tenants. Administrators will still be able to enable it if needed.
+
+- New tenants created after December 2026: SMTP AUTH Basic Authentication will be unavailable by default. OAuth will be the supported authentication method.
+
+- Second half of 2027: Microsoft will announce the final removal date for SMTP AUTH Basic Authentication.
+
+These updates are intended to give customers with tenants in our service (all cloud environments) more time to plan, validate, and deploy modern authentication alternatives, while maintaining a clear path toward stronger default security.
+
+Microsoft 365 Messaging Team
+
+Updated Jan 29, 2026
+Version 3.0
+
+administration
+announcements
+exchange online
+planning and architecture
+protocols
+security
+setup
+transport
+
+Like
+
+Comment
+
+The_Exchange_Team Platinum Contributor
+
+Joined April 19, 2019
+
+Send Message
+View Profile
+
+Exchange Team Blog You Had Me at EHLO.
+
+### 37 Comments
+Replies sorted by Newest
+
+-
+technonath Iron Contributor
+
+Oct 26, 2026
+
+Great, so over the christmas break we can look forward to lots of tickets asking why people cannot send emails from their scanners and legacy devices. I am still trying to deal with the fall out of EWS deprecation with MS who announced that calendar sharing would break before they actually have the alternative up and running and just switched of EWS regardless.
+
+Like
+0
+Reply
+
+-
+VictorKilo7 Copper Contributor
+
+Sep 27, 2026
+
+Quick question, just to make sure we don't have to play "toggle, toggle" at the start of 2027 😊
+For organizations that have already migrated to SMTP AUTH with OAuth 2.0, will the end-of-2026 "disabled by default" change have any impact, or is this change only targeting SMTP AUTH using Basic Authentication?
+In other words, if a mailbox is using SMTP AUTH with OAuth 2.0, will SMTP AUTH still need to be re-enabled at the tenant or mailbox level after the default disablement?
+
+Like
+
+Reply
+
+-
+ewb_redddd Copper Contributor
+
+Aug 24, 2026
+
+- Applications That Support OAuth
+- Create app registration in Entra
+
+- graph api permissions
+- SendMail
+
+- Internal Applications Using OnPremises Exchange Authentication
+- use basic auth
+
+- point to on premises exchange server
+
+- username + password + port 587 + TLS/SSL
+
+- Internal Applications Using SMTP Relay (No Credentials)
+- point to on premises exchange server
+
+- no username or password
+
+- any from email address
+
+- port 25
+
+- Create Exchange on premises SMTP relay receive connector
+- add internal ip address of sending device
+
+- Direct Relay to Exchange Online (No Credentials)
+- contosocom.mail.protection.outlook.com
+
+- no username or password
+
+- any from email address
+
+- port 25
+
+- Create Exchange online receive connector
+- add public ip address of your sending infrastructure
+
+- Public DNS
+- Add ip address to spf record
+
+Like
+
+Reply
+
+-
+VictorKilo7 Copper Contributor
+
+to ewb_redddd
+Sep 27, 2026
+
+Great write-up. Thanks. Had some questions you or some others could answer here? What are some alternatives for Printers, apart from EXO Connector using Public Static IP OR OAuth Device code flow which comes with it's own risks ? We have a large number of printers to take care of, we're looking for a long term strategy instead of hopping one solution to another.
+Most printers still don't have OAuth with Client credentials.
+
+Like
+0
+Reply
+
+-
+TBG_FR Copper Contributor
+
+to VictorKilo7
+Oct 01, 2026
+
+We do have a solution that's perfect for printers that do not support OAuth with client credentials, that we can provide On-Premises (or SaaS aswell) if you're interested and have a large number of printers to handle. Feel free to look at https://useitlonger.com/integration-adapters-m365and let's talk about it!
+
+Like
+0
+Reply
+
+-
+Steven_H Copper Contributor
+
+Jun 24, 2026
+
+Microsoft should enable HVE in GCC as a replacement for Client Submission with SMTP AUTH.
+
+Like
+0
+Reply
+
+-
+JonathanCubides Copper Contributor
+
+Apr 27, 2026
+
+ok, Got It.
+How ever If need a way to SMTP the Basic Auth isn't work and the OAuth 2.0 face some inconvenience.
+
+After following Microsoft's official documentation step-by-step to configure SMTP AUTH with OAuth 2.0 Client Credentials Flow (Application permissions) for sending emails from a third-party application (Microsoft Dynamics 365 Business Central), authentication fails with 535 5.7.3 Authentication unsuccessful even though all prerequisites are confirmed in place:
+
+- Token is successfully issued by Microsoft Entra ID with the correct scope
+
+- All required permissions are granted with admin consent
+
+- Service Principal exists in Exchange Online with correct role assignments
+
+- Test-ServicePrincipalAuthorization returns InScope: True for the target mailbox
+
+- SMTP AUTH is enabled at the mailbox level
+
+- More than 44 hours have elapsed since the last configuration change (replication should be complete)
+
+Like
+0
+Reply
+
+-
+TheDoct0r Copper Contributor
+
+Mar 16, 2026
+
+Absolutely definitely should retain the option for Administrators to Enable SMTP with Basic Auth. You can scope security with Conditional Access. For example, a CA policy restricting this account to the external IP of the printer, further mitigation can then be via the admin console to only allow SMTP Auth for that account and disable all other access. This really narrows the threat / attack profile and risk profile of that account.
+Further a retention policy of 24 hours on that account so it doesn't accumulate a scan history etc... and self maintains.
+Finally, a good hygiene of using long passwords for these static devices, and if you want to be belt & braces, include a password rotation every 12 months for these devices, custom alerts to logging in etc..
+
+Like
+
+Reply
+
+-
+JPR_MA Copper Contributor
+
+Mar 09, 2026
+
+Hello,
+With this change, will the "App Password" continue working? Or is this deprecated?
+We have some clients connecting the app using the App Password generated but this is not sending emails. Do the clients need to use the EAC (Exchange Admin Center) to add the IP or something like that?
+All of the clients have a corporate email under Microsoft 365.
+
+Like
+0
+Reply
+
+-
+90MU Tin Contributor
+
+Mar 03, 2026
+
+I would like to suggest a practical solution that Microsoft could potentially implement to address the challenges caused by the deprecation of Basic Authentication and the transition to OAuth.
+The move to OAuth is clearly creating significant difficulties for many organisations. Implementation is often complex, and in some cases simply not feasible because many legacy devices and applications do not support modern authentication and never will. While the push toward OAuth is largely driven by the security risks associated with stolen passwords, there have also been cases where OAuth implementations have been abused or compromised. Although OAuth is undoubtedly more secure overall, it is not flawless and is considerably more complex to configure correctly.
+Instead of fully removing Basic Authentication, Microsoft could enhance its security through changes within the Exchange Admin Center (EAC).
+One possible approach would be for Microsoft to introduce an interface in EAC that allows administrators to create tenant-unique SMTP endpoint addresses. These tenant-specific SMTP addresses would internally route to Microsoft 365’s SMTP service to send mail, but would not be shared publicly (like smtp.office365.com)
+Microsoft could enforce several security controls around these tenant-unique SMTP endpoints:
+
+- Restrict each endpoint so it only works with specified mailboxes.
+
+- Require regular password changes for those mailboxes.
+
+- Make tenant-specific SMTP endpoints expire (forcing them to be renewed after 2 years for example)
+
+- Allow administrators to revoke and regenerate tenant-unique SMTP endpoints at any time.
+
+- Restrict the associated mailboxes so they can only send mail via SMTP (preventing interactive login and mailbox access through web browser etc).
+
+- Require the tenant-unique SMTP endpoint value in addition to username and password for successful authentication.
+
+This approach would mean that even if credentials were stolen, an attacker would also need the tenant-unique SMTP endpoint in order to send mail. Administrators could quickly revoke and recreate endpoints if compromise is suspected.
+The core issue is not only stolen passwords, but also the shared public SMTP endpoint (smtp.office365.com), which provides a universal target. Introducing tenant-unique SMTP endpoints that Microsoft simply routes internally would significantly reduce that attack surface while preserving compatibility for legacy systems.
+If implemented, this solution would:
+
+- Improve the security of Basic Authentication.
+
+- Allow organisations to maintain functionality for existing devices and scripts.
+
+- Reduce reliance on a single public SMTP endpoint.
+
+- Give administrators greater control over revocation and rotation.
+
+This proposal is not referring to using a tenant’s MX record or configuring connectors. Rather, I’m suggesting creating a controlled, tenant-specific SMTP authentication endpoint within Microsoft 365 that preserves Basic Authentication while strengthening its security model.
+
+Like
+
+Reply
+
+-
+Juhelium Copper Contributor
+
+to 90MU
+May 20, 2026
+
+The_Exchange_Team​ One up for this proposal. This would be a good way to at least give some more time for organizations to adapt, plus you'd be upgrading EAC security at the same time.
+
+Like
+0
+Reply
+
+-
+JPR_MA Copper Contributor
+
+to 90MU
+Mar 09, 2026
+
+The_Exchange_Team​ Please check this proposal. It would be good if you thing on something like this.
+
+Like
+0
+Reply
+
+-
+Deleted Not applicable
+
+Feb 27, 2026
+
+Greetings Nino_Bilic​, is there a way to identify or run a report in Exchange admin center to find out if we are using it SMTP Auth Basic Auth?
+I think it is related to the Connectors I had setup for scan to email or applications to send internal emails.
+E.g. using contoso-com.mail.protection.outlook.com and port 25, no credentials.
+
+Like
+
+Reply
+
+-
+Nino_Bilic Microsoft
+
+to Deleted
+Feb 27, 2026
+
+Please have a look at this report: SMTP AUTH clients report in the new EAC in Exchange Online | Microsoft Learn
+
+Like
+
+Reply
+
+-
+yyagi Tin Contributor
+
+to Nino_Bilic
+Feb 27, 2026
+
+Excellent, thank you! It looks like I may need to wait 90 days for the new data to populate.
+I’m seeing the informational header that says, “The Authentication Protocol column is a new addition and the data for this column will take 90 days to build up.” I went ahead and clicked Request Report just in case it also triggers an emailed version.
+
+Like
+0
+Reply
+
+-
+MarkMitchell1 Copper Contributor
+
+Feb 27, 2026
+
+do many organisations use the MX record method for SMTP?
+example
+domain-com.mail.protection.outlook.com
+port 25
+SSL Off
+??
+is this a secure way of doing it which won't be affected by these changes?
+
+Like
+
+Reply
+
+-
+90MU Tin Contributor
+
+to MarkMitchell1
+Mar 03, 2026
+
+It is the less common way of doing it but yes it is secure as you need to set up a connector in EAC and specify your public IP address to allow the mail to be sent successfully.
+If the public IP address of your connection does not match the IP address defined in the connector, then the mail is not sent. So you need a static public IP address on your connection.
+You need to ensure that if you do this you add a SPF record to your domain with your public IP address, otherwise the mail will in most cases go to recipients junk/spam folder.
+
+Like
+0
+Reply
+
+-
+Deleted Not applicable
+
+to MarkMitchell1
+Feb 27, 2026
+
+I do. Also curious about this question.
+
+Like
+0
+Reply
+
+Sign in to reply
