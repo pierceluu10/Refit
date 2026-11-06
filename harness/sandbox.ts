@@ -36,13 +36,63 @@ const SANDBOX_ENV = {
   npm_config_store_dir: '/tmp/refit-pnpm-store',
 };
 
-export type SandboxOptions = { mode?: 'docker' | 'local'; image?: string };
+// The env that turns install scripts off. With the agent's request, a Docker sandbox drops it.
+const SCRIPTS_OFF = ['npm_config_ignore_scripts', 'YARN_ENABLE_SCRIPTS', 'PIP_ONLY_BINARY'];
+
+export type RuntimeName = 'node' | 'python';
+export type Runtime = { name: RuntimeName; version: string };
+
+// The official images the sandbox is tested on. Another version still gets its official tag: the
+// agent may try it, and the run notes say it is outside this list.
+export const OFFICIAL_RUNTIMES: Readonly<Record<RuntimeName, readonly string[]>> = {
+  node: ['18', '20', '22', '24'],
+  python: ['3.9', '3.10', '3.11', '3.12', '3.13'],
+};
+
+// 'node@20', 'node 20', 'python3.11', 'python 3.12.4' or 'nodejs 22' → a Runtime, else undefined.
+export function parseRuntime(text: string): Runtime | undefined {
+  const match = /^\s*(node(?:js)?|python)\s*@?\s*v?(\d+(?:\.\d+){0,2})\s*$/i.exec(text);
+  if (!match) return undefined;
+  const name: RuntimeName = match[1].toLowerCase().startsWith('node') ? 'node' : 'python';
+  return { name, version: match[2] };
+}
+
+// The Docker Hub official image for a runtime: node:20-bookworm, python:3.12-bookworm.
+export function runtimeImage(runtime: Runtime): string {
+  return `${runtime.name}:${runtime.version}-bookworm`;
+}
+
+export function isOfficialRuntime(runtime: Runtime): boolean {
+  const family =
+    runtime.name === 'node'
+      ? runtime.version.split('.')[0]
+      : runtime.version.split('.').slice(0, 2).join('.');
+  return OFFICIAL_RUNTIMES[runtime.name].includes(family);
+}
+
+export type SandboxOptions = {
+  mode?: 'docker' | 'local';
+  image?: string;
+  // Run on this runtime and version, in its official image. Docker only; locally it is noted.
+  runtime?: Runtime;
+  // Install scripts stay off unless the agent asks, and even then only inside a Docker container.
+  installScripts?: boolean;
+};
+
+export type RuntimeSandbox = Sandbox & {
+  image?: string;
+  runtime?: Runtime;
+  installScripts: boolean;
+  // What the sandbox could not do as asked, in plain words, for the run notes and the PR.
+  notes: string[];
+};
 
 export async function createSandbox(
   repoDir: string,
   options: SandboxOptions = {},
-): Promise<Sandbox & { image?: string }> {
+): Promise<RuntimeSandbox> {
   const mode = options.mode ?? (await pickMode());
+  const notes: string[] = [];
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'refit-sandbox-'));
   const dir = path.join(root, 'repo');
   // The git dir lives outside the working copy, so sandboxed code cannot plant hooks, fsmonitor or
@@ -70,16 +120,42 @@ export async function createSandbox(
 
     if (mode === 'local') {
       const env = { ...scrubbedEnv(), ...SANDBOX_ENV };
+      // Hard limit 1: on the host, install scripts never run, whatever the agent asks.
+      if (options.installScripts) {
+        notes.push(
+          'Install scripts stayed off: they run only in a Docker sandbox, and Docker was not used.',
+        );
+      }
+      if (options.runtime) {
+        notes.push(
+          `Asked for ${options.runtime.name} ${options.runtime.version}, but without Docker the local sandbox runs the host's ${options.runtime.name}${options.runtime.name === 'node' ? ` (${process.version})` : ''}; checks on that version are unproven.`,
+        );
+      }
       return {
         dir,
         mode,
+        installScripts: false,
+        notes,
         exec: (command, opts) => run('sh', ['-c', command], { cwd: dir, env, ...opts }),
         diff,
         dispose: remove,
       };
     }
 
-    const image = options.image ?? process.env.REFIT_SANDBOX_IMAGE ?? (await pickImage(repoDir));
+    const image =
+      options.image ??
+      (options.runtime ? runtimeImage(options.runtime) : undefined) ??
+      process.env.REFIT_SANDBOX_IMAGE ??
+      (await pickImage(repoDir));
+    if (options.runtime && !isOfficialRuntime(options.runtime)) {
+      notes.push(
+        `${options.runtime.name} ${options.runtime.version} is outside the tested images (${OFFICIAL_RUNTIMES[options.runtime.name].join(', ')}); tried ${image} anyway.`,
+      );
+    }
+    const installScripts = options.installScripts === true;
+    const sandboxEnv = Object.entries(SANDBOX_ENV).filter(
+      ([key]) => !installScripts || !SCRIPTS_OFF.includes(key),
+    );
     const name = `refit-${randomBytes(6).toString('hex')}`;
     // Run as the host user so files the container writes stay editable and removable on the host.
     const user =
@@ -88,7 +164,7 @@ export async function createSandbox(
     const started = await run('docker', [
       'run', '-d', '--rm', '--name', name, ...user,
       '--memory', '4g', '--cpus', '2', '--security-opt', 'no-new-privileges',
-      ...Object.entries(SANDBOX_ENV).flatMap(([key, value]) => ['-e', `${key}=${value}`]),
+      ...sandboxEnv.flatMap(([key, value]) => ['-e', `${key}=${value}`]),
       '-e', 'HOME=/tmp',
       '-v', `${dir}:/work`, '-w', '/work', image, 'sleep', 'infinity',
     ]);
@@ -97,6 +173,9 @@ export async function createSandbox(
       dir,
       mode,
       image,
+      runtime: options.runtime,
+      installScripts,
+      notes,
       exec: (command, opts) => {
         const timeoutMs = opts?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
         // Killing the docker client leaves the command running, so the container enforces the
@@ -117,10 +196,21 @@ export async function createSandbox(
   }
 }
 
-export function sandboxEnvNote(sandbox: Sandbox & { image?: string }): string {
+export function sandboxEnvNote(
+  sandbox: Sandbox & { image?: string; installScripts?: boolean },
+): string {
+  const scripts = sandbox.installScripts
+    ? "install scripts enabled at the agent's request, inside the container only"
+    : 'install scripts disabled';
   return sandbox.mode === 'docker'
-    ? `Docker container ${sandbox.image ?? DEFAULT_IMAGE}; install scripts disabled; no host env or mounts besides the repo copy; no credentials, so no live API calls`
+    ? `Docker container ${sandbox.image ?? DEFAULT_IMAGE}; ${scripts}; no host env or mounts besides the repo copy; no credentials, so no live API calls`
     : 'Local temp copy; install scripts disabled; no Docker; no credentials, so no live API calls';
+}
+
+// Whether a Docker daemon answers. Checks and validators use it to say plainly what they could not run.
+export async function dockerAvailable(): Promise<boolean> {
+  const info = await run('docker', ['info'], { timeoutMs: 20_000 });
+  return info.code === 0;
 }
 
 async function pickImage(repoDir: string): Promise<string> {
@@ -139,8 +229,7 @@ async function pickMode(): Promise<'docker' | 'local'> {
   if (fromEnv === 'docker' || fromEnv === 'local') return fromEnv;
   // On Linux CI never fall back to running repo code on the host; a missing Docker should fail loudly.
   if (process.env.CI && process.platform === 'linux') return 'docker';
-  const info = await run('docker', ['info'], { timeoutMs: 20_000 });
-  return info.code === 0 ? 'docker' : 'local';
+  return (await dockerAvailable()) ? 'docker' : 'local';
 }
 
 const execFileAsync = promisify(execFile);
@@ -161,6 +250,13 @@ async function runGit(gitDir: string, workTree: string, args: string[]): Promise
   );
   return stdout;
 }
+
+// Runs a host tool (docker, never repo code). Exported for the validators.
+export const runHost = (
+  file: string,
+  args: string[],
+  options: { timeoutMs?: number; cwd?: string } = {},
+) => run(file, args, options);
 
 // Never throws. Keeps the last OUTPUT_CAP characters of each stream and kills the whole process
 // group on timeout.
