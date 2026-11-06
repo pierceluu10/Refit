@@ -1,5 +1,6 @@
 import { Info, WarningCircle } from '@phosphor-icons/react';
 import { useCallback, useEffect, useState } from 'react';
+import type { ScanReport } from '../shared/types.ts';
 
 // No API is served here (a static deploy answers 404 or falls back to index.html).
 export class ApiUnavailableError extends Error {}
@@ -26,6 +27,24 @@ export async function fetchApi<T>(
 
 export function isList<T>(body: unknown): body is T[] {
   return Array.isArray(body);
+}
+
+export function fetchRepos(signal: AbortSignal) {
+  return fetchApi('/api/repos', isList<string>, signal);
+}
+
+function isReport(body: unknown): body is ScanReport {
+  return typeof body === 'object' && body !== null && 'items' in body;
+}
+
+// null means the repo has no finished scan yet.
+export async function fetchReport(repo: string, signal: AbortSignal): Promise<ScanReport | null> {
+  try {
+    return await fetchApi(`/api/report?${new URLSearchParams({ repo })}`, isReport, signal);
+  } catch (error) {
+    if (error instanceof ApiNotFoundError) return null;
+    throw error;
+  }
 }
 
 export type ApiState<T> =
