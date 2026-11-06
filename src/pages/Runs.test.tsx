@@ -154,12 +154,12 @@ describe('runs', () => {
 
   it('shows an error when the API fails', async () => {
     renderRuns(respond({ error: 'boom' }, 500));
-    expect(await screen.findByRole('alert')).toHaveTextContent('The runs API answered 500.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('The API answered 500.');
   });
 
   it('shows an error when the API returns something other than a list', async () => {
     renderRuns(respond({ runs: [] }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('something other than a list');
+    expect(await screen.findByRole('alert')).toHaveTextContent('something unexpected');
   });
 
   it.each([
@@ -172,7 +172,7 @@ describe('runs', () => {
     renderRuns(fetcher());
     await screen.findByRole('list', { name: 'Runs' });
     expect(screen.getByText('Example data')).toBeVisible();
-    expect(screen.getByText(/No runs API is reachable/)).toBeVisible();
+    expect(screen.getByText(/No Refit API is reachable/)).toBeVisible();
     expect(rows()).toHaveLength(exampleRuns.length);
   });
 

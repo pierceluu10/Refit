@@ -1,7 +1,7 @@
 import { CheckCircle, FolderSimple, WarningCircle, XCircle } from '@phosphor-icons/react';
 import { Link } from 'react-router-dom';
 import type { ReactNode } from 'react';
-import type { ApiUsage, RunRecord } from '../../shared/types.ts';
+import type { RunRecord } from '../../shared/types.ts';
 import { outcomeLabels } from '../fixtures';
 
 const outcomeStyles = {
@@ -25,12 +25,12 @@ export function PageHeading({
   title,
   description,
   action,
-  example = true,
+  example,
 }: {
   title: string;
   description: string;
   action?: ReactNode;
-  example?: boolean;
+  example: boolean;
 }) {
   return (
     <div className="app-page-heading">
@@ -44,31 +44,14 @@ export function PageHeading({
   );
 }
 
-export function CallSites({ callSites }: { callSites: ApiUsage['callSites'] }) {
-  return (
-    <ul className="call-sites">
-      {callSites.map((site) => (
-        <li key={`${site.file}:${site.line}`}>
-          <code>
-            {site.file}:{site.line}
-          </code>
-          <strong>{site.operation}</strong>
-          {site.fields && <span>Fields: {site.fields.join(', ')}</span>}
-          {site.notes && <span>{site.notes}</span>}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 export function WorkspaceMissing() {
   return (
     <div className="empty-state">
       <FolderSimple size={32} />
       <h1>Nothing at this address.</h1>
-      <p>This resource is not part of the example dashboard.</p>
+      <p>This page isn’t part of the dashboard.</p>
       <Link className="button button-primary" to="/app">
-        Back to overview
+        Back to What’s behind
       </Link>
     </div>
   );

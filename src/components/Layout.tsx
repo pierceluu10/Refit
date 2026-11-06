@@ -32,17 +32,16 @@ export function Header() {
             }
           }}
         >
-          <a href="/#how-it-works" onClick={() => setOpen(false)}>
+          <a href="/#story" onClick={() => setOpen(false)}>
             How it works
           </a>
-          <NavLink to="/demo">Demo</NavLink>
           <NavLink to="/docs">Docs</NavLink>
           <a className="github-link" href={PROJECT_URL} target="_blank" rel="noreferrer">
             <GithubLogo weight="bold" /> GitHub <ArrowUpRight size={12} />
           </a>
-          <Link className="button button-small button-dark" to="/app">
-            Explore the dashboard <ArrowRight />
-          </Link>
+          <a className="button button-small button-dark" href="/#waitlist">
+            Join the waitlist <ArrowRight />
+          </a>
         </nav>
       </div>
     </header>
@@ -54,7 +53,7 @@ export function Footer() {
     <footer className="site-footer">
       <div className="footer-top">
         <Brand />
-        <p>Built for the next API change.</p>
+        <p>Software that never falls behind.</p>
         <div>
           <Link to="/docs">Documentation</Link>
           <a href={PROJECT_URL} target="_blank" rel="noreferrer">
@@ -64,7 +63,7 @@ export function Footer() {
       </div>
       <div className="footer-bottom">
         <span>© {new Date().getFullYear()} Refit</span>
-        <span>Pull requests only. Human reviewed.</span>
+        <span>Open source. Human reviewed.</span>
         <span className="footer-status">
           <span /> In development
         </span>
@@ -80,11 +79,10 @@ export function PagePosition() {
     if (target) target.scrollIntoView();
     else window.scrollTo(0, 0);
     const titlesByPath: Record<string, string> = {
-      '/': 'Refit: Keep your integrations current',
-      '/demo': 'Refit: Interactive workflow',
+      '/': 'Refit: Software that never falls behind',
       '/docs': 'Refit: Documentation',
     };
-    document.title = titlesByPath[pathname] ?? 'Refit: Dashboard preview';
+    document.title = titlesByPath[pathname] ?? 'Refit: Dashboard';
   }, [pathname, hash]);
   return null;
 }

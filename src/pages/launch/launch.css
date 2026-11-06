@@ -1,0 +1,1500 @@
+/* Flat black panels on a flat white page. The hero is a black and white ASCII video; color is limited to
+   the real logo colors and plain product color inside the cards. Grey is for shading and secondary text.
+   Radius: panel 24 (phone 16), leaf 16, inner 8, pills full. Nested radius is outer minus gap when the gap is under 32. */
+:host {
+  display: block;
+  background: #fff;
+  color: #000;
+  font:
+    400 16px/24px 'Geist Variable',
+    system-ui,
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  caret-color: #000;
+  color-scheme: light;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* The frame every section shares, matched to maritime.sh: 24 at the sides, 64 on top, 20 below. Phone is 12, 56, 12. */
+  --gutter: max(24px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+  --frame-bottom: 20px;
+  --column: calc(100vw - 2 * var(--gutter));
+  --nav-h: 64px;
+  --panel-radius: 24px;
+  --h1-size: 72px;
+  --stage-h: calc(100svh - var(--nav-h) - var(--frame-bottom));
+  /* The card is the panel's subject: 70% of its height at most sizes, floored for short laptops, capped for big monitors, and the caption keeps 260 wide. */
+  --leaf-w: min(var(--column) - 372px, 1.4 * clamp(446px, 0.7 * var(--stage-h), 771px));
+  --leaf-h: calc(var(--leaf-w) / 1.4);
+  /* Every size inside a card is a multiple of this, so a bigger card has really bigger type and stays crisp. One unit is 1px on a 720 card. */
+  --u: calc(var(--leaf-w) / 720);
+  --leaf-pad: calc(32 * var(--u));
+  --title-size: calc(30 * var(--u));
+  --title-line: calc(36 * var(--u));
+  --grey: #6b6b6b;
+  --grey-on-black: #a3a3a3;
+  --line: #e5e5e5;
+  --wash: #f5f5f5;
+  --positive: #287252;
+  --positive-soft: #e7f1ec;
+  --negative: #ad3e49;
+  --negative-soft: #f8eaec;
+  --warning: #8b570f;
+  --accent: #ffc48f;
+}
+* {
+  box-sizing: border-box;
+}
+::selection {
+  background: #000;
+  color: #fff;
+}
+.panel ::selection {
+  background: #fff;
+  color: #000;
+}
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+figure {
+  margin: 0;
+  padding: 0;
+}
+ul,
+ol {
+  list-style: none;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+code {
+  font-family: 'Geist Mono Variable', ui-monospace, monospace;
+  font-variant-ligatures: none;
+}
+svg {
+  display: block;
+  flex: none;
+}
+.icon {
+  width: 20px;
+  height: 20px;
+}
+.page {
+  overflow-x: clip;
+  background: #fff;
+}
+.logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.logo svg {
+  width: 100%;
+  height: 100%;
+}
+
+.panel {
+  position: relative;
+  width: var(--column);
+  margin-inline: auto;
+  overflow: hidden;
+  border-radius: var(--panel-radius);
+  background: #000;
+  color: #fff;
+}
+
+/* Nav */
+.nav {
+  position: fixed;
+  z-index: 50;
+  inset: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--nav-h);
+  padding-inline: calc((100% - var(--column)) / 2);
+  background: #fff;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.brand svg {
+  width: 24px;
+  height: 21.6px;
+  fill: currentColor;
+}
+.nav-cta {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 20px;
+  background: #000;
+  color: #fff;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: transform 160ms var(--ease-out);
+}
+.nav-cta:active {
+  transform: scale(0.97);
+}
+.nav-cta:focus-visible,
+.brand:focus-visible {
+  outline: 2px solid #000;
+  outline-offset: 2px;
+  border-radius: 20px;
+}
+
+/* Hero */
+.hero {
+  padding-block: var(--nav-h) var(--frame-bottom);
+}
+.hero-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  height: var(--stage-h);
+  min-height: 560px;
+}
+.hero-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.hero-copy {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 24px;
+  text-align: center;
+}
+h1,
+.closing-title {
+  font-size: var(--h1-size);
+  line-height: 1.05;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+/* Hugs the letters so sky glyphs don't crowd them; a wider blur would read as a dark patch behind the copy. */
+.hero-copy h1,
+.hero-copy .sub {
+  text-shadow:
+    0 0 6px #000,
+    0 0 14px rgb(0 0 0 / 0.8);
+}
+.sub {
+  max-width: 600px;
+  margin-top: 16px;
+  color: #fff;
+  font-size: 18px;
+  line-height: 28px;
+  text-wrap: pretty;
+}
+.waitlist {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 480px;
+  max-width: 100%;
+  height: 60px;
+  margin-top: 24px;
+  padding: 6px 6px 6px 24px;
+  border-radius: 30px;
+  background: #fff;
+  color: #000;
+  text-align: left;
+}
+.waitlist:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.waitlist label {
+  font-weight: 600;
+}
+.waitlist input {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  border: 0;
+  outline: 0;
+  background: none;
+  color: #000;
+  font: inherit;
+  caret-color: #000;
+}
+.waitlist input::placeholder {
+  color: var(--grey);
+  opacity: 1;
+}
+.join {
+  flex: none;
+  height: 48px;
+  padding: 0 24px;
+  border-radius: 24px;
+  background: #000;
+  color: #fff;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: transform 160ms var(--ease-out);
+}
+.join:active {
+  transform: scale(0.97);
+}
+.join:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: -5px;
+}
+.note {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  min-height: 20px;
+  color: #fff;
+  font-size: 14px;
+  line-height: 20px;
+  text-align: center;
+}
+
+/* The story: the hero's language, an inset panel with white page around it, pinned while the wheel spins and the cards scroll. */
+.story {
+  position: relative;
+  height: var(--story-height, auto);
+}
+.stage {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  padding-top: var(--nav-h);
+  padding-bottom: var(--frame-bottom);
+  background: #fff;
+}
+.stage-panel {
+  height: 100%;
+}
+.dust {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.wheel {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: pan-y;
+  cursor: grab;
+  outline: 0;
+}
+.wheel.is-held {
+  cursor: grabbing;
+}
+.wheel:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -8px;
+  border-radius: 16px;
+}
+.sheet {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+/* Stacked, the strip passes under this band, so a folding card never touches the caption or the numerals. */
+.sheet::before {
+  content: '';
+  position: absolute;
+  z-index: 7;
+  inset: 0 0 auto;
+  height: var(--roof, 0);
+  background: linear-gradient(#000 calc(100% - 16px), #0000);
+  opacity: 0;
+  transition: opacity 200ms var(--ease-out);
+}
+.stage.is-pulled .sheet::before {
+  opacity: 1;
+}
+.step {
+  display: contents;
+}
+.step-title {
+  position: absolute;
+  z-index: 8;
+  left: var(--stage-margin);
+  top: var(--caption-top);
+  width: var(--title-w);
+  font-size: var(--title-size);
+  line-height: var(--title-line);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  opacity: 0;
+  transition: opacity 100ms var(--ease-out);
+}
+.step.is-current .step-title {
+  opacity: 1;
+  transition: opacity 240ms var(--ease-out) 60ms;
+}
+.leaf {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  width: var(--leaf-w);
+  height: var(--leaf-h);
+  border-radius: calc(16 * var(--u));
+  background: #fff;
+  color: #000;
+  overflow: hidden;
+  transform-origin: 50% 0;
+  visibility: hidden;
+  backface-visibility: visible;
+  pointer-events: auto;
+  will-change: transform;
+}
+/* Flat shading: paper dims as it turns from the light. */
+.leaf::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: #000;
+  opacity: var(--shade, 0);
+  pointer-events: none;
+}
+.marks {
+  position: absolute;
+  z-index: 1;
+  left: var(--stage-margin);
+  top: var(--marks-top);
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms var(--ease-out);
+}
+.stage.is-pulled .marks,
+.marks:focus-within {
+  opacity: 1;
+  pointer-events: auto;
+}
+.marks button {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: var(--grey-on-black);
+  font-family: 'Doto', ui-monospace, monospace;
+  font-weight: 900;
+  font-size: 18px;
+  line-height: 28px;
+  text-align: left;
+  transition: transform 160ms var(--ease-out);
+}
+.marks button:active {
+  transform: scale(0.97);
+}
+.marks button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.marks .is-current {
+  color: var(--accent);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pill .icon {
+  width: 16px;
+  height: 16px;
+}
+.pill.small {
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 16px;
+}
+.pill.small .icon {
+  width: 14px;
+  height: 14px;
+}
+.leaf .pill {
+  gap: calc(4 * var(--u));
+  height: calc(32 * var(--u));
+  padding: 0 calc(14 * var(--u));
+  border-radius: calc(16 * var(--u));
+  font-size: calc(15 * var(--u));
+  line-height: calc(20 * var(--u));
+}
+.leaf .pill .icon {
+  width: calc(17 * var(--u));
+  height: calc(17 * var(--u));
+}
+.leaf .pill.small {
+  height: calc(26 * var(--u));
+  padding: 0 calc(10 * var(--u));
+  border-radius: calc(13 * var(--u));
+  font-size: calc(13 * var(--u));
+  line-height: calc(16 * var(--u));
+}
+.quiet {
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--grey);
+}
+.positive {
+  background: var(--positive-soft);
+  color: var(--positive);
+}
+.negative {
+  background: var(--negative-soft);
+  color: var(--negative);
+}
+
+/* Every card opens with one header row of the same height, and its body sits centered in the room under it. */
+.leaf-head,
+.file-row,
+.pr-pills {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: calc(12 * var(--u));
+  height: calc(72 * var(--u));
+  padding: 0 var(--leaf-pad);
+  border-bottom: 1px solid var(--line);
+}
+
+/* Leaf 1: the changelog page itself. Its layout is measured and printed onto the wheel's texture too. */
+.leaf-head {
+  font-size: calc(18 * var(--u));
+  line-height: calc(24 * var(--u));
+  font-weight: 500;
+}
+.leaf-head .logo {
+  width: calc(28 * var(--u));
+  height: calc(28 * var(--u));
+}
+.leaf-head .pill {
+  margin-left: auto;
+}
+.call {
+  position: relative;
+  align-self: flex-start;
+  margin: auto 0 0 var(--leaf-pad);
+  font-size: calc(96 * var(--u));
+}
+.call code {
+  display: block;
+  font-size: 1em;
+  line-height: 1.083;
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+.strike {
+  position: absolute;
+  left: -0.0625em;
+  right: -0.0625em;
+  top: 0.57em;
+  height: 0.075em;
+  background: var(--negative);
+  transition: clip-path 340ms var(--ease-out) 120ms;
+  clip-path: inset(0);
+}
+.armed .strike {
+  clip-path: inset(0 100% 0 0);
+  transition: none;
+}
+.next {
+  display: flex;
+  align-items: center;
+  gap: calc(16 * var(--u));
+  margin: calc(24 * var(--u)) var(--leaf-pad) auto;
+  font-size: calc(22 * var(--u));
+  line-height: calc(30 * var(--u));
+}
+.next code {
+  font-size: 0.91em;
+  font-weight: 500;
+}
+
+/* Leaf 2 and 3: code */
+.file-row {
+  font-size: calc(15 * var(--u));
+  line-height: calc(20 * var(--u));
+}
+.file-row b {
+  font-weight: 600;
+}
+.file-row .push {
+  margin-left: auto;
+}
+.file-row code {
+  color: var(--grey);
+}
+.file-row .icon {
+  width: calc(20 * var(--u));
+  height: calc(20 * var(--u));
+}
+.count .plus {
+  color: var(--positive);
+}
+.count .minus {
+  color: var(--negative);
+}
+.code {
+  --line-h: calc(36 * var(--u));
+  position: relative;
+  margin-block: auto;
+  font-family: 'Geist Mono Variable', ui-monospace, monospace;
+  font-size: calc(15 * var(--u));
+  line-height: var(--line-h);
+  font-variant-ligatures: none;
+}
+.ln {
+  position: relative;
+  display: flex;
+  min-height: var(--line-h);
+  padding: 0 var(--leaf-pad);
+  white-space: pre;
+}
+.ln .g {
+  flex: none;
+  width: calc(40 * var(--u));
+  color: var(--grey);
+  font-variant-numeric: tabular-nums;
+}
+.ln code {
+  min-width: 0;
+}
+.scan {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(5 * var(--line-h));
+  height: var(--line-h);
+  background: var(--negative-soft);
+  transition: transform 560ms steps(5, end) 120ms;
+}
+.armed .scan {
+  transform: translateY(calc(-5 * var(--line-h)));
+  transition: none;
+}
+.lit-pill {
+  position: absolute;
+  right: var(--leaf-pad);
+  top: calc((var(--line-h) - 26 * var(--u)) / 2);
+  transition: clip-path 240ms var(--ease-out) 680ms;
+  clip-path: inset(0);
+}
+.armed .lit-pill {
+  clip-path: inset(0 100% 0 0);
+  transition: none;
+}
+
+.diff {
+  --line-h: calc(44 * var(--u));
+  margin-block: auto;
+  font-family: 'Geist Mono Variable', ui-monospace, monospace;
+  font-size: calc(15 * var(--u));
+  line-height: var(--line-h);
+  font-variant-ligatures: none;
+}
+.dl {
+  position: relative;
+  display: flex;
+  height: var(--line-h);
+  padding: 0 var(--leaf-pad);
+  white-space: pre;
+}
+.dl .g {
+  flex: none;
+  width: calc(48 * var(--u));
+  color: var(--grey);
+  font-variant-numeric: tabular-nums;
+}
+.dl.del {
+  background: var(--negative-soft);
+}
+.dl.del .g {
+  color: var(--negative);
+}
+.dl.add {
+  background: var(--positive-soft);
+  transition: clip-path 360ms var(--ease-out) 300ms;
+  clip-path: inset(0);
+}
+.dl.add .g {
+  color: var(--positive);
+}
+.dl.add + .dl.add {
+  transition-delay: 380ms;
+}
+.armed .dl.add {
+  clip-path: inset(0 100% 0 0);
+  transition: none;
+}
+
+/* Leaf 4: the trace. A line runs out from the changed call through each file the value passes, then each file's tests come back. */
+.trace {
+  --row-h: calc(78 * var(--u));
+  position: relative;
+  margin-top: auto;
+  padding: 0 var(--leaf-pad);
+}
+.trace::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--leaf-pad) + 5 * var(--u));
+  top: calc(var(--row-h) / 2);
+  bottom: calc(var(--row-h) / 2);
+  width: calc(2 * var(--u));
+  background: #000;
+  transition: clip-path 520ms var(--ease-out) 120ms;
+  clip-path: inset(0);
+}
+.armed .trace::before {
+  clip-path: inset(0 0 100% 0);
+  transition: none;
+}
+.trace-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: calc(20 * var(--u));
+  height: var(--row-h);
+}
+.trace-row + .trace-row {
+  border-top: 1px solid var(--line);
+}
+.trace-dot {
+  flex: none;
+  width: calc(12 * var(--u));
+  height: calc(12 * var(--u));
+  border-radius: 50%;
+  background: #000;
+  transition: transform 200ms var(--ease-out) calc(var(--row) * 150ms + 120ms);
+}
+.armed .trace-dot {
+  transform: scale(0);
+  transition: none;
+}
+.trace-where {
+  flex: 1;
+  min-width: 0;
+  transition: clip-path 280ms var(--ease-out) calc(var(--row) * 150ms + 120ms);
+  clip-path: inset(0);
+}
+.armed .trace-where {
+  clip-path: inset(0 100% 0 0);
+  transition: none;
+}
+.trace-where code {
+  display: block;
+  font-size: calc(17 * var(--u));
+  line-height: calc(26 * var(--u));
+  font-weight: 500;
+}
+.trace-where span {
+  display: block;
+  color: var(--grey);
+  font-family: 'Geist Mono Variable', ui-monospace, monospace;
+  font-size: calc(13 * var(--u));
+  line-height: calc(20 * var(--u));
+  font-variant-ligatures: none;
+}
+.trace-test {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: calc(8 * var(--u));
+  font-size: calc(15 * var(--u));
+  line-height: calc(20 * var(--u));
+  font-variant-numeric: tabular-nums;
+  transition: clip-path 200ms var(--ease-out) calc(var(--row) * 110ms + 760ms);
+  clip-path: inset(0);
+}
+.armed .trace-test {
+  clip-path: inset(0 100% 0 0);
+  transition: none;
+}
+.trace-test .icon {
+  width: calc(20 * var(--u));
+  height: calc(20 * var(--u));
+  color: var(--positive);
+}
+.leaf-trace .bar.landing {
+  margin-top: calc(20 * var(--u));
+  transition-delay: 1240ms;
+}
+
+/* Leaf 5: checks */
+.checks {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  margin-top: auto;
+  padding: 0 var(--leaf-pad);
+  font-size: calc(18 * var(--u));
+  line-height: calc(26 * var(--u));
+}
+.checks > * {
+  display: flex;
+  align-items: center;
+  gap: calc(10 * var(--u));
+  height: calc(72 * var(--u));
+  border-bottom: 1px solid var(--line);
+  font-variant-numeric: tabular-nums;
+}
+.checks .th {
+  height: calc(44 * var(--u));
+  color: var(--grey);
+  font-size: calc(15 * var(--u));
+  line-height: calc(20 * var(--u));
+  font-weight: 500;
+}
+.checks .icon {
+  width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
+  color: var(--positive);
+}
+.cell {
+  transition: clip-path 200ms var(--ease-out) calc(var(--row) * 90ms + 80ms);
+  clip-path: inset(0);
+}
+.armed .cell {
+  clip-path: inset(0 100% 0 0);
+  transition: none;
+}
+.bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: calc(10 * var(--u));
+  height: calc(64 * var(--u));
+  margin: calc(28 * var(--u)) var(--leaf-pad) auto;
+  padding: 0 calc(18 * var(--u));
+  border-radius: calc(8 * var(--u));
+  font-size: calc(18 * var(--u));
+  line-height: calc(26 * var(--u));
+  font-weight: 500;
+}
+.bar .icon {
+  width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
+}
+.bar.landing {
+  background: var(--positive-soft);
+  color: var(--positive);
+  transition: clip-path 300ms var(--ease-out) 460ms;
+  clip-path: inset(0);
+}
+.armed .bar.landing {
+  clip-path: inset(0 100% 0 0);
+  transition: none;
+}
+
+/* Leaf 6: pull request */
+.pr {
+  margin-top: auto;
+  padding: 0 var(--leaf-pad);
+}
+.pr-pills {
+  gap: calc(8 * var(--u));
+}
+.pr-pills .flip-pill {
+  transition:
+    background-color 200ms var(--ease-out) 240ms,
+    color 200ms var(--ease-out) 240ms;
+}
+.armed .pr-pills .flip-pill {
+  background: var(--wash);
+  color: var(--grey);
+  transition: none;
+}
+.pr-title {
+  font-size: calc(34 * var(--u));
+  line-height: calc(42 * var(--u));
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.pr-title span {
+  color: var(--grey);
+  font-weight: 400;
+}
+.pr-meta {
+  margin-top: calc(8 * var(--u));
+  color: var(--grey);
+  font-size: calc(15 * var(--u));
+  line-height: calc(22 * var(--u));
+}
+.pr-meta code {
+  font-size: 0.93em;
+}
+.pr-list {
+  margin-top: calc(20 * var(--u));
+  font-size: calc(18 * var(--u));
+  line-height: calc(26 * var(--u));
+}
+.pr-list li {
+  display: flex;
+  align-items: center;
+  gap: calc(10 * var(--u));
+  height: calc(42 * var(--u));
+}
+.pr-list .icon {
+  width: calc(22 * var(--u));
+  height: calc(22 * var(--u));
+}
+.pr-list .good .icon {
+  color: var(--positive);
+}
+.pr-list .careful .icon {
+  color: var(--warning);
+}
+.bar.send {
+  margin-top: calc(20 * var(--u));
+  background: var(--wash);
+}
+
+/* Leaf 7: the terminal */
+.term-body {
+  margin-block: auto;
+  padding: 0 var(--leaf-pad);
+  font-family: 'Geist Mono Variable', ui-monospace, monospace;
+  font-size: calc(17 * var(--u));
+  line-height: calc(31 * var(--u));
+  font-variant-ligatures: none;
+  text-wrap: pretty;
+}
+.term-body p + p {
+  margin-top: calc(20 * var(--u));
+}
+.term-body .line {
+  transition: clip-path 1ms linear calc(var(--row) * 240ms + 120ms);
+  clip-path: inset(-2px);
+}
+.armed .term-body .line {
+  clip-path: inset(0 100% 0 0);
+  transition: none;
+}
+.term-body .done {
+  color: var(--positive);
+}
+.reply {
+  display: flex;
+  justify-content: flex-end;
+}
+.reply span {
+  display: inline-block;
+  padding: calc(2 * var(--u)) calc(14 * var(--u));
+  border-radius: calc(12 * var(--u));
+  background: var(--wash);
+}
+
+/* Plain list of the changelog pages: for reading aids, and on screen when motion is off. */
+.pages-list {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+/* Limits: a quiet typographic list with the page to itself. */
+.limits {
+  display: flex;
+  justify-content: space-between;
+  gap: 40px;
+  width: var(--column);
+  margin-inline: auto;
+  padding: 80px 8px;
+}
+.limits h2 {
+  flex: none;
+  width: 400px;
+  font-size: 48px;
+  line-height: 56px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+.limits ul {
+  flex: 0 1 600px;
+  min-width: 0;
+}
+.limits li {
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+/* Closing: the page ends on the panel, with the ASCII logo as its last big thing. */
+.closing {
+  background: #000;
+}
+.closing-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: var(--column);
+  margin-inline: auto;
+  padding: 80px 8px 16px;
+  border-radius: 0;
+  text-align: center;
+}
+.closing-panel .waitlist {
+  margin-top: 32px;
+}
+.wordmark {
+  position: relative;
+  width: 100%;
+  margin-top: 64px;
+  container-type: inline-size;
+  color: #a3a3a3;
+  text-align: left;
+  user-select: none;
+}
+.wordmark pre {
+  margin: 0;
+  /* Geist Mono advances 0.6em per character, so this fills the box exactly. */
+  font-family: 'Geist Mono Variable', ui-monospace, monospace;
+  font-size: calc(100cqi / (150 * 0.6));
+  line-height: 1;
+  letter-spacing: 0;
+  font-variant-ligatures: none;
+  white-space: pre;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+/* A white band sweeps across on a loop and a white lens follows the pointer, both through this one layer's mask. */
+.wordmark-lens {
+  position: absolute;
+  inset: 0;
+  color: #fff;
+  pointer-events: none;
+  mask-image:
+    radial-gradient(
+      circle 120px at var(--x, -200px) var(--y, -200px),
+      #000 0%,
+      #0008 45%,
+      transparent 100%
+    ),
+    linear-gradient(105deg, transparent 44%, #000 50%, transparent 56%);
+  mask-size:
+    100% 100%,
+    300% 100%;
+  mask-repeat: no-repeat;
+  animation: wordmark-glint 7s linear infinite;
+}
+@keyframes wordmark-glint {
+  from {
+    mask-position:
+      0 0,
+      100% 0;
+  }
+  to {
+    mask-position:
+      0 0,
+      0% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wordmark-lens {
+    display: none;
+  }
+}
+.footer {
+  align-self: flex-end;
+  margin-top: 16px;
+  color: #8a8a8a;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .join:hover,
+  .nav-cta:hover {
+    transform: scale(1.02);
+  }
+  .marks button:hover {
+    color: #fff;
+  }
+  .marks .is-current:hover {
+    color: var(--accent);
+  }
+}
+
+@media (min-width: 1800px) and (min-height: 1040px) {
+  :host {
+    --h1-size: 96px;
+  }
+  .sub {
+    font-size: 20px;
+  }
+}
+
+@media (max-height: 800px) {
+  :host {
+    --h1-size: 60px;
+  }
+}
+
+/* Tablet and small laptop: the caption sits over the leaf. */
+@media (max-width: 1179px) {
+  /* Room under the numerals and the caption, which stack above the card here. */
+  :host {
+    --h1-size: 60px;
+    --leaf-w: min(var(--column) - 48px, max(460px, 1.4 * (var(--stage-h) - 168px)));
+  }
+  .limits {
+    flex-direction: column;
+    padding: 64px 8px;
+    gap: 32px;
+  }
+  .limits h2 {
+    width: auto;
+  }
+  .limits ul {
+    flex: none;
+  }
+}
+
+@media (max-width: 899px) {
+  .closing-title {
+    white-space: normal;
+    text-wrap: balance;
+  }
+}
+
+/* Phone: designed, not shrunk */
+@media (max-width: 719px) {
+  :host {
+    --gutter: max(12px, env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+    --frame-bottom: 12px;
+    --h1-size: 36px;
+    --nav-h: 56px;
+    --panel-radius: 16px;
+    --leaf-w: calc(var(--column) - 16px);
+    --leaf-h: auto;
+    --u: 1px;
+    --leaf-pad: 16px;
+    --title-size: 24px;
+    --title-line: 30px;
+  }
+  .hero-panel {
+    justify-content: flex-end;
+  }
+  .hero-copy {
+    padding: 0 16px 32px;
+  }
+  .sub {
+    margin-top: 12px;
+    font-size: 16px;
+    line-height: 24px;
+  }
+  .waitlist {
+    flex-wrap: wrap;
+    width: 100%;
+    height: auto;
+    margin-top: 16px;
+    padding: 8px;
+    border-radius: 32px;
+  }
+  .waitlist label {
+    padding-left: 16px;
+  }
+  .join {
+    flex: 1 0 100%;
+    height: 52px;
+    border-radius: 24px;
+  }
+  .marks {
+    gap: 0;
+  }
+  .marks button {
+    width: 44px;
+    height: 44px;
+    line-height: 44px;
+  }
+  /* Short enough that all seven captions take two lines, so the block under them never jumps. */
+  .step-title {
+    max-width: 250px;
+  }
+  .leaf-head,
+  .file-row,
+  .pr-pills {
+    height: 48px;
+    gap: 8px;
+  }
+  .leaf-head {
+    font-size: 14px;
+    line-height: 20px;
+  }
+  .leaf-head .logo {
+    width: 20px;
+    height: 20px;
+  }
+  .leaf .pill {
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    line-height: 16px;
+  }
+  .leaf .pill .icon {
+    width: 14px;
+    height: 14px;
+  }
+  /* files.upload runs the card's whole width at any phone size. */
+  .call {
+    font-size: calc((var(--leaf-w) - 32px) / 6.9);
+  }
+  .next {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    margin-top: 16px;
+    font-size: 16px;
+    line-height: 24px;
+  }
+  .file-row {
+    height: auto;
+    min-height: 48px;
+    padding-block: 8px;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    font-size: 12px;
+    line-height: 16px;
+  }
+  .file-row .icon {
+    width: 18px;
+    height: 18px;
+  }
+  .code {
+    --line-h: 20px;
+    padding-block: 12px;
+    font-size: 12px;
+  }
+  .ln {
+    padding: 0 8px;
+    white-space: pre-wrap;
+  }
+  .ln .g {
+    width: 24px;
+  }
+  .ln code {
+    overflow-wrap: anywhere;
+  }
+  .scan {
+    display: none;
+  }
+  .leaf .pill.small.lit-pill {
+    right: 8px;
+    top: 0;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    font-size: 11px;
+  }
+  .ln.lit {
+    background: var(--negative-soft);
+  }
+  .diff {
+    --line-h: 20px;
+    padding-block: 8px;
+    font-size: 12px;
+  }
+  .dl {
+    height: auto;
+    min-height: 32px;
+    padding: 6px 8px;
+    white-space: pre-wrap;
+  }
+  .dl .g {
+    width: 40px;
+  }
+  .dl code {
+    overflow-wrap: anywhere;
+  }
+  .checks {
+    grid-template-columns: 0.9fr 1fr 1fr;
+    font-size: 14px;
+    line-height: 20px;
+  }
+  .checks > * {
+    height: 52px;
+    gap: 4px;
+  }
+  .checks .th {
+    height: 36px;
+    font-size: 12px;
+    line-height: 16px;
+  }
+  .checks .icon {
+    width: 16px;
+    height: 16px;
+  }
+  .trace {
+    --row-h: 60px;
+  }
+  .trace::before {
+    left: 20px;
+    width: 2px;
+  }
+  .trace-row {
+    gap: 10px;
+  }
+  .trace-dot {
+    width: 10px;
+    height: 10px;
+  }
+  .trace-where code {
+    font-size: 11px;
+    line-height: 16px;
+    overflow-wrap: anywhere;
+  }
+  .trace-where span {
+    font-size: 11px;
+    line-height: 16px;
+    overflow-wrap: anywhere;
+  }
+  .trace-test {
+    font-size: 12px;
+    line-height: 16px;
+    gap: 4px;
+  }
+  .trace-test .icon {
+    width: 14px;
+    height: 14px;
+  }
+  .leaf-trace .bar.landing {
+    margin-top: 12px;
+    margin-bottom: 16px;
+  }
+  .bar {
+    height: 48px;
+    margin-top: 16px;
+    margin-bottom: auto;
+    padding: 0 12px;
+    gap: 8px;
+    font-size: 14px;
+    line-height: 20px;
+  }
+  .bar .icon {
+    width: 18px;
+    height: 18px;
+  }
+  .pr-title {
+    font-size: 24px;
+    line-height: 30px;
+    white-space: normal;
+    text-wrap: balance;
+  }
+  .pr-meta {
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 16px;
+  }
+  .pr-meta code {
+    font-size: 12px;
+    overflow-wrap: anywhere;
+  }
+  .pr-list {
+    margin-top: 12px;
+    font-size: 14px;
+    line-height: 20px;
+  }
+  .pr-list li {
+    height: auto;
+    padding: 5px 0;
+    gap: 8px;
+  }
+  .pr-list .icon {
+    width: 18px;
+    height: 18px;
+  }
+  .bar.send {
+    margin-top: 12px;
+    margin-bottom: 16px;
+  }
+  .term-body {
+    padding-block: 12px;
+    font-size: 12px;
+    line-height: 20px;
+  }
+  .term-body p + p {
+    margin-top: 12px;
+  }
+  .limits {
+    padding: 48px 8px;
+    gap: 24px;
+  }
+  .limits h2 {
+    font-size: 36px;
+    line-height: 44px;
+  }
+  .limits li {
+    padding: 12px 0;
+    font-size: 18px;
+    line-height: 28px;
+  }
+  .closing-panel {
+    padding: 56px 8px 12px;
+  }
+  .wordmark {
+    margin-top: 40px;
+  }
+  .closing-panel .waitlist {
+    margin-top: 24px;
+  }
+}
+
+/* Under 380 wide the longest headline line would touch the panel. */
+@media (max-width: 379px) {
+  :host {
+    --h1-size: 30px;
+  }
+}
+
+/* Motion off, or no WebGL: a still frame of the video, no pinned stage, the wheel as a plain list of the same pages. */
+:host(.calm) {
+  --u: 1px;
+  --leaf-h: auto;
+}
+:host(.calm) .sheet::before {
+  display: none;
+}
+:host(.calm) .story {
+  height: auto;
+  padding-bottom: 16px;
+}
+:host(.calm) .stage {
+  position: static;
+  height: auto;
+  padding: 16px 0 0;
+}
+:host(.calm) .stage-panel {
+  height: auto;
+  padding: 64px var(--gutter);
+}
+:host(.calm) .dust,
+:host(.calm) .wheel,
+:host(.calm) .marks {
+  display: none;
+}
+:host(.calm) .sheet {
+  position: static;
+  display: block;
+  max-width: 720px;
+  margin: 0 auto;
+  transform-style: flat;
+}
+:host(.calm) .step {
+  display: block;
+}
+:host(.calm) .step + .step {
+  margin-top: 48px;
+}
+:host(.calm) .step-title {
+  position: static;
+  width: auto;
+  margin-bottom: 16px;
+  opacity: 1;
+}
+:host(.calm) .leaf {
+  position: relative;
+  width: 100%;
+  padding-bottom: var(--leaf-pad);
+  visibility: visible;
+  will-change: auto;
+}
+:host(.calm) .leaf::after {
+  display: none;
+}
+:host(.calm) .call {
+  margin-top: 32px;
+}
+:host(.calm) .trace {
+  margin-top: 0;
+}
+:host(.calm) .pages-list {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+  max-width: 720px;
+  margin: 64px auto 0;
+  padding: 8px var(--leaf-pad);
+  border-radius: 16px;
+  background: #fff;
+  color: #000;
+}
+:host(.calm) .pages-list li {
+  display: grid;
+  grid-template-columns: 24px 96px 1fr;
+  gap: 4px 12px;
+  padding: 12px 0;
+}
+:host(.calm) .pages-list li + li {
+  border-top: 1px solid var(--line);
+}
+:host(.calm) .pages-list .logo {
+  width: 24px;
+  height: 24px;
+}
+:host(.calm) .pages-list b {
+  font-weight: 600;
+}
+:host(.calm) .pages-list span:last-child {
+  grid-column: 3;
+  color: var(--grey);
+}
+@media (max-width: 719px) {
+  :host(.calm) .pages-list li {
+    grid-template-columns: 24px 1fr;
+  }
+  :host(.calm) .pages-list b,
+  :host(.calm) .pages-list span:last-child {
+    grid-column: 2;
+  }
+}

@@ -6,10 +6,15 @@
     <meta name="theme-color" content="#f9fafb" />
     <meta
       name="description"
-      content="Refit is a GitHub App in development. It learns every API your code uses, watches them for changes, and opens proven migration pull requests for your review."
+      content="Refit keeps your code current when the APIs, AI models, runtimes, frameworks, libraries and CI it depends on change. Join the waitlist."
     />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <title>Refit: Keep your integrations current</title>
+    <!-- The version makes browsers that cached the old blue icon fetch this one. -->
+    <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml" />
+    <title>Refit: Software that never falls behind</title>
+    <script>
+      // The homepage is black: start it black before the app loads, rather than flash white.
+      if (location.pathname === '/') document.documentElement.style.background = '#000';
+    </script>
   </head>
   <body>
     <div id="root"></div>

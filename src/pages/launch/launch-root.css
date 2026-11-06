@@ -1,0 +1,13 @@
+/* Set on <html> while the launch page is showing. The page itself lives in a shadow root. */
+/* No rubber band past either end, and black under the closing panel on any browser that bounces anyway. */
+html.launch-root {
+  background: #000;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  scrollbar-color: #000 #fff;
+  scrollbar-width: thin;
+}
+html.launch-root body {
+  overscroll-behavior: none;
+  background: #fff;
+}
