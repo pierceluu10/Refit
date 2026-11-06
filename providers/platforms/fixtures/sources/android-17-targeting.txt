@@ -1,0 +1,279 @@
+-
+
+Android Developers
+
+-
+
+Essentials
+
+-
+
+Releases
+
+#
+Behavior changes: Apps targeting Android 17 or higher
+
+Stay organized with collections
+
+Save and categorize content based on your preferences.
+
+Like previous releases, Android 17 includes behavior changes that might affect
+your app. The following behavior changes apply exclusively to apps that are
+targeting Android 17 or higher. If your app is targeting Android 17 or higher,
+you should modify your app to support these behaviors, where applicable.
+
+Be sure to also review the list of behavior changes that affect all apps
+running on Android 17 regardless of your app's targetSdkVersion.
+
+## User experience and system UI
+
+Android 17 includes the following changes that are intended to create a
+more consistent, intuitive user experience.
+
+### Memory limit widget
+
+Beginning with Android 17, the system enforces a strict memory limit on
+RemoteViews updates for apps targeting Android 17 (API level 37) or
+higher. When an app passes a RemoteViews object to
+AppWidgetManager.updateAppWidget,
+system_server calculates the total memory footprint of all image data across
+every orientation and size bucket in the payload. If the total memory exceeds
+the system ceiling (mMaxWidgetBitmapMemory), the system rejects the update and
+throws an IllegalArgumentException:
+
+java.lang.IllegalArgumentException: RemoteViews for widget update exceeds maximum bitmap memory usage (used: XXXXX, max: YYYYY)
+
+For apps targeting API level 36 or lower, the system logs this memory violation
+as a warning (Slog.w) without throwing an exception.
+
+##
+Android skills
+
+View on GitHub
+open_in_new
+
+###
+Manage AppWidget updates and bitmap memory
+
+Use the AppWidget Updates and Memory Android skill to downsample widget bitmaps, deduplicate responsive images, and stay within Android 17 RemoteViews memory limits across Glance and classic AppWidgetProvider widgets.
+
+To install the skill from the Android CLI, run:
+
+android skills add glance-appwidget-updates-and-memory
+
+#### How the system calculates the memory ceiling
+
+The system sets the widget bitmap memory budget at 6 * width * height bytes
+(1.5 * 4 * width * height, equivalent to 1.5 times the size of a full-screen
+ARGB_8888 buffer) for the active display configuration. Under API level 37 and
+higher, this calculation includes both of the following:
+
+- In-memory Bitmap and bitmap-backed
+Icon objects
+(Icon.TYPE_BITMAP and Icon.TYPE_ADAPTIVE_BITMAP) stored in
+RemoteViews.mBitmapCache (such as calls to setImageViewBitmap,
+Icon.createWithBitmap, Icon.createWithAdaptiveBitmap, or Jetpack
+Glance ImageProvider(bitmap)). Each unique Bitmap or bitmap-backed
+Icon instance in mBitmapCache is counted once per RemoteViews
+hierarchy.
+
+- URI-backed images (Icon.createWithContentUri, setImageViewUri, or
+Glance ImageProvider(uri)) don't count toward the RemoteViews IPC byte
+cap in system_server, but the widget host process decodes the referenced
+content:// file at full resolution into its own heap. Always write a
+downsampled image into context.cacheDir before exposing it through a
+FileProvider URI.
+
+#### Mitigation steps
+
+To keep your widget updates within the memory ceiling across phones, tablets,
+and foldables, do the following:
+
+- Compute your runtime memory budget from WindowMetrics: On API level 30
+and higher, read the active window bounds from
+WindowManager.currentWindowMetrics.bounds rather than
+resources.displayMetrics. On multi-resolution devices and foldables,
+displayMetrics can report inactive display dimensions. Estimate your total
+widget image budget at 6L * bounds.width() * bounds.height()
+as shown in the following example:
+
+private const val FALLBACK_MAX_BYTES = 15_000_000L
+
+fun calculateWidgetMemoryCapBytes(context: Context): Long {
+if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+val wm = context.getSystemService(WindowManager::class.java)
+?: return FALLBACK_MAX_BYTES
+val bounds = wm.currentWindowMetrics.bounds
+return 6L * bounds.width().toLong() * bounds.height().toLong()
+}
+val dm = context.resources.displayMetrics
+return 6L * dm.widthPixels.toLong() * dm.heightPixels.toLong()
+}
+
+- Downsample images to the widget's viewable dimensions and use RGB_565:
+Decode bitmaps with power-of-two BitmapFactory.Options.inSampleSize values
+sized to the widget's maximum display dimensions (maxWidthDp by
+maxHeightDp), and use Bitmap.Config.RGB_565 (2 bytes per pixel)
+instead of ARGB_8888 (4 bytes per pixel) for opaque photographs and
+thumbnails.
+
+- Hoist bitmap decoding outside provideContent in Jetpack Glance: When
+using SizeMode.Responsive or SizeMode.Exact, Glance invokes your
+provideContent lambda once per size bucket. Decode each shared Bitmap
+once inside provideGlance before calling provideContent so all size
+buckets reference the same Bitmap instance in RemoteViews.mBitmapCache.
+
+- Use full updateAppWidget calls when replacing images: In classic
+AppWidgetProvider implementations, avoid calling
+AppWidgetManager.partiallyUpdateAppWidget to swap Bitmap or Icon
+views. Partial updates merge new actions into the existing RemoteViews
+tree in system_server without evicting previously cached image actions.
+Build a complete RemoteViews layout and call updateAppWidget instead.
+
+- Provide an error fallback layout: In Jetpack Glance, override
+onCompositionError
+to render a zero-bitmap RemoteViews fallback if an update fails.
+
+You can inspect your widget's current serialized bitmap memory usage on a
+connected device by running the following:
+
+adb shell dumpsys appwidget
+
+## Core functionality
+
+Android 17 includes the following changes that modify or
+expand various core capabilities of the Android system.
+
+### New lock-free implementation of MessageQueue
+
+Beginning with Android 17, apps targeting Android 17 (API level 37)
+or higher receive a new lock-free implementation of
+android.os.MessageQueue. The new implementation improves performance and
+reduces missed frames, but may break clients that reflect on MessageQueue
+private fields and methods.
+
+For more information, including mitigation strategies, see MessageQueue
+behavior change guidance.
+
+### Static final fields are now unmodifiable
+
+Apps running on Android 17 or higher that target
+Android 17 (API level 37) or higher cannot change static final fields. If
+an app attempts to change a static final field by using reflection, it will
+cause an IllegalAccessException. Attempting to modify one of these fields
+through JNI APIs (such as SetStaticLongField()) will cause the app to crash.
+
+## Accessibility
+
+Android 17 makes the following changes to improve accessibility.
+
+### Accessibility support of complex IME physical keyboard typing
+
+This feature introduces new AccessibilityEvent and TextAttribute
+APIs to enhance screen reader spoken feedback for CJKV language input. CJKV IME
+apps can now signal whether a text conversion candidate has been selected during
+text composition. Apps with edit fields can specify text change types when
+sending text changed accessibility events.
+For example, apps can specify that a text change occurred during text
+composition, or that a text change resulted from a commit.
+Doing this enables accessibility
+services such as screen readers to deliver more precise feedback based on the
+nature of the text modification.
+
+#### App adoption
+
+- IME Apps: When setting composing text in edit fields, IMEs can use
+TextAttribute.Builder.setTextSuggestionSelected() to indicate whether a
+specific conversion candidate was selected.
+
+- Apps with Edit Fields: Apps that maintain a custom InputConnection can
+retrieve candidate selection data by calling
+TextAttribute.isTextSuggestionSelected(). These apps should then call
+AccessibilityEvent.setTextChangeTypes() when dispatching
+TYPE_VIEW_TEXT_CHANGED events. Apps targeting
+Android 17 (API level 37) that use the standard TextView will have
+this feature enabled by default. (That is, TextView will handle retrieving
+data from the IME and setting text change types when sending events to
+accessibility services).
+
+- Accessibility Services: Accessibility services that process
+TYPE_VIEW_TEXT_CHANGED events can call
+AccessibilityEvent.getTextChangeTypes() to identify the nature of the
+modification and adjust their feedback strategies accordingly.
+
+## Privacy
+
+Android 17 includes the following changes to improve user privacy.
+
+### ECH (Encrypted Client Hello) enabled
+
+Android 17 introduces platform support for Encrypted Client Hello (ECH), a TLS
+extension that enhances user privacy by encrypting the Server Name Indication
+(SNI) in the TLS handshake. This encryption helps prevent network observers from
+easily identifying the specific domain your app is connecting to.
+
+For apps targeting Android 17 (API level 37) or higher, ECH is used for TLS
+connections. ECH is active only if the networking library used by the app (for
+example, HttpEngine, WebView, or OkHttp) has integrated ECH support and the
+remote server also supports the ECH protocol. If ECH cannot be negotiated, the
+client sends an ECH extension with randomized contents (a mechanism called ECH
+GREASE). See RFC 9849 for more details on how ECH GREASE works.
+
+To allow apps to customize this behavior, Android 17 adds a new
+element to the Network Security Configuration file.
+Developers can use within or
+tags to select an ECH mode (for example,
+"enabled" or "disabled") on a global or per-domain basis.
+
+For more information, see the Encrypted Client Hello documentation.
+
+### Local network permission required for apps targeting Android 17
+
+Android 17 introduces the ACCESS_LOCAL_NETWORK runtime permission
+to protect users from unauthorized local network access. Because this falls
+under the existing NEARBY_DEVICES permission group, users who have already
+granted other NEARBY_DEVICES permissions aren't prompted again. This new
+requirement prevents malicious apps from exploiting unrestricted local network
+access for covert user tracking and fingerprinting. By declaring and requesting
+this permission, your app can discover and connect to devices on the local area
+network (LAN), such as smart home devices or casting receivers.
+
+Apps targeting Android 17 (API level 37) or higher now have two paths to
+maintain communication with LAN devices: Adopt system-mediated,
+privacy-preserving device pickers to skip the permission prompt, or explicitly
+request this new permission at runtime to maintain local network communication.
+
+For more information, see the Local network permission documentation.
+
+### Hiding passwords from physical devices
+
+If an app targets Android 17 (API level 37) or higher and the user is using
+a physical input device (for example, an external keyboard), the Android
+operating system applies the new show_passwords_physical setting to all
+characters in the password field. By default, that setting hides all password
+characters.
+
+The Android system shows the last-typed password character to help the user see
+if they mistyped the password. However, this is much less necessary with larger
+external keyboards. In addition, devices with external keyboards often have
+larger displays, which increases the danger of someone seeing the typed
+password.
+
+If the user is using the device's touchscreen, the system applies the new
+show_passwords_touch setting.
+
+### OTP protection for standard SMS messages
+
+Beginning with Android 17, Android is extending its SMS OTP protection
+to apply to standard SMS messages (SMS messages containing an OTP that do not
+use the WebOTP or SMS Retriever formats). For most apps targeting
+Android 17 (API level 37) or higher, these SMS messages do not become
+available until three hours after receipt. This delay is intended to help
+prevent OTP hijacking. During this three hour delay, the
+SMS_RECEIVED_ACTION broadcast is withheld and
+SMS provider database queries are filtered. The SMS message is
+available to these apps after the delay.
+
+Certain apps such as the default SMS assistant app, connected device companion
+apps, etc., are exempted from this delay. All apps that rely on reading SMS
+mess

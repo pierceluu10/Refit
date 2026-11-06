@@ -1,0 +1,345 @@
+# Firefox release notes for developers
+
+Below you'll find links to the developer release notes for every Firefox release. These lovingly-crafted notes provide details on what features and APIs were added and improved and what bugs were eliminated in each version of Firefox. All written to give developers like you the information they need most. You're welcome.
+
+- Firefox 161 (Nightly)
+
+- Firefox 160 (Beta)
+
+- Firefox 159 (Stable)
+
+- Firefox 158
+
+- Firefox 157
+
+- Firefox 156
+
+- Firefox 155
+
+- Firefox 154
+
+- Firefox 153
+
+- Firefox 152
+
+- Firefox 151
+
+- Firefox 150
+
+- Firefox 149
+
+- Firefox 148
+
+- Firefox 147
+
+- Firefox 146
+
+- Firefox 145
+
+- Firefox 144
+
+- Firefox 143
+
+- Firefox 142
+
+- Firefox 141
+
+- Firefox 140
+
+- Firefox 139
+
+- Firefox 138
+
+- Firefox 137
+
+- Firefox 136
+
+- Firefox 135
+
+- Firefox 134
+
+- Firefox 133
+
+- Firefox 132
+
+- Firefox 131
+
+- Firefox 130
+
+- Firefox 129
+
+- Firefox 128
+
+- Firefox 127
+
+- Firefox 126
+
+- Firefox 125
+
+- Firefox 124
+
+- Firefox 123
+
+- Firefox 122
+
+- Firefox 121
+
+- Firefox 120
+
+- Firefox 119
+
+- Firefox 118
+
+- Firefox 117
+
+- Firefox 116
+
+- Firefox 115
+
+- Firefox 114
+
+- Firefox 113
+
+- Firefox 112
+
+- Firefox 111
+
+- Firefox 110
+
+- Firefox 109
+
+- Firefox 108
+
+- Firefox 107
+
+- Firefox 106
+
+- Firefox 105
+
+- Firefox 104
+
+- Firefox 103
+
+- Firefox 102
+
+- Firefox 101
+
+- Firefox 100
+
+- Firefox 99
+
+- Firefox 98
+
+- Firefox 97
+
+- Firefox 96
+
+- Firefox 95
+
+- Firefox 94
+
+- Firefox 93
+
+- Firefox 92
+
+- Firefox 91
+
+- Firefox 90
+
+- Firefox 89
+
+- Firefox 88
+
+- Firefox 87
+
+- Firefox 86
+
+- Firefox 85
+
+- Firefox 84
+
+- Firefox 83
+
+- Firefox 82
+
+- Firefox 81
+
+- Firefox 80
+
+- Firefox 79
+
+- Firefox 78
+
+- Firefox 77
+
+- Firefox 76
+
+- Firefox 75
+
+- Firefox 74
+
+- Firefox 73
+
+- Firefox 72
+
+- Firefox 71
+
+- Firefox 70
+
+- Firefox 69
+
+- Firefox 68
+
+- Firefox 67
+
+- Firefox 66
+
+- Firefox 65
+
+- Firefox 64
+
+- Firefox 63
+
+- Firefox 62
+
+- Firefox 61
+
+- Firefox 60
+
+- Firefox 59
+
+- Firefox 58
+
+- Firefox 57
+
+- Firefox 56
+
+- Firefox 55
+
+- Firefox 54
+
+- Firefox 53
+
+- Firefox 52
+
+- Firefox 51
+
+- Firefox 50
+
+- Firefox 49
+
+- Firefox 48
+
+- Firefox 47
+
+- Firefox 46
+
+- Firefox 45
+
+- Firefox 44
+
+- Firefox 43
+
+- Firefox 42
+
+- Firefox 41
+
+- Firefox 40
+
+- Firefox 39
+
+- Firefox 38
+
+- Firefox 37
+
+- Firefox 36
+
+- Firefox 35
+
+- Firefox 34
+
+- Firefox 33
+
+- Firefox 32
+
+- Firefox 31
+
+- Firefox 30
+
+- Firefox 29
+
+- Firefox 28
+
+- Firefox 27
+
+- Firefox 26
+
+- Firefox 25
+
+- Firefox 24
+
+- Firefox 23
+
+- Firefox 22
+
+- Firefox 21
+
+- Firefox 20
+
+- Firefox 19
+
+- Firefox 18
+
+- Firefox 17
+
+- Firefox 16
+
+- Firefox 15
+
+- Firefox 14
+
+- Firefox 13
+
+- Firefox 12
+
+- Firefox 11
+
+- Firefox 10
+
+- Firefox 9
+
+- Firefox 8
+
+- Firefox 7
+
+- Firefox 6
+
+- Firefox 5
+
+- Firefox 4
+
+- Firefox 3.6
+
+- Firefox 3.5
+
+- Firefox 3
+
+- Firefox 2
+
+- Firefox 1.5
+
+Whew! That's a lot of Firefoxen!
+
+##
+Help improve MDN
+
+Was this page helpful to you?
+
+Yes
+
+No
+
+Learn how to contribute
+This page was last modified on Jul 2, 2025 by MDN contributors.
+
+View this page on GitHub • Report a problem with this content

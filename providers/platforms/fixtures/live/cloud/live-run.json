@@ -1,0 +1,108 @@
+{
+  "note": "Live run: claude-sonnet-5-5 through the Messages API on 2026-11-06, reading live pages. pages/ keeps what the agent was shown. Output recorded as returned, not edited.",
+  "runAt": "2026-11-06T05:40:36.365Z",
+  "model": "claude-sonnet-5-5",
+  "promptVersion": "platform-watch-v3",
+  "input": {
+    "dependency": {
+      "repo": "cli",
+      "kind": "infrastructure",
+      "name": "google-container-registry",
+      "ecosystem": "gcp",
+      "notes": "A deploy script pushes images to gcr.io on Google Cloud.",
+      "declaredIn": []
+    },
+    "webSearch": {
+      "type": "web_search_20250305",
+      "maxUses": 3
+    },
+    "capUsd": 0.4
+  },
+  "report": {
+    "provider": "google-container-registry",
+    "dependency": {
+      "repo": "cli",
+      "kind": "infrastructure",
+      "name": "google-container-registry",
+      "ecosystem": "gcp",
+      "notes": "A deploy script pushes images to gcr.io on Google Cloud.",
+      "declaredIn": []
+    },
+    "changes": [
+      {
+        "provider": "google-container-registry",
+        "id": "google-container-registry:gcr-shutdown-artifact-registry",
+        "kind": "cloud-deprecation",
+        "title": "Container Registry shut down March 18, 2025: writing images to gcr.io via Container Registry is unavailable; deploy script must push to Artifact Registry (gcr.io repositories or pkg.dev)",
+        "source": {
+          "url": "https://cloud.google.com/container-registry/docs/deprecations/container-registry-deprecation",
+          "quote": "Effective March 18, 2025, Container Registry\nis shut down and writing images to Container Registry is unavailable."
+        },
+        "affects": {
+          "operations": ["docker push gcr.io", "gcloud container images"]
+        },
+        "effectiveDate": "2025-03-18",
+        "dependencyKind": "infrastructure",
+        "dependency": "google-container-registry",
+        "fromVersions": ["Container Registry (gcr.io)"],
+        "toVersion": "Artifact Registry",
+        "severity": "deadline"
+      }
+    ],
+    "issues": [],
+    "unverifiedQuotes": [],
+    "sourcesRead": [
+      "https://cloud.google.com/terms/deprecation",
+      "https://cloud.google.com/feeds/gcp-release-notes.xml",
+      "https://cloud.google.com/container-registry/docs/deprecations/container-registry-deprecation"
+    ],
+    "model": "claude-sonnet-5-5",
+    "costUsd": 0.0464891,
+    "turns": 3,
+    "summary": "Only read the Container Registry transition page. No Container Registry mention in GCP deprecation page or release notes feed. gcr.io URLs hosted on Artifact Registry are unaffected, so the script may work if gcr.io repositories are set up. Did not read Kubernetes or other groups' pages, since this is a registry push script.",
+    "log": [
+      {
+        "turn": 1,
+        "stopReason": "tool_use",
+        "inputTokens": 9644,
+        "outputTokens": 166,
+        "calls": [
+          {
+            "tool": "search_page",
+            "input": "{\"url\":\"https://cloud.google.com/terms/deprecation\",\"query\":\"Container Registry\"}"
+          },
+          {
+            "tool": "search_page",
+            "input": "{\"source_id\":\"gcp-release-notes\",\"query\":\"Container Registry\"}"
+          }
+        ]
+      },
+      {
+        "turn": 2,
+        "stopReason": "tool_use",
+        "inputTokens": 9940,
+        "outputTokens": 78,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://cloud.google.com/container-registry/docs/deprecations/container-registry-deprecation\"}"
+          }
+        ]
+      },
+      {
+        "turn": 3,
+        "stopReason": "tool_use",
+        "inputTokens": 14221,
+        "outputTokens": 457,
+        "calls": [
+          {
+            "tool": "submit_changes",
+            "input": "{\"changes\":[{\"id\":\"gcr-shutdown-artifact-registry\",\"kind\":\"cloud-deprecation\",\"title\":\"Container Registry shut down March 18, 2025: writing images to gcr.io via Container Registry is unavailable; deploy script must push to Artifact Registry (gcr.io repositories or pkg.dev)\",\"effectiveDate\":\"2025-03-"
+          }
+        ]
+      }
+    ],
+    "errors": [],
+    "failed": false
+  }
+}

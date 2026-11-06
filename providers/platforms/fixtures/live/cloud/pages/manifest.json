@@ -1,0 +1,37 @@
+{
+  "provider": "google-container-registry",
+  "fetchedAt": "2026-11-06T05:40:44.044Z",
+  "note": "Every page one run read, cut to what the agent was shown (at most 120000 characters). Test input only.",
+  "sources": [
+    {
+      "id": "cloud-google-com-terms-deprecation",
+      "url": "https://cloud.google.com/terms/deprecation",
+      "status": 200,
+      "ok": true,
+      "file": "cloud-google-com-terms-deprecation.txt",
+      "chars": 0,
+      "truncated": true,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "cloud-google-com-feeds-gcp-release-notes-xml",
+      "url": "https://cloud.google.com/feeds/gcp-release-notes.xml",
+      "status": 200,
+      "ok": true,
+      "file": "cloud-google-com-feeds-gcp-release-notes-xml.txt",
+      "chars": 0,
+      "truncated": true,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "id": "cloud-google-com-container-registry-docs-deprecations-container-registry-deprecation",
+      "url": "https://cloud.google.com/container-registry/docs/deprecations/container-registry-deprecation",
+      "status": 200,
+      "ok": true,
+      "file": "cloud-google-com-container-registry-docs-deprecations-container-registry-deprecation.txt",
+      "chars": 12081,
+      "truncated": false,
+      "sha256": "c0bde8b09149ea842572674453a985bede3ff920eaa8bbb70b164c4d3d0dff47"
+    }
+  ]
+}

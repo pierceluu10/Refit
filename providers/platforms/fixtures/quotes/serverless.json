@@ -1,0 +1,6 @@
+{
+  "lambda-runtimes": "Node.js 22 nodejs22.x Amazon Linux 2023 Apr 30, 2027 Jul 29, 2027 Aug 31, 2027",
+  "gcf-runtimes": "Cloud Run functions will begin issuing notifications 90 days before the runtime reaches deprecation.",
+  "azure-functions-languages": "Support will end for the in-process model on November 10, 2026.",
+  "azure-functions-versions": "Support ended for version 1.x of the Azure Functions runtime on September 14, 2026."
+}

@@ -1,0 +1,8 @@
+{
+  "repo": "cli",
+  "kind": "infrastructure",
+  "name": "google-container-registry",
+  "ecosystem": "gcp",
+  "notes": "A deploy script pushes images to gcr.io on Google Cloud.",
+  "declaredIn": []
+}

@@ -1,0 +1,417 @@
+{
+  "provider": "platforms",
+  "fetchedAt": "2026-11-06T05:35:21.075Z",
+  "note": "Live read of each source, saved as text and cut to 12000 characters. Test input only.",
+  "sources": [
+    {
+      "id": "k8s-releases",
+      "url": "https://kubernetes.io/releases/",
+      "status": 200,
+      "ok": true,
+      "file": "k8s-releases.txt",
+      "chars": 3303,
+      "truncated": false,
+      "sha256": "46cfeb4c1ba86eaf9e6f1b3edd54c98f7663c86ab23045a6070bf4d5bcf700ae"
+    },
+    {
+      "id": "k8s-deprecation-guide",
+      "url": "https://kubernetes.io/docs/reference/using-api/deprecation-guide/",
+      "status": 200,
+      "ok": true,
+      "file": "k8s-deprecation-guide.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "33a330362dc738b86f0e4897e26c38f2d0098256b579f1c141aff2cb6d0d0ae1"
+    },
+    {
+      "id": "k8s-eol",
+      "url": "https://endoflife.date/api/kubernetes.json",
+      "status": 200,
+      "ok": true,
+      "file": "k8s-eol.txt",
+      "chars": 3990,
+      "truncated": false,
+      "sha256": "71db4eb123e64a28cc5b920b530e280d50826c40bb0c3d0cffd9eb2d9686910b"
+    },
+    {
+      "id": "eks-versions",
+      "url": "https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html",
+      "status": 200,
+      "ok": true,
+      "file": "eks-versions.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "c6b3cebf1158000e04b542595eb0c01625c731499c90d4f61832d8cd2be15e26"
+    },
+    {
+      "id": "gke-schedule",
+      "url": "https://cloud.google.com/kubernetes-engine/docs/release-schedule",
+      "status": 200,
+      "ok": true,
+      "file": "gke-schedule.txt",
+      "chars": 9516,
+      "truncated": false,
+      "sha256": "85435b55263d220ca54be19642049d6d8784dc8784988112b2f30312bd519597"
+    },
+    {
+      "id": "aks-versions",
+      "url": "https://learn.microsoft.com/en-us/azure/aks/supported-kubernetes-versions",
+      "status": 200,
+      "ok": true,
+      "file": "aks-versions.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "d24d7bb33ab9420886098e642e7cee3d3dbecaf9771daa022996e12ecb86b4b4"
+    },
+    {
+      "id": "lambda-runtimes",
+      "url": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html",
+      "status": 200,
+      "ok": true,
+      "file": "lambda-runtimes.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "ed108f1381b2b1b03042abe702f28112c8966d3b6c98e698dcbeb86d05274e59"
+    },
+    {
+      "id": "gcf-runtimes",
+      "url": "https://cloud.google.com/functions/docs/runtime-support",
+      "status": 200,
+      "ok": true,
+      "file": "gcf-runtimes.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "f8edbe96a1eaa6f2eab978a2fbfde9ff33d90ab289efe372f272e5c365ec8204"
+    },
+    {
+      "id": "azure-functions-languages",
+      "url": "https://learn.microsoft.com/en-us/azure/azure-functions/supported-languages",
+      "status": 200,
+      "ok": true,
+      "file": "azure-functions-languages.txt",
+      "chars": 11043,
+      "truncated": false,
+      "sha256": "8448075aa16c3f2e75ff8af6e2d866347cb33b9760fac80e60cb9ae2ae3b90ba"
+    },
+    {
+      "id": "azure-functions-versions",
+      "url": "https://learn.microsoft.com/en-us/azure/azure-functions/functions-versions",
+      "status": 200,
+      "ok": true,
+      "file": "azure-functions-versions.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "6fe78ce3764d46ad7e8226a4b0ef1c7082bdb952cd4e549c8c7c7ff2a059c254"
+    },
+    {
+      "id": "aws-lifecycle",
+      "url": "https://aws.amazon.com/products/lifecycle/",
+      "status": 200,
+      "ok": true,
+      "file": "aws-lifecycle.txt",
+      "chars": 2022,
+      "truncated": false,
+      "sha256": "e092e6227bd30f2b8330dd1acaf82be349956e5028eca5e43805f51883b7590f"
+    },
+    {
+      "id": "aws-whats-new",
+      "url": "https://aws.amazon.com/about-aws/whats-new/recent/feed/",
+      "status": 200,
+      "ok": true,
+      "file": "aws-whats-new.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "40cffc7afe50af2e41fda596fdda4097be76d7965ad642d76d0f284d41ad0b9c"
+    },
+    {
+      "id": "gcp-deprecation",
+      "url": "https://cloud.google.com/terms/deprecation",
+      "status": 200,
+      "ok": true,
+      "file": "gcp-deprecation.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "3b393cf89383ad0377708fb88013fdf893a50ebca06ed6c8e34a709c4deb1d22"
+    },
+    {
+      "id": "gcp-release-notes",
+      "url": "https://cloud.google.com/feeds/gcp-release-notes.xml",
+      "status": 200,
+      "ok": true,
+      "file": "gcp-release-notes.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "07e77bdbec4e1ac0248795ae63dee8fc61d0106547f7a1c76b37970928ecda63"
+    },
+    {
+      "id": "azure-updates",
+      "url": "https://www.microsoft.com/releasecommunications/api/v2/azure/rss",
+      "status": 200,
+      "ok": true,
+      "file": "azure-updates.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "21ea513dce7f0a09b388926666cfc05561763b946933d178ddc3fc512b285dca"
+    },
+    {
+      "id": "azure-retirements",
+      "url": "https://learn.microsoft.com/en-us/azure/advisor/advisor-how-to-plan-migration-workloads-service-retirement",
+      "status": 200,
+      "ok": true,
+      "file": "azure-retirements.txt",
+      "chars": 7145,
+      "truncated": false,
+      "sha256": "5ce93d6a679a0cd12e94c11171b48cedf9d0552ba9560b9a37479f2be8a68501"
+    },
+    {
+      "id": "apple-upcoming-requirements",
+      "url": "https://developer.apple.com/news/upcoming-requirements/",
+      "status": 200,
+      "ok": true,
+      "file": "apple-upcoming-requirements.txt",
+      "chars": 7142,
+      "truncated": false,
+      "sha256": "c76feb1b3172944cd07339281aa215baf3884781770c9e3ad44182ef86e0fe2d"
+    },
+    {
+      "id": "apple-news",
+      "url": "https://developer.apple.com/news/rss/news.rss",
+      "status": 200,
+      "ok": true,
+      "file": "apple-news.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "614b347cde91c73951edaeaa492c0b667645a650155173baa61db5522fb36acd"
+    },
+    {
+      "id": "apple-privacy-manifest",
+      "url": "https://developer.apple.com/tutorials/data/documentation/bundleresources/privacy-manifest-files.json",
+      "status": 200,
+      "ok": true,
+      "file": "apple-privacy-manifest.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "aa39ef3ecb3dcb80f78a49c07d118202b99f9049b5367a21bb10f5da305da33e"
+    },
+    {
+      "id": "ios-release-notes",
+      "url": "https://developer.apple.com/tutorials/data/documentation/ios-ipados-release-notes.json",
+      "status": 200,
+      "ok": true,
+      "file": "ios-release-notes.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "cfe6bdfc0ca5252a6733b352bde0e6d26bbd39c296c72b87b72494bbc7f71c1c"
+    },
+    {
+      "id": "play-target-api",
+      "url": "https://support.google.com/googleplay/android-developer/answer/11926878",
+      "status": 200,
+      "ok": true,
+      "file": "play-target-api.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "87a967b998d8faad7c133e4976492440a2ead5e43b1c5dbaa23aec4ef1f87f6f"
+    },
+    {
+      "id": "play-target-sdk",
+      "url": "https://developer.android.com/google/play/requirements/target-sdk",
+      "status": 200,
+      "ok": true,
+      "file": "play-target-sdk.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "41d5129a3570c842ffd687ac4b9de51cb5d1462e5af3e1e4847266a2b5972872"
+    },
+    {
+      "id": "android-versions",
+      "url": "https://developer.android.com/about/versions",
+      "status": 200,
+      "ok": true,
+      "file": "android-versions.txt",
+      "chars": 4311,
+      "truncated": false,
+      "sha256": "5c281a32ed81d83ef120d51351dfdb0e04658bd6597c61ae964c13efb2c4976b"
+    },
+    {
+      "id": "android-17-all-apps",
+      "url": "https://developer.android.com/about/versions/17/behavior-changes-all",
+      "status": 200,
+      "ok": true,
+      "file": "android-17-all-apps.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "de8af5a526bd66e20fd0343f43d4742068b4c21a3bbb29645bc3cdf5fb4e22ae"
+    },
+    {
+      "id": "android-17-targeting",
+      "url": "https://developer.android.com/about/versions/17/behavior-changes-17",
+      "status": 200,
+      "ok": true,
+      "file": "android-17-targeting.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "869566f08fdfeb95a2c22a7350bc9b5cb331a33f03ca6492a7192338bed9ab97"
+    },
+    {
+      "id": "chromestatus-deprecated",
+      "url": "https://chromestatus.com/api/v0/features?q=deprecated",
+      "status": 200,
+      "ok": true,
+      "file": "chromestatus-deprecated.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "ec8abe5e0e336fdc1250e5d784b2b7df6b7c3da56ca459a3fb96c25117b18c4d"
+    },
+    {
+      "id": "chrome-release-notes",
+      "url": "https://developer.chrome.com/release-notes",
+      "status": 200,
+      "ok": true,
+      "file": "chrome-release-notes.txt",
+      "chars": 813,
+      "truncated": false,
+      "sha256": "73d05f4d3d302461a3988c4dfb6ffb84283b92f3e6474eab3d321e38468454f2"
+    },
+    {
+      "id": "chrome-mv2-timeline",
+      "url": "https://developer.chrome.com/docs/extensions/develop/migrate/mv2-deprecation-timeline",
+      "status": 200,
+      "ok": true,
+      "file": "chrome-mv2-timeline.txt",
+      "chars": 4823,
+      "truncated": false,
+      "sha256": "e965d1d5d8705856b7b90018887ca9d1366efd253f8b77319840a9242f3354ba"
+    },
+    {
+      "id": "safari-release-notes",
+      "url": "https://developer.apple.com/tutorials/data/documentation/safari-release-notes.json",
+      "status": 200,
+      "ok": true,
+      "file": "safari-release-notes.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "bde649d9fa521f6c2824b71789a7515eafed2f9374ab94ceb8b71190acac6e68"
+    },
+    {
+      "id": "webkit-feed",
+      "url": "https://webkit.org/feed/",
+      "status": 200,
+      "ok": true,
+      "file": "webkit-feed.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "ace4288de7da4f0e05a89aaed018a42895eb2348bcd6acdba2781d65bb438896"
+    },
+    {
+      "id": "firefox-dev-releases",
+      "url": "https://developer.mozilla.org/en-US/docs/Mozilla/Firefox/Releases",
+      "status": 200,
+      "ok": true,
+      "file": "firefox-dev-releases.txt",
+      "chars": 2974,
+      "truncated": false,
+      "sha256": "bb46519fa6de283398a2e1caa73f456828b47bb7b31fe30190f7b297677556a4"
+    },
+    {
+      "id": "firefox-releases",
+      "url": "https://www.firefox.com/en-US/releases/",
+      "status": 200,
+      "ok": true,
+      "file": "firefox-releases.txt",
+      "chars": 9846,
+      "truncated": false,
+      "sha256": "67b2e36cc9309b35c419d7a5d135593bfdb37bc5af3e0c44f524e14c976b35a9"
+    },
+    {
+      "id": "mozilla-addons-feed",
+      "url": "https://blog.mozilla.org/addons/feed/",
+      "status": 200,
+      "ok": true,
+      "file": "mozilla-addons-feed.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "118312fdd023d6f9862a744396c507bdfb16bfbfd816fd9c4e0d9ee7cda6c31f"
+    },
+    {
+      "id": "cabf-sc081",
+      "url": "https://cabforum.org/2025/04/11/ballot-sc081v3-introduce-schedule-of-reducing-validity-and-data-reuse-periods/",
+      "status": 200,
+      "ok": true,
+      "file": "cabf-sc081.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "277b70d67b3adb74ff7cf47cf35c935992389ac76595c1bbcc9571641acf9ea2"
+    },
+    {
+      "id": "cabf-baseline",
+      "url": "https://cabforum.org/working-groups/server/baseline-requirements/requirements/",
+      "status": 200,
+      "ok": true,
+      "file": "cabf-baseline.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "f4c89a314f987f2635d283c01c772bd6b18649041b116a336c07b46c75e82005"
+    },
+    {
+      "id": "letsencrypt-feed",
+      "url": "https://letsencrypt.org/feed.xml",
+      "status": 200,
+      "ok": true,
+      "file": "letsencrypt-feed.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "42e428c6d2d3e323f6416c4dfb8a999bb7e37f406858255a501a3f4a47278660"
+    },
+    {
+      "id": "chrome-root-program",
+      "url": "https://googlechrome.github.io/chromerootprogram/",
+      "status": 200,
+      "ok": true,
+      "file": "chrome-root-program.txt",
+      "chars": 1285,
+      "truncated": false,
+      "sha256": "899903209ab203d251f9c87efea66ff7995a271dc6503e78c26c98a9a1de1d8a"
+    },
+    {
+      "id": "rfc-8996",
+      "url": "https://www.rfc-editor.org/rfc/rfc8996.txt",
+      "status": 200,
+      "ok": true,
+      "file": "rfc-8996.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "51d18091d9fefea15c54414282bab8ae634ee3af21621e5576410e82520d308e"
+    },
+    {
+      "id": "exchange-basic-auth",
+      "url": "https://learn.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/deprecation-of-basic-authentication-exchange-online",
+      "status": 200,
+      "ok": true,
+      "file": "exchange-basic-auth.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "b124b9e1be5c698d89825d8319ad22da0ce1004589da079ed0a89a12ae7bb75b"
+    },
+    {
+      "id": "google-less-secure-apps",
+      "url": "https://support.google.com/a/answer/14114704",
+      "status": 200,
+      "ok": true,
+      "file": "google-less-secure-apps.txt",
+      "chars": 8617,
+      "truncated": false,
+      "sha256": "5bfaf349568e7d5edb3d2f61703bf991a516700b708bcece76b4a4f02f2a8955"
+    },
+    {
+      "id": "github-changelog",
+      "url": "https://github.blog/changelog/feed/",
+      "status": 200,
+      "ok": true,
+      "file": "github-changelog.txt",
+      "chars": 12000,
+      "truncated": true,
+      "sha256": "61828930afdcaf6d355442a88360638ecd6f1efc6ccb4e5195cc3497ebec978b"
+    }
+  ]
+}

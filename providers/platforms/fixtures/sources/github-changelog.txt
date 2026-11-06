@@ -1,0 +1,240 @@
+Archive: 2026 - GitHub Changelog
+
+https://github.blog/changelog/
+Updates, ideas, and inspiration from GitHub to help developers build and design software.
+
+Fri, 06 Nov 2026 00:19:30 +0000
+en-US
+
+hourly
+
+1
+https://wordpress.org/?v=7.1.4
+
+https://github.blog/wp-content/uploads/2019/01/cropped-github-favicon-512.png?fit=32%2C32
+Archive: 2026 - GitHub Changelog
+
+https://github.blog/changelog/
+32
+32
+
+153214340
+Usage metrics API adds code review details and addressed rate
+
+https://github.blog/changelog/2026-11-05-usage-metrics-api-adds-code-review-details-and-addressed-rate
+
+Allison
+Fri, 06 Nov 2026 00:19:07 +0000
+
+https://github.blog/changelog/2026-11-05-usage-metrics-api-adds-code-review-details-and-addressed-rate
+
+The enterprise and organization repository-level Copilot usage metrics reports now show what happens to Copilot code review feedback. A new copilot_code_review object on each repos-1-day row reports how many Copilot-reviewed…
+
+The post Usage metrics API adds code review details and addressed rate appeared first on The GitHub Blog.
+
+The enterprise and organization repository-level Copilot usage metrics reports now show what happens to Copilot code review feedback. A new copilot_code_review object on each repos-1-day row reports how many Copilot-reviewed pull requests merged without a later change request from a person and how many Copilot code review comments developers acted on. With these you can track an addressed rate per repository.
+
+### What’s new
+
+- total_comments_evaluated: The number of Copilot code review comments checked to see whether the developer acted on them.
+
+- total_comments_addressed: The number of evaluated comments the developer acted on, whether by applying the suggestion, asking Copilot to make the fix, editing the code, or replying that the fix will come in a later pull request. Divide by total_comments_evaluated for the addressed rate.
+
+- review_comments_by_severity, review_comments_by_review_tier, review_comments_by_comment_type, and review_comments_by_customization: Both counts broken down by severity (e.g., high, medium, low), review tier (e.g., lite, balanced, max), comment type (e.g., bug, security, or custom for your repository’s own coding guidelines), and customization (e.g., custom instructions, skills, MCP servers, or none).
+
+- total_merged_no_human_change_request_after_review: The number of merged pull requests that Copilot code review reviewed where no person requested changes after Copilot’s first review.
+
+### Why this matters
+
+The existing pull_requests fields show how often Copilot code review runs and how often someone clicks to apply a suggestion, but developers act on most feedback in other ways. These fields show whether developers act on Copilot code review feedback in each repository, which kinds of comments land, whether custom instructions, skills, and MCP servers make a difference, and whether reviewers still request changes after Copilot reviews.
+
+### Important notes
+
+- Scope: Present on every row of the enterprise and organization repos-1-day reports. Counts are 0 and arrays are empty when a repository had no Copilot code review activity that day.
+
+- Counted on merge: Comments are evaluated when their pull request merges, so they count on the merge day, not the day Copilot posted them.
+
+- Bot pull requests: Copilot usually doesn’t evaluate comments on pull requests opened by bots, such as Copilot cloud agent. total_merged_no_human_change_request_after_review still includes those pull requests.
+
+- Different from suggestion counts: pull_requests.total_copilot_applied_suggestions counts only ready-to-apply suggestions that someone applied. The new counts include every evaluated comment and count them as addressed however the developer acted on them.
+
+- Access: Enterprise owners, enterprise billing managers, organization owners, and anyone with a custom organization or enterprise role that grants the View Copilot Metrics permission can access these reports. The Copilot usage metrics policy must be enabled.
+
+Visit the Copilot usage metrics API documentation to get started.
+
+The post Usage metrics API adds code review details and addressed rate appeared first on The GitHub Blog.
+
+Improvement
+account management
+copilot
+enterprise management tools
+100028
+
+Usage metrics API flags telemetry and version gaps
+
+https://github.blog/changelog/2026-11-05-usage-metrics-api-flags-telemetry-and-version-gaps
+
+Allison
+Fri, 06 Nov 2026 00:08:31 +0000
+
+https://github.blog/changelog/2026-11-05-usage-metrics-api-flags-telemetry-and-version-gaps
+
+The Copilot usage metrics API now shows which users are missing client telemetry or are running IDE or extension versions below the usage metrics minimums. New per-user fields appear in…
+
+The post Usage metrics API flags telemetry and version gaps appeared first on The GitHub Blog.
+
+The Copilot usage metrics API now shows which users are missing client telemetry or are running IDE or extension versions below the usage metrics minimums. New per-user fields appear in enterprise and organization user reports, and daily affected-user counts appear in enterprise and organization reports.
+
+### What’s new
+
+- client_telemetry_present: Whether client telemetry was received for the user that day. false means Copilot saw the user’s activity, but no usage events arrived from their editor.
+
+- usage_metrics_requirements: Lists each of the user’s IDEs and Copilot extensions as met, unmet, or unknown against the minimum supported versions.
+
+- missing_client_telemetry_user_count: The number of users that day with client_telemetry_present set to false.
+
+- below_usage_metrics_minimum_user_count: The number of users that day with at least one IDE or extension below the minimum version.
+
+### Why this matters
+
+Users without client telemetry still count as active, but their reports lack detail such as lines of code, feature breakdowns, and model breakdowns. Common causes include outdated editors or extensions, disabled IDE telemetry, and proxies or firewalls that block events. These fields show how many users are affected and who to follow up with. This way you can close gaps without opening a support ticket.
+
+### Important notes
+
+- Scope: User fields appear in enterprise and organization user reports (1-day and 28-day). Counts appear in enterprise and organization 1-day reports and in each day_totals entry of 28-day reports.
+
+- Access: These fields are available to enterprise owners, enterprise billing managers, organization owners, and anyone with a custom organization or enterprise role that grants the View Copilot Metrics permission. The Copilot usage metrics policy must be enabled.
+
+- Daily counts: Each count covers a single day. A user can be counted in both missing_client_telemetry_user_count and below_usage_metrics_minimum_user_count, so don’t add the two counts together. Don’t add counts across days to count unique users.
+
+- Independent signals: A user can meet every version minimum and still be missing telemetry (e.g., they’re behind a proxy).
+
+- Unavailable values: Null or omitted values mean the data is unavailable, not false or zero. Days before this release have no values.
+
+Visit the Copilot usage metrics API documentation to get started.
+
+The post Usage metrics API flags telemetry and version gaps appeared first on The GitHub Blog.
+
+Improvement
+account management
+copilot
+enterprise management tools
+100025
+
+Secret scanning upgrades detectors, adds SpaceX as partner
+
+https://github.blog/changelog/2026-11-05-secret-scanning-upgrades-detectors-adds-spacex-as-partner
+
+Allison
+Thu, 05 Nov 2026 15:48:50 +0000
+
+https://github.blog/changelog/2026-11-05-secret-scanning-upgrades-detectors-adds-spacex-as-partner
+
+This update expands secret scanning’s detection coverage: New partner: SpaceX is now a secret scanning partner. New detector: GitHub now detects starlink_public_api_v2_secret. Upgraded detectors: Alibaba, AWS, Google, OpenVSX, Pydantic Services,…
+
+The post Secret scanning upgrades detectors, adds SpaceX as partner appeared first on The GitHub Blog.
+
+This update expands secret scanning’s detection coverage:
+
+- New partner: SpaceX is now a secret scanning partner.
+
+- New detector: GitHub now detects starlink_public_api_v2_secret.
+
+- Upgraded detectors: Alibaba, AWS, Google, OpenVSX, Pydantic Services, and Tencent detectors include additional false-positive filtering.
+
+## New secret scanning partners
+
+The following provider joined the secret scanning partnership program. When one of their secrets is found in a public repository, GitHub forwards it to the partner so they can revoke or rotate the credential before it can be abused.
+
+Provider
+Secret type
+
+SpaceX
+starlink_public_api_v2_secret
+
+## Detectors added
+
+Secret scanning now automatically detects the following new secret type in your repositories.
+
+Provider
+Secret type
+
+SpaceX
+starlink_public_api_v2_secret
+
+Partner secrets are automatically reported to the secret issuer when found in public repositories through the secret scanning partnership program. User secrets generate secret scanning alerts when found in public or private repositories.
+
+## False positives reduced
+
+The following detector improvements reduce false-positive matches for supported secrets.
+
+Provider
+Secret type
+Improvement
+
+Alibaba
+alibaba_cloud_access_key_id
+Suppress unpaired matches when dictionary filtering removes all qualifying companion secrets.
+
+AWS
+aws_access_key_id
+Suppress unpaired matches when dictionary filtering removes all qualifying companion secrets.
+
+AWS
+aws_session_token
+Suppress unpaired matches when dictionary filtering removes all qualifying companion secrets.
+
+AWS
+aws_temporary_access_key_id
+Suppress unpaired matches when dictionary filtering removes all qualifying companion secrets.
+
+Google
+google_cloud_storage_access_key_secret
+Suppress unpaired matches when dictionary filtering removes all qualifying companion key identifiers.
+
+Google
+google_cloud_storage_service_account_access_key_id
+Suppress unpaired matches when dictionary filtering removes all qualifying companion secrets.
+
+Google
+google_cloud_storage_user_access_key_id
+Suppress unpaired matches when dictionary filtering removes all qualifying companion secrets.
+
+OpenVSX
+openvsx_access_token
+Tighten context matching for legacy tokens to avoid treating unrelated UUIDs as credentials.
+
+Pydantic Services Inc.
+logfire_token
+Match the documented token length and character set to exclude placeholder values and public browser tokens.
+
+Tencent
+tencent_cloud_secret_id
+Require both letters and digits after the token prefix to exclude alphabetic identifiers such as function names.
+
+## Learn more
+
+Learn more about secret scanning and see the full list of supported secrets in our documentation. Let us know what you think in the community discussion.
+
+The post Secret scanning upgrades detectors, adds SpaceX as partner appeared first on The GitHub Blog.
+
+Improvement
+application security
+99994
+
+New pull request overview page in public preview
+
+https://github.blog/changelog/2026-11-05-new-pull-request-overview-page-in-public-preview
+
+Allison
+Thu, 05 Nov 2026 08:00:00 +0000
+
+https://github.blog/changelog/2026-12-05-new-pull-request-overview-page-in-public-preview
+
+On a long pull request, checking what’s blocking often means scrolling past dozens of comments and timeline events just to reach the merge box. And once you’re there, you still…
+
+The post New pull request overview page in public preview appeared first on The GitHub Blog.
+
+On a long pull request, checking what’s blocking often means scrolling past dozens of comments and timeline events just to reach the merge box. And once you’re there, you still need to work out what to do next. As people need to review more and more pull requests, time spent scrolling adds up. So we’ve begun to rethink the entire experience, beginning with addressing a familiar challenge: finding what’s blocking progress and determining what to do next.
+
+Today, we’re introducing the Overview page as an

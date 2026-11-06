@@ -1,0 +1,233 @@
+WebKit
+
+https://webkit.org
+Open Source Web Browser Engine
+
+Thu, 05 Nov 2026 00:26:24 +0000
+en-US
+
+hourly
+
+1
+https://wordpress.org/?v=7.1.4
+
+Release Notes for Safari Technology Preview 256
+
+https://webkit.org/blog/18602/release-notes-for-safari-technology-preview-256/
+
+Thu, 05 Nov 2026 00:09:57 +0000
+
+Safari Technology Preview
+https://webkit.org/?p=18602
+
+Safari Technology Preview Release 256 is now available for download for macOS Golden Gate and macOS Tahoe.
+
+Safari Technology Preview Release 256 is now available for download for macOS Golden Gate and macOS Tahoe. If you already have Safari Technology Preview installed, you can update it in System Settings under General → Software Update.
+
+This release includes WebKit changes between: 323398@main…324653@main.
+
+### Accessibility
+
+#### Resolved Issues
+
+- Fixed list marker text generated with the content property not being exposed in the accessibility tree. (323578@main) (189838099)
+
+- Fixed VoiceOver being unable to reach the content of an iframe nested inside an iframe with role="none" or role="presentation". (323749@main) (189901948)
+
+### Animations
+
+#### Resolved Issues
+
+- Fixed scroll-driven animations drawing a translate keyframe of none as the element’s own translate value. (323583@main) (189882533)
+
+- Fixed: Improved performance of scroll-driven animations by avoiding style invalidation on animation updates when timing is unchanged. (324449@main) (190709310)
+
+### CSS
+
+#### New Features
+
+- Added support for text-combine-upright on ::marker. (323582@main) (189912173)
+
+- Added support for continue: collapse with line-clamp, which is now set by the line-clamp shorthand. (323734@main) (190023170)
+
+- Added support for font-palette-mix() on Cocoa platforms, allowing font color palettes to be blended. (324044@main) (190133191)
+
+#### Resolved Issues
+
+- Fixed ::highlight() styles not being found past anonymous boxes. (323588@main) (148245032)
+
+- Fixed text zoom being applied twice to font sizes specified with font-relative units. (324195@main) (188215447)
+
+- Fixed aspect-ratio interpolation being inverted in vertical writing modes. (323584@main) (188500448)
+
+- Fixed document.fonts.ready never resolving when an unused @font-face has a failing local() source followed by a url() source. (323883@main) (189243828)
+
+- Fixed layout not updating inside a nested scroll container after its classic scrollbar disappears when using line-clamp with an absolutely positioned descendant. (324368@main) (189451731)
+
+- Fixed :dir() matching for a element without a dir attribute so it updates when its ancestor’s direction changes. (323439@main) (189472957)
+
+- Fixed light-dark() inside image-set() incorrectly accepting a bare string as an image URL. (323705@main) (189627071)
+
+- Fixed CSSStyleSheet.replaceSync() on a detached constructed stylesheet appending rules instead of replacing them, which could also corrupt other stylesheets sharing the same contents. (323736@main) (189634428)
+
+- Fixed CSSMatrixComponent.toMatrix() returning the component’s internal DOMMatrix for 3D matrices, so mutating the result no longer changes the component. (323948@main) (189653766)
+
+- Fixed a positioned inline-block after the line-clamp clamp point remaining visible. (323402@main) (189672687)
+
+- Fixed -webkit-min-device-pixel-ratio and -webkit-max-device-pixel-ratio media features serializing as min--webkit-device-pixel-ratio and max--webkit-device-pixel-ratio. (323731@main) (189687289)
+
+- Fixed a flex item with aspect-ratio and a calc() height resolving to a zero flex base size. (323464@main) (189753886)
+
+- Fixed CSSStyleDeclaration.setProperty() to override an existing !important custom property when called without a priority. (324083@main) (189765758)
+
+- Fixed a table flex item with borders being wider than its content and borders. (323471@main) (189766215)
+
+- Fixed line-clamp: auto to account for collapsed block-end margins when finding the clamp point. (323468@main) (189767053)
+
+- Fixed a table flex item with borders or padding and a non-auto min-width being too wide. (323466@main) (189768684)
+
+- Fixed the grid-template shorthand so empty [] line names before a row’s leading line names no longer overwrite the previous row’s track size. (323665@main) (189769011)
+
+- Fixed line-clamp: auto to find the clamp point before balancing content. (323481@main) (189774214)
+
+- Fixed calc() negation of a typed-arithmetic product flipping the sign of every factor. (323577@main) (189779826)
+
+- Fixed object-fit: none and object-fit: scale-down to size an image without natural dimensions against its content box. (323503@main) (189844957)
+
+- Fixed the content size suggestion of grid items with a preferred aspect ratio to be clamped correctly in grid layout. (323655@main) (189848571)
+
+- Fixed: Changed the auto value of the continue property to normal to match the specification. (323557@main) (189893145)
+
+- Fixed the grid layout engine to compute collapsed tracks for repeat(auto-fit). (323658@main) (189937668)
+
+- Fixed a regression where word-break: keep-all allowed many incorrect line breaks. (324360@main) (189973862)
+
+- Fixed the placement of outside list markers in vertical writing modes. (323721@main) (190017212)
+
+- Fixed grid layout to collapse empty repeat(auto-fit) tracks and their gutters. (323843@main) (190062840)
+
+- Fixed grid layout to use the transferred size suggestion for the automatic minimum size of grid items. (323855@main) (190065310)
+
+- Fixed the intrinsic minimum block size of a column flex item being incorrectly clamped by a smaller max-block-size. (323872@main) (190077511)
+
+- Fixed selectors with mixed-case attribute names failing to match HTML elements in XHTML documents when used with ancestor combinators. (323947@main) (190089102)
+
+- Fixed CSSUnitValue for container query length units reporting a number type instead of a length type. (323949@main) (190095825)
+
+- Fixed the linear() easing function rejecting a percentage written before the number in a control point. (323951@main) (190097099)
+
+- Fixed calc() type inversion overflowing its exponent, which could produce incorrect results. (323873@main) (190099592)
+
+- Fixed CustomStateSet add() and delete() invalidating style when the set does not change. (323982@main) (190183292)
+
+- Fixed the CSSCounterStyleRule.name setter not updating the name getter or cssText. (324049@main) (190185460)
+
+- Fixed a grid item with a non-auto min-block-size overflowing the grid when the grid shrinks and the item’s content wraps. (324127@main) (190192125)
+
+- Fixed quote marks generated by open-quote and close-quote not taking the ::first-line style. (324380@main) (190252758)
+
+- Fixed a stretched item in a column-reverse wrapping flex container ignoring its main-axis auto margin. (324398@main) (190272880)
+
+- Fixed calc-size(auto, size) making an aspect-ratio box wider than its max-content size when a child has a percentage height. (324649@main) (190727077)
+
+- Fixed an absolutely positioned box inside content after the line-clamp clamp point not being laid out. (324457@main) (190732934)
+
+- Fixed an orthogonal block-level box inside an inline box incorrectly adding its top and bottom margins to its container’s width. (324652@main) (190767962)
+
+### Canvas
+
+#### New Features
+
+- Added the lang attribute to CanvasTextDrawingStyles. (324596@main) (143391479)
+
+- Added support for fontKerning, fontStretch, fontVariantCaps, and textRendering in canvas text drawing styles. (324110@main) (190388702)
+
+- Added support for the inherit value of the direction attribute in CanvasTextDrawingStyles. (324603@main) (190908024)
+
+#### Resolved Issues
+
+- Fixed black pixel artifacts when drawing a Canvas 2D image through WebGL after applying a gradient. (324218@main) (189661903)
+
+- Fixed drawing a VideoFrame in BGRX format to ignore the alpha component. (323809@main) (189794952)
+
+### Forms
+
+#### Resolved Issues
+
+- Fixed appearance: base-select option hover styling being clipped when rotated transforms are applied. (323903@main) (171933742)
+
+- Fixed the date picker not using the correct appearance when automatic dark mode is applied. (324046@main) (188747558)
+
+- Fixed elements so they update at the correct times in an enhanced . (324149@main) (189480559)
+
+- Fixed deselecting the selected option of a dropdown so it always selects the first option. (323929@main) (190021473)
+
+- Fixed: Updated the default styles to match upstream changes for better interoperability with other browsers. (324587@main) (190724295)
+
+### HTML
+
+#### Resolved Issues
+
+- Fixed the HTML parser to treat as a special element, so it closes an open element correctly. (323915@main) (190117661)
+
+#### Deprecations
+
+- Removed support for the rightmargin and bottommargin presentational attributes on . (323444@main) (189727708)
+
+### Images
+
+#### New Features
+
+- Added support for object-fit, object-position, and object-view-box on SVG documents in and . (323822@main) (190118512)
+
+#### Resolved Issues
+
+- Fixed the drag image to match the rendered image when dragging an image. (323399@main) (189759601)
+
+- Fixed the size of images without natural dimensions, such as SVG images, when they are written to the pasteboard. (323529@main) (189873103)
+
+- Fixed the placement of an SVG image that specifies only a width when used with object-fit: none or object-fit: scale-down. (323567@main) (189909016)
+
+- Fixed inconsistent sizing of SVG images that have a width or height of 0. (323884@main) (190171855)
+
+- Fixed an SVG image with a width or height less than 1 failing to load. (324048@main) (190315280)
+
+- Fixed an issue where 8-bit grayscale and CMYK images were converted to 16-bit images when drawn, wasting memory. (324389@main) (190488500)
+
+- Fixed image URLs containing a fragment directive so that only the fragment before the directive is used, such as box in foo.svg#box:~:param(--bg, green). (324650@main) (190961757)
+
+### JavaScript
+
+#### Resolved Issues
+
+- Fixed Math.sumPrecise returning an incorrect result for -Number.MAX_VALUE. (324530@main) (178356895)
+
+- Fixed a module worker evaluating its entry script a second time when the worker imports its own URL. (323507@main) (188303176)
+
+- Fixed GetPrototypeFromConstructor to read prototype before calling GetFunctionRealm, matching the specification. (323408@main) (189773842)
+
+- Fixed an incorrect optimization in the DFG compiler that could produce wrong results for code using the logical NOT operator (!). (323639@main) (189876762)
+
+- Fixed an incorrect result in optimized code for the integer conversion used by operations such as Math.trunc() and array index handling. (323624@main) (189876905)
+
+- Fixed an incorrect optimization in the DFG compiler for right shift operations, which could produce wrong results when the shift count exceeds the 32-bit mask. (323595@main) (189886500)
+
+- Fixed an issue where calling RegExp as a function could be incorrectly optimized into creating a new regular expression object. (323678@main) (189954203)
+
+- Fixed await a ** b and the use of await as an identifier in a module to correctly throw a SyntaxError. (323662@main) (189958423)
+
+- Fixed labelled function declarations so they are declared in the enclosing scope. (323675@main) (189972133)
+
+- Fixed the "use strict" directive to reject strict mode reserved words as parameter and function names. (323677@main) (189973461)
+
+- Fixed TypedArray and ArrayBuffer constructors to throw a RangeError for a negative length. (323740@main) (189976051)
+
+- Fixed parsing of let, async of, and destructuring declarations in for loop heads. (324319@main) (190415260)
+
+- Fixed includes, indexOf, and lastIndexOf on BigInt64Array and BigUint64Array matching BigInt values outside the element type’s range. (324313@main) (190436212)
+
+- Fixed Array.prototype.push called with no arguments to throw an error when the array’s length is not writable. (324204@main) (190437846)
+
+- Fixed private class brand installation to happen before class elements are evaluated. (324222@main) (190509577)
+
+- Fixed module code 

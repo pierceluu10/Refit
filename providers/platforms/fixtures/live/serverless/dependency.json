@@ -1,0 +1,8 @@
+{
+  "repo": "cli",
+  "kind": "infrastructure",
+  "name": "aws-lambda",
+  "version": "nodejs16.x",
+  "notes": "serverless.yml sets the provider runtime to nodejs16.x on AWS Lambda.",
+  "declaredIn": []
+}

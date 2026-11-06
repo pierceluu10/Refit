@@ -1,0 +1,129 @@
+{
+  "note": "Live run: claude-sonnet-5-5 through the Messages API on 2026-11-06, reading live pages. pages/ keeps what the agent was shown. Output recorded as returned, not edited.",
+  "runAt": "2026-11-06T05:40:36.374Z",
+  "model": "claude-sonnet-5-5",
+  "promptVersion": "platform-watch-v3",
+  "input": {
+    "dependency": {
+      "repo": "cli",
+      "kind": "security-standard",
+      "name": "tls-certificates",
+      "notes": "Deploy config pins a one-year TLS certificate renewed by hand, and a mail script logs in to smtp.office365.com with a username and password.",
+      "declaredIn": []
+    },
+    "webSearch": {
+      "type": "web_search_20250305",
+      "maxUses": 3
+    },
+    "capUsd": 0.4
+  },
+  "report": {
+    "provider": "tls-certificates",
+    "dependency": {
+      "repo": "cli",
+      "kind": "security-standard",
+      "name": "tls-certificates",
+      "notes": "Deploy config pins a one-year TLS certificate renewed by hand, and a mail script logs in to smtp.office365.com with a username and password.",
+      "declaredIn": []
+    },
+    "changes": [
+      {
+        "provider": "tls-certificates",
+        "id": "tls-certificates:cabf-sc081-cert-lifetime-reduction",
+        "kind": "tls-crypto",
+        "title": "CA/B Forum SC-081: public TLS certificate max validity falls from 398 days to 47 days in steps from March 2026 to March 2029; a hand-renewed one-year certificate will stop being issuable (individual step dates not read)",
+        "source": {
+          "url": "https://cabforum.org/2025/04/11/ballot-sc081v3-introduce-schedule-of-reducing-validity-and-data-reuse-periods/",
+          "quote": "These reductions are proposed to occur starting in March 2026 and concluding in March 2029"
+        },
+        "affects": {
+          "operations": ["manual certificate renewal", "pinned certificate in deploy config"]
+        },
+        "effectiveDate": "2026-03",
+        "dependencyKind": "security-standard",
+        "dependency": "tls-certificates",
+        "fromVersions": ["certificates valid up to 398 days"],
+        "toVersion": "certificates valid up to 47 days",
+        "severity": "deadline"
+      },
+      {
+        "provider": "tls-certificates",
+        "id": "tls-certificates:exchange-smtp-auth-basic-disabled-default",
+        "kind": "auth-standard",
+        "title": "Exchange Online SMTP AUTH Basic authentication (username/password to smtp.office365.com) disabled by default for existing tenants at end of December 2026; final removal date to be announced in H2 2027; move to OAuth 2.0 or Graph API",
+        "source": {
+          "url": "https://techcommunity.microsoft.com/blog/exchange/updated-exchange-online-smtp-auth-basic-authentication-deprecation-timeline/4489835",
+          "quote": "End of December 2026: SMTP AUTH Basic Authentication will be disabled by default for existing tenants."
+        },
+        "affects": {
+          "operations": ["SMTP AUTH", "smtp.office365.com"]
+        },
+        "effectiveDate": "2026-12-31",
+        "dependencyKind": "security-standard",
+        "dependency": "tls-certificates",
+        "fromVersions": ["SMTP AUTH Basic authentication"],
+        "toVersion": "OAuth 2.0 (modern authentication) or Microsoft Graph API",
+        "severity": "deadline"
+      }
+    ],
+    "issues": [],
+    "unverifiedQuotes": [],
+    "sourcesRead": [
+      "https://cabforum.org/2025/04/11/ballot-sc081v3-introduce-schedule-of-reducing-validity-and-data-reuse-periods/",
+      "https://learn.microsoft.com/en-us/exchange/clients-and-mobile-in-exchange-online/deprecation-of-basic-authentication-exchange-online",
+      "https://techcommunity.microsoft.com/blog/exchange/updated-exchange-online-smtp-auth-basic-authentication-deprecation-timeline/4489835"
+    ],
+    "model": "claude-sonnet-5-5",
+    "costUsd": 0.0861705,
+    "turns": 3,
+    "summary": "Read only the CA/B SC-081 ballot page, the Exchange basic auth page and the Exchange SMTP AUTH timeline blog. The SC-081 page gives only the overall range, not per-step dates, so there is one change for the whole range. I did not read the Baseline Requirements, the Let's Encrypt feed, Chrome root policy, RFC 8996 or the other pages, because of budget. TLS 1.0/1.1 and Kubernetes, serverless, mobile and browser pages were left out as not relevant.",
+    "log": [
+      {
+        "turn": 1,
+        "stopReason": "tool_use",
+        "inputTokens": 9666,
+        "outputTokens": 109,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"cabf-sc081\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"exchange-basic-auth\"}"
+          }
+        ]
+      },
+      {
+        "turn": 2,
+        "stopReason": "tool_use",
+        "inputTokens": 19880,
+        "outputTokens": 240,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://techcommunity.microsoft.com/blog/exchange/updated-exchange-online-smtp-auth-basic-authentication-deprecation-timeline/4489835\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://cabforum.org/2025/04/11/ballot-sc081v3-introduce-schedule-of-reducing-validity-and-data-reuse-periods/\",\"offset\":15000}"
+          }
+        ]
+      },
+      {
+        "turn": 3,
+        "stopReason": "tool_use",
+        "inputTokens": 26189,
+        "outputTokens": 1129,
+        "calls": [
+          {
+            "tool": "submit_changes",
+            "input": "{\"changes\":[{\"id\":\"cabf-sc081-cert-lifetime-reduction\",\"kind\":\"tls-crypto\",\"title\":\"CA/B Forum SC-081: public TLS certificate max validity falls from 398 days to 47 days in steps from March 2026 to March 2029; a hand-renewed one-year certificate will stop being issuable (individual step dates not re"
+          }
+        ]
+      }
+    ],
+    "errors": [],
+    "failed": false
+  }
+}

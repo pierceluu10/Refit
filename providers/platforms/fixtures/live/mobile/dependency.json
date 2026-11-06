@@ -1,0 +1,8 @@
+{
+  "repo": "cli",
+  "kind": "platform",
+  "name": "android",
+  "version": "33",
+  "notes": "build.gradle sets targetSdk 33 and minSdk 24; the app ships on Google Play.",
+  "declaredIn": []
+}

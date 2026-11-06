@@ -1,0 +1,8 @@
+{
+  "repo": "cli",
+  "kind": "platform",
+  "name": "chrome-extension",
+  "version": "manifest_version 2",
+  "notes": "A browser extension's manifest.json sets manifest_version 2, for Chrome and Firefox.",
+  "declaredIn": []
+}

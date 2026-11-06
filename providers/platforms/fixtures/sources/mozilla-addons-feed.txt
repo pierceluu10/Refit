@@ -1,0 +1,201 @@
+Mozilla Add-ons Community Blog
+
+https://blog.mozilla.org/addons/
+
+Wed, 28 Oct 2026 21:47:25 +0000
+en-US
+hourly
+1
+https://wordpress.org/?v=6.3.14
+
+Introducing enterprise add-on policies
+
+https://blog.mozilla.org/addons/2026/10/28/introducing-enterprise-add-on-policies/
+https://blog.mozilla.org/addons/2026/10/28/introducing-enterprise-add-on-policies/#respond
+Wed, 28 Oct 2026 17:14:37 +0000
+
+cbacharakis developers
+
+https://blog.mozilla.org/addons/?p=9312
+We are thrilled to announce that enterprise add-ons will launch on addons.mozilla.org (AMO) on December 1, 2026. In response to input from enterprise organizations that distribute add-ons strictly via Firefox … Read more
+
+The post Introducing enterprise add-on policies appeared first on Mozilla Add-ons Community Blog.
+
+We are thrilled to announce that enterprise add-ons will launch on addons.mozilla.org (AMO) on December 1, 2026.
+
+In response to input from enterprise organizations that distribute add-ons strictly via Firefox enterprise policies, we are establishing a dedicated enterprise release channel.
+
+This tailored channel directly serves enterprise developers’ requirements while freeing up resources to continue supporting non-enterprise developers.
+
+## Why enterprise add-ons need their own policies
+
+Many organizations rely on Firefox add-ons to keep their people and data safe: security tools, data loss prevention, identity and access management, and internal productivity tools. These add-ons work very differently from the ones most people install from AMO:
+
+- They are deployed, not discovered. IT administrators install them across managed fleets using Firefox enterprise policies.
+
+- Their reach is large. A single enterprise developer can serve thousands of managed browsers inside one organization.
+
+- Their release cycle matters. When a security vendor ships a fix, customers expect it to reach their fleet quickly and predictably.
+
+Until now, these add-ons went through the same manual review queue as everyone else, under rules written for consumer add-ons. That slowed organizations relying on Firefox and took reviewer time away from the rest of the community without making a meaningful impact.
+
+## What is changing on December 1
+
+- A new enterprise channel: Versions submitted in the enterprise channel follow the new enterprise add-on policies.
+
+- Enterprise versions stay in the enterprise channel: Versions submitted through the enterprise channel are only available through that channel. They won’t appear on AMO or be distributed by Mozilla in any other way.
+
+- A lighter manual review queue: With a limited set of policies applying to enterprise add-ons, reviewers can spend more of their time on other add-ons.
+
+- An updated agreement for everyone: To adopt the new policies, all developers must accept the updated Firefox Add-on Distribution Agreement.
+
+- The same bar for safety: Enterprise add-ons are still Add-ons are subject to Mozilla’s Acceptable Use Policy.
+
+The full policy text will be published on Extension Workshop. Until December 1, the current policies remain in effect.
+
+## How to take advantage of it
+
+If you build add-ons for organizations: Read the enterprise add-on policies, and get ready to submit your enterprise versions through the enterprise channel from December 1.
+
+In a nutshell, you must self-declare the enterprise status via the specific manifest key
+
+"browser_specific_settings": {
+"gecko": {
+"admin_install_only": true
+}
+}
+
+If you build public add-ons: Nothing changes in how you submit or how your add-on is reviewed. The only thing you need to do is accept the updated agreement when prompted.
+
+## Quick Q&A: Who is this for?
+
+Who are the enterprise add-on policies for?
+
+Developers whose add-ons are built for organizations and deployed to managed Firefox installations through enterprise policies.
+
+I’m an individual developer with a public add-on on AMO. Does this affect me?
+
+Your submission process doesn’t change, but you will need to accept the updated developer agreement.
+
+My add-on is used by companies, but people also install it themselves from AMO. Is it an enterprise add-on?
+
+Only versions you submit through the enterprise channel are enterprise versions, and those are available only through that channel. To keep your add-on listed on AMO, keep submitting it the usual way.
+
+I only build an add-on for my own company’s employees. Is this for me?
+
+It can be. You can use the enterprise channel, or choose self-distribution, which is often the simplest route for add-ons meant for a smaller population.
+
+I’m an IT administrator, not a developer. Do I need to do anything?
+
+No. You keep deploying add-ons with Firefox enterprise policies as you do today.
+
+Do I really need to accept the updated agreement?
+
+Yes. Every developer on AMO, enterprise or not, needs to accept it, because the new policies are part of it.
+
+When does this take effect?
+
+December 1, 2026.
+
+The post Introducing enterprise add-on policies appeared first on Mozilla Add-ons Community Blog.
+
+https://blog.mozilla.org/addons/2026/10/28/introducing-enterprise-add-on-policies/feed/
+0
+
+Developer Spotlight: Profile Manager Pro
+
+https://blog.mozilla.org/addons/2026/10/26/developer-spotlight-profile-manager-pro/
+https://blog.mozilla.org/addons/2026/10/26/developer-spotlight-profile-manager-pro/#respond
+Mon, 26 Oct 2026 22:24:16 +0000
+
+Scott DeVaney developers
+featured addons
+spotlight
+
+https://blog.mozilla.org/addons/?p=9309
+If your online activities involve logging in and out of a lot of different accounts — often on the same website — Profile Manager Pro can be a time-saving game … Read more
+
+The post Developer Spotlight: Profile Manager Pro appeared first on Mozilla Add-ons Community Blog.
+
+If your online activities involve logging in and out of a lot of different accounts — often on the same website — Profile Manager Pro can be a time-saving game changer. The extension provides a one-click login process for multiple online accounts, so you can effortlessly jump between profiles. From social media management to web development, QA testing and more, Profile Manager Pro removes the painstaking friction of constant account switching.
+
+Simple UI makes it easy to jump between multiple accounts across various sites.
+
+“One of the most interesting aspects of developing Profile Manager Pro is realizing how many different workflows can benefit from efficient account switching,” explains its creator, Islam Elsayed. Consider developers who need to save sessions for different roles, such as admins, moderators or regular users, to test functionality; freelancers working across multiple client dashboards; or support professionals investigating account-specific behavior. The potential uses for Profile Manager Pro are practically limitless.
+
+Elsayed makes clear that Profile Manager Pro isn’t intended to replace Firefox’s full browser profiles; rather, the aim is to make it easier to save, organize, and restore individual website sessions within a browser environment. “I think that distinction is important because it illustrates how browser extensions can complement existing browser capabilities by addressing very specific everyday frustrations.”
+
+While the extension provides a fairly straightforward function, its design and development were anything but simple. Elsayed says his biggest development hurdle was creating a reliable account-switching experience across websites that handle authentication and session management differently. Modern websites often use tangled combinations of cookies, browser storage, authentication tokens and other complex security mechanisms. A technical solution that works perfectly on one website may not function at all on another. “These challenges taught me an important lesson: The best productivity tools often hide considerable technical complexity behind a simple user experience.”
+
+Another challenge is balancing functionality with user privacy and security. Session-management extensions interact with sensitive browser data, so Elsayed goes to great lengths to ensure user protection — starting with a local-first approach to development. Saved session information stays within the user’s browser environment by default. Users don’t need to create a Profile Manager Pro account or send their browsing sessions to a third-party server. The extension also offers optional encrypted Google Drive sync, providing even more control over stored data.
+
+“Responsible session management is essential,” says Elsayed. “This is why I believe privacy should be considered throughout the design process rather than an afterthought. Ultimately, my goal is to give users convenience without requiring them to surrender unnecessary control over their data.”
+
+As for future development plans, Elsayed frames Profile Manager Pro as an “evolving project.” He intends to focus on optimizing the profile management system and improving backup and sync experiences.
+
+“My long-term vision for Profile Manager Pro is to become an increasingly powerful yet lightweight tool for managing online identities and workflows,” says Elsayed. “I believe thoughtful improvements based on real user needs are more valuable than adding features simply for the sake of adding them. For me, the most rewarding part of development is solving those complex problems so users don’t have to think about them.”
+
+Do you have an intriguing extension development story? Do tell! Maybe your story should appear on this blog. Contact us at amo-featured [at] mozilla [dot] org and let us know a bit about your extension development journey.
+
+The post Developer Spotlight: Profile Manager Pro appeared first on Mozilla Add-ons Community Blog.
+
+https://blog.mozilla.org/addons/2026/10/26/developer-spotlight-profile-manager-pro/feed/
+0
+
+Nova is here: what changes for your Firefox theme
+
+https://blog.mozilla.org/addons/2026/09/29/nova-is-here-what-changes-for-your-firefox-theme/
+https://blog.mozilla.org/addons/2026/09/29/nova-is-here-what-changes-for-your-firefox-theme/#comments
+Tue, 29 Sep 2026 15:34:37 +0000
+
+cbacharakis compatibility
+developers
+add-ons
+addons
+design
+nova
+themes
+web extensions
+
+https://blog.mozilla.org/addons/?p=9305
+On September 29, Firefox 157 shipped Nova, the biggest refresh of the Firefox interface since Proton back in 2021. The browser frame is cleaner, the sidebar plays a bigger role, … Read more
+
+The post Nova is here: what changes for your Firefox theme appeared first on Mozilla Add-ons Community Blog.
+
+On September 29, Firefox 157 shipped Nova, the biggest refresh of the Firefox interface since Proton back in 2021. The browser frame is cleaner, the sidebar plays a bigger role, and vertical tabs are a first-class layout. Your theme continues to load, and most color and image properties work as they did before.
+
+What does change is where those colors and images display, how some of them look next to each other, and a handful of properties that no longer have a visible effect. Most themes will look fine. Some, especially themes built around a background image, look different enough that you will want to take a look.
+
+This post walks through what changed compared with the Proton interface, what to check in your theme, and what is still being worked on. If you only have five minutes, jump to the checklist.
+
+##
+
+## What changed in the browser frame
+
+The toolbar and sidebar now sit flush with the window edges, with no gaps between them.
+
+For your theme, this means your frame color and background image have less empty space around them, and the edges where the toolbar, sidebar, and page meet are more visible.
+
+Area
+Proton
+Nova (Firefox 157)
+
+Toolbar and sidebar
+Flush with the window, no gaps or floating borders
+Same as before
+
+Horizontal tabs
+Theme background applied to the tab strip
+Same as before
+
+Vertical tabs
+Tab bar color on the tab strip
+Tab bar color also shows on the toolbar
+
+Sidebar
+Separate panel
+Shares the theme background with the toolbar area
+
+## colors, accents and tabs
+
+Accent color. Th

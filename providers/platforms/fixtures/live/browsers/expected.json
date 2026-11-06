@@ -1,0 +1,44 @@
+{
+  "note": "Hand-checked against the saved pages on 2026-11-06. Example fixture.",
+  "changes": [
+    {
+      "provider": "chrome-extension",
+      "id": "chrome-extension:chrome-mv2-removed-cws",
+      "kind": "browser-change",
+      "title": "Chrome: all remaining Manifest V2 extensions removed from the Chrome Web Store (Aug 31 2026); MV2 stopped working in Chrome 139+ (disabled everywhere Jul 2025)",
+      "source": {
+        "url": "https://developer.chrome.com/docs/extensions/develop/migrate/mv2-deprecation-timeline",
+        "quote": "All remaining Manifest V2 extensions have been removed from the Chrome Web Store."
+      },
+      "affects": {
+        "fields": ["manifest_version"]
+      },
+      "effectiveDate": "2026-08-31",
+      "dependencyKind": "platform",
+      "dependency": "chrome-extension",
+      "fromVersions": ["Manifest V2"],
+      "toVersion": "Manifest V3",
+      "severity": "deadline"
+    },
+    {
+      "provider": "chrome-extension",
+      "id": "chrome-extension:chrome-mv2-ceases-139",
+      "kind": "browser-change",
+      "title": "Chrome 139 ends Manifest V2 support for all users; ExtensionManifestV2Availability policy removed",
+      "source": {
+        "url": "https://developer.chrome.com/docs/extensions/develop/migrate/mv2-deprecation-timeline",
+        "quote": "Therefore, Manifest V2 extensions will cease to function for any user upgrading to Chrome 139 and subsequent versions."
+      },
+      "affects": {
+        "operations": ["ExtensionManifestV2Availability"],
+        "fields": ["manifest_version"]
+      },
+      "effectiveDate": "2025-07-24",
+      "dependencyKind": "platform",
+      "dependency": "chrome-extension",
+      "fromVersions": ["Manifest V2"],
+      "toVersion": "Manifest V3",
+      "severity": "deadline"
+    }
+  ]
+}

@@ -1,0 +1,403 @@
+-
+
+Android Developers
+
+-
+
+Google Play
+
+-
+
+Other Play guides
+
+#
+Meet Google Play's target API level requirement
+
+Stay organized with collections
+
+Save and categorize content based on your preferences.
+
+When you upload an APK, it must meet Google Play's target API level
+requirements.
+
+Starting August 31 2026:
+
+- New apps and app updates must target Android 16 (API level 36) or higher to be
+submitted to Google Play; except for Wear OS and Android Automotive OS apps,
+which must target Android 15 (API level 35) or higher, and Android TV and
+Android XR apps, which must target Android 14 (API level 34) or higher.
+
+- Existing apps must target Android 15 (API level 35) or higher to remain
+available to new users on devices running Android OS higher than your app's
+target API level. Apps that target Android 14 (API level 34) or lower,
+including Android 13 (API level 33) or lower for Wear OS, Android TV, and
+Android XR, and Android 12 (API level 31) or lower for Android
+Automotive OS, will only be available on devices running Android OS that
+are the same or lower than your app's target API level.
+
+If you need more time to update your app, you'll be able to request an
+extension to November 1, 2026. You'll be able to access your app's extension
+forms in Play Console later this year.
+
+Exceptions to these requirements include:
+
+- Permanently private apps that are restricted to users in a specific
+organization and intended for internal distribution only.
+
+## Why target newer SDKs?
+
+Every new Android version introduces changes that bring security and performance
+improvements and enhance the Android user experience. Some of these changes only
+apply to apps that explicitly declare support through their targetSdkVersion
+manifest attribute (also known as the target API level).
+
+Configuring your app to target a recent API level ensures that users can benefit
+from these improvements, while your app can still run on older Android versions.
+Targeting a recent API level also allows your app to take advantage of the
+platform's latest features to delight your users. Furthermore, as of
+Android 10 (API level 29), users see a warning when they start an app for
+the first time if the app targets Android 5.1 (API level 22) or lower.
+
+This document highlights important points you need to know in updating your
+target API level to meet the Google Play requirement. See the instructions
+in the following sections, depending on which version you are migrating to.
+
+## Migrate from Android 12 and higher (API level 31) to a more recent version
+
+To update your app to target a more recent version of Android, follow the
+relevant behavior changes list:
+
+- Android 13 behavior changes
+
+- Android 14 behavior changes
+
+- Android 15 behavior changes
+
+- Android 16 behavior changes
+
+## Migrate from Android 11 (API level 30) to Android 12 (API level 31)
+
+Security and Permissions
+
+- Bluetooth: You must replace declarations for the BLUETOOTH and
+BLUETOOTH_ADMIN permissions with BLUETOOTH_SCAN,
+BLUETOOTH_ADVERTISE, or BLUETOOTH_CONNECT permissions. You
+no longer need to make LOCATION runtime permission requests for Bluetooth
+operations.
+
+- Location: Users can request apps to retrieve only approximate location
+information. You must request the ACCESS_COARSE_LOCATION permission
+any time you request ACCESS_FINE_LOCATION.
+
+- Intent filters: If your app contains activities, services,
+or broadcast receivers that use intent filters, you must
+explicitly declare the android:exported attribute for these
+components.
+
+- Hibernation: Apps may be put into hibernation mode if they are not used over
+a period of time. In hibernation mode your app's runtime permissions and
+cache are reset, and you can't run jobs or alerts. You can check your app's
+hibernation status.
+
+- Pending intent mutability: You must specify the mutability of each
+PendingIntent object that your app creates.
+
+User Experience
+
+- Custom notifications: Notifications with custom content views will no
+longer use the full notification area; instead, the system applies a
+standard template. This template ensures that custom notifications have the
+same decoration as other notifications in all states. This behavior is
+nearly identical to the behavior of Notification.DecoratedCustomViewStyle.
+
+- Android App Links verification changes: When using Android App Link
+verification, make sure that your intent filters include the BROWSABLE
+category and support the HTTPS scheme.
+
+Performance
+
+- Foreground service launch restrictions: To target Android 12 or
+higher, your app can't start foreground services while it runs in the
+background, except for a few special cases. If an app attempts to start a
+foreground service while running in the background, an exception occurs
+(except for the few special cases).
+
+Consider using WorkManager to schedule and start expedited work while
+your app runs in the background. To complete time-sensitive actions that the
+user requests, start foreground services within an exact alarm.
+
+- Notification trampoline restrictions: When users tap notifications,
+some apps respond by launching an app component that starts the activity
+that the user sees and interacts with. This app component is known as a
+notification trampoline.
+
+Apps must not start activities from services or broadcast receivers that are
+used as notification trampolines. After a user taps on a notification or
+action button within the notification, your app cannot call
+startActivity() inside of a service or broadcast receiver.
+
+View the complete set of changes that affect apps targeting Android 12 (API
+level 31).
+
+## Migrate from lower than Android 11 (API level 30)
+
+Select the version of Android you will be migrating from:
+
+### Migrate to Android 5 (API level 21)
+
+See the respective Behavior Changes page for each of the following releases to ensure your that your app has accounted for changes introduced in these releases:
+
+- Android 5.0 (API level 21)
+
+- Android 4.4 (API level 19).
+
+- Android 4.1.x (API level 16).
+
+Continue by following the instructions in the next section.
+
+### Migrate to Android 6 (API level 23)
+
+The following considerations apply to apps targeting Android 6.0 and higher versions of the platform:
+
+-
+Runtime Permissions
+
+-
+Dangerous permissions are only granted at runtime. Your UI flows must provide affordances for granting these permissions.
+
+-
+Wherever possible, ensure your app is prepared to handle rejection of permission requests. For example, if a user declines a request to access the device's GPS, ensure your app has another way to proceed.
+
+For an exhaustive list of changes introduced in Android 6.0 (API level 23), see the Behavior Changes
+page for that version of the platform.
+
+Continue by following the instructions in the next section.
+
+### Migrate to Android 7 (API level 24)
+
+The following considerations apply to apps targeting Android 7.0 and higher versions of the platform:
+
+-
+Doze and App Standby
+
+Design for behaviors described in Optimizing for Doze and App Standby, which encompasses incremental changes introduced across several platform releases.
+
+When a device is in Doze and App Standby Mode, the system behaves as follows:
+
+- Restricts network access
+
+- Defers alarms, syncs, and jobs
+
+- Restricts GPS and Wi-Fi scans
+
+-
+Restricts normal-priority
+Firebase Cloud Messaging
+messages.
+
+-
+Permission Changes
+
+- The system restricts access to app private directories.
+
+-
+Exposing a file:// URI outside of your app triggers a FileUriExposedException. If you need to share files outside of your app, implement
+FileProvider
+
+-
+
+The system forbids linking
+to non-NDK libraries.
+
+For an exhaustive list of changes introduced in Android 7.0 (API level 24), see the Behavior Changes
+page for that version of the platform.
+
+Continue by following the instructions in the next section.
+
+### Migrate to Android 8 (API level 26)
+
+The following considerations apply to apps targeting Android 8.0 and higher versions of the platform:
+
+-
+Background Execution Limits
+
+-
+The system restricts services for apps not running in the foreground.
+
+-
+startService() now throws an exception when an app tries to invoke it while startService() is
+prohibited.
+
+-
+To start foreground services, an app must use startForeground() and
+startForegroundService().
+
+- Carefully review the changes made to the JobScheduler API, as documented on the Android 8.0 (API level 26) Behavior Changes page.
+
+-
+Firebase Cloud Messaging requires
+version 10.2.1
+of the Google Play services SDK, or higher.
+
+-
+When using Firebase Cloud Messaging, message delivery is subject to background execution limits. When background work is necessary upon message receipt, such
+as to perform background data sync, your app should schedule jobs using Firebase Job Dispatcher or JobIntentService instead. For more information, see the
+Firebase Cloud Messaging documentation.
+
+-
+Implicit broadcasts
+
+-
+Implicit broadcasts are restricted. For information about handling background events, see the documentation for the JobScheduler API.
+
+-
+Background Location Limits
+
+-
+Apps running in the background have limited access to location data.
+
+-
+On devices with Google Play services, use the fused location provider to get periodic location
+updates.
+
+-
+Notification Channels
+
+- You should define notification interruption properties on a per-channel basis.
+
+- You must assign notifications to a channel for the notifications to appear.
+
+-
+This version of the platform supports NotificationCompat.Builder.
+
+-
+Privacy
+
+- ANDROID_ID is scoped per app signing key.
+
+For an exhaustive list of changes introduced in Android 8.0 (API level 26), see the Behavior Changes
+page for that version of the platform.
+
+### Migrate from Android 8 (API 26) to Android 9 (API 28)
+
+-
+Power Management
+
+- App Standby buckets bring new
+background restrictions based on app engagement, such as deferred jobs,
+alarms and quotas on high-priority messages
+
+- Battery saver improvements
+increase the limitations on app standby apps
+
+-
+Foreground service permission
+
+- Need to request the normal permission
+FOREGROUND_SERVICE
+(not runtime permission)
+
+-
+Privacy changes
+
+- Limited access to background sensors
+
+- Restricted access to call logs, now in CALL_LOG
+permission group
+
+- Restricted access to phone numbers, requiring
+READ_CALL_LOG permission
+
+- Restricted access to Wi-Fi information
+
+For an exhaustive list of changes introduced in Android 9.0 (API level
+28), see behavior
+changes.
+
+###
+Migrate from Android 9 (API level 28) to Android 10 (API level 29)
+
+-
+Notifications
+with a full-screen intent
+
+-
+Need to request the normal permission
+USE_FULL_SCREEN_INTENT
+(not runtime permission).
+
+-
+Support for foldables and large
+screen devices
+
+-
+Multiple activities can now be in the "resumed" state at the same time, but only one actually has focus.
+
+-
+This change affects
+onResume()
+and onPause()
+behavior.
+
+-
+New lifecycle concept of "topmost resumed" which can be detected
+by subscribing to
+onTopResumedActivityChanged().
+
+-
+Only one activity can be "topmost resumed."
+
+-
+When
+resizeableActivity
+is set to false, apps can additionally specify a
+minAspectRatio
+which automatically letterboxes the app on narrower aspect ratios.
+
+-
+Privacy changes
+
+-
+Scoped storage
+
+-
+External storage access is limited only to an app-specific
+directory and to specific types of media that the app has
+created.
+
+-
+Restricted access to location while the app is in the background,
+requiring
+ACCESS_BACKGROUND_LOCATION
+permission.
+
+-
+Restricted access to non-resettable identifiers such as IMEI and
+serial number.
+
+-
+Restricted access to physical activity information such as the
+user's step count, requiring
+ACTIVITY_RECOGNITION
+permission.
+
+-
+Restricted access to
+some
+telephony, Bluetooth, and Wi-Fi APIs, requiring
+ACCESS_FINE_LOCATION
+permission.
+
+-
+Restricted access to Wi-Fi settings
+
+-
+Apps can no longer directly enable or disable Wi-Fi and need to
+do it
+using
+settings panels.
+
+-
+Restrictions on initiating a connection to a Wi-Fi network,
+requiring the use of either
+Wi

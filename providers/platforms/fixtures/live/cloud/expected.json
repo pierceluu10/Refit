@@ -1,0 +1,24 @@
+{
+  "note": "Hand-checked against the saved pages on 2026-11-06. Example fixture.",
+  "changes": [
+    {
+      "provider": "google-container-registry",
+      "id": "google-container-registry:gcr-shutdown-artifact-registry",
+      "kind": "cloud-deprecation",
+      "title": "Container Registry shut down March 18, 2025: writing images to gcr.io via Container Registry is unavailable; deploy script must push to Artifact Registry (gcr.io repositories or pkg.dev)",
+      "source": {
+        "url": "https://cloud.google.com/container-registry/docs/deprecations/container-registry-deprecation",
+        "quote": "Effective March 18, 2025, Container Registry\nis shut down and writing images to Container Registry is unavailable."
+      },
+      "affects": {
+        "operations": ["docker push gcr.io", "gcloud container images"]
+      },
+      "effectiveDate": "2025-03-18",
+      "dependencyKind": "infrastructure",
+      "dependency": "google-container-registry",
+      "fromVersions": ["Container Registry (gcr.io)"],
+      "toVersion": "Artifact Registry",
+      "severity": "deadline"
+    }
+  ]
+}

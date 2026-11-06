@@ -1,0 +1,8 @@
+{
+  "aws-lifecycle": "Sunset: Customers already using these services and features should plan to migrate to alternatives",
+  "aws-whats-new": "AWS Network Load Balancer is now available in the Phoenix Local Zone (us-west-2-phx-2a).",
+  "gcp-deprecation": "Details of the Deprecation Policy are included in the agreement under which you receive Google Cloud Platform Services.",
+  "gcp-release-notes": "Scheduled maintenance of Management/Control Plane for the Apigee Edge for Public Cloud on November 6, 2026.",
+  "azure-updates": "We have extended the retirement date to March 31, 2027.",
+  "azure-retirements": "The Service Retirement workbook provides a single centralized resource level view of service retirements."
+}

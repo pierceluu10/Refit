@@ -1,0 +1,111 @@
+Let's Encrypt
+
+https://letsencrypt.org/
+Let's Encrypt is a free, automated, and open Certificate Authority brought to you by the nonprofit Internet Security Research Group (ISRG) . Read all about our work in our Annual Report .
+
+en-US
+Thu, 29 Oct 2026 00:00:00 +0000
+Hugo v0.162.0
+
+A Good Day for Cryptography
+
+https://letsencrypt.org/2026/10/29/good-day-cryptography.html
+Thu, 29 Oct 2026 00:00:00 +0000
+
+October 16, 2026 was a good day for the cryptography community. A 25-year-old question about the math behind some of the Internet’s most widely used encryption was finally answered. The previously lost method used to create the widely-used NIST elliptic curves has been found.
+
+In 2023, Filippo Valsorda created a bounty for answering the question, with a twist: if the solvers gave the prize to a nonprofit, it would be tripled, from $12,288 to $36,864. A group of engineers raised their hands to fund the bounty prize. Such a generous and thoughtful idea. And you guessed it! The solvers, a team of researchers at Anthropic, took Filippo up on it and donated the bounty to ISRG. ISRG is grateful for the generous support and we’re grateful because the answer itself strengthens confidence in cryptography that secures much of the web. A good day indeed.
+
+What was the bounty? What was the answer? It’s a long story. TL;DR: The NIST elliptic curves, used in encryption across the Internet, were built from “seeds” that two NSA engineers generated in the late 1990s. Years later, nobody could remember exactly how they’d made them. Humans do what humans do, and without an answer, some people grew skeptical. That kind of doubt chips away at trust, which obviously isn’t great for cryptographic infrastructure. The answer turned out to be reassuring: the seeds came from an ordinary random number generator, seeded with the time.
+
+What we love most about this story is that Filippo and our community wanted to uphold the public’s trust. We build and protect Internet infrastructure, and work to keep it secure every day. Filippo didn’t have to create this bounty, but he wanted answers for his fellow engineers and the public. The engineers who chipped in didn’t have to put up their hard-earned dollars, but they wanted to help put the speculation to rest. And the team at Anthropic didn’t have to spend time solving it, but enlisted Claude’s help in closing this cryptographic chapter of history.
+
+Who do you know that is helping make the Internet better? Thank them! Many of them are paid to do this work, but they also do it on their own time because they care deeply. And so do we.
+
+In the cryptography and security community, we are working every day to protect our teams, our organizations, our friends and family, and in ISRG’s case, billions of users online. Consider making a donation in honor of that work. You can give online or make your donation via stock, crypto, check, DAF, and more. Learn more in the Ways To Give section of our donation page.
+
+The following individuals made all this possible:
+
+-
+Filippo Valsorda, who started the NIST Elliptic Curves Seeds Bounty. Read his bounty announcement and his post when the bounty was claimed.
+
+-
+John Wood, Henry de Valence, Ava Howell, Zack Voase, Lucy Sweet, Amir Omidi, Paul Crowley, Iain McGinniss, Nicholas Carlini, and Steve Weis, the team at Anthropic who solved it and chose to send the prize to ISRG. Read Anthropic’s writeup.
+
+-
+Amir Omidi, Chris Palmer, Colm MacCárthaigh, David Adrian, David Anderson, Filippo Valsorda, Jeff Hodges, Matt Green, Matthew McPherrin, Paul Kehrer, Ryan Sleevi, and Soatok, who chipped in their own money to fund the bounty.
+
+Thank you for making the Internet more secure every day.
+
+https://letsencrypt.org/2026/10/29/good-day-cryptography.html
+
+64-Day Certificate Lifetimes Coming Feb 2027
+
+https://letsencrypt.org/2026/10/07/64-day-certs.html
+Wed, 07 Oct 2026 00:00:00 +0000
+
+On February 10, 2027, all Let’s Encrypt subscribers will move to certificates with 64 day lifetimes by default unless they select an even shorter lifetime (45 or 6 days, as previously announced). This means that any certificate we issue or renew on and after that date will have a 64 day validity period, and we expect the last 90-day certificate to expire on May 11, 2027. We will not revoke valid certificates as a part of this process.
+
+We will switch to issuing 64 day certificates in our staging environment on October 14, 2026 to enable testing. We recommend testing in staging before the change takes effect in production.
+
+If your renewals are automated and your client supports ACME Renewal Info (ARI), you should be all set since ARI allows Let’s Encrypt to tell your client when to renew (you can review your ACME client’s documentation to determine if ARI is implemented).
+
+If your renewals are hard-coded to a date from expiration you should update them to renew at approximately ⅔ of the lifetime instead. Taking this step in preparation for 64 day lifetimes will lay the groundwork for default lifetimes of 45 days in 2028. Grep for common hardcoded numbers like 83, 80 or 60 in cron jobs, wrapper scripts and runbooks if you’re not sure.
+
+We will also be reducing the authorization reuse period from 30 days to 10 days. In 2028, the reuse period will shrink to seven hours. We are making this change to comply with a 2029 reduction in maximum validation reuse periods, and to remove the need for “CAA rechecking”, where we have to repeat part of the validation process if the validation data is more than 7 hours old. Unless you have specifically designed your ACME client to rely on validation reuse, you will not need to make any changes.
+
+This is also an opportunity to automate certificate management processes like reload and deployment and to add alerting for renewal failures.
+
+Rate limits will not be impacted by this change; you can learn more in our previous blog post.
+
+This change will not affect ACME endpoints or our issuance chains.
+
+We are moving to shorter certificate lifetimes because this reduces the risk of key compromise and mis-issuance. As a nonprofit we see it as part of our mission to make this change to advance security for everyone using the Web globally. We anticipate a smooth transition, but if you experience issues, our community forum and documentation are good resources.
+
+https://letsencrypt.org/2026/10/07/64-day-certs.html
+
+How We Built a Data Warehouse Using ClickHouse
+
+https://letsencrypt.org/2026/09/17/clickhouse.html
+Thu, 17 Sep 2026 00:00:00 +0000
+
+When the scripts that generate the data for letsencrypt.org/stats broke yet again, we decided to retire them rather than repair them. Let’s Encrypt issues six to ten million certificates each day, producing a large volume of logs that keeps growing. It became increasingly time-consuming and difficult to answer questions about our own issuance like “how many certificates use the ‘shortlived’ profile.” Using raw logs, this requires finding, parsing and extracting relevant portions of loglines. Querying the database behind our issuance API is not a practical option, as it’s built for transactions rather than analysis. We’d also used a log search SaaS product, but our bills were growing much faster than we’d like, and while it was fine for searching, it wasn’t able to do the analytic workloads we needed. We knew we could dream bigger and better.
+
+Daily issuance of Let’s Encrypt certificates over the last 180 days
+
+This led us to seek a self-hosted solution with efficient storage for structured data in addition to logs. We chose ClickHouse because of its potential as a data warehouse; the combination of cost-efficient storage and fast aggregation over large datasets appealed to us. A bonus of ClickHouse is that it is open source, a key principle valued by Let’s Encrypt.
+
+The first step in building our new infrastructure was to purchase new hardware. To back our ClickHouse warehouse, we bought three PowerEdge R7715 servers. Each is equipped with a 32-core AMD EPYC 9355P 3.55GHz processor, 384 GB of RAM and 32 × 3.2TB NVMe drives, working out to roughly 100TB raw storage. With structured data and 100 days’ worth of logs already in our database, we are only at ~14% of total capacity, leaving lots of room for future growth.
+
+Logs are the bulk of our storage use and the foundation of our structured data, as every other table we build is derived from them. When it comes to log search, ClickHouse covers our basic needs with quick ingest and interactive SQL. However, there are query ergonomics that we want to improve, like using OpenTelemetry’s tracing features and ClickHouse’s tokenization settings.
+
+Our primary target for structured data is our issuance records. A materialized view extracts those records from logs into their own table, and further views pre-aggregate from there. One such view counts issuance by day per profile. Now, questions like “what is our issuance by profile over the last 180 days” can be answered within milliseconds.
+
+Daily issuance count of certificates by profile, excluding “classic”, over the last 180 days
+
+We used this approach to completely rebuild the pipeline for our public stats page. The scripts we abandoned used to take hours each day to read and process dozens of compressed data files. The Rube-Goldberg-Machine-like collection of steps failed several times a year, requiring us to intervene and fix it. ClickHouse now computes those same stats in less than 10 seconds. Aside from pre-aggregated issuance tables, we can accomplish this because ClickHouse’s native functions are capable of quick and complex aggregations. Below is a simplified snippet of our materialized view for daily stats, counting the unique set of active domains over months across millions of rows. Two things to point out about this query: array handling means we can query nested fields without reshaping the underlying data, and uniq uses approximations to stay fast at scale.
+
+SELECT
+uniq(arrayJoin(arrayMap(x -> x.value, arrayFilter(x -> x.type = 'dns', identifiers)))) AS fqdns_active,
+uniq(arrayJoin(etld_plus_one)) AS reg_domains_active
+FROM boulder.cert_issuances
+WHERE not_before >= yesterday() - 90
+AND not_after >= yesterday()
+AND not_before \
+--ip-address
+
+Two things of note:
+
+-
+This will request a non-trusted certificate from the Let’s Encrypt staging server. Once you’ve got things working the way you want, run without the --staging flag to get a publicly trusted certificate.
+
+-
+This requests a certificate with Let’s Encrypt’s “shortlived” profile, which will be good for 6 days. This is a Let’s Encrypt requirement for IP address certificates.
+
+As of right now, Certbot only supports getting IP address certificates, not yet installing them in your web server. There’s work to come on that front. In the meantime, edit your webserver configuration to load the newly issued certificate from /etc/letsencrypt/live/ /fullchain.pem and /etc/letsencrypt/live/ /privkey.pem.
+
+The command line above uses Certbot’s “webroot” mode, which places a challenge response file in a location where your already-running webserver can serve it. This is nice since you don’t have to temporarily take down your server.
+
+There are two other plugins that support IP address certificates today: --manual and --standalone. The manual plugin is like webroot, except Certbot pauses while you place the challenge response file manually (or runs a user-provided hook to place the file). The standalone plugin runs a simple web server that serves a challenge response. It has the advantage of being very easy to configure, but has the disadvantage that any running webserver on port 80 has to be temporarily taken down so Certbot can listen on that port. The nginx and apache plugins don’t yet support IP addresses.
+
+You should also be sure that Certbot is set up for automatic renewal. Most installation methods for Certbot set up automatic renewal for you. However, since the webserver-specific installers don’t yet support IP address certificates, you’ll hav

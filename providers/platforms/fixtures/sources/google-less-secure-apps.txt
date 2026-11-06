@@ -1,0 +1,229 @@
+-
+
+Google Workspace Help
+
+-
+
+Administrators
+
+-
+
+Sync data
+
+-
+
+Guides
+
+Send feedback
+
+#
+Transition from less secure apps to OAuth
+
+Stay organized with collections
+
+Save and categorize content based on your preferences.
+
+Starting March 14, 2025, you and your users must use OAuth with third-party apps
+to access Gmail, Google Calendar, and Google Contacts. OAuth is a more secure
+access method. You will no longer use a password for access (with the exception
+of app passwords). Google is turning off access to less secure apps—non-Google
+apps that can access Google Accounts with a username and password (basic
+authentication). Using basic authentication makes accounts more vulnerable to
+hijacking attempts.
+
+Use this article to help your organization, users, and app developers transition
+from less secure apps and services to OAuth.
+
+## Timeline for transition
+
+Summer 2024
+
+- If you (or your users) try to connect to a less secure app for the first
+time, you will not be able to. This restriction includes third-party apps
+that still use basic authentication, such as CalDAV, CardDAV, IMAP, SMTP,
+and POP, to access Gmail, Google Calendar, and Contacts. If you're not
+trying to connect for the first time, you will be able to continue using the
+apps until they're turned off.
+
+- In the Google Admin console, you will not be able to access the turn on and
+off setting for less secure apps.
+
+- Users will not be able to turn IMAP on or off in their Gmail settings.
+
+March 14, 2025
+
+- Access to less secure apps will be turned off for all Google Accounts.
+
+- CalDAV, CardDAV, IMAP, SMTP, and POP will no longer work with legacy
+passwords (basic authentication).
+
+Google Sync—As part of the transition to OAuth, Google Sync will also be
+deprecated because it does not use OAuth for authentication:
+
+- Summer 2024—New users will not be able to connect to their Google
+Account using Google Sync.
+
+- March 14, 2025—Existing Google Sync users will not be able to connect to
+their Google Account using Google Sync.
+
+For exact dates, go to the Google Workspace Updates
+blog.
+
+## What you need to do
+
+To continue using a specific app with their Google Account, users in your
+organization must switch to a more secure type of access called OAuth. OAuth
+allows apps to access accounts with a digital key instead of requiring a user to
+enter their username and password.
+
+We recommend that you share the instructions in this article with your users to
+help them make the necessary changes. If your organization uses custom tools,
+ask the developer of the tool to update it to use OAuth. Developer instructions
+are also included below on this page.
+
+If your app does not support OAuth, you will need to switch your organization to
+an app that offers OAuth or contact the supplier and request that they add OAuth
+as a way of connecting your managed Google Accounts. For more information, go to
+Control access to less secure
+apps.
+
+### Mobile device configurations
+
+If your organization uses mobile management to configure IMAP, CalDAV, CardDAV,
+POP, or Microsoft Exchange ActiveSync (Google Sync) profiles, those services
+will be phased out on the following timeline:
+
+- Summer of 2024—Pushing password-based IMAP, CalDAV, CardDAV, POP, and
+Exchange ActiveSync (Google Sync) accounts with mobile management will not
+work for customers connecting for the first time. If you use Google endpoint
+management, you will not be able to turn on Custom push configuration
+for CalDAV and CardDAV.
+
+- Autumn of 2024—Pushing password-based IMAP, CalDAV, CardDAV, and POP
+accounts with mobile management will no longer work for existing users. You
+will need to push a user account using your mobile management provider,
+which will re-add your user accounts to iOS devices using OAuth. If you use
+Google endpoint management, Custom push configuration-CalDAV and
+Custom push configuration-CardDAV will no longer work. For more details
+about these settings, go to Account
+Configurations.
+
+- Autumn of 2024—Mobile management pushes of password-based Exchange
+ActiveSync (Google Sync) will no longer work for existing users. You will
+need to push a user account using your mobile management provider, which
+will re-add your user accounts to iOS devices using OAuth. For more details,
+go to Apply settings for iOS
+devices.
+
+Note: Auto push configuration, which uses OAuth, will continue to work.
+
+### Other less secure apps
+
+For any other less secure apps, ask the developer of the app you're using to
+start supporting OAuth.
+
+### Scanners & other devices
+
+For scanners or other devices using SMTP or less secure apps to send emails, use
+one of the following options:
+
+- Configure the device to use OAuth.
+
+- Use an alternative way to scan or send an email from the device.
+
+- Configure an app password for use with the device.
+
+Tip: If you replace your device, look for one that sends email using OAuth.
+
+## Share this information with your users
+
+For users with an app that accesses their managed Google Account with only a
+username and password, have them follow these instructions to switch to a more
+secure method so they can continue to access their email, calendar, and
+contacts.
+
+If users do not take one of the following actions, when less secure app access
+is discontinued, they will receive an error message that their username-password
+combination is incorrect.
+
+### Email
+
+- Users of stand-alone Microsoft Outlook 2016 or earlier—Move to Microsoft
+Office 365 (a web-based version of Outlook) or Outlook for Windows or Mac,
+both of which support OAuth access. Alternatively, you can set up
+Google Workspace Sync for Microsoft Outlook (GWSMO) for your
+organization. For details, go to Get ready & install
+GWSMO.
+
+- Users of Mozilla Thunderbird or another email client—Remove your Google
+Account, re-add it, and configure it to use IMAP with OAuth.
+
+- Users of the mail app on iOS or MacOS or Outlook for Mac—If you use only
+a password to sign in:
+
+- Remove and re-add your Google Account.
+
+- Click Sign in with Google to automatically use OAuth.
+
+### Calendar
+
+- If you use an app that uses password-based CalDAV to give access to your
+calendar, switch to a method that supports OAuth. We recommend the Google
+Calendar app (available for Android, web, and iOS) as a secure app to use
+with your Google Account. For more information, go to Access
+Calendar.
+
+- If your Google Account is linked to the calendar app in iOS or MacOS and
+uses only a password to sign in:
+
+- Remove and re-add your account to your device.
+
+- Click Sign in with Google to automatically use OAuth.
+
+For more information, go to Add Google Calendar events to Apple
+Calendar.
+
+### Contacts
+
+- If your Google Account syncs contacts to iOS or MacOS through CardDAV and
+uses only a password to sign in:
+
+- Remove and re-add your account.
+
+- Click Sign in with Google to automatically use OAuth.
+
+For more information, go to Sync Google Contacts with your mobile device or
+computer.
+
+- If your Google Workspace account syncs contacts to any other platform or
+app through CardDAV and uses only a password to sign in, switch to a method
+that supports OAuth.
+
+## Share this information with app developers
+
+To maintain compatibility with Google Accounts, update your app to use OAuth 2.0
+as a connection method. To get started, go to:
+
+- Using OAuth 2.0 to Access Google APIs
+
+- OAuth 2.0 for Mobile & Desktop
+Apps.
+
+## Transition off Google Sync
+
+Google Sync doesn't support OAuth, which leaves your organization's data less
+secure. To transition your users and turn off Google Sync, follow the
+instructions in Transition your organization off Google
+Sync.
+
+Google, Google Workspace, and related marks and logos are trademarks of Google LLC. All other company and product names are trademarks of the companies with which they are associated.
+
+Send feedback
+
+Except as otherwise noted, the content of this page is licensed under the Creative Commons Attribution 4.0 License, and code samples are licensed under the Apache 2.0 License. For details, see the Google Developers Site Policies. Java is a registered trademark of Oracle and/or its affiliates.
+
+Last updated 2026-10-26 UTC.
+
+Need to tell us more?
+
+[[["Easy to understand","easyToUnderstand","thumb-up"],["Solved my problem","solvedMyProblem","thumb-up"],["Other","otherUp","thumb-up"]],[["Missing the information I need","missingTheInformationINeed","thumb-down"],["Too complicated / too many steps","tooComplicatedTooManySteps","thumb-down"],["Out of date","outOfDate","thumb-down"],["Samples / code issue","samplesCodeIssue","thumb-down"],["Other","otherDown","thumb-down"]],["Last updated 2026-10-26 UTC."],[],[]]

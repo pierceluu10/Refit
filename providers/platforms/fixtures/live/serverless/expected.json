@@ -1,0 +1,25 @@
+{
+  "note": "Hand-checked against the saved pages on 2026-11-06. Example fixture.",
+  "changes": [
+    {
+      "provider": "aws-lambda",
+      "id": "aws-lambda:lambda-nodejs16-deprecated",
+      "kind": "serverless-runtime",
+      "title": "AWS Lambda nodejs16.x deprecated 2024-06-12; creating new functions blocked from Jul 29, 2027 and updates blocked from Aug 31, 2027; move to nodejs24.x",
+      "source": {
+        "url": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html",
+        "quote": "Node.js 16\n\nnodejs16.x\n\nAmazon Linux 2\n\nJun 12, 2024\n\nJul 29, 2027\n\nAug 31, 2027"
+      },
+      "affects": {
+        "operations": ["provider.runtime"],
+        "versions": ["nodejs16.x"]
+      },
+      "effectiveDate": "2027-08-31",
+      "dependencyKind": "infrastructure",
+      "dependency": "aws-lambda",
+      "fromVersions": ["nodejs16.x"],
+      "toVersion": "nodejs24.x",
+      "severity": "deadline"
+    }
+  ]
+}
