@@ -13,9 +13,9 @@ Drafted 2026-11-06. Refit is moving from "API migrations" to **"software that ne
 5. [Before launch](#5-before-launch)
 6. [Shared contract](#6-shared-contract)
 7. [Rules for every prompt](#7-rules-for-every-prompt)
-8. [Otabek's prompts (40%)](#8-otabeks-prompts-40)
-9. [Pierce's prompts (40%)](#9-pierces-prompts-40)
-10. [Furqan's prompts (20%)](#10-furqans-prompts-20)
+8. [Otabek's prompts](#8-otabeks-prompts-otabek-a-o1o5-otabek-b-o6-and-p5)
+9. [Pierce's prompts](#9-pierces-prompts-p1p4-and-p6)
+10. [Furqan's prompts](#10-furqans-prompts-f1f3)
 11. [Morning: integration and demo](#11-morning-integration-and-demo)
 12. [Risks and fallbacks](#12-risks-and-fallbacks)
 13. [After the MVP](#13-after-the-mvp)
@@ -77,27 +77,38 @@ Drafted 2026-11-06. Refit is moving from "API migrations" to **"software that ne
 
 ## 3. How the work is split
 
-Fifteen prompts, split by the founders' Claude plans: **Otabek 40% (6 prompts), Pierce 40% (6 prompts), Furqan 20% (3 prompts)**. Every prompt owns its files; no two prompts edit the same file.
+Fifteen prompts, split by Claude plan capacity. There are four Claude accounts, 30x in total:
 
-| Owner  | Prompt                                            | Owns                                                                                                                                      | Proposed AI cap |
-| ------ | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| Otabek | **O1** Orchestrator: any external change          | `orchestrator/`, `README.md`, `AGENTS.md`, `.env.example`, root config lines                                                              | $3              |
-| Otabek | **O2** Harness agent: upgrades                    | `harness/agent.ts`, `prompt.ts`, `tools.ts`, `pr.ts`, `summary.ts`, `run.ts`, `types.ts`, `index.ts` and their tests                      | $6              |
-| Otabek | **O3** Sandbox, checks, ledger and model layer    | `harness/sandbox.ts`, `checks.ts`, `secrets.ts`, `ledger.ts`, `validators.ts` and their tests; `shared/models.ts` (new)                   | $2              |
-| Otabek | **O4** Memory and evals                           | `memory/`, `evals/`                                                                                                                       | $4              |
-| Otabek | **O5** Rules and regulations agent, audit trail   | `compliance/` (new workspace)                                                                                                             | $4              |
-| Otabek | **O6** Proof for platform and rule changes        | `harness/proof/` (new)                                                                                                                    | $2              |
-| Pierce | **P1** App: install → scan → PRs                  | `app/` except `app/api/`, `app/lifecycle/`, `app/notify/`, `app/audit/`                                                                   | $4              |
-| Pierce | **P2** Inventory: every dependency                | `inventory/` except `inventory/surfaces/`                                                                                                 | $5              |
-| Pierce | **P3** Report API, PR lifecycle and notifications | `app/api/` (new), `app/lifecycle/` (new), `app/notify/` (new)                                                                             | $1              |
-| Pierce | **P4** Website, onboarding and dashboard          | `src/`, `public/`, `index.html` except `src/compliance/`                                                                                  | $0              |
-| Pierce | **P5** Inventory: platform and regulated surfaces | `inventory/surfaces/` (new)                                                                                                               | $3              |
-| Pierce | **P6** Platforms and rules view, audit export     | `src/compliance/` (new), `app/audit/` (new)                                                                                               | $0              |
-| Furqan | **F1** Watchers for every change source           | `providers/` except `providers/toolkit/`, `providers/upgrades/`, `providers/platforms/`, `providers/*/tools.ts`, `providers/*/playbooks/` | $4              |
-| Furqan | **F2** Tools and playbooks for upgrades           | `providers/toolkit/`, `providers/*/tools.ts`, `providers/*/playbooks/`, `providers/upgrades/` (new)                                       | $3              |
-| Furqan | **F3** Platform and infrastructure watchers       | `providers/platforms/` (new)                                                                                                              | $3              |
+| Claude account | Plan    | Share | Runs                                                                |
+| -------------- | ------- | ----- | ------------------------------------------------------------------- |
+| **Otabek A**   | Max 10x | 33%   | O1, O2, O3, O4, O5 (5 prompts)                                      |
+| **Otabek B**   | Max 5x  | 17%   | O6, P5 (2 prompts)                                                  |
+| **Pierce**     | Max 10x | 33%   | P1, P2, P3, P4, P6 (5 prompts), plus the morning integration prompt |
+| **Furqan**     | Max 5x  | 17%   | F1, F2, F3 (3 prompts; F3 is small)                                 |
 
-**Proposed total: $44** (Otabek $21, Pierce $13, Furqan $10). Core prompts are $32 of it. The founders approve these caps before launch.
+Prompt IDs keep their original letters, so O6 and P5 stay O6 and P5 even though Otabek B runs both. Every prompt owns its files; no two prompts edit the same file.
+
+| Claude         | Prompt                                            | Owns                                                                                                                                      | Proposed AI cap |
+| -------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| Otabek A (10x) | **O1** Orchestrator: any external change          | `orchestrator/`, `README.md`, `AGENTS.md`, `.env.example`, root config lines                                                              | $3              |
+| Otabek A (10x) | **O2** Harness agent: upgrades                    | `harness/agent.ts`, `prompt.ts`, `tools.ts`, `pr.ts`, `summary.ts`, `run.ts`, `types.ts`, `index.ts` and their tests                      | $6              |
+| Otabek A (10x) | **O3** Sandbox, checks, ledger and model layer    | `harness/sandbox.ts`, `checks.ts`, `secrets.ts`, `ledger.ts`, `validators.ts` and their tests; `shared/models.ts` (new)                   | $2              |
+| Otabek A (10x) | **O4** Memory and evals                           | `memory/`, `evals/`                                                                                                                       | $4              |
+| Otabek A (10x) | **O5** Rules and regulations agent, audit trail   | `compliance/` (new workspace)                                                                                                             | $4              |
+| Otabek B (5x)  | **O6** Proof for platform and rule changes        | `harness/proof/` (new)                                                                                                                    | $2              |
+| Otabek B (5x)  | **P5** Inventory: platform and regulated surfaces | `inventory/surfaces/` (new)                                                                                                               | $3              |
+| Pierce (10x)   | **P1** App: install → scan → PRs                  | `app/` except `app/api/`, `app/lifecycle/`, `app/notify/`, `app/audit/`                                                                   | $4              |
+| Pierce (10x)   | **P2** Inventory: every dependency                | `inventory/` except `inventory/surfaces/`                                                                                                 | $5              |
+| Pierce (10x)   | **P3** Report API, PR lifecycle and notifications | `app/api/` (new), `app/lifecycle/` (new), `app/notify/` (new)                                                                             | $1              |
+| Pierce (10x)   | **P4** Website, onboarding and dashboard          | `src/`, `public/`, `index.html` except `src/compliance/`                                                                                  | $0              |
+| Pierce (10x)   | **P6** Platforms and rules view, audit export     | `src/compliance/` (new), `app/audit/` (new)                                                                                               | $0              |
+| Furqan (5x)    | **F1** Watchers for every change source           | `providers/` except `providers/toolkit/`, `providers/upgrades/`, `providers/platforms/`, `providers/*/tools.ts`, `providers/*/playbooks/` | $4              |
+| Furqan (5x)    | **F2** Tools and playbooks for upgrades           | `providers/toolkit/`, `providers/*/tools.ts`, `providers/*/playbooks/`, `providers/upgrades/` (new)                                       | $3              |
+| Furqan (5x)    | **F3** Platform and infrastructure watchers       | `providers/platforms/` (new)                                                                                                              | $3              |
+
+**Proposed total: $44** (Otabek A $19, Otabek B $5, Pierce $10, Furqan $10). Core prompts are $32 of it. The founders approve these caps before launch. These are API dollars for Refit's own model calls, separate from the Claude plans that run the sessions.
+
+**Start order per Claude:** core prompts first (O1–O4, P1–P4, F1–F2), then the extended ones (O5, O6, P5, P6, F3) once the core sessions are well under way.
 
 **Before launch:** Otabek writes the shared contract (section 6). Pierce sets up the test org, the sample repos and the GitHub App settings (section 5).
 
@@ -317,9 +328,9 @@ export type RecordAudit = (entry: AuditEntry) => Promise<void>; // O5
 
 ---
 
-## 8. Otabek's prompts (40%)
+## 8. Otabek's prompts (Otabek A: O1–O5, Otabek B: O6 and P5)
 
-### O1: the orchestrator handles any external change
+### O1: the orchestrator handles any external change (Otabek A)
 
 ```text
 Extend Refit's end-to-end loop in orchestrator/ from API changes to any external change. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md, AGENTS.md and shared/types.ts on origin/mvp, especially "AI-first".
@@ -337,7 +348,7 @@ Tests: end to end with stubs on the three sample repos' fixtures; one real match
 Use subagents for the match agent, the scan report and CLI, and the docs. Branch `mvp/orchestrator`, draft PR into `mvp`. Edit only orchestrator/, README.md, AGENTS.md, .env.example and the root config lines that register workspaces. AI spend cap: $3.
 ```
 
-### O2: the harness agent does upgrades
+### O2: the harness agent does upgrades (Otabek A)
 
 ```text
 Teach Refit's migration agent to do upgrades. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md ("The harness system prompt"), AGENTS.md and shared/types.ts on origin/mvp, especially "AI-first".
@@ -353,7 +364,7 @@ Tests: the fake-model session for every kind; then ONE real run on demo-node-api
 Use subagents for the prompt, the tools and the PR writer. Branch `mvp/harness`, draft PR into `mvp`. Edit only the harness files O2 owns in MVP-PLAN.md section 3. AI spend cap: $6.
 ```
 
-### O3: sandbox, checks, ledger and the model layer
+### O3: sandbox, checks, ledger and the model layer (Otabek A)
 
 ```text
 Make Refit's sandbox and checks work for upgrades, and put every model call behind one layer. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md, AGENTS.md and shared/types.ts on origin/mvp.
@@ -369,7 +380,7 @@ Tests for each part; Docker tests skip cleanly when Docker isn't running. Real A
 Use subagents for the sandbox and checks, secrets and validators, and the model layer. Branch `mvp/sandbox`, draft PR into `mvp`. Edit only the files O3 owns in MVP-PLAN.md section 3. AI spend cap: $2.
 ```
 
-### O4: memory and evals for upgrades
+### O4: memory and evals for upgrades (Otabek A)
 
 ```text
 Extend Refit's memory and evals to cover upgrades. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md, AGENTS.md and shared/types.ts on origin/mvp, especially "AI-first".
@@ -390,7 +401,7 @@ No real benchmark tonight. Real AI calls only for 2 recipe extractions and 2 rev
 Use subagents for recipes and retrieval, verdicts and views, the eval set, and scoring and the smoke test. Branch `mvp/memory-evals`, draft PR into `mvp`. Edit only memory/ and evals/. AI spend cap: $4.
 ```
 
-### O5: the rules and regulations agent, and the audit trail
+### O5: the rules and regulations agent, and the audit trail (Otabek A)
 
 ```text
 Build Refit's rules and regulations agent in the compliance/ workspace (already registered on mvp). Read MVP-PLAN.md (sections 1–7, especially "Rules and regulations are different"), REFIT-PLAN.md, AGENTS.md and shared/types.ts on origin/mvp, especially "AI-first".
@@ -405,7 +416,7 @@ Tests with fixtures of the official texts; one live read per rule family, capped
 Use subagents per rule family, for the matching agent, and for the audit trail. Branch `mvp/compliance`, draft PR into `mvp`. Edit only compliance/. AI spend cap: $4.
 ```
 
-### O6: proof for platform and rule changes
+### O6: proof for platform and rule changes (Otabek B)
 
 ```text
 Build the checks that prove platform and rule changes, in harness/proof/. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md, AGENTS.md and shared/types.ts on origin/mvp, especially "AI-first".
@@ -425,11 +436,27 @@ Tests with fixtures for every check; checks that need Docker or a browser skip c
 Use subagents per check group. Branch `mvp/proof`, draft PR into `mvp`. Edit only harness/proof/. AI spend cap: $2.
 ```
 
+### P5: inventory of platform and regulated surfaces (Otabek B)
+
+```text
+Extend Refit's inventory to find the parts of a codebase that platforms and rules apply to, in inventory/surfaces/. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md, AGENTS.md and shared/types.ts on origin/mvp, especially "AI-first".
+
+Goal: inventorySurfaces(repoDir, repo) → DependencyUsage[] with kinds platform, infrastructure, security-standard and regulated-surface, each with every file and line it was found in and a note on why it matters. P2's inventoryDependencies merges these results.
+The agent reads the repo and finds:
+- Platforms: iOS and Android apps (Info.plist, privacy manifests, build.gradle targetSdk and minSdk), browser extensions (manifest.json), web apps' browser targets.
+- Infrastructure: Kubernetes manifests, Helm charts and Kustomize with their apiVersions; serverless.yml, SAM templates, Terraform and Pulumi with runtimes; cloud services used.
+- Security standards: TLS settings, certificate handling, OAuth flows, password or basic-auth logins to providers.
+- Regulated surfaces: payment and checkout flows; personal data (sign-up forms, profiles, analytics, cookies, data export and deletion); user interfaces and forms (for accessibility); AI features (chatbots, AI decisions about people).
+Scanners point the agent at likely files; the agent's reading is the source of truth.
+Tests: fixtures for the three sample repos (including demo-node-api's Kubernetes manifest and serverless.yml, and demo-next-web's checkout, cookie banner and signup form); one real run per sample repo, capped at $3 total.
+Use subagents for platforms and infrastructure, security standards, and regulated surfaces. Branch `mvp/surfaces`, draft PR into `mvp`. Edit only inventory/surfaces/. AI spend cap: $3.
+```
+
 ---
 
-## 9. Pierce's prompts (40%)
+## 9. Pierce's prompts (P1–P4 and P6)
 
-### P1: the app runs install → scan → PRs
+### P1: the app runs install → scan → PRs (Pierce)
 
 ```text
 Make Refit's GitHub App in app/ run the whole loop on a real test org. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md, AGENTS.md, app/SETUP.md and shared/types.ts on origin/mvp.
@@ -448,7 +475,7 @@ Secrets only from env; never commit or print them. Tests with recorded webhook p
 Use subagents for install and scan, triggers and the queue, and settings and the runbook. Branch `mvp/app`, draft PR into `mvp`. Edit only app/ except app/api/, app/lifecycle/ and app/notify/ (P3) and app/audit/ (P6). AI spend cap: $4.
 ```
 
-### P2: the inventory finds every dependency
+### P2: the inventory finds every dependency (Pierce)
 
 ```text
 Extend Refit's codebase-understanding agent in inventory/ to find everything outside the code that can force it to change. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md, AGENTS.md and shared/types.ts on origin/mvp, especially "AI-first".
@@ -467,7 +494,7 @@ Tests: fixtures for the three sample repos plus a monorepo; one real run per sam
 Use subagents for runtimes and images and CI, libraries and frameworks, and models and APIs. Branch `mvp/inventory`, draft PR into `mvp`. Edit only inventory/ except inventory/surfaces/, which P5 owns. AI spend cap: $5.
 ```
 
-### P3: report API, PR lifecycle and notifications
+### P3: report API, PR lifecycle and notifications (Pierce)
 
 ```text
 Build the parts of Refit's app that keep PRs tidy and let people see results. Read MVP-PLAN.md (sections 1–7), AGENTS.md, app/SETUP.md and shared/types.ts on origin/mvp.
@@ -480,7 +507,7 @@ Tests with recorded payloads and a fake GitHub client. AI spend: up to $1 for on
 Use subagents for the API, the lifecycle and notifications. Branch `mvp/app-api`, draft PR into `mvp`. Edit only app/api/, app/lifecycle/ and app/notify/. AI spend cap: $1.
 ```
 
-### P4: website, onboarding and dashboard
+### P4: website, onboarding and dashboard (Pierce)
 
 ```text
 Update Refit's website and dashboard in src/ for "software that never falls behind." Read MVP-PLAN.md (sections 1–7), DESIGN.md and AGENTS.md on origin/mvp. Keep DESIGN.md's design system: polish, don't redesign.
@@ -499,23 +526,7 @@ Tests for every new page. No AI spend.
 Use subagents for the landing and pricing, onboarding and docs, and the dashboard. Branch `mvp/site`, draft PR into `mvp`. Edit only src/, public/ and index.html, except src/compliance/, which P6 owns. Link to P6's Platforms and rules page from the dashboard navigation.
 ```
 
-### P5: inventory of platform and regulated surfaces
-
-```text
-Extend Refit's inventory to find the parts of a codebase that platforms and rules apply to, in inventory/surfaces/. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md, AGENTS.md and shared/types.ts on origin/mvp, especially "AI-first".
-
-Goal: inventorySurfaces(repoDir, repo) → DependencyUsage[] with kinds platform, infrastructure, security-standard and regulated-surface, each with every file and line it was found in and a note on why it matters. P2's inventoryDependencies merges these results.
-The agent reads the repo and finds:
-- Platforms: iOS and Android apps (Info.plist, privacy manifests, build.gradle targetSdk and minSdk), browser extensions (manifest.json), web apps' browser targets.
-- Infrastructure: Kubernetes manifests, Helm charts and Kustomize with their apiVersions; serverless.yml, SAM templates, Terraform and Pulumi with runtimes; cloud services used.
-- Security standards: TLS settings, certificate handling, OAuth flows, password or basic-auth logins to providers.
-- Regulated surfaces: payment and checkout flows; personal data (sign-up forms, profiles, analytics, cookies, data export and deletion); user interfaces and forms (for accessibility); AI features (chatbots, AI decisions about people).
-Scanners point the agent at likely files; the agent's reading is the source of truth.
-Tests: fixtures for the three sample repos (including demo-node-api's Kubernetes manifest and serverless.yml, and demo-next-web's checkout, cookie banner and signup form); one real run per sample repo, capped at $3 total.
-Use subagents for platforms and infrastructure, security standards, and regulated surfaces. Branch `mvp/surfaces`, draft PR into `mvp`. Edit only inventory/surfaces/. AI spend cap: $3.
-```
-
-### P6: the Platforms and rules view, and audit export
+### P6: the Platforms and rules view, and audit export (Pierce)
 
 ```text
 Build the Platforms and rules view and the audit export. Read MVP-PLAN.md (sections 1–7, especially "Rules and regulations are different"), DESIGN.md and AGENTS.md on origin/mvp. Keep DESIGN.md's design system.
@@ -534,9 +545,9 @@ Use subagents for the API and export, and the page. Branch `mvp/rules-view`, dra
 
 ---
 
-## 10. Furqan's prompts (20%)
+## 10. Furqan's prompts (F1–F3)
 
-### F1: watchers for every change source
+### F1: watchers for every change source (Furqan)
 
 ```text
 Extend Refit's watchers in providers/ beyond API providers. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md, AGENTS.md and shared/types.ts on origin/mvp, especially "AI-first".
@@ -554,7 +565,7 @@ Tests: saved fixtures per source, plus one live read per source, capped at $4 to
 Use one subagent per source group. Branch `mvp/watchers`, draft PR into `mvp`. Edit only providers/, not providers/toolkit/, providers/upgrades/, providers/*/tools.ts or providers/*/playbooks/ (F2), or providers/platforms/ (F3). AI spend cap: $4.
 ```
 
-### F2: tools and playbooks for upgrades
+### F2: tools and playbooks for upgrades (Furqan)
 
 ```text
 Build the tools and playbooks Refit's agent uses for upgrades. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md and shared/types.ts on origin/mvp, especially "AI-first".
@@ -573,7 +584,7 @@ Tests: every tool with fixtures; live calls capped at $3 total.
 Use subagents for the tools and the playbooks. Branch `mvp/toolpacks`, draft PR into `mvp`. Edit only providers/toolkit/, providers/upgrades/, providers/*/tools.ts and providers/*/playbooks/. AI spend cap: $3.
 ```
 
-### F3: platform and infrastructure watchers
+### F3: platform and infrastructure watchers (Furqan)
 
 ```text
 Build Refit's watchers for platforms and infrastructure in providers/platforms/. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md, AGENTS.md and shared/types.ts on origin/mvp, especially "AI-first".
@@ -618,7 +629,7 @@ Then the extended prompts:
 
 For each PR: review it against the AI-first rule (reject any new rule that stops or skips a task), read its status note, then merge into `mvp`. Regenerate `package-lock.json` with `npm install` if it conflicts.
 
-### Integration prompt (one session, after the merges)
+### Integration prompt (Pierce's Claude, one session, after the merges)
 
 ```text
 Integrate Refit's MVP on the mvp branch. Read MVP-PLAN.md and AGENTS.md.
