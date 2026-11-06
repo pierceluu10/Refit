@@ -10,6 +10,8 @@ const GITHUB_UNAUTHORIZED = 401;
 
 export type RunsDeps = {
   listRunViews: ListRunViews;
+  // The dashboard's own token, read on the server only: it reads every run.
+  isServiceToken: (authorization: string | undefined) => boolean;
   // The repos a GitHub user-to-server token can reach through this App's installations.
   viewerRepos: (userToken: string) => Promise<string[]>;
 };
@@ -30,7 +32,8 @@ export function parseRunsQuery(
   return { repo, limit };
 }
 
-// A viewer sees runs only for repos their own GitHub token reaches through this App, filtered before the limit.
+// The service token sees every run. Any other viewer sees runs only for repos their own GitHub token
+// reaches through this App, filtered before the limit.
 export async function runsFor(
   query: URLSearchParams,
   authorization: string | undefined,
@@ -40,6 +43,9 @@ export async function runsFor(
   if (!token) return { status: 401 };
   const parsed = parseRunsQuery(query);
   if ('error' in parsed) return { status: 400, error: parsed.error };
+  if (deps.isServiceToken(authorization)) {
+    return { status: 200, runs: await deps.listRunViews(parsed) };
+  }
   let allowed: Set<string>;
   try {
     allowed = new Set(await deps.viewerRepos(token));

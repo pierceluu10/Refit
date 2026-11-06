@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { MissingConfigError, readConfig } from './config.ts';
+import { InvalidConfigError, MissingConfigError, readConfig, readCredentials } from './config.ts';
 
 const PEM = '-----BEGIN RSA PRIVATE KEY-----\nfake-key-for-tests\n-----END RSA PRIVATE KEY-----\n';
 const BASE = { GITHUB_APP_ID: '12345', GITHUB_WEBHOOK_SECRET: 'super-secret-value' };
@@ -15,6 +15,7 @@ describe('readConfig', () => {
       webhookSecret: 'super-secret-value',
       port: 3000,
       queueFile: '.refit/queue.json',
+      queueConcurrency: 2,
     });
   });
 
@@ -51,5 +52,34 @@ describe('readConfig', () => {
     for (const value of [PEM, BASE.GITHUB_APP_ID, BASE.GITHUB_WEBHOOK_SECRET]) {
       expect(message).not.toContain(value);
     }
+  });
+});
+
+describe('REFIT_QUEUE_CONCURRENCY', () => {
+  const env = { ...BASE, GITHUB_APP_PRIVATE_KEY: PEM };
+
+  it('honours a whole number', () => {
+    expect(readConfig({ ...env, REFIT_QUEUE_CONCURRENCY: '5' }).queueConcurrency).toBe(5);
+  });
+
+  it.each(['0', '-1', '1.5', 'many'])('rejects %s', (value) => {
+    expect(() => readConfig({ ...env, REFIT_QUEUE_CONCURRENCY: value })).toThrow(
+      InvalidConfigError,
+    );
+  });
+});
+
+describe('readCredentials', () => {
+  it('returns the App identity without needing a webhook secret', () => {
+    expect(readCredentials({ GITHUB_APP_ID: '12345', GITHUB_APP_PRIVATE_KEY: PEM })).toEqual({
+      appId: '12345',
+      privateKey: PEM,
+    });
+  });
+
+  it('is undefined when either half is missing', () => {
+    expect(readCredentials({})).toBeUndefined();
+    expect(readCredentials({ GITHUB_APP_ID: '12345' })).toBeUndefined();
+    expect(readCredentials({ GITHUB_APP_PRIVATE_KEY: PEM })).toBeUndefined();
   });
 });

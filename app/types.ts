@@ -1,21 +1,63 @@
-import type { RunRecord, RunView } from '../shared/types.ts';
+import type {
+  ExternalTask,
+  MigrationTask,
+  RunRecord,
+  RunView,
+  ScanReport,
+} from '../shared/types.ts';
 
 export type HumanVerdict = NonNullable<RunRecord['humanVerdict']>;
 
-// `repo` is always the full name, `owner/name`, matching ApiUsage.repo.
-export type AppJob =
-  | {
-      kind: 'understand';
-      installationId: number;
-      repo: string;
-      reason: 'install' | 'repos-added' | 'push';
-      sha?: string;
-    }
-  | { kind: 'forget'; installationId: number; repo: string };
+export type ScanReason = 'install' | 'repos-added' | 'push' | 'schedule';
 
-export type UnderstandJob = Extract<AppJob, { kind: 'understand' }>;
+// `repo` is always the full name, `owner/name`, matching ApiUsage.repo.
+export type ScanJob = {
+  kind: 'scan';
+  installationId: number;
+  repo: string;
+  reason: ScanReason;
+  sha?: string;
+};
+export type RunJob = { kind: 'run'; installationId: number; repo: string; task: ExternalTask };
+// No repo means the whole installation is gone.
+export type ForgetJob = { kind: 'forget'; installationId: number; repo?: string };
+
+export type QueuedJob = ScanJob | RunJob;
+export type AppJob = QueuedJob | ForgetJob;
 
 export type JobQueue = { enqueue: (job: AppJob) => Promise<void> };
+
+// A PR opener that takes external tasks as well as API tasks; it still satisfies OpenPullRequest.
+export type OpenAnyPullRequest = (
+  task: MigrationTask | ExternalTask,
+  record: RunRecord,
+  repoDir: string,
+) => Promise<string>;
+
+// O1's runRepoJob, limited to the tasks a scan already found so no task is matched or paid for twice.
+export type RunTasks = (input: {
+  repo: string;
+  dir: string;
+  tasks: ExternalTask[];
+  openPullRequest: OpenAnyPullRequest;
+  signal?: AbortSignal;
+}) => Promise<RunRecord[]>;
+
+// P3's app/lifecycle: runs before each PR. A returned pr means an existing PR took the change.
+export type BeforeOpenPullRequest = (input: {
+  installationId: number;
+  task: MigrationTask | ExternalTask;
+  record: RunRecord;
+  repoDir: string;
+}) => Promise<{ pr?: string }>;
+
+// P3's app/notify: runs after each run job.
+export type NotifyRun = (input: {
+  installationId: number;
+  repo: string;
+  records: RunRecord[];
+  report?: ScanReport;
+}) => Promise<void>;
 
 // memory/ owns the run store; app/ reports what a human did with an Refit PR.
 export type RecordVerdict = (pr: string, verdict: HumanVerdict) => Promise<void>;

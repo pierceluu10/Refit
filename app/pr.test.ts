@@ -4,12 +4,13 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { MigrationTask, RunRecord } from '../shared/types.ts';
+import type { ExternalTask, MigrationTask, RunRecord } from '../shared/types.ts';
 import {
   EmptyChangeError,
   UnsafeBranchError,
   branchFor,
   createOpenPullRequest,
+  findPullRequestFor,
   openPullRequest,
 } from './pr.ts';
 import type { InstallationTokens, OpenPullRequestInput } from './types.ts';
@@ -255,6 +256,26 @@ describe('createOpenPullRequest', () => {
     }
   });
 
+  it("titles the PR with the harness's prTitle when it wrote one", async () => {
+    const { dir, diff } = checkout();
+    try {
+      const github = fakeGitHub({ [OPEN_PULLS]: { body: [] } });
+      const record: RunRecord & { prTitle: string } = {
+        taskId: 'task-1',
+        outcome: 'needs-review',
+        diff,
+        checks: [],
+        costUsd: 0,
+        transcriptPath: '',
+        prTitle: 'Upgrade node 18 → 22',
+      };
+      await createOpenPullRequest(tokens, INSTALLATION, github.fetchImpl)(TASK, record, dir);
+      expect(github.calls.at(-1)?.body).toMatchObject({ title: 'Upgrade node 18 → 22' });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('returns the open PR for the same task instead of opening another', async () => {
     const github = fakeGitHub({
       [OPEN_PULLS]: { body: [{ html_url: 'https://github.com/acme/shop/pull/7' }] },
@@ -270,5 +291,41 @@ describe('createOpenPullRequest', () => {
     const open = createOpenPullRequest(tokens, INSTALLATION, github.fetchImpl);
     expect(await open(TASK, record, '/nonexistent')).toBe('https://github.com/acme/shop/pull/7');
     expect(github.calls.map((call) => call.method)).toEqual(['GET']);
+  });
+});
+
+describe('findPullRequestFor', () => {
+  const ALL_PULLS = `GET ${REPO}/pulls?state=all&head=${encodeURIComponent('acme:refit/task-1')}`;
+  const TASK = { id: 'task-1', repo: 'acme/shop' } as ExternalTask;
+  const pull = (number: number, state: string, merged_at: string | null = null) => ({
+    html_url: `https://github.com/acme/shop/pull/${number}`,
+    state,
+    merged_at,
+  });
+  const find = (pulls: unknown[]) =>
+    findPullRequestFor(
+      tokens,
+      INSTALLATION,
+      fakeGitHub({ [ALL_PULLS]: { body: pulls } }).fetchImpl,
+    )(TASK);
+
+  it('returns nothing when the branch has no PR', async () => {
+    expect(await find([])).toBeUndefined();
+  });
+
+  it('prefers open, then merged, then closed, whatever order GitHub returns', async () => {
+    const merged = pull(2, 'closed', '2026-11-01T00:00:00Z');
+    expect(await find([pull(1, 'closed'), merged, pull(3, 'open')])).toEqual({
+      url: 'https://github.com/acme/shop/pull/3',
+      state: 'open',
+    });
+    expect(await find([pull(1, 'closed'), merged])).toEqual({
+      url: 'https://github.com/acme/shop/pull/2',
+      state: 'merged',
+    });
+    expect(await find([pull(4, 'closed'), pull(1, 'closed')])).toEqual({
+      url: 'https://github.com/acme/shop/pull/4',
+      state: 'closed',
+    });
   });
 });

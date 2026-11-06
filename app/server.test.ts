@@ -36,6 +36,7 @@ async function start(overrides: Partial<WebhookServerDeps> = {}) {
     compareCommits: async () => [],
     listRunViews: async () => [],
     viewerRepos: async () => [],
+    isServiceToken: () => false,
     ...overrides,
   });
   await new Promise<void>((resolve) => server!.listen(0, '127.0.0.1', resolve));
@@ -63,7 +64,7 @@ afterEach(async () => {
 describe('webhook server', () => {
   it.each([
     ['installation', 'installation.created', 3],
-    ['installation', 'installation.deleted', 3],
+    ['installation', 'installation.deleted', 1],
     ['installation_repositories', 'installation_repositories.added', 2],
     ['installation_repositories', 'installation_repositories.removed', 1],
     ['push', 'push.default-branch', 1],
@@ -143,6 +144,33 @@ describe('webhook server', () => {
     expect(jobs).toEqual([]);
   });
 
+  it('mounts routes in order, and 404s what none handles', async () => {
+    const { base } = await start({
+      routes: [
+        async (request, response) => {
+          if (request.url !== '/api/report') return false;
+          response.writeHead(200).end('mounted');
+          return true;
+        },
+      ],
+    });
+    expect(await (await fetch(`${base}/api/report`)).text()).toBe('mounted');
+    expect((await fetch(`${base}/api/other`)).status).toBe(404);
+  });
+
+  it('answers 500 and logs when a mounted route throws', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { base } = await start({
+      routes: [
+        async () => {
+          throw new Error('route broke');
+        },
+      ],
+    });
+    expect((await fetch(`${base}/api/report`)).status).toBe(500);
+    expect(errors).toHaveBeenCalledWith('GET /api/report request failed: route broke');
+  });
+
   it('serves /healthz and 404s everything else', async () => {
     const { base } = await start();
     expect((await fetch(`${base}/healthz`)).status).toBe(200);
@@ -211,6 +239,46 @@ describe('GET /api/runs', () => {
     const { get, filters } = await startRuns();
     expect(await (await get(`?repo=${THEIRS}`)).json()).toEqual([]);
     expect(filters).toEqual([]);
+  });
+
+  describe('with the service token', () => {
+    const SERVICE = 'test-service-token';
+    const serviceStart = () =>
+      start({
+        listRunViews: async ({ repo, limit }) =>
+          STORED.filter((item) => !repo || item.repo === repo).slice(0, limit),
+        viewerRepos: async () => {
+          throw new Error('the service token must not be sent to GitHub');
+        },
+        isServiceToken: (authorization) => authorization === `Bearer ${SERVICE}`,
+      });
+    const read = (base: string, query = '') =>
+      fetch(`${base}/api/runs${query}`, { headers: { Authorization: `Bearer ${SERVICE}` } });
+
+    it('reads every repo, never asking GitHub', async () => {
+      const { base } = await serviceStart();
+      const response = await read(base);
+      expect(response.status).toBe(200);
+      expect(((await response.json()) as RunView[]).map((item) => item.id)).toEqual([
+        '4',
+        '3',
+        '2',
+        '1',
+      ]);
+    });
+
+    it('still honours repo and limit, and still rejects a bad limit', async () => {
+      const { base } = await serviceStart();
+      const runs = (await (await read(base, `?repo=${THEIRS}&limit=1`)).json()) as RunView[];
+      expect(runs.map((item) => item.id)).toEqual(['4']);
+      expect((await read(base, '?limit=0')).status).toBe(400);
+    });
+
+    it('does not widen a GitHub user token', async () => {
+      const { get } = await startRuns();
+      const runs = (await (await get()).json()) as RunView[];
+      expect(new Set(runs.map((item) => item.repo))).toEqual(new Set([MINE]));
+    });
   });
 
   it('returns 401 without a token or with one GitHub rejects', async () => {

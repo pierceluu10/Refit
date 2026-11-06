@@ -6,7 +6,9 @@ import {
   createAppJwt,
   createInstallationTokens,
   githubRequest,
+  installationForRepo,
   listInstallationRepos,
+  listInstallations,
   listViewerRepos,
 } from './github.ts';
 
@@ -201,5 +203,42 @@ describe('listViewerRepos', () => {
       'org/mine',
     ]);
     expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('listInstallations', () => {
+  it('pages the bare array until a short page and flags suspended installations', async () => {
+    const full = Array.from({ length: 100 }, (_, index) => ({ id: index + 1, suspended_at: null }));
+    const last = [{ id: 101, suspended_at: '2026-11-01T00:00:00Z' }];
+    const fetchImpl = vi.fn(async (url: string | URL | Request) =>
+      json(String(url).includes('page=2') ? last : full),
+    );
+    const installations = await listInstallations('jwt', fetchImpl as typeof fetch);
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl.mock.calls[0][0]).toBe(`${GITHUB_API}/app/installations?per_page=100&page=1`);
+    expect(installations).toHaveLength(101);
+    expect(installations[0]).toEqual({ id: 1, suspended: false });
+    expect(installations[100]).toEqual({ id: 101, suspended: true });
+  });
+
+  it('propagates a rejected JWT', async () => {
+    const fetchImpl = vi.fn(async () => json({ message: 'Bad credentials' }, 401));
+    await expect(listInstallations('bad', fetchImpl)).rejects.toThrow(GitHubApiError);
+  });
+});
+
+describe('installationForRepo', () => {
+  it('returns the installation id for a repo', async () => {
+    const fetchImpl = vi.fn(async () => json({ id: 70000001 }));
+    expect(await installationForRepo('jwt', 'org/repo', fetchImpl)).toBe(70000001);
+    expect((fetchImpl.mock.calls[0] as unknown[])[0]).toBe(
+      `${GITHUB_API}/repos/org/repo/installation`,
+    );
+  });
+
+  it('refuses anything that is not owner/name without calling GitHub', async () => {
+    const fetchImpl = vi.fn(async () => json({ id: 1 }));
+    await expect(installationForRepo('jwt', '../secrets', fetchImpl)).rejects.toThrow('owner/name');
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 });

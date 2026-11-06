@@ -24,7 +24,6 @@ type Repository = { full_name: string };
 type InstallationEvent = {
   action: string;
   installation: { id: number };
-  repositories?: Repository[];
 };
 type InstallationRepositoriesEvent = {
   action: string;
@@ -62,44 +61,48 @@ export function verifySignature(
   return received.length === expected.length && timingSafeEqual(received, expected);
 }
 
-const understand = (
+const scan = (
   installationId: number,
   repos: string[],
   reason: 'install' | 'repos-added',
-): AppJob[] => repos.map((repo) => ({ kind: 'understand', installationId, repo, reason }));
-
-const forget = (installationId: number, repos: Repository[]): AppJob[] =>
-  repos.map((repo) => ({ kind: 'forget', installationId, repo: repo.full_name }));
+): AppJob[] => repos.map((repo) => ({ kind: 'scan', installationId, repo, reason }));
 
 async function jobsFor(event: string, payload: unknown, deps: WebhookDeps): Promise<AppJob[]> {
   if (event === 'installation') {
-    const { action, installation, repositories = [] } = payload as InstallationEvent;
+    const { action, installation } = payload as InstallationEvent;
     if (action === 'created') {
       // The payload's repository list can be truncated, so ask the API for all of them.
       const repos = await deps.listRepos(await deps.tokens.token(installation.id));
-      return understand(installation.id, repos, 'install');
+      return scan(installation.id, repos, 'install');
     }
-    if (action === 'deleted') return forget(installation.id, repositories);
+    // The payload's list can be truncated and the API no longer answers, so forget by installation.
+    if (action === 'deleted') return [{ kind: 'forget', installationId: installation.id }];
   }
   if (event === 'installation_repositories') {
     const body = payload as InstallationRepositoriesEvent;
     const id = body.installation.id;
     if (body.action === 'added') {
-      return understand(
+      return scan(
         id,
         body.repositories_added.map((repo) => repo.full_name),
         'repos-added',
       );
     }
-    if (body.action === 'removed') return forget(id, body.repositories_removed);
+    if (body.action === 'removed') {
+      return body.repositories_removed.map((repo) => ({
+        kind: 'forget',
+        installationId: id,
+        repo: repo.full_name,
+      }));
+    }
   }
   if (event === 'push') {
     const push = payload as PushEvent;
-    // The API usage map describes the default branch, so other branches don't change it.
+    // A scan describes the default branch, so other branches don't change it.
     if (push.deleted || push.ref !== `refs/heads/${push.repository.default_branch}`) return [];
     return [
       {
-        kind: 'understand',
+        kind: 'scan',
         installationId: push.installation.id,
         repo: push.repository.full_name,
         reason: 'push',

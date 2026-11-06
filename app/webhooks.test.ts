@@ -90,7 +90,7 @@ describe('handleWebhook', () => {
     const fake = fakeDeps();
     const jobs = await handleWebhook('installation', fixture('installation.created'), fake.deps);
     const expected = API_REPOS.map((repo) => ({
-      kind: 'understand',
+      kind: 'scan',
       installationId: INSTALLATION_ID,
       repo,
       reason: 'install',
@@ -101,17 +101,11 @@ describe('handleWebhook', () => {
     expect(jobs).toEqual(expected);
   });
 
-  it('installation.deleted forgets the payload repos without calling the API', async () => {
+  it('installation.deleted forgets the whole installation without calling the API', async () => {
     const fake = fakeDeps();
     await handleWebhook('installation', fixture('installation.deleted'), fake.deps);
     expect(fake.tokenRequests).toEqual([]);
-    expect(fake.jobs).toEqual(
-      ['billing-api', 'storefront', 'ops-scripts'].map((name) => ({
-        kind: 'forget',
-        installationId: INSTALLATION_ID,
-        repo: `refit-example-org/${name}`,
-      })),
-    );
+    expect(fake.jobs).toEqual([{ kind: 'forget', installationId: INSTALLATION_ID }]);
   });
 
   it('installation_repositories.added queues the added repos', async () => {
@@ -123,7 +117,7 @@ describe('handleWebhook', () => {
     );
     expect(fake.jobs).toEqual(
       ['checkout-service', 'webhooks-relay'].map((name) => ({
-        kind: 'understand',
+        kind: 'scan',
         installationId: INSTALLATION_ID,
         repo: `refit-example-org/${name}`,
         reason: 'repos-added',
@@ -143,12 +137,12 @@ describe('handleWebhook', () => {
     ]);
   });
 
-  it('push to the default branch queues a re-read at the pushed sha', async () => {
+  it('push to the default branch queues a re-scan at the pushed sha', async () => {
     const fake = fakeDeps();
     await handleWebhook('push', fixture('push.default-branch'), fake.deps);
     expect(fake.jobs).toEqual([
       {
-        kind: 'understand',
+        kind: 'scan',
         installationId: INSTALLATION_ID,
         repo: 'refit-example-org/billing-api',
         reason: 'push',
