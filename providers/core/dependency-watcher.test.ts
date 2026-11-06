@@ -173,17 +173,62 @@ describe('watchDependency', () => {
     expect(platforms).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'kubernetes' }),
       '2026-01-01',
-      { budget },
+      expect.objectContaining({ budget, onReport: expect.any(Function) }),
     );
   });
 
   it('records that platforms were not read while the platform module is missing', async () => {
     const report = await runDependencyWatch(dep({ kind: 'platform', name: 'ios' }), undefined, {
       budget: new BudgetLedger(0),
+      platforms: null,
     });
     expect(report.changes).toEqual([]);
     expect(report.failed).toBe(false);
     expect(report.errors[0]).toMatch(/platforms not read for ios/);
+  });
+
+  it("keeps the platform watcher's unread sources in the report", async () => {
+    const platformReport = {
+      provider: 'ios',
+      errors: ['https://developer.apple.com/news/: HTTP 503'],
+      sourcesRead: ['https://developer.android.com/'],
+      turns: 3,
+    };
+    const platforms = async (
+      _dep: DependencyUsage,
+      _since?: string,
+      options?: { onReport?: (report: typeof platformReport) => void },
+    ) => {
+      options?.onReport?.(platformReport);
+      return [] as ExternalChange[];
+    };
+    const report = await runDependencyWatch(dep({ kind: 'platform', name: 'ios' }), undefined, {
+      budget: new BudgetLedger(5),
+      platforms,
+    });
+    expect(report.errors).toEqual(platformReport.errors);
+    expect(report.sourcesRead).toEqual(platformReport.sourcesRead);
+    expect(report.turns).toBe(3);
+    expect(report.failed).toBe(false);
+  });
+
+  it('keeps those sources when the platform watcher reports and then throws', async () => {
+    const report = await runDependencyWatch(dep({ kind: 'platform', name: 'ios' }), undefined, {
+      budget: new BudgetLedger(5),
+      platforms: async (
+        _dep: DependencyUsage,
+        _since?: string,
+        options?: { onReport?: (report: { errors: string[] }) => void },
+      ) => {
+        options?.onReport?.({ errors: ['https://developer.apple.com/news/: HTTP 503'] });
+        throw new Error('never got to an answer');
+      },
+    });
+    expect(report.failed).toBe(true);
+    expect(report.errors).toEqual([
+      'https://developer.apple.com/news/: HTTP 503',
+      'platforms not read for ios: never got to an answer',
+    ]);
   });
 
   it('says so when the platform watcher fails, and throws rather than return nothing', async () => {

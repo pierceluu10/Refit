@@ -108,8 +108,8 @@ export type DependencyWatchReport = Omit<AnyWatchReport<ExternalChange>, 'hints'
 export type DependencyWatchDeps = Omit<AnyWatchDeps<ExternalChange>, 'extend' | 'onReport'> & {
   /** Hints the inventory has for this dependency, such as an API's docs URLs. */
   hints?: ProviderHints;
-  /** F3's watcher; found in providers/platforms/index.ts when not given. */
-  platforms?: WatchPlatforms;
+  /** F3's watcher; found in providers/platforms/index.ts when not given. null means there is none. */
+  platforms?: WatchPlatforms | null;
   /** The JSON reader for advisory queries and the registries. */
   json?: JsonFetcher;
   /** OSV's answer, for replaying a saved run. */
@@ -177,23 +177,33 @@ async function watchPlatformDependency(
   deps: DependencyWatchDeps,
   budget: BudgetLedger,
 ): Promise<DependencyWatchReport> {
-  const watch = deps.platforms ?? (await loadPlatforms());
+  const watch = deps.platforms === undefined ? await loadPlatforms() : deps.platforms;
   if (!watch) {
     return emptyReport(dep, [
       `platforms not read for ${dep.name}: providers/platforms/index.ts does not export watchPlatforms yet`,
     ]);
   }
   const spentBefore = budget.spentUsd;
+  // F3 reports before it throws, so what it could not read survives a failed run too.
+  let read: Partial<DependencyWatchReport> = {};
   try {
-    // The third argument is beyond the contract, so a watcher that accepts it shares the run's cap.
+    // The third argument is beyond the contract: the run's cap, and F3's report for ScanReport.errors.
     const changes = await (watch as (...args: unknown[]) => Promise<ExternalChange[]>)(dep, since, {
       budget,
+      onReport: (report: Partial<DependencyWatchReport>) => (read = report),
     });
-    return emptyReport(dep, [], { changes, costUsd: budget.spentUsd - spentBefore });
+    return emptyReport(dep, read.errors ?? [], {
+      ...read,
+      changes,
+      costUsd: budget.spentUsd - spentBefore,
+    });
   } catch (error) {
     const message = `platforms not read for ${dep.name}: ${error instanceof Error ? error.message : String(error)}`;
-    return emptyReport(dep, [message], {
-      issues: [{ message }],
+    const errors = [...(read.errors ?? []), message];
+    return emptyReport(dep, errors, {
+      ...read,
+      errors,
+      issues: [...(read.issues ?? []), { message }],
       costUsd: budget.spentUsd - spentBefore,
       failed: true,
     });
