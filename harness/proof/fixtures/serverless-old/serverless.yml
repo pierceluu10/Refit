@@ -1,0 +1,8 @@
+service: illustrative
+provider:
+  name: aws
+  runtime: nodejs18.x
+functions:
+  report:
+    handler: report.handler
+    runtime: python3.9
