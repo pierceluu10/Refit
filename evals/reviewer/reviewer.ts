@@ -19,7 +19,7 @@ export type AdvisoryReview = {
 
 export const REVIEWER_PROMPT_VERSION = 'reviewer-v2';
 
-export const REVIEWER_SYSTEM = `You are a senior engineer giving a second opinion on a pull request that Aptitude, an AI migration agent, opened after an external API changed.
+export const REVIEWER_SYSTEM = `You are a senior engineer giving a second opinion on a pull request that Refit, an AI migration agent, opened after an external API changed.
 
 Read the change, the quoted source, the diff and the checks. Think about:
 - whether the diff actually handles the API change at every affected call site;

@@ -10,6 +10,7 @@ const backend = [
   'evals',
   'shared',
   'orchestrator',
+  'compliance',
 ];
 
 export default defineConfig({

@@ -4,7 +4,7 @@ import type { InstallationTokens } from './types.ts';
 export const GITHUB_API = 'https://api.github.com';
 
 const API_VERSION = '2022-11-28';
-const USER_AGENT = 'aptitude-app';
+const USER_AGENT = 'refit-app';
 const JSON_TYPE = 'application/json';
 const NO_CONTENT = 204;
 const SECOND_MS = 1000;

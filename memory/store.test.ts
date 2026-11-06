@@ -7,7 +7,7 @@ import { makeRecipe, makeRecord, makeTask } from './fixtures/tasks.ts';
 import { JsonMemoryStore } from './store.ts';
 
 async function tempStore() {
-  return new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-memory-')));
+  return new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'refit-memory-')));
 }
 
 describe('JsonMemoryStore', () => {
@@ -87,11 +87,11 @@ describe('Budget', () => {
     expect(() => budget.reserve(0.05)).not.toThrow();
   });
 
-  it('reads the cap from APTITUDE_AI_BUDGET_USD', () => {
-    expect(Budget.fromEnv({ APTITUDE_AI_BUDGET_USD: '1.5' }).capUsd).toBe(1.5);
+  it('reads the cap from REFIT_AI_BUDGET_USD', () => {
+    expect(Budget.fromEnv({ REFIT_AI_BUDGET_USD: '1.5' }).capUsd).toBe(1.5);
     expect(Budget.fromEnv({}).capUsd).toBe(0);
     expect(() => Budget.fromEnv({}).reserve(0.01)).toThrow(BudgetExceededError);
-    expect(() => Budget.fromEnv({ APTITUDE_AI_BUDGET_USD: 'lots' })).toThrow();
+    expect(() => Budget.fromEnv({ REFIT_AI_BUDGET_USD: 'lots' })).toThrow();
   });
 });
 

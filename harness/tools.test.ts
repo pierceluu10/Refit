@@ -47,8 +47,8 @@ function setup(overrides: Partial<ToolContext> = {}) {
 }
 
 beforeEach(async () => {
-  dir = await mkdtemp(path.join(tmpdir(), 'aptitude-tools-'));
-  outside = await mkdtemp(path.join(tmpdir(), 'aptitude-outside-'));
+  dir = await mkdtemp(path.join(tmpdir(), 'refit-tools-'));
+  outside = await mkdtemp(path.join(tmpdir(), 'refit-outside-'));
   await mkdir(path.join(dir, 'src'));
   await mkdir(path.join(dir, 'node_modules/pkg'), { recursive: true });
   await writeFile(
@@ -134,7 +134,7 @@ describe('shell, install and checks', () => {
     const { call } = setup();
     const out = await call('shell', { command: 'pwd; echo sk_live_abcdefghijklmnop1234; exit 3' });
     expect(out).toMatch(/^exit code: 3\n/);
-    expect(out).toContain('aptitude-tools-');
+    expect(out).toContain('refit-tools-');
     expect(out).toContain('[redacted]');
     expect(out).not.toContain('sk_live_');
   });

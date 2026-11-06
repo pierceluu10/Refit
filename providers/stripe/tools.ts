@@ -20,7 +20,7 @@ import {
 } from '../toolkit/index.ts';
 
 export type StripeToolPackOptions = ToolPackOptions & {
-  /** Where live OpenAPI specs are cached. Defaults to os.tmpdir()/aptitude-stripe-openapi. `null` disables disk caching. */
+  /** Where live OpenAPI specs are cached. Defaults to os.tmpdir()/refit-stripe-openapi. `null` disables disk caching. */
   specCacheDir?: string | null;
 };
 
@@ -1113,7 +1113,7 @@ export async function checkParamsReport(
   let liveNote = '';
   const cacheDir =
     network.specCacheDir === undefined
-      ? join(tmpdir(), 'aptitude-stripe-openapi')
+      ? join(tmpdir(), 'refit-stripe-openapi')
       : network.specCacheDir;
   if (input.live !== false && resolveFetch(network)) {
     const { ref, note } = specRefFor(data, input.apiVersion);

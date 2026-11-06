@@ -62,11 +62,11 @@ packs' own data on 2026-11-01. Use it with each run's `diff.patch` and `pr-body.
 With `ANTHROPIC_API_KEY` in the environment:
 
 ```sh
-APTITUDE_AI_BUDGET_USD=6 node harness/scripts/run-evaluation.ts [task id ...]
+REFIT_AI_BUDGET_USD=6 node harness/scripts/run-evaluation.ts [task id ...]
 ```
 
-`APTITUDE_AI_BUDGET_USD` caps the whole batch: every model call is counted through `chargeRun`, and
-each task gets `APTITUDE_TASK_BUDGET_USD` (default $2) or what is left. The harness keeps
+`REFIT_AI_BUDGET_USD` caps the whole batch: every model call is counted through `chargeRun`, and
+each task gets `REFIT_TASK_BUDGET_USD` (default $2) or what is left. The harness keeps
 `TURN_RESERVE_USD` ($1) of a task's budget back for the call that crosses it, so a $2 task gets
 about $1 of agent work; pdfai's migration crosses five Stripe major versions and may need $3. Repos
 are cloned outside this repo and run in the Docker sandbox. Each run writes `results/<id>/` with

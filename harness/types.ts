@@ -94,7 +94,7 @@ export type HarnessDeps = {
   loadToolPack?: (provider: string) => Promise<ToolPack>;
   retrieveRecipes?: RetrieveRecipes;
   createSandbox?: (repoDir: string) => Promise<Sandbox>;
-  budgetUsd?: number; // defaults to APTITUDE_AI_BUDGET_USD
+  budgetUsd?: number; // defaults to REFIT_AI_BUDGET_USD
   outDir?: string; // where the transcript, diff and PR body are written
   maxIterations?: number; // unset: iterate until done or the budget cap
   turnReserveUsd?: number; // defaults to TURN_RESERVE_USD

@@ -29,7 +29,7 @@ function renderRoute(path: string) {
 describe('workspace navigation', () => {
   it('sets the home tab title after the React app loads', () => {
     renderRoute('/');
-    expect(document.title).toBe('Aptitude: Keep your integrations current');
+    expect(document.title).toBe('Refit: Keep your integrations current');
   });
 
   it('keeps repository filters in the URL and restores them when navigating back', () => {
@@ -73,10 +73,10 @@ describe('workspace navigation', () => {
     expect(
       within(drawer).getByRole('button', { name: 'Close workspace navigation' }),
     ).toHaveFocus();
-    const last = within(drawer).getByRole('link', { name: 'Back to Aptitude' });
+    const last = within(drawer).getByRole('link', { name: 'Back to Refit' });
     last.focus();
     fireEvent.keyDown(document, { key: 'Tab' });
-    expect(within(drawer).getByRole('link', { name: 'Aptitude home' })).toHaveFocus();
+    expect(within(drawer).getByRole('link', { name: 'Refit home' })).toHaveFocus();
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();

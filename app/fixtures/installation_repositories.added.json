@@ -5,19 +5,19 @@
     "node_id": "MDIzOkludGVncmF0aW9uSW5zdGFsbGF0aW9uNzAwMDAwMDE=",
     "client_id": "Iv1.0000000000example",
     "account": {
-      "login": "aptitude-example-org",
+      "login": "refit-example-org",
       "id": 900000001,
       "node_id": "O_kgDOExample1",
       "avatar_url": "https://avatars.githubusercontent.com/u/900000001?v=4",
-      "url": "https://api.github.com/users/aptitude-example-org",
-      "html_url": "https://github.com/aptitude-example-org",
+      "url": "https://api.github.com/users/refit-example-org",
+      "html_url": "https://github.com/refit-example-org",
       "type": "Organization",
       "site_admin": false
     },
     "repository_selection": "selected",
     "access_tokens_url": "https://api.github.com/app/installations/70000001/access_tokens",
     "repositories_url": "https://api.github.com/installation/repositories",
-    "html_url": "https://github.com/organizations/aptitude-example-org/settings/installations/70000001",
+    "html_url": "https://github.com/organizations/refit-example-org/settings/installations/70000001",
     "app_id": 5275879,
     "app_slug": "refit-agent",
     "target_id": 900000001,
@@ -43,14 +43,14 @@
       "id": 800000004,
       "node_id": "R_kgDOExample4",
       "name": "checkout-service",
-      "full_name": "aptitude-example-org/checkout-service",
+      "full_name": "refit-example-org/checkout-service",
       "private": true
     },
     {
       "id": 800000005,
       "node_id": "R_kgDOExample5",
       "name": "webhooks-relay",
-      "full_name": "aptitude-example-org/webhooks-relay",
+      "full_name": "refit-example-org/webhooks-relay",
       "private": true
     }
   ],

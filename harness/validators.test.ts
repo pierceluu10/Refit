@@ -23,7 +23,7 @@ describe('gradeValidators', () => {
     for (const name of [
       'openai_check_request',
       'openai__openai_check_request',
-      'mcp__aptitude__openai__openai_check_request',
+      'mcp__refit__openai__openai_check_request',
     ]) {
       expect(gradeValidators([claim(name)], runs)[0], name).toMatchObject({
         ran: true,

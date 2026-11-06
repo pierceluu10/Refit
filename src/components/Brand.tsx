@@ -11,9 +11,9 @@ export function Mark({ className = '' }: { className?: string }) {
 
 export function Brand({ light = false }: { light?: boolean }) {
   return (
-    <Link className={`brand ${light ? 'brand-light' : ''}`} to="/" aria-label="Aptitude home">
+    <Link className={`brand ${light ? 'brand-light' : ''}`} to="/" aria-label="Refit home">
       <Mark />
-      <span>aptitude</span>
+      <span>refit</span>
     </Link>
   );
 }

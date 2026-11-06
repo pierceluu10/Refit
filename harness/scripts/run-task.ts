@@ -1,5 +1,5 @@
 // One real harness run: node harness/scripts/run-task.ts <task.json> <repoDir> [outDir]
-// Needs APTITUDE_AI_BUDGET_USD. Prints the record; the PR body stays local (nothing is opened or pushed).
+// Needs REFIT_AI_BUDGET_USD. Prints the record; the PR body stays local (nothing is opened or pushed).
 import { readFileSync } from 'node:fs';
 import type { MigrationTask } from '../../shared/types.ts';
 import { runTask } from '../run.ts';

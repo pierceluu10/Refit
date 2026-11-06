@@ -42,9 +42,7 @@ export class JsonMemoryStore implements MemoryStore {
   }
 
   static fromEnv(env: NodeJS.ProcessEnv = process.env): JsonMemoryStore {
-    return new JsonMemoryStore(
-      env.APTITUDE_MEMORY_DIR ?? join(process.cwd(), '.aptitude', 'memory'),
-    );
+    return new JsonMemoryStore(env.REFIT_MEMORY_DIR ?? join(process.cwd(), '.refit', 'memory'));
   }
 
   async recordRun({

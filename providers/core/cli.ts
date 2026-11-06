@@ -1,6 +1,6 @@
 // npm run -w providers <command> -- <provider|all> [since]
 //   live-read   fetch every source and save it under <provider>/fixtures/live (no AI)
-//   watch       run the watcher agent and print the report (spends AI, capped by APTITUDE_AI_BUDGET_USD)
+//   watch       run the watcher agent and print the report (spends AI, capped by REFIT_AI_BUDGET_USD)
 //   knowledge   have the agent draft knowledge.json and print it (spends AI, capped)
 //   any         watch any provider from hints, folder or not (spends AI, capped):
 //               any <provider> [--packages a,b] [--hosts h] [--docs url,url] [--since YYYY-MM-DD]

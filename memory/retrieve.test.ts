@@ -31,7 +31,7 @@ const openai = makeRecipe({
 const stripe = makeRecipe();
 
 async function storeWith(...recipes: ReturnType<typeof makeRecipe>[]) {
-  const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'aptitude-retrieve-')));
+  const store = new JsonMemoryStore(await mkdtemp(join(tmpdir(), 'refit-retrieve-')));
   for (const recipe of recipes) await store.saveRecipe(recipe);
   return store;
 }

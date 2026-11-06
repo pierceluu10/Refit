@@ -27,7 +27,7 @@ export type ValidatorGrade = { name: string; ran: boolean; passed: boolean; deta
 
 // The model sees the harness tools through the SDK's MCP server, so it may claim one by that full name.
 export const claimMatches = (claim: string, tool: string) => {
-  const name = claim.replace(/^mcp__aptitude__/, '');
+  const name = claim.replace(/^mcp__refit__/, '');
   return tool === name || tool.endsWith(`__${name}`);
 };
 

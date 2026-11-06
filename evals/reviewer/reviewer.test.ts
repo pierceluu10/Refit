@@ -237,7 +237,7 @@ describe('the Anthropic reviewer client', () => {
 
 describe('repo context for the reviewer', () => {
   function checkout() {
-    const root = mkdtempSync(join(tmpdir(), 'aptitude-review-ctx-'));
+    const root = mkdtempSync(join(tmpdir(), 'refit-review-ctx-'));
     const repo = join(root, 'repo');
     mkdirSync(join(repo, 'src'), { recursive: true });
     writeFileSync(join(repo, 'src/pay.ts'), 'stripe.customers.create({ old_name })\n');

@@ -20,7 +20,7 @@ export type WebhookDeps = {
 
 type Repository = { full_name: string };
 
-// Only the fields Aptitude reads; GitHub sends many more.
+// Only the fields Refit reads; GitHub sends many more.
 type InstallationEvent = {
   action: string;
   installation: { id: number };
@@ -111,7 +111,7 @@ async function jobsFor(event: string, payload: unknown, deps: WebhookDeps): Prom
 }
 
 // memory/README.md: a person's own commit is a non-merge commit, not authored by a bot, pushed by a
-// non-bot. That leaves out Aptitude's pushes, other bots and the Update branch button.
+// non-bot. That leaves out Refit's pushes, other bots and the Update branch button.
 async function pushedByPerson(event: PullRequestEvent, deps: WebhookDeps): Promise<boolean> {
   if (event.sender.type === BOT || !event.before || !event.after) return false;
   const token = await deps.tokens.token(event.installation.id);

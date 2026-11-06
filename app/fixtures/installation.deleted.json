@@ -5,19 +5,19 @@
     "node_id": "MDIzOkludGVncmF0aW9uSW5zdGFsbGF0aW9uNzAwMDAwMDE=",
     "client_id": "Iv1.0000000000example",
     "account": {
-      "login": "aptitude-example-org",
+      "login": "refit-example-org",
       "id": 900000001,
       "node_id": "O_kgDOExample1",
       "avatar_url": "https://avatars.githubusercontent.com/u/900000001?v=4",
-      "url": "https://api.github.com/users/aptitude-example-org",
-      "html_url": "https://github.com/aptitude-example-org",
+      "url": "https://api.github.com/users/refit-example-org",
+      "html_url": "https://github.com/refit-example-org",
       "type": "Organization",
       "site_admin": false
     },
     "repository_selection": "all",
     "access_tokens_url": "https://api.github.com/app/installations/70000001/access_tokens",
     "repositories_url": "https://api.github.com/installation/repositories",
-    "html_url": "https://github.com/organizations/aptitude-example-org/settings/installations/70000001",
+    "html_url": "https://github.com/organizations/refit-example-org/settings/installations/70000001",
     "app_id": 5275879,
     "app_slug": "refit-agent",
     "target_id": 900000001,
@@ -42,21 +42,21 @@
       "id": 800000001,
       "node_id": "R_kgDOExample1",
       "name": "billing-api",
-      "full_name": "aptitude-example-org/billing-api",
+      "full_name": "refit-example-org/billing-api",
       "private": true
     },
     {
       "id": 800000002,
       "node_id": "R_kgDOExample2",
       "name": "storefront",
-      "full_name": "aptitude-example-org/storefront",
+      "full_name": "refit-example-org/storefront",
       "private": true
     },
     {
       "id": 800000003,
       "node_id": "R_kgDOExample3",
       "name": "ops-scripts",
-      "full_name": "aptitude-example-org/ops-scripts",
+      "full_name": "refit-example-org/ops-scripts",
       "private": false
     }
   ],

@@ -19,7 +19,7 @@ let file: string;
 
 beforeEach(async () => {
   vi.spyOn(console, 'log').mockImplementation(() => {});
-  dir = await mkdtemp(join(tmpdir(), 'aptitude-queue-'));
+  dir = await mkdtemp(join(tmpdir(), 'refit-queue-'));
   file = join(dir, 'nested', 'queue.json');
 });
 afterEach(() => rm(dir, { recursive: true, force: true }));
