@@ -10,6 +10,7 @@ import {
   listInstallationRepos,
   listInstallations,
   listViewerRepos,
+  pullDiff,
 } from './github.ts';
 
 const { privateKey, publicKey } = generateKeyPairSync('rsa', {
@@ -99,6 +100,29 @@ describe('githubRequest', () => {
     await expect(githubRequest('tok', 'GET', '/x', undefined, fetchImpl)).rejects.toThrow(
       'GitHub GET /x failed with 502',
     );
+  });
+});
+
+describe('pullDiff', () => {
+  const REPO = 'refit-example-org/billing-api';
+
+  it('asks for the diff media type and returns the raw text', async () => {
+    const fetchImpl = vi.fn(async () => new Response('diff --git a/x b/x\n'));
+    expect(await pullDiff('tok', REPO, 41, fetchImpl)).toBe('diff --git a/x b/x\n');
+    const [url] = fetchImpl.mock.calls[0] as unknown as [string];
+    expect(url).toBe(`${GITHUB_API}/repos/${REPO}/pulls/41`);
+    expect(headersOf(fetchImpl)).toMatchObject({
+      Authorization: 'Bearer tok',
+      Accept: 'application/vnd.github.v3.diff',
+    });
+  });
+
+  it('throws GitHubApiError on a failure, such as a diff too large to serve', async () => {
+    const fetchImpl = vi.fn(async () => json({ message: 'too_large' }, 406));
+    await expect(pullDiff('tok', REPO, 41, fetchImpl)).rejects.toMatchObject({
+      name: 'GitHubApiError',
+      status: 406,
+    });
   });
 });
 

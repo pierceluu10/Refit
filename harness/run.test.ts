@@ -2,19 +2,21 @@ import { describe, expect, it } from 'vitest';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { ExternalTask, MigrationKindMvp, MigrationTask, ToolPack } from '../shared/types.ts';
+import type {
+  ExternalTask,
+  MigrationKindMvp,
+  MigrationTask,
+  Recipe,
+  ToolPack,
+} from '../shared/types.ts';
+import { upgradePlaybook } from '../providers/upgrades/index.ts';
+import { runChecks } from './checks.ts';
 import { scriptedSession, type ScriptedTurn } from './fake-session.ts';
-import {
-  ESCALATION_MODEL,
-  MODEL,
-  decideOutcome,
-  loadUpgradeKit,
-  runExternalTask,
-  runTask,
-  upgradeKitFrom,
-} from './run.ts';
-import { createSandbox } from './sandbox.ts';
+import { ESCALATION_MODEL, MODEL, decideOutcome, runExternalTask, runTask } from './run.ts';
+import { createSandbox, dockerAvailable } from './sandbox.ts';
 import type { RuntimeRunner, Sandbox } from './types.ts';
+
+const docker = await dockerAvailable();
 
 // Illustrative fixture task, not a real customer.
 const task: MigrationTask = {
@@ -461,7 +463,14 @@ async function offlineSandbox(dir: string): Promise<Sandbox> {
 }
 
 const fakeRuntimes = (available = true): RuntimeRunner => ({
-  wrap: (runtime, command) => `REFIT_FAKE_RUNTIME=${runtime.name}${runtime.version} ${command}`,
+  runChecks: (sandbox, runtime, checks) =>
+    runChecks(
+      sandbox,
+      checks.map(({ name, command }) => ({
+        name,
+        command: `REFIT_FAKE_RUNTIME=${runtime.name}${runtime.version} ${command}`,
+      })),
+    ),
   probe: async (_sandbox, runtime) =>
     available
       ? { ok: true, detail: `fake ${runtime.name} ${runtime.version}` }
@@ -718,61 +727,136 @@ describe('runExternalTask with a fake model, for every upgrade kind', () => {
     expect(record.diff).toBe('');
   });
 
-  it("gives the agent F2's upgrade tools and records their calls", async () => {
-    const endOfLife = {
-      name: 'endOfLife',
-      description: 'Illustrative stand-in for F2: end-of-life dates for a runtime',
-      inputSchema: { type: 'object', properties: { product: { type: 'string' } } },
-      run: async () => 'node 18: end of life 2025-04-30 (illustrative)',
-    };
-    const kit = await upgradeKitFrom(
-      { upgradeTools: [endOfLife], upgradePlaybooks: { 'runtime-eol': 'Use the LTS.' } },
-      kindCases['runtime-eol'].task,
-    );
-    expect(kit.tools.map((tool) => tool.name)).toEqual(['endOfLife']);
-    expect(kit.playbooks['runtime-eol']).toBe('Use the LTS.');
+  it("gives the agent F2's real tools and the playbook for the task's kind and dependency", async () => {
+    const requested: string[] = [];
+    const fetch = (async (url: string | URL | Request) => {
+      requested.push(String(url));
+      return new Response(JSON.stringify([{ cycle: '22', eol: '2027-04-30', lts: '2024-10-29' }]));
+    }) as typeof globalThis.fetch;
     let systemPrompt = '';
     const turn: ScriptedTurn = async (call, input) => {
       systemPrompt = input.systemPrompt;
-      expect(await call('upgrades__endOfLife', { product: 'node' })).toContain('end of life');
+      expect(await call('upgrades__end_of_life', { product: 'node', version: '18' })).toContain(
+        '22',
+      );
       await kindCases['runtime-eol'].turn(call, input);
     };
     const record = await runExternalTask(
       kindCases['runtime-eol'].task,
       upgradeRepo(),
-      upgradeDeps([turn], { loadUpgradeKit: async () => kit }),
+      upgradeDeps([turn], { loadUpgradeKit: undefined, fetch }),
     );
-    expect(systemPrompt).toContain('### Upgrade playbook: runtime-eol');
-    expect(record.prBody).toContain('`upgrades__endOfLife`: pass');
+    expect(requested).toEqual(['https://endoflife.date/api/nodejs.json']);
+    expect(upgradePlaybook('runtime-eol', 'node').length).toBeGreaterThan(
+      upgradePlaybook('runtime-eol').length,
+    );
+    expect(systemPrompt).toContain(
+      `### Upgrade playbook: runtime-eol\n\n${upgradePlaybook('runtime-eol', 'node').trim()}`,
+    );
+    expect(record.prBody).toContain('`upgrades__end_of_life`: pass');
     expect(record.outcome).toBe('verified');
   });
 
-  it('loads no upgrade tools while providers/upgrades has not landed', async () => {
-    const kit = await loadUpgradeKit(
-      kindCases['runtime-eol'].task,
-      new URL('./no-such-module.ts', import.meta.url).href,
-    );
-    expect(kit).toEqual({ tools: [], playbooks: {} });
+  it('takes exactly what the orchestrator passes for an external task', async () => {
+    const charged: number[] = [];
+    const providers: string[] = [];
+    const c = kindCases['framework-major'];
+    const recipe = { id: 'illustrative-recipe' } as Recipe;
+    const record = await runExternalTask(c.task, upgradeRepo(), {
+      budgetUsd: 1,
+      chargeRun: (usd) => charged.push(usd),
+      loadToolPack: async (provider) => {
+        providers.push(provider);
+        return { provider, tools: [], playbooks: {} };
+      },
+      retrieveExternalRecipes: async (external) => (external.id === c.task.id ? [recipe] : []),
+      // The rest stands in for the model and the registry; real runs leave them out.
+      session: scriptedSession([c.turn]),
+      createSandbox: offlineSandbox,
+      turnReserveUsd: 0,
+    });
+    expect(record.outcome).toBe('verified');
+    expect(charged).toEqual([0.01]);
+    expect(record.costUsd).toBe(0.01);
+    expect(providers).toEqual(['express']);
+    expect(record.recipeIds).toEqual(['illustrative-recipe']);
   });
 
-  it('keeps the run in needs-review when a proof check fails', async () => {
+  it.skipIf(!docker)(
+    'runs the after-checks in the target runtime image by default under Docker',
+    async () => {
+      const dir = mkdtempSync(join(tmpdir(), 'refit-docker-runtime-'));
+      writeFileSync(
+        join(dir, 'package.json'),
+        JSON.stringify({ name: 'fixture', version: '1.0.0', scripts: { test: 'node check.js' } }),
+      );
+      writeFileSync(join(dir, '.nvmrc'), '22\n');
+      // Passes only on the node .nvmrc names, so a pass after the edit proves which image ran it.
+      writeFileSync(
+        join(dir, 'check.js'),
+        `const want = 'v' + require('node:fs').readFileSync('.nvmrc', 'utf8').trim();
+if (!process.version.startsWith(want + '.')) throw new Error(process.version + ' is not ' + want);
+`,
+      );
+      const moveTo20: ScriptedTurn = async (call) => {
+        await call('write_file', { path: '.nvmrc', content: '20\n' });
+        await finishUpgrade(call, 'Moved Node 22 to 20 (illustrative).');
+      };
+      const record = await runExternalTask(
+        externalTask(
+          'runtime-eol',
+          { dependency: 'node', dependencyKind: 'runtime', toVersion: '20' },
+          '22',
+        ),
+        dir,
+        upgradeDeps([moveTo20], {
+          runtimes: undefined,
+          createSandbox: (repo: string) => createSandbox(repo, { mode: 'docker' }),
+        }),
+      );
+      expect(record.checks).toEqual([{ name: 'test', before: 'pass', after: 'pass' }]);
+      expect(record.checksRuntime).toBe('node 20');
+      expect(record.outcome).toBe('verified');
+    },
+    240_000,
+  );
+
+  it.each([
+    ['failed', 'proof_check__proof_tls', 'tls: failed'],
+    ['unknown', 'proof_check__proof_android_sdk', 'android-sdk: unknown'],
+  ])(
+    'keeps the run in needs-review when a real proof comes back %s',
+    async (_verdict, tool, line) => {
+      const turn: ScriptedTurn = async (call, input) => {
+        await call('write_file', { path: 'nginx.conf', content: 'ssl_protocols TLSv1;\n' });
+        expect((await call(tool, {})).split('\n')[0]).toContain(line);
+        await kindCases['ci-deprecation'].turn(call, input);
+      };
+      const record = await runExternalTask(
+        kindCases['ci-deprecation'].task,
+        upgradeRepo(),
+        upgradeDeps([turn]),
+      );
+      expect(record.outcome).toBe('needs-review');
+      expect(record.prBody).toContain(`\`${tool}\`: fail`);
+      expect(record.prBody).toContain(`Provider check ${tool} reported problems`);
+    },
+  );
+
+  it('notes a secret in the diff in the PR, without printing it', async () => {
+    const token = `ghp_${'a1'.repeat(20)}`;
     const turn: ScriptedTurn = async (call, input) => {
-      expect(await call('run_proof', { check: 'workflow-lint' })).toContain('failed');
+      await call('write_file', { path: 'config.js', content: `export const t = '${token}';\n` });
       await kindCases['ci-deprecation'].turn(call, input);
     };
     const record = await runExternalTask(
       kindCases['ci-deprecation'].task,
       upgradeRepo(),
-      upgradeDeps([turn], {
-        runProof: async (check: string) => ({
-          check,
-          passed: false,
-          evidence: ['illustrative: unknown input `node-version-file`'],
-        }),
-      }),
+      upgradeDeps([turn]),
     );
-    expect(record.outcome).toBe('needs-review');
-    expect(record.prBody).toContain('proof_check__workflow-lint');
+    expect(record.diff).not.toContain(token);
+    expect(record.prBody).not.toContain(token);
+    expect(record.prBody).toContain('A diff that adds a secret must not be committed as is.');
   });
 
   it('still runs API tasks through runTask unchanged', async () => {

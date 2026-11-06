@@ -19,7 +19,7 @@ const pause = () => new Promise((resolve) => setTimeout(resolve, 2));
 
 vi.mock('../inventory/index.ts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../inventory/index.ts')>()),
-  runInventory: async (
+  runDependencyInventory: async (
     _dir: string,
     repo: string,
     { ledger }: { ledger: { record: (spend: object) => Promise<unknown> } },
@@ -27,12 +27,20 @@ vi.mock('../inventory/index.ts', async (importOriginal) => ({
     await pause();
     await ledger.record({ repo, model: 'claude-sonnet-5-5', costUsd: 0.3 });
     return {
+      dependencies: [],
+      errors: [],
       usages: [
         {
           repo,
           provider: 'stripe',
           via: 'sdk',
           callSites: [{ file: 'a.ts', line: 1, operation: 'x' }],
+        },
+        {
+          repo,
+          provider: 'openai',
+          via: 'sdk',
+          callSites: [{ file: 'c.ts', line: 1, operation: 'z' }],
         },
         {
           repo,
@@ -45,11 +53,16 @@ vi.mock('../inventory/index.ts', async (importOriginal) => ({
   },
 }));
 
-vi.mock('../providers/core/registry.ts', () => ({
-  listProviderIds: () => ['openai', 'stripe'],
-  folderWatcher:
-    (id: string, { budget }: { budget: { charge: (model: string, usage: object) => void } }) =>
+// The any-provider watcher: Stripe and OpenAI have three changes each, Sentry has none.
+vi.mock('../providers/core/any-watcher.ts', () => ({
+  anyProviderWatcher:
+    (
+      id: string,
+      _hints: object,
+      { budget }: { budget: { charge: (model: string, usage: object) => void } },
+    ) =>
     async () => {
+      if (id === 'sentry') return [];
       await pause();
       // 100k input and 5k output tokens on Sonnet: $0.25.
       budget.charge('claude-sonnet-5-5', { inputTokens: 100_000, outputTokens: 5_000 });
@@ -64,9 +77,11 @@ vi.mock('../providers/core/registry.ts', () => ({
     },
 }));
 
-// The any-provider watcher for providers with no folder (sentry here): it reads and finds nothing.
-vi.mock('../providers/core/any-watcher.ts', () => ({
-  anyProviderWatcher: () => async () => [],
+// The rules agent reads nothing here; its wiring has its own tests in deps.test.ts.
+vi.mock('../compliance/index.ts', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../compliance/index.ts')>()),
+  createComplianceModel: () => ({}),
+  readRegulations: async () => ({ obligations: [], errors: [], costUsd: 0 }),
 }));
 
 // The match agent's Messages API: every Stripe change is a task, every other change is not.
@@ -103,13 +118,18 @@ vi.mock('@anthropic-ai/sdk', () => ({
 
 // Each harness run spends 80% of what it was given.
 vi.mock('../harness/index.ts', () => ({
-  runTask: async (task: MigrationTask, _dir: string, { budgetUsd }: { budgetUsd: number }) => {
+  runTask: async (
+    task: MigrationTask,
+    _dir: string,
+    { budgetUsd, chargeRun }: { budgetUsd: number; chargeRun: (usd: number) => void },
+  ) => {
     seen.peak = Math.max(seen.peak, ++seen.running);
     seen.check();
     // The first run waits a while for a second to start beside it; runs one at a time would not.
     if (seen.running === 2) seen.release();
     await Promise.race([seen.together, new Promise((resolve) => setTimeout(resolve, 500))]);
     seen.running--;
+    chargeRun(budgetUsd * 0.8);
     return {
       taskId: task.id,
       outcome: 'verified',
@@ -139,6 +159,8 @@ describe('an org run on the real wiring', () => {
     const budget = createBudget(cap);
     seen.check = () => (seen.worst = Math.max(seen.worst, budget.spentUsd() + budget.heldUsd()));
     const dir = await mkdtemp(join(tmpdir(), 'refit-org-run-'));
+    vi.stubEnv('REFIT_MEMORY_DIR', join(dir, 'memory'));
+    vi.stubEnv('REFIT_AUDIT_DIR', join(dir, 'audit'));
     const deps = createDeps({
       budget,
       out: join(dir, 'runs.jsonl'),
@@ -167,7 +189,6 @@ describe('an org run on the real wiring', () => {
     expect(seen.worst).toBeLessThanOrEqual(cap + 1e-9);
     expect(budget.spentUsd()).toBeLessThanOrEqual(cap + 1e-9);
     expect(budget.heldUsd()).toBe(0);
-    // Sentry has no folder in providers/; the any-provider watcher read it and found nothing.
     expect(summary.errors).toEqual([]);
   });
 });

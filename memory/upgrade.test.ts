@@ -177,6 +177,20 @@ describe('upgrade recipes', () => {
     expect(extractions()).toBe(seen);
   });
 
+  it('does not distil again when a PR is merged as it was', async () => {
+    const store = await newStore();
+    const model = fakeModel();
+    const deps = { store, embedder: new LocalEmbedder(), model };
+    const pr = 'https://github.com/example-org/api/pull/9';
+    const record = makeRecord({ pr });
+    await learnFromRun({ task: makeExternalTask(), record, transcript: 'ok' }, deps);
+    const calls = model.requests.length;
+
+    await recordVerdict(pr, 'merged', deps, { finalDiff: `${record.diff}\n` });
+
+    expect(model.requests).toHaveLength(calls);
+  });
+
   it('never keeps a diff from a close', async () => {
     const store = await newStore();
     const deps = { store, embedder: new LocalEmbedder() };

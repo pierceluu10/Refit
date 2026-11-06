@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import type { ExternalTask, MigrationTask, Recipe, ToolPack } from '../shared/types.ts';
 import {
   PROMPT_VERSION,
-  UPGRADE_PLAYBOOKS,
   isExternalTask,
   targetRuntime,
   buildKickoffMessage,
@@ -84,7 +83,7 @@ const prompt = buildSystemPrompt({
 
 describe('buildSystemPrompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-06.1');
+    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-06.2');
   });
 
   it('puts the sections in the plan order', () => {
@@ -327,7 +326,6 @@ describe('buildSystemPrompt for upgrades', () => {
     expect(upgradePrompt).toContain(
       '### Upgrade playbook: runtime-eol\n\nIllustrative F2 playbook text.',
     );
-    expect(upgradePrompt).toContain(UPGRADE_PLAYBOOKS['runtime-eol']);
     expect(upgradePrompt).toContain('after it on the new version');
     expect(upgradePrompt).toContain('moves the node runtime to 22');
     expect(upgradePrompt).toContain("verdict 'not-affected'");
@@ -336,20 +334,6 @@ describe('buildSystemPrompt for upgrades', () => {
   it('keeps the API prompt for API tasks', () => {
     expect(prompt).toContain('migrates code when external APIs change');
     expect(prompt).not.toContain('bump_version` with `apply');
-  });
-
-  it('has guidance for every upgrade kind O2 covers', () => {
-    for (const kind of [
-      'runtime-eol',
-      'framework-major',
-      'dependency-major',
-      'security-fix',
-      'container-image-eol',
-      'ci-deprecation',
-      'model-retirement',
-    ]) {
-      expect(UPGRADE_PLAYBOOKS[kind]).toBeTruthy();
-    }
   });
 
   it('tells external tasks apart and finds the runtime the checks should run on', () => {

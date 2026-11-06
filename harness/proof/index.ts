@@ -65,8 +65,7 @@ export function toProofResult(detail: ProofDetail): ProofResult {
 }
 
 export function formatProofResult(result: ProofResult): string {
-  // The harness grades ToolPack output by its words (harness/validators.ts), so an unknown result
-  // says outright that it is not proof.
+  // An unknown result says outright that it is not proof.
   const verdict =
     result.passed === 'unknown'
       ? 'unknown (not proof: counts as failed until a rerun or a person confirms it)'
@@ -77,6 +76,11 @@ export function formatProofResult(result: ProofResult): string {
     [`${result.check}: ${verdict}`, ...result.evidence.map((e) => `- ${e}`)].join('\n'),
   );
 }
+
+// A proof tool's verdict is its first line; the evidence below can quote logs ("0 failed") that
+// harness/validators.ts would misread, so a passing proof is graded from this line alone.
+export const proofOutputPassed = (output: string) =>
+  /^[\w-]+: passed$/.test(output.split('\n', 1)[0]);
 
 // The checks as agent tools, named proof_<check>. Pass the harness's sandbox (and the untouched
 // checkout as baselineDir) so commands reuse it; without them each call makes its own sandbox from

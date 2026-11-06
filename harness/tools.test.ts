@@ -4,15 +4,18 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { AgentTool, MigrationTask, Recipe } from '../shared/types.ts';
+import { runChecks } from './checks.ts';
 import {
   buildTools,
+  dockerRuntimes,
   findVersionPlaces,
-  localRuntimes,
+  localRuntimeCommand,
   replaceVersion,
   shellQuote,
   upgradeCommand,
 } from './tools.ts';
-import type { ExecResult, FinishReport, Sandbox, ToolContext } from './types.ts';
+import type { CheckCommand, ExecResult, FinishReport, Sandbox, ToolContext } from './types.ts';
+import { failingCheckers } from './validators.ts';
 
 const task = { id: 't1', repo: 'acme/app' } as MigrationTask;
 let dir: string;
@@ -392,8 +395,18 @@ describe('upgrade tools', () => {
   it('run_checks on a runtime probes it first and says plainly when it is missing', async () => {
     const seen: string[] = [];
     const runtimes = {
-      wrap: (runtime: { name: string; version: string }, command: string) =>
-        `RT=${runtime.version} ${command}`,
+      runChecks: (
+        sandbox: Sandbox,
+        runtime: { name: string; version: string },
+        checks: CheckCommand[],
+      ) =>
+        runChecks(
+          sandbox,
+          checks.map(({ name, command }) => ({
+            name,
+            command: `RT=${runtime.version} ${command}`,
+          })),
+        ),
       probe: async (_s: Sandbox, runtime: { name: string; version: string }) =>
         runtime.version === '22'
           ? { ok: true, detail: 'node 22 available: v22.0.0' }
@@ -416,31 +429,58 @@ describe('upgrade tools', () => {
     expect(await call('run_checks')).toContain('## env: fail');
   });
 
-  it('the local runtime stub wraps commands so they run inside the sandbox', () => {
-    const node = localRuntimes.wrap({ name: 'node', version: '22' }, "echo 'hi'");
+  it('the local runtimes wrap commands so they run inside the sandbox', () => {
+    const node = localRuntimeCommand({ name: 'node', version: '22' }, "echo 'hi'");
     expect(node).toContain('https://nodejs.org/dist/latest-v22.x');
     expect(node).toContain(`PATH="$refit_node/bin:$PATH" sh -c 'echo '\\''hi'\\'''`);
-    expect(localRuntimes.wrap({ name: 'node', version: '22.11.0' }, 'x')).toContain(
+    expect(localRuntimeCommand({ name: 'node', version: '22.11.0' }, 'x')).toContain(
       'https://nodejs.org/dist/v22.11.0/',
     );
-    expect(localRuntimes.wrap({ name: 'node', version: '22; rm -rf /' }, 'x')).toBe('x');
-    expect(localRuntimes.wrap({ name: 'python', version: '3.12' }, 'pytest')).toContain(
+    expect(localRuntimeCommand({ name: 'node', version: '22; rm -rf /' }, 'x')).toBe('x');
+    expect(localRuntimeCommand({ name: 'python', version: '3.12' }, 'pytest')).toContain(
       'command -v python3.12',
     );
-    expect(localRuntimes.wrap({ name: 'ruby', version: '3' }, 'rake')).toBe('rake');
+    expect(localRuntimeCommand({ name: 'ruby', version: '3' }, 'rake')).toBe('rake');
   });
 
-  it('run_proof says so when the proof tools have not landed, and records results when they have', async () => {
-    expect(await setup().call('run_proof', { check: 'axe' })).toContain('not available');
-    const runs: { tool: string; passed: boolean }[] = [];
-    const { call } = setup({
-      runProof: async (check) => ({ check, passed: 'unknown', evidence: ['no browser'] }),
-      onToolPackCall: (run) => runs.push(run),
-    });
-    expect(await call('run_proof', { check: 'axe scan' })).toContain('proof axe scan: unknown');
-    expect(runs).toEqual([
-      { tool: 'proof_check__axe_scan', passed: false, output: expect.any(String) },
-    ]);
+  it('says plainly when Docker has no image for a runtime, without starting a container', async () => {
+    const probe = await dockerRuntimes.probe(fakeSandbox(dir), { name: 'ruby', version: '3' });
+    expect(probe).toEqual({ ok: false, detail: 'no official image for ruby 3' });
+  });
+
+  it('reports a runtime container that will not start as failed checks, not a throw', async () => {
+    const checks = [{ name: 'test', command: 'npm test' }];
+    const runs = await dockerRuntimes.runChecks(
+      fakeSandbox(dir),
+      { name: 'node', version: '999.999.999' },
+      checks,
+    );
+    expect(runs).toMatchObject([{ name: 'test', command: 'npm test', ok: false }]);
+    expect(runs[0].failures[0]).toContain('could not run on node 999.999.999');
+  }, 120_000);
+
+  it('records proof tools as checkers: a failed or unknown proof blocks, whatever its log says', async () => {
+    const answers: Record<string, string> = {
+      pass: 'tls: passed\n- log tail: 12 passed, 0 failed',
+      fail: 'tls: failed\n- failed: nginx.conf:3',
+      unknown: 'tls: unknown (not proof: counts as failed until a rerun or a person confirms it)',
+    };
+    const proofTool: AgentTool = {
+      name: 'proof_tls',
+      description: 'Illustrative stand-in for O6',
+      inputSchema: { type: 'object', properties: {} },
+      run: async (input) => answers[(input as { answer: string }).answer],
+    };
+    const runs: { tool: string; passed: boolean; output: string }[] = [];
+    const { call } = setup({ proofTools: [proofTool], onToolPackCall: (run) => runs.push(run) });
+    await call('proof_check__proof_tls', { answer: 'pass' });
+    expect(runs.at(-1)).toMatchObject({ tool: 'proof_check__proof_tls', passed: true });
+    expect(failingCheckers(runs)).toEqual([]);
+    for (const answer of ['fail', 'unknown']) {
+      await call('proof_check__proof_tls', { answer });
+      expect(runs.at(-1)?.passed).toBe(false);
+      expect(failingCheckers(runs)).toEqual(['proof_check__proof_tls']);
+    }
   });
 
   it('exposes upgrade tools under an upgrades__ prefix and records their calls', async () => {

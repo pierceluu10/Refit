@@ -1,6 +1,5 @@
 import { setTimeout as delay } from 'node:timers/promises';
-import type { MigrationTask } from '../../shared/types.ts';
-import type { StoredRun } from '../../memory/types.ts';
+import type { AnyTask, StoredRun } from '../../memory/types.ts';
 import { listRefitPullRequests } from '../api/pulls.ts';
 import type { PullRequest } from '../api/pulls.ts';
 import type { InstallationTokens } from '../types.ts';
@@ -16,8 +15,8 @@ const COMMENTS_PER_PAGE = 100;
 export type ConflictDeps = {
   installationId: number;
   tokens: InstallationTokens;
-  findTask: (pr: string) => Promise<MigrationTask | undefined>;
-  rerun: (task: MigrationTask) => Promise<void>;
+  findTask: (pr: string) => Promise<AnyTask | undefined>;
+  rerun: (task: AnyTask) => Promise<void>;
   fetchImpl?: typeof fetch;
   sleep?: (ms: number) => Promise<unknown>;
 };
@@ -96,10 +95,9 @@ export async function refreshConflicts(repo: string, deps: ConflictDeps): Promis
   return result;
 }
 
-// Typed as MigrationTask to match memory's StoredRun; at runtime it may be an ExternalTask.
 export const findTaskForPr =
   (listRuns: () => Promise<StoredRun[]>) =>
-  async (pr: string): Promise<MigrationTask | undefined> => {
+  async (pr: string): Promise<AnyTask | undefined> => {
     let latest: StoredRun | undefined;
     for (const run of await listRuns()) {
       if (run.record.pr !== pr) continue;

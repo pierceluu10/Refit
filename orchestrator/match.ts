@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { ApiUsage, MigrationTask, ProviderChange } from '../shared/types.ts';
 import { costOf, worstCaseUsd, type Budget } from './budget.ts';
-import { modelFor } from './models.ts';
+import { createModel } from '../shared/models.ts';
 
 // A task plus the agent's reasoning: which call sites, why, and how urgent.
 export type MatchedTask = MigrationTask & {
@@ -26,6 +26,9 @@ export type MatchChanges = (input: {
 }) => Promise<MatchResult>;
 
 const MAX_TOKENS = 16000;
+// The least output a match call is sent with once the run's cap is close.
+const MIN_MATCH_TOKENS = 6000;
+const CHARS_PER_TOKEN = 2;
 // Changes per match call: 50 verdicts fit well inside MAX_TOKENS, and 160 in one call may not.
 export const MATCH_BATCH = 50;
 
@@ -152,16 +155,23 @@ export function messagesApi(opts: {
   budget: Budget;
   model?: string;
 }): AskModel {
-  const model = opts.model ?? modelFor('match');
+  const model = opts.model ?? createModel('match').id;
   return async ({ system, prompt, schema }) => {
     // No silent SDK retries: each try is one request against one hold, and the queue retries.
     const client = opts.client ?? new Anthropic({ maxRetries: 0 });
-    // shortcut: chars/3.5 token estimate, switch to messages.countTokens if the cap gets tight
-    const inputTokens = Math.ceil((system.length + prompt.length) / 3.5);
+    // shortcut: a high estimate, so a tight cap gives the answer less room; use messages.countTokens if that ever costs answers. Chars/3.5 passed the cap on 2026-11-06.
+    const inputTokens = Math.ceil((system.length + prompt.length) / CHARS_PER_TOKEN);
     // The call holds its worst case, so matches running at once cannot each spend the same remainder.
+    // Near the cap the answer gets less room instead of the call being refused; spend still can't pass the hold.
+    const inputUsd = worstCaseUsd(model, inputTokens, 0);
     const hold = await opts.budget.reserve(
       'a match call',
       worstCaseUsd(model, inputTokens, MAX_TOKENS),
+      worstCaseUsd(model, inputTokens, MIN_MATCH_TOKENS),
+    );
+    const maxTokens = Math.min(
+      MAX_TOKENS,
+      Math.floor((hold.usd - inputUsd) / worstCaseUsd(model, 0, 1)),
     );
     let response: Anthropic.Message;
     // Unknown until the API says: an error the API answered with was not billed, but a dropped
@@ -170,7 +180,7 @@ export function messagesApi(opts: {
     try {
       response = await client.messages.create({
         model,
-        max_tokens: MAX_TOKENS,
+        max_tokens: maxTokens,
         system,
         messages: [{ role: 'user', content: prompt }],
         output_config: { effort: 'high', format: { type: 'json_schema', schema } },
@@ -185,7 +195,7 @@ export function messagesApi(opts: {
 
     if (response.stop_reason === 'refusal') throw new Error('Match agent refused the request.');
     if (response.stop_reason === 'max_tokens') {
-      throw new Error(`Match agent hit max_tokens (${MAX_TOKENS}); its JSON is incomplete.`);
+      throw new Error(`Match agent hit max_tokens (${maxTokens}); its JSON is incomplete.`);
     }
     const text = response.content.find((b) => b.type === 'text');
     if (!text || text.type !== 'text') throw new Error('Match agent returned no text block.');

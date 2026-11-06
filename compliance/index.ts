@@ -23,6 +23,7 @@ export {
   setAuditStore,
   type AuditStore,
 } from './audit.ts';
+export { listObligations, saveObligations } from './obligations.ts';
 export { RULE_FAMILIES, familyOf, type RuleFamily, type RuleFamilyId } from './families.ts';
 export { fixtureFetcher, httpFetcher, officialFixtures, type Fetcher } from './fetch.ts';
 export {

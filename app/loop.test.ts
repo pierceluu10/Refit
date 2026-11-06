@@ -195,6 +195,7 @@ async function startApp({ settings }: { settings?: string } = {}) {
     tokens,
     listRepos: async () => [REPO],
     compareCommits: async () => [],
+    pullDiff: async () => '',
     queue,
     recordVerdict: async (pr, human) => {
       verdicts.push([pr, human]);

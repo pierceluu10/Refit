@@ -1,7 +1,9 @@
-import type Anthropic from '@anthropic-ai/sdk';
-import { priceOf } from './models.ts';
+import { BudgetExceededError, usageCostUsd, worstCaseUsd } from '../shared/models.ts';
 
-export class BudgetExceededError extends Error {}
+export { BudgetExceededError, worstCaseUsd };
+
+// What a Messages API call cost.
+export const costOf = usageCostUsd;
 
 // Part of the run's cap set aside for one part (a watcher, an inventory, a task) while it runs.
 export type Hold = {
@@ -22,36 +24,11 @@ export type Budget = {
   chargeUsd(costUsd: number): number;
 };
 
-// Prices come from the model layer (shared/models.ts once O3 lands), so no model defaults to another's price.
-function price(model: string) {
-  const p = priceOf(model);
-  if (!p)
-    throw new Error(
-      `No price for model ${model}; add it to the model layer (shared/models.ts) before spending.`,
-    );
-  return { cacheWrite: p.input * 1.25, cacheRead: p.input * 0.1, ...p };
-}
-
-// What a Messages API call cost.
-export function costOf(model: string, usage: Anthropic.Usage): number {
-  const p = price(model);
-  return (
-    (usage.input_tokens * p.input +
-      usage.output_tokens * p.output +
-      (usage.cache_creation_input_tokens ?? 0) * p.cacheWrite +
-      (usage.cache_read_input_tokens ?? 0) * p.cacheRead) /
-    1e6
-  );
-}
-
-// The most a call can cost: every input token plus a full max_tokens of output.
-export function worstCaseUsd(model: string, inputTokens: number, maxOutputTokens: number): number {
-  const p = price(model);
-  return (inputTokens * p.input + maxOutputTokens * p.output) / 1e6;
-}
-
 // The run-level dollar cap is a hard limit: refuse to build a budget without one.
-export function createBudget(capUsd = Number(process.env.REFIT_AI_BUDGET_USD)): Budget {
+export function createBudget(
+  capUsd = Number(process.env.REFIT_AI_BUDGET_USD),
+  onSettle?: (label: string, spentUsd: number) => void,
+): Budget {
   if (!Number.isFinite(capUsd) || capUsd <= 0) {
     throw new Error(
       'Set REFIT_AI_BUDGET_USD (or pass a cap) to a positive dollar amount before running AI.',
@@ -70,7 +47,7 @@ export function createBudget(capUsd = Number(process.env.REFIT_AI_BUDGET_USD)): 
   // Float sums of holds drift by ~1e-16; this keeps a hold of exactly what is left grantable.
   const free = () => Math.max(capUsd - spent - held, 0) + 1e-9;
 
-  function grant(maxUsd: number): Hold {
+  function grant(label: string, maxUsd: number): Hold {
     const usd = Math.max(Math.min(free() - 1e-9, maxUsd), 0);
     held += usd;
     open++;
@@ -84,6 +61,7 @@ export function createBudget(capUsd = Number(process.env.REFIT_AI_BUDGET_USD)): 
         const cost = Number.isFinite(spentUsd) && spentUsd >= 0 ? spentUsd : usd;
         held = --open === 0 ? 0 : held - usd;
         spent += cost;
+        onSettle?.(label, cost);
         wake();
         return cost;
       },
@@ -92,7 +70,7 @@ export function createBudget(capUsd = Number(process.env.REFIT_AI_BUDGET_USD)): 
 
   const refusal = (waiter: { label: string; minUsd: number }) =>
     new BudgetExceededError(
-      `AI budget: $${(capUsd - spent).toFixed(2)} of the $${capUsd} cap left; ${waiter.label} needs $${waiter.minUsd.toFixed(2)}.`,
+      `AI budget: $${(capUsd - spent).toFixed(4)} of the $${capUsd} cap left; ${waiter.label} needs $${waiter.minUsd.toFixed(4)}.`,
     );
 
   // Grants every waiter that fits, oldest first. Spent only grows, so a waiter whose minimum is more
@@ -103,7 +81,7 @@ export function createBudget(capUsd = Number(process.env.REFIT_AI_BUDGET_USD)): 
       const fits = free() >= waiter.minUsd;
       if (!fits && waiter.minUsd <= capUsd - spent + 1e-9) continue;
       waiting.splice(waiting.indexOf(waiter), 1);
-      if (fits) waiter.resolve(grant(waiter.maxUsd));
+      if (fits) waiter.resolve(grant(waiter.label, waiter.maxUsd));
       else waiter.reject(refusal(waiter));
     }
     if (open > 0) return;

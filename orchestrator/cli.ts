@@ -88,7 +88,7 @@ export function formatReport(report: ScanItemReport): string {
     `  ${cell(item.deadline ?? '-', 11)} ${cell(item.change.severity ?? '-', 9)} ${cell(item.dependency.name, 22)} ${cell(`${item.dependency.version ?? '?'} → ${item.change.toVersion ?? '?'}`, 24)} ${cell(item.status, 13)} ${item.change.title}${item.pr ? `  ${item.pr}` : ''}`;
   return [
     `What's behind in ${report.repo} (scanned ${report.scannedAt})`,
-    `  ${open.length} open, ${clear.length} not affected; match cost $${report.costUsd.toFixed(4)}`,
+    `  ${open.length} open, ${clear.length} not affected; scan cost $${report.costUsd.toFixed(4)}`,
     ...(open.length ? [header, ...open.map(row)] : ['  nothing open']),
     ...(clear.length
       ? [
@@ -102,7 +102,11 @@ export function formatReport(report: ScanItemReport): string {
 
 async function scan(args: ReturnType<typeof parse>): Promise<number> {
   // The run-level dollar cap is a hard limit: createBudget throws without REFIT_AI_BUDGET_USD.
-  const budget = process.env.ANTHROPIC_API_KEY ? createBudget() : undefined;
+  const budget = process.env.ANTHROPIC_API_KEY
+    ? createBudget(undefined, (label, spentUsd) =>
+        console.error(`spent $${spentUsd.toFixed(4)} on ${label}`),
+      )
+    : undefined;
   const scanRepo = createScanRepo(createDeps({ budget }));
   // SECURITY: a scan only reads the checkouts; nothing in them runs.
   const reports: ScanItemReport[] = [];

@@ -3,6 +3,7 @@
 // run-level dollar cap is one of Refit's four hard limits.
 
 import Anthropic from '@anthropic-ai/sdk';
+import { createModel, MODEL_PRICES } from '../../shared/models.ts';
 
 export type TextBlock = { type: 'text'; text: string };
 export type ToolUseBlock = { type: 'tool_use'; id: string; name: string; input: unknown };
@@ -81,14 +82,16 @@ type Price = {
   long?: { input: number; output: number };
 };
 
-// First-party API list prices, 2026-10. Cache writes (5-minute TTL) cost 1.25x input.
+// Rates come from the model layer. Cache writes (5-minute TTL) cost 1.25x input.
+const fromModelLayer = (model: string): Price => {
+  const { input, output, cacheRead } = MODEL_PRICES[model];
+  return { input, output, cacheRead: cacheRead / input };
+};
 const PRICES: Record<string, Price> = {
-  'claude-opus-5-5': { input: 4, output: 20, cacheRead: 0.05 },
-  'claude-sonnet-5-5': { input: 2, output: 10, cacheRead: 0.1 },
+  'claude-opus-5-5': fromModelLayer('claude-opus-5-5'),
+  'claude-sonnet-5-5': fromModelLayer('claude-sonnet-5-5'),
   'claude-haiku-5-5': {
-    input: 0.1,
-    output: 0.5,
-    cacheRead: 0.1,
+    ...fromModelLayer('claude-haiku-5-5'),
     longAbove: 100_000,
     long: { input: 0.5, output: 2.5 },
   },
@@ -273,6 +276,9 @@ export function metered(client: ModelClient, ledger: BudgetLedger, label?: strin
 
 export const DEFAULT_WATCH_MODEL = 'claude-sonnet-5-5';
 
+/** The model a real read uses: REFIT_WATCH_MODEL, else the model layer's watch step. */
+export const watchModelId = (): string => process.env.REFIT_WATCH_MODEL ?? createModel('watch').id;
+
 export type Effort = 'low' | 'medium' | 'high';
 
 /** A Messages API request body, as built from a ModelRequest. */
@@ -351,7 +357,7 @@ export function anthropicModel(
 ): ModelClient {
   let client = options.client;
   return messagesApiModel({
-    model: options.model ?? process.env.REFIT_WATCH_MODEL ?? DEFAULT_WATCH_MODEL,
+    model: options.model ?? watchModelId(),
     effort: options.effort ?? 'medium',
     cache: options.cache ?? true,
     async send(body) {

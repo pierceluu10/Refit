@@ -4,7 +4,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DependencyUsage, ExternalChange, MigrationTask, RunRecord } from '../shared/types.ts';
+import type { DependencyUsage, ExternalChange, ExternalTask, RunRecord } from '../shared/types.ts';
 import { createBudget } from './budget.ts';
 import { formatReport, main } from './cli.ts';
 import { createDeps } from './deps.ts';
@@ -19,17 +19,23 @@ import {
   stubRunExternalTask,
 } from './stubs-external.ts';
 
-const harness = vi.hoisted(() => ({ tasks: [] as MigrationTask[] }));
+const harness = vi.hoisted(() => ({ tasks: [] as ExternalTask[] }));
 vi.mock('../harness/index.ts', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../harness/index.ts')>()),
-  runTask: async (task: MigrationTask, _dir: string, opts: { budgetUsd: number }) => {
+  runExternalTask: async (
+    task: ExternalTask,
+    _dir: string,
+    opts: { budgetUsd: number; chargeRun: (usd: number) => void },
+  ) => {
     harness.tasks.push(task);
+    const costUsd = Math.min(0.4, opts.budgetUsd);
+    opts.chargeRun(costUsd);
     return {
       taskId: task.id,
       outcome: 'needs-review',
       diff: 'diff --git a/.nvmrc b/.nvmrc\n',
       checks: [{ name: 'tests', before: 'pass', after: 'pass' }],
-      costUsd: Math.min(0.4, opts.budgetUsd),
+      costUsd,
       transcriptPath: '',
     } satisfies RunRecord;
   },
@@ -117,19 +123,54 @@ describe('the external half when parts fail', () => {
   });
 
   it('reports a failing watcher or inventory in the errors and keeps the rest', async () => {
+    const platform: DependencyUsage = {
+      repo: 'acme/api',
+      kind: 'platform',
+      name: 'stripe-connect',
+      declaredIn: [],
+    };
     const { deps } = fakeDeps({
-      inventorySurfaces: async () => {
-        throw new Error('surfaces unreadable');
+      inventoryDependencies: async (_dir, _repo, note) => {
+        note?.('surfaces unreadable');
+        return [node, platform];
       },
-      watchPlatforms: async () => {
+      watchDependency: async (dep, _since, note) => {
+        if (dep.name === 'node') {
+          note?.('one node source unread');
+          return [change('node-18-eol')];
+        }
         throw new Error('platform feed down');
       },
     });
     const { report, tasks } = await createScanRepo(deps)('acme/api', '/nonexistent');
     expect(tasks.map((t) => t.change.id)).toEqual(['node-18-eol']);
-    expect(report.errors.join('\n')).toMatch(
-      /surfaces unreadable[\s\S]*platform feed down|platform feed down[\s\S]*surfaces unreadable/,
-    );
+    const errors = report.errors.join('\n');
+    expect(errors).toContain('acme/api: surfaces unreadable');
+    expect(errors).toContain('watch:node: one node source unread');
+    expect(errors).toContain('platform feed down');
+  });
+
+  it('watches a dependency the usage map names on the API path only, so nothing is read twice', async () => {
+    const stripe: DependencyUsage = {
+      repo: 'acme/api',
+      kind: 'sdk',
+      name: 'stripe',
+      declaredIn: [],
+    };
+    const watched: string[] = [];
+    const { deps } = fakeDeps({
+      inventoryDependencies: async () => [stripe, node],
+      watchDependency: async (dep) => {
+        watched.push(dep.name);
+        return [];
+      },
+    });
+    deps.inventory = async (_dir, repo) => [
+      { repo, provider: 'stripe', via: 'sdk', callSites: [] },
+    ];
+    deps.watchAny = () => async () => [];
+    await createScanRepo(deps)('acme/api', '/nonexistent');
+    expect(watched).toEqual(['node']);
   });
 
   it('turns applicable rules into tasks through the same match', async () => {
@@ -147,7 +188,7 @@ describe('the external half when parts fail', () => {
     };
     const obligationsToChanges = vi.fn(async () => [rule]);
     const { deps } = fakeDeps({
-      inventorySurfaces: async () => [surface],
+      inventoryDependencies: async () => [surface, node],
       watchRegulations: async () => [
         {
           id: 'eaa',
@@ -166,7 +207,13 @@ describe('the external half when parts fail', () => {
       obligationsToChanges,
     });
     const { tasks } = await createScanRepo(deps)('acme/api', '/nonexistent');
-    expect(obligationsToChanges).toHaveBeenCalledWith('acme/api', [surface], expect.any(Array));
+    expect(obligationsToChanges).toHaveBeenCalledWith(
+      'acme/api',
+      [surface],
+      expect.any(Array),
+      '/nonexistent',
+      expect.any(Function),
+    );
     expect(tasks.find((t) => t.change.id === 'eaa-forms')?.dependencies).toEqual([surface]);
   });
 
@@ -249,8 +296,10 @@ describe('refit scan', () => {
 });
 
 describe('the real-mode wiring, with fakes at the edges', () => {
-  it('reports unwatched dependencies honestly and attempts upgrades on the harness until O2 lands', async () => {
+  it('attempts an upgrade on the harness, on its share of one run budget', async () => {
     vi.stubEnv('ANTHROPIC_API_KEY', 'sk-test-not-a-real-key');
+    vi.stubEnv('REFIT_MEMORY_DIR', join(work, 'memory'));
+    vi.stubEnv('REFIT_AUDIT_DIR', join(work, 'audit'));
     const budget = createBudget(6);
     const deps = createDeps({
       budget,
@@ -267,18 +316,13 @@ describe('the real-mode wiring, with fakes at the edges', () => {
     deps.external = {
       ...deps.external!,
       inventoryDependencies: async () => [node],
+      watchDependency: async () => [change('node-18-eol')],
+      watchRegulations: async () => [],
       match: async (input) => {
         expect(input.dependencies).toEqual([node]);
         return stubMatchExternal({ ...input, changes: [change('node-18-eol')] });
       },
     };
-    const { report } = await createScanRepo(deps)('acme/api', work);
-    // F1's watcher is not on this branch, so the dependency is reported unwatched, never invented.
-    expect(report.errors.join('\n')).toContain(
-      'not watched: providers/index.ts has no watchDependency yet',
-    );
-
-    deps.external.watchDependency = async () => [change('node-18-eol')];
     const records = await createRunRepoJob(
       deps,
       budget.capUsd,
@@ -293,7 +337,7 @@ describe('the real-mode wiring, with fakes at the edges', () => {
         pr: 'https://github.com/acme/api/pull/node-18-eol',
       }),
     ]);
-    expect(harness.tasks[0].notes).toContain('.nvmrc');
+    expect(harness.tasks[0].dependencies).toEqual([node]);
     // The harness run held its share of the one run budget and settled to what it spent.
     expect(budget.spentUsd()).toBeCloseTo(0.4);
     expect(budget.heldUsd()).toBe(0);

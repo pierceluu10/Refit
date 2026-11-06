@@ -55,7 +55,7 @@ describe('createBudget', () => {
     const budget = createBudget(5);
     (await budget.reserve('first', 4)).settle(4);
     await expect(budget.reserve('a task', 5, 2)).rejects.toThrow(
-      /\$1\.00 of the \$5 cap left; a task needs \$2\.00/,
+      /\$1\.0000 of the \$5 cap left; a task needs \$2\.00/,
     );
   });
 

@@ -3,8 +3,7 @@
 import type { ApiUsage, DependencyUsage, ProviderHints } from '../shared/types.ts';
 import { mergeHints } from './hints.ts';
 
-// DependencyUsage has no hints or package field and shared/types.ts is off limits, so findings carry them additively.
-export type DependencyFinding = DependencyUsage & { hints?: ProviderHints; package?: string };
+export type DependencyFinding = DependencyUsage;
 
 type CallSite = ApiUsage['callSites'][number];
 

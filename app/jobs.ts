@@ -52,7 +52,7 @@ export type JobRunnerDeps = {
 const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
 // For the steps after the real work: a failure here is logged, since retrying would pay for the work again.
-async function logged<T>(label: string, step: () => Promise<T>): Promise<T | undefined> {
+export async function logged<T>(label: string, step: () => Promise<T>): Promise<T | undefined> {
   try {
     return await step();
   } catch (error) {

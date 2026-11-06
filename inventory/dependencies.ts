@@ -20,11 +20,10 @@ import {
   dependencyTaskPrompt,
 } from './prompt.ts';
 import { summarizeDependencies } from './summary.ts';
+import { inventorySurfaces } from './surfaces/agent.ts';
 import { readTools, recordTools } from './tools.ts';
 
 export const DEFAULT_DEPENDENCY_RUN_CAP_USD = 1.2;
-// Computed so typecheck and bundling accept it before P5's module lands on this branch.
-const SURFACES_MODULE = './surfaces/index.ts';
 const REGISTRY_ECOSYSTEMS = new Set(['npm', 'pypi']);
 const GITHUB_ACTIONS_ECOSYSTEM = 'github-actions';
 // owner/repo at the start of an action or reusable workflow; local ./ paths and docker:// don't match.
@@ -48,25 +47,17 @@ export type DependencyReport = {
   durationMs: number;
 };
 
-async function loadSurfaces(): Promise<InventorySurfaces> {
-  const surfaces = await import(/* @vite-ignore */ SURFACES_MODULE);
-  return surfaces.inventorySurfaces;
-}
-
 // A paid-for inventory must survive a failed surfaces pass; ScanReport.errors says what is missing.
 async function surfacesOf(
   repoDir: string,
   repo: string,
-  surfaces: InventorySurfaces | undefined,
+  surfaces: InventorySurfaces,
   errors: string[],
 ): Promise<DependencyFinding[]> {
   try {
-    return await (surfaces ?? (await loadSurfaces()))(repoDir, repo);
+    return await surfaces(repoDir, repo);
   } catch (error) {
-    // Node's message for a missing module holds this machine's paths; errors reach the dashboard.
-    const missing = (error as NodeJS.ErrnoException).code === 'ERR_MODULE_NOT_FOUND';
-    const reason = missing ? 'inventory/surfaces is not available' : (error as Error).message;
-    errors.push(`Platform and regulated surfaces were not read: ${reason}`);
+    errors.push(`Platform and regulated surfaces were not read: ${(error as Error).message}`);
     return [];
   }
 }
@@ -118,7 +109,7 @@ export async function runDependencyInventory(
       dependencyCollector.list().map(({ dependency }) => dependency),
       usages,
     ).map(withDerivedHints),
-    ...(await surfacesOf(repoDir, repo, options.surfaces, errors)),
+    ...(await surfacesOf(repoDir, repo, options.surfaces ?? inventorySurfaces, errors)),
   ];
 
   const report: DependencyReport = {

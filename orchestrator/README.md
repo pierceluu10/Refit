@@ -13,8 +13,6 @@ change ends as an attempted task or a recorded verdict.
 | `external-match.ts` | The match agent for external changes, its hints, ranking and task shaping                 |
 | `match.ts`          | The match agent for API changes                                                           |
 | `deps.ts`           | `createDeps`, the one place that picks real or stub parts and gives each its budget       |
-| `upstream.ts`       | Loads P2, P5, F1, F3 and O2's entry points once they land; stand-ins until then           |
-| `models.ts`         | The model per step and its price, from `shared/models.ts` (O3) once it lands              |
 | `budget.ts`         | The run budget: one cap, shared through holds                                             |
 | `agent-sdk.ts`      | A second match transport, on the Claude Agent SDK, that can read the code                 |
 | `queue.ts`          | An in-process queue with concurrency and retries, behind a replaceable interface          |
@@ -59,13 +57,15 @@ const { report, tasks } = await scanRepo('owner/name', checkout);
 
 ## The external path
 
-1. **Inventory.** P2's `inventoryDependencies` and P5's `inventorySurfaces`, loaded from their modules
-   by `upstream.ts`. Until P2 lands, a manifest reader in `stubs-external.ts` stands in and says so
-   in each dependency's notes.
-2. **Watch.** F1's `watchDependency` and F3's `watchPlatforms` for every dependency, once per org
-   run; O5's `watchRegulations` once per run and `obligationsToChanges` per repo. Until F1 lands, a
-   real run reports each dependency as "not watched" in the report's errors: it never replays
-   fixture changes as if they were findings.
+1. **Inventory.** P2's `runDependencyInventory` with P5's surfaces on the same ledger, once per scan.
+   The API path and the external path share its result. What it could not read reaches the report's
+   errors. Without a key, a manifest reader in `stubs-external.ts` stands in and says so in each
+   dependency's notes.
+2. **Watch.** F1's `watchDependency` for every dependency, once per org run; it hands platforms and
+   infrastructure to F3. An API or SDK the usage map names is read on the API path instead, so no
+   changelog is paid for twice. O5's `watchRegulations` runs once per run and `obligationsToChanges`
+   per repo, and the obligations are stored for the Platforms and rules view. Rules come first, then
+   surfaces, so a small cap does not lose them to the libraries.
 3. **Match.** `external-match.ts`: one agent call per repo reads every change against every
    dependency and call site. Name and version overlap, the companions a runtime moves with, and days
    to the deadline go in as hints. Every change comes back as a task or a not-affected reason; one
@@ -74,8 +74,7 @@ const { report, tasks } = await scanRepo('owner/name', checkout);
    (Node 18's end of life and the node:18 image's) become one task, and the second row points at it.
    A runtime task lists the base image, version files and CI lines that move with it.
 5. **Rank.** Deadline first, then severity (security first), then the agent's impact.
-6. **Attempt.** O2's `runExternalTask` on its own hold of the run budget. Until O2 lands, today's
-   harness `runTask` attempts the upgrade from the task's notes.
+6. **Attempt.** O2's `runExternalTask` on its own hold of the run budget, charging it as it spends.
 7. **Audit.** O5's `recordAudit` at detected, matched, not-affected and pr-opened. A failing audit
    store shows up in the errors and never stops the run.
 
@@ -84,19 +83,18 @@ const { report, tasks } = await scanRepo('owner/name', checkout);
 The cap is shared through holds. A part holds its share before it runs and settles to what it spent
 when it ends, so parts that run at once never spend the same remainder, and spend plus holds never
 passes the cap. A part that cannot get its minimum waits while other holds are open, and is refused
-once none could free enough. Prices come from `models.ts`, which reads `shared/models.ts` once O3
-lands, so no model is priced as another.
+once none could free enough. Prices come from `shared/models.ts`, so no model is priced as another.
+`refit scan` logs what each part spent.
 
-| Part                     | Holds                                                            | Notes                                     |
-| ------------------------ | ---------------------------------------------------------------- | ----------------------------------------- |
-| One provider read        | `WATCH_USD` ($1.50)                                              | Cached per provider per UTC day           |
-| One inventory            | inventory's `DEFAULT_RUN_CAP_USD` ($0.60)                        |                                           |
-| One match call           | Its worst case                                                   | API: up to `MATCH_BATCH` (50) changes     |
-| One task                 | Up to `TASK_USD` ($5), or a quarter of what is free in a big run | Starts only with `MIN_TASK_USD` ($2) free |
-| Learning from an attempt | `MEMORY_USD` ($1)                                                | Records with no attempt hold nothing      |
+| Part                     | Holds                                                            | Notes                                         |
+| ------------------------ | ---------------------------------------------------------------- | --------------------------------------------- |
+| One read                 | Up to `WATCH_USD` ($1.50), plus $0.20 kept for a match call      | Cached per UTC day with what it couldn't read |
+| One inventory            | Up to $2.20, or half of a small run                              | P2 and P5 on one ledger                       |
+| One match call           | Its worst case, or room for 6,000 output tokens near the cap     | API: up to `MATCH_BATCH` (50) changes         |
+| One task                 | Up to `TASK_USD` ($5), or a quarter of what is free in a big run | Starts only with `MIN_TASK_USD` ($2) free     |
+| Learning from an attempt | `MEMORY_USD` ($1)                                                | Records with no attempt hold nothing          |
 
-P2, P5, F1, F3 and O5's entry points take no budget argument, so the orchestrator cannot hold their
-spend; they draw on the cap through the model layer (O3). Check that at integration.
+Each part gets the hold as its own ledger's cap, so no budget is counted twice.
 
 ## Watching API providers
 

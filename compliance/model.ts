@@ -1,7 +1,6 @@
 // The model seam for compliance/. Every agent here talks to a ModelClient, so tests run on a fake
 // and real runs on Claude, and every real call is charged to a run-level dollar cap (a hard limit).
-// O3 lands shared/models.ts tonight; once it does, createComplianceModel should build on it and the
-// price table below should go. Until then this is a local stand-in with the same shape.
+import { createModel, MODEL_PRICES } from '../shared/models.ts';
 
 export type TextBlock = { type: 'text'; text: string };
 export type ToolUseBlock = { type: 'tool_use'; id: string; name: string; input: unknown };
@@ -29,19 +28,13 @@ export interface ModelClient {
   complete(request: ModelRequest): Promise<ModelResponse>;
 }
 
-// Dollars per million tokens, first-party list prices (2026-10), as in providers/core/model.ts.
-const PRICES: Record<string, { input: number; output: number }> = {
-  'claude-opus-5-5': { input: 4, output: 20 },
-  'claude-sonnet-5-5': { input: 2, output: 10 },
-  'claude-haiku-5-5': { input: 0.1, output: 0.5 },
-};
 // Unknown models are priced high so the cap errs on the side of stopping spend.
 const UNKNOWN_PRICE = { input: 10, output: 50 };
 
 export const DEFAULT_MODEL = 'claude-sonnet-5-5';
 
 export function costOf(model: string, usage: Usage): number {
-  const price = PRICES[model] ?? UNKNOWN_PRICE;
+  const price = MODEL_PRICES[model] ?? UNKNOWN_PRICE;
   return (usage.inputTokens * price.input + usage.outputTokens * price.output) / 1_000_000;
 }
 
@@ -152,15 +145,18 @@ export function anthropicClient(options: {
   };
 }
 
-// The real model for a compliance run, metered against REFIT_AI_BUDGET_USD. Throws, with a plain
-// reason, when the key or the cap is missing: a run without a cap refuses to spend.
+// The real model for a compliance run, metered against the budget given (the run's share of the cap)
+// or REFIT_AI_BUDGET_USD. Throws, with a plain reason, when the key or the cap is missing: a run
+// without a cap refuses to spend.
 export function createComplianceModel(
   env: NodeJS.ProcessEnv = process.env,
+  given?: Budget,
 ): ModelClient & { budget: Budget } {
   const apiKey = env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set, so no model is available.');
-  const budget = Budget.fromEnv(env);
-  return metered(anthropicClient({ apiKey, model: env.REFIT_COMPLIANCE_MODEL }), budget);
+  const budget = given ?? Budget.fromEnv(env);
+  const model = env.REFIT_COMPLIANCE_MODEL ?? createModel('watch', { env }).id;
+  return metered(anthropicClient({ apiKey, model }), budget);
 }
 
 // A fake model for tests: each turn calls the handler with the request and the turn number.

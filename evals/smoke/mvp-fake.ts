@@ -1,6 +1,5 @@
-// Stand-ins for the MVP smoke test until O1's scanRepo and runRepoJob, O2's runExternalTask, P2's
-// inventory and F1's watchers land on mvp. They exist to drive memory, the reviewer and scoring end
-// to end with $0 spent; they don't model how the real agents decide anything. Nothing in a fixture
+// Stand-ins for the orchestrator and its agents in the MVP smoke test. They exist to drive memory, the
+// reviewer and scoring end to end with $0 spent; they don't model how the real agents decide anything. Nothing in a fixture
 // runs: the fakes only read files and edit a temporary copy.
 import { cpSync, mkdtempSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';

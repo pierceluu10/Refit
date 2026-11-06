@@ -10,6 +10,7 @@ import {
   listInstallationRepos,
   listInstallations,
   listViewerRepos,
+  pullDiff,
 } from './github.ts';
 import { createJobRunner } from './jobs.ts';
 import { loadParts } from './parts.ts';
@@ -30,7 +31,7 @@ const host = process.env.HOST ?? DEFAULT_HOST;
 const tokens = createInstallationTokens(config.appId, config.privateKey);
 const stateDir = dirname(config.queueFile);
 const reports = createReportStore(join(stateDir, 'reports'));
-const parts = await loadParts({
+const parts = loadParts({
   reports,
   tokens,
   listRuns: () => defaultMemory().store.listRuns(),
@@ -67,12 +68,14 @@ const queue = await createFileQueue(
   },
 );
 
-const verdict: RecordVerdict = async (pr, human) => {
+const verdict: RecordVerdict = async (pr, human, finalDiff) => {
   await reports.markVerdict(pr, human);
-  const learned = await recordVerdict(pr, human, {
-    ...defaultMemory(),
-    ...defaultAi(process.env, new Budget(VERDICT_BUDGET_USD)),
-  });
+  const learned = await recordVerdict(
+    pr,
+    human,
+    { ...defaultMemory(), ...defaultAi(process.env, new Budget(VERDICT_BUDGET_USD)) },
+    { finalDiff },
+  );
   console.log(`verdict ${human} ${pr}${learned ? '' : ' (no stored run has this PR)'}`);
 };
 
@@ -81,6 +84,7 @@ const server = createWebhookServer({
   tokens,
   listRepos: (token) => listInstallationRepos(token),
   compareCommits: (token, repo, base, head) => compareCommits(token, repo, base, head),
+  pullDiff,
   queue,
   recordVerdict: verdict,
   listRunViews,

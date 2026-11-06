@@ -219,9 +219,14 @@ function submitVerdicts(
       },
     },
     accept(input) {
-      const raw = Array.isArray(input.verdicts)
-        ? (input.verdicts as Record<string, unknown>[])
-        : [];
+      // A call cut off at max_tokens arrives with no input at all.
+      if (!Array.isArray(input.verdicts))
+        return {
+          ok: false,
+          feedback:
+            'Your submission arrived with no verdicts, probably cut off for length. Submit again with shorter reasoning.',
+        };
+      const raw = input.verdicts as Record<string, unknown>[];
       const verdicts = new Map<string, ObligationVerdict>();
       const unknown: string[] = [];
       for (const v of raw) {

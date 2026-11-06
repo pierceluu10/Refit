@@ -10,11 +10,11 @@ export function createRunRepoJob(
   deps: Omit<LoopDeps, 'openPullRequest'>,
   capUsd?: number,
 ): RunRepoJob {
-  return async ({ repo, dir, openPullRequest, dryRun }) => {
+  return async ({ repo, dir, openPullRequest, dryRun, tasks }) => {
     const summary = await runOrg(
       { name: repo, repos: [{ repo, dir }] },
       { ...deps, openPullRequest },
-      { dryRun, capUsd },
+      { dryRun, capUsd, tasks },
     );
     // No records and errors would read as "nothing changed", so the job fails with the errors instead.
     if (summary.records.length === 0 && summary.errors.length > 0)
@@ -33,16 +33,29 @@ export function createScanRepo(
     const full: LoopDeps = { ...deps, openPullRequest: async () => '' };
     const watch = watchOrg(full, {}, state);
     const watchExternal = deps.external && watchExternalOrg(deps.external, deps, {}, state);
+    const spentBefore = deps.spentUsd?.();
     const scan = await scanTarget({ repo, dir }, watch, watchExternal || undefined, full, state);
+    // shortcut: scans running at once in one process share this total; give each its own budget if the dashboard's per-scan cost ever matters.
+    const report: ScanItemReport =
+      spentBefore === undefined
+        ? scan.report
+        : { ...scan.report, costUsd: deps.spentUsd!() - spentBefore };
+    try {
+      await deps.recordReport?.(report);
+    } catch (error) {
+      report.errors.push(
+        `saving the ${repo} report failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
     const byId = new Map<string, ExternalTask>([
       ...scan.external.tasks.map((t) => [t.id, t] as const),
       ...scan.api.tasks.map((t) => [t.id, apiAsExternalTask(t)] as const),
     ]);
     // The report's rows are already ranked; the tasks follow them.
-    const order = [...new Set(scan.report.items.flatMap((i) => (i.taskId ? [i.taskId] : [])))];
+    const order = [...new Set(report.items.flatMap((i) => (i.taskId ? [i.taskId] : [])))];
     const tasks = order.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
     tasks.forEach((task, i) => (task.priority = i + 1));
-    return { report: scan.report, tasks };
+    return { report, tasks };
   };
 }
 
