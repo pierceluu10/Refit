@@ -8,6 +8,8 @@ export const GITHUB_API = 'https://api.github.com';
 const API_VERSION = '2022-11-28';
 const USER_AGENT = 'refit-app';
 const JSON_TYPE = 'application/json';
+const JSON_ACCEPT = 'application/vnd.github+json';
+const DIFF_ACCEPT = 'application/vnd.github.v3.diff';
 const NO_CONTENT = 204;
 const SECOND_MS = 1000;
 const MINUTE_MS = 60 * SECOND_MS;
@@ -55,16 +57,17 @@ async function errorDetail(response: Response): Promise<string | undefined> {
   }
 }
 
-export async function githubRequest<T>(
+async function githubResponse(
   token: string,
   method: string,
   path: string,
-  body?: unknown,
-  fetchImpl: typeof fetch = fetch,
-): Promise<T> {
+  body: unknown,
+  fetchImpl: typeof fetch,
+  accept: string = JSON_ACCEPT,
+): Promise<Response> {
   const headers: Record<string, string> = {
     Authorization: `Bearer ${token}`,
-    Accept: 'application/vnd.github+json',
+    Accept: accept,
     'X-GitHub-Api-Version': API_VERSION,
     'User-Agent': USER_AGENT,
   };
@@ -77,6 +80,17 @@ export async function githubRequest<T>(
   if (!response.ok) {
     throw new GitHubApiError(method, path, response.status, await errorDetail(response));
   }
+  return response;
+}
+
+export async function githubRequest<T>(
+  token: string,
+  method: string,
+  path: string,
+  body?: unknown,
+  fetchImpl: typeof fetch = fetch,
+): Promise<T> {
+  const response = await githubResponse(token, method, path, body, fetchImpl);
   if (response.status === NO_CONTENT) return undefined as T;
   return (await response.json()) as T;
 }
@@ -230,4 +244,15 @@ export async function compareCommits(
     fetchImpl,
   );
   return result.commits;
+}
+
+export async function pullDiff(
+  token: string,
+  repo: string,
+  number: number,
+  fetchImpl: typeof fetch = fetch,
+): Promise<string> {
+  const path = `/repos/${repo}/pulls/${number}`;
+  const response = await githubResponse(token, 'GET', path, undefined, fetchImpl, DIFF_ACCEPT);
+  return response.text();
 }

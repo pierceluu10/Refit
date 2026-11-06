@@ -1,5 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { redactSecrets } from '../harness/secrets.ts';
 import type { ComparedCommit } from './github.ts';
+import { logged } from './jobs.ts';
 import { BRANCH_PREFIX } from './types.ts';
 import type { AppJob, InstallationTokens, JobQueue, RecordVerdict } from './types.ts';
 
@@ -16,6 +18,7 @@ export type WebhookDeps = {
     base: string,
     head: string,
   ) => Promise<ComparedCommit[]>;
+  pullDiff: (token: string, repo: string, number: number) => Promise<string>;
 };
 
 type Repository = { full_name: string };
@@ -40,7 +43,7 @@ type PushEvent = {
 };
 type PullRequestEvent = {
   action: string;
-  pull_request: { html_url: string; merged: boolean; head: { ref: string } };
+  pull_request: { number: number; html_url: string; merged: boolean; head: { ref: string } };
   before?: string;
   after?: string;
   sender: { type: string };
@@ -127,13 +130,25 @@ async function pushedByPerson(event: PullRequestEvent, deps: WebhookDeps): Promi
   return commits.some((commit) => commit.parents.length < 2 && commit.author?.type !== BOT);
 }
 
+// The diff only teaches memory more, so failing to read it must not cost the verdict.
+const finalDiff = (
+  { installation, pull_request, repository }: PullRequestEvent,
+  deps: WebhookDeps,
+) =>
+  logged(`reading the final diff of ${pull_request.html_url}`, async () => {
+    const token = await deps.tokens.token(installation.id);
+    return redactSecrets(await deps.pullDiff(token, repository.full_name, pull_request.number));
+  });
+
 async function verdictFor(event: PullRequestEvent, deps: WebhookDeps): Promise<void> {
   const pr = event.pull_request;
   if (!pr.head.ref.startsWith(BRANCH_PREFIX)) return;
-  if (event.action === 'closed')
-    await deps.recordVerdict(pr.html_url, pr.merged ? 'merged' : 'closed');
+  if (event.action === 'closed') {
+    if (pr.merged) await deps.recordVerdict(pr.html_url, 'merged', await finalDiff(event, deps));
+    else await deps.recordVerdict(pr.html_url, 'closed');
+  }
   if (event.action === 'synchronize' && (await pushedByPerson(event, deps))) {
-    await deps.recordVerdict(pr.html_url, 'edited');
+    await deps.recordVerdict(pr.html_url, 'edited', await finalDiff(event, deps));
   }
 }
 

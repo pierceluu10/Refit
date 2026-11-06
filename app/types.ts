@@ -59,8 +59,13 @@ export type NotifyRun = (input: {
   report?: ScanReport;
 }) => Promise<void>;
 
-// memory/ owns the run store; app/ reports what a human did with an Refit PR.
-export type RecordVerdict = (pr: string, verdict: HumanVerdict) => Promise<void>;
+// memory/ owns the run store; app/ reports what a human did with an Refit PR, and the PR's final diff
+// when it has one.
+export type RecordVerdict = (
+  pr: string,
+  verdict: HumanVerdict,
+  finalDiff?: string,
+) => Promise<void>;
 
 // memory/'s listRunViews: every installation's runs, newest first, filtered by repo before the limit.
 export type ListRunViews = (filter: { repo?: string; limit?: number }) => Promise<RunView[]>;

@@ -99,7 +99,7 @@ The server also mounts the routes from `app/api/` and `app/audit/`.
 | `reports.ts`    | The latest `ScanReport` per repo                                                  |
 | `schedule.ts`   | The weekly re-scan of every installed repo                                        |
 | `settings.ts`   | Reads a repo's optional `.refit.yml`                                              |
-| `parts.ts`      | Loads each other prompt's module, or a labelled stub until it lands               |
+| `parts.ts`      | Wires the orchestrator, API, audit, lifecycle and notify modules into the app     |
 | `cli.ts`        | `run --repo <path>`: the loop on a local checkout, with real PRs when it can      |
 | `git.ts`        | `cloneRepo`, and `filesFromDiff` (a diff to file changes, via a scratch index)    |
 | `main.ts`       | Entry point; wires memory's `recordVerdict` with a $1 budget per verdict          |

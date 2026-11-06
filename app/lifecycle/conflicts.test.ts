@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { MigrationTask, RunRecord } from '../../shared/types.ts';
-import type { StoredRun } from '../../memory/types.ts';
+import type { ExternalTask, MigrationTask, RunRecord } from '../../shared/types.ts';
+import type { AnyTask, StoredRun } from '../../memory/types.ts';
 import { findTaskForPr, refreshConflicts } from './conflicts.ts';
 import type { ConflictDeps } from './conflicts.ts';
 import {
@@ -20,6 +20,12 @@ const INSTALLATION = 42;
 const SHA = 'head-7';
 
 const TASK = { id: 'task-1', repo: REPO } as MigrationTask;
+const UPGRADE = {
+  id: 'task-node-22',
+  repo: REPO,
+  change: { dependencyKind: 'runtime', dependency: 'node', toVersion: '22' },
+  dependencies: [{ repo: REPO, kind: 'runtime', name: 'node', version: '18', declaredIn: [] }],
+} as unknown as ExternalTask;
 
 const BOT_COMMIT = { parents: [{}], author: { type: 'Bot' } };
 const PERSON_COMMIT = { parents: [{}], author: { type: 'User' } };
@@ -40,7 +46,7 @@ function setup(pull: Route, { commits = [BOT_COMMIT], sha = SHA } = {}) {
     [`GET ${API}/compare/main...${sha}`]: { body: { commits } },
   });
   const rerun = vi.fn(async () => undefined);
-  const findTask = vi.fn(async (): Promise<MigrationTask | undefined> => TASK);
+  const findTask = vi.fn(async (): Promise<AnyTask | undefined> => TASK);
   const sleep = vi.fn(async () => undefined);
   const deps: ConflictDeps = {
     installationId: INSTALLATION,
@@ -71,6 +77,13 @@ describe('refreshConflicts', () => {
     expect(comments[0].body).toContain('re-running it on a fresh checkout');
     expect(comments[0].body).toContain(`<!-- refit:conflict ${SHA} -->`);
     expectOnlySafeWrites(github.calls);
+  });
+
+  it('hands an upgrade task to rerun with its external fields intact', async () => {
+    const { rerun, findTask, deps } = setup({ body: pullFixture(CONFLICTED) });
+    findTask.mockResolvedValue(UPGRADE);
+    await refreshConflicts(REPO, deps);
+    expect(rerun).toHaveBeenCalledExactlyOnceWith(UPGRADE);
   });
 
   it('reads the sha from the fresh PR, not the list', async () => {
@@ -216,10 +229,10 @@ describe('refreshConflicts', () => {
 });
 
 describe('findTaskForPr', () => {
-  const stored = (id: string, recordedAt: string, pr?: string): StoredRun => ({
+  const stored = (id: string, recordedAt: string, pr?: string, task?: AnyTask): StoredRun => ({
     id,
     recordedAt,
-    task: { id } as MigrationTask,
+    task: task ?? ({ id } as MigrationTask),
     record: { pr } as RunRecord,
     transcript: '',
     usedRecipeIds: [],
@@ -234,6 +247,13 @@ describe('findTaskForPr', () => {
       stored('no-pr', '2026-11-08T00:00:00.000Z'),
     ]);
     expect((await find('url'))?.id).toBe('newest');
+  });
+
+  it('returns an upgrade task as it was stored', async () => {
+    const find = findTaskForPr(async () => [
+      stored('upgrade', '2026-11-01T00:00:00.000Z', 'url', UPGRADE),
+    ]);
+    expect(await find('url')).toEqual(UPGRADE);
   });
 
   it('returns undefined when no run opened that PR', async () => {

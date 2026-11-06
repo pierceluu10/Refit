@@ -1,149 +1,164 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ExternalTask } from '../shared/types.ts';
-import { buildParts, loadOptional, serviceTokenCheck, stubScanRepo } from './parts.ts';
-import type { Modules, PartsDeps } from './parts.ts';
+import type { ServerResponse } from 'node:http';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { AnyTask, StoredRun } from '../memory/types.ts';
+import type { ExternalTask, MigrationTask } from '../shared/types.ts';
+import {
+  API,
+  OPEN_PULLS,
+  REPO,
+  fakeGitHub,
+  pullFixture,
+  pullUrl,
+} from './lifecycle/fixtures/fake-github.ts';
+import { loadParts } from './parts.ts';
+import type { PartsDeps } from './parts.ts';
+import { isIgnored } from './settings.ts';
 
-let dir: string;
-beforeEach(async () => {
-  dir = await mkdtemp(join(tmpdir(), 'refit-parts-'));
-});
-afterEach(() => rm(dir, { recursive: true, force: true }));
+const SERVICE_TOKEN = 'illustrative-service-token';
+const STORED_REPORT = { repo: 'org/a' };
 
-const base = () => pathToFileURL(join(dir, 'parts.ts')).href;
+const deps = (listRuns: PartsDeps['listRuns'] = async () => []) =>
+  ({
+    reports: { list: async () => [STORED_REPORT] },
+    tokens: { token: async () => 'ghs_test_installation_token' },
+    listRuns,
+  }) as unknown as PartsDeps;
 
-describe('loadOptional', () => {
-  it('returns nothing when the module has not landed', async () => {
-    expect(await loadOptional('./absent.mjs', base())).toEqual({});
-  });
-
-  it('returns the module when it has landed', async () => {
-    await writeFile(join(dir, 'landed.mjs'), 'export const value = 7;');
-    const loaded = await loadOptional<{ value: number }>('./landed.mjs', base());
-    expect(loaded.value).toBe(7);
-  });
-
-  it('throws when a landed module has a broken import, rather than hiding it behind a stub', async () => {
-    await writeFile(join(dir, 'broken.mjs'), "import './missing-inside.mjs';");
-    await expect(loadOptional('./broken.mjs', base())).rejects.toThrow(/missing-inside/);
-  });
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.unstubAllEnvs();
 });
 
-describe('serviceTokenCheck', () => {
-  const check = serviceTokenCheck('test-service-token');
+describe('refreshConflicts', () => {
+  const SOURCE = { url: 'https://example.com/illustrative', quote: 'illustrative' };
+  const UPGRADE: ExternalTask = {
+    id: 'illustrative-node-22',
+    repo: REPO,
+    priority: 1,
+    usages: [],
+    change: {
+      provider: 'node',
+      id: 'node-22',
+      kind: 'runtime-eol',
+      title: 'Node 18 reaches end of life',
+      source: SOURCE,
+      affects: {},
+      dependencyKind: 'runtime',
+      dependency: 'node',
+      toVersion: '22',
+    },
+    dependencies: [{ repo: REPO, kind: 'runtime', name: 'node', version: '18', declaredIn: [] }],
+  };
+  const OLDER: MigrationTask = {
+    id: 'illustrative-stripe-sdk',
+    repo: REPO,
+    priority: 1,
+    usages: [
+      {
+        repo: REPO,
+        provider: 'stripe',
+        via: 'sdk',
+        sdk: { name: 'stripe', version: '14.0.0' },
+        callSites: [],
+      },
+    ],
+    change: {
+      provider: 'stripe',
+      id: 'stripe-sdk-major',
+      kind: 'sdk-major',
+      title: 'Stripe SDK major version',
+      source: SOURCE,
+      affects: {},
+    },
+  };
 
-  it('accepts only the exact bearer token', () => {
-    expect(check('Bearer test-service-token')).toBe(true);
-    expect(check('Bearer test-service-token2')).toBe(false);
-    expect(check('test-service-token')).toBe(false);
-    expect(check('Bearer ')).toBe(false);
-    expect(check(undefined)).toBe(false);
+  // One conflicted PR nobody edited, whose stored run holds the given task. Fetch is faked globally
+  // because the wired lifecycle reaches GitHub with the default fetch.
+  async function rerunOf(task: AnyTask) {
+    const github = fakeGitHub({
+      [OPEN_PULLS]: { body: [pullFixture({ number: 7 })] },
+      [`GET ${API}/pulls/7`]: {
+        body: pullFixture({ number: 7, mergeable: false, mergeableState: 'dirty' }),
+      },
+      [`GET ${API}/issues/7/comments?per_page=100`]: { body: [] },
+      [`POST ${API}/issues/7/comments`]: { status: 201 },
+      [`GET ${API}/compare/main...head-7`]: {
+        body: { commits: [{ parents: [{}], author: { type: 'Bot' } }] },
+      },
+    });
+    vi.stubGlobal('fetch', github.fetchImpl);
+    const stored = { recordedAt: '2026-11-01T00:00:00.000Z', task, record: { pr: pullUrl(7) } };
+    const parts = loadParts(deps(async () => [stored as StoredRun]));
+    const rerun = vi.fn(async (_task: ExternalTask) => {});
+    await parts.refreshConflicts(REPO, 7, rerun);
+    expect(rerun, JSON.stringify(github.calls)).toHaveBeenCalledOnce();
+    return rerun.mock.calls[0][0];
+  }
+
+  it('re-runs an upgrade task with its external fields intact', async () => {
+    expect(await rerunOf(UPGRADE)).toEqual(UPGRADE);
   });
 
-  it('matches nothing when no token is configured, including an empty bearer', () => {
-    for (const unset of [undefined, '']) {
-      const none = serviceTokenCheck(unset);
-      expect(none('Bearer ')).toBe(false);
-      expect(none('Bearer undefined')).toBe(false);
-      expect(none(undefined)).toBe(false);
+  it('re-runs an older stored MigrationTask as an API task the run job can read', async () => {
+    const task = await rerunOf(OLDER);
+    expect(task.id).toBe(OLDER.id);
+    expect(task.usages).toEqual(OLDER.usages);
+    expect(task.change).toMatchObject({ dependencyKind: 'api', dependency: 'stripe' });
+    expect(task.dependencies).toMatchObject([{ kind: 'sdk', name: 'stripe', version: '14.0.0' }]);
+    // The run job's first read of a task; a change without a dependency name throws here.
+    expect(isIgnored({ paused: false, ignore: ['stripe'], errors: [] }, task.change)).toBe(true);
+  });
+});
+
+describe('routes', () => {
+  const fakeResponse = () => {
+    const response = {
+      status: 0,
+      sent: '',
+      setHeader: () => response,
+      writeHead: (status: number) => {
+        response.status = status;
+        return response;
+      },
+      end: (body?: string) => {
+        response.sent = body ?? '';
+        return response;
+      },
+    };
+    return response;
+  };
+
+  const request = (url: string, method = 'GET', authorization?: string) =>
+    ({ url, method, headers: { authorization } }) as never;
+
+  async function serve(incoming: never) {
+    const response = fakeResponse();
+    for (const route of loadParts(deps()).routes) {
+      if (await route(incoming, response as unknown as ServerResponse)) return response;
+    }
+    return undefined;
+  }
+
+  it('leaves paths no module owns unhandled', async () => {
+    expect(await serve(request('/api/other'))).toBeUndefined();
+  });
+
+  it('sends only a GET of an audit path to the audit route', async () => {
+    expect(await serve(request('/api/audit', 'POST'))).toBeUndefined();
+  });
+
+  it('holds both the report and audit APIs behind the service token', async () => {
+    vi.stubEnv('REFIT_SERVICE_TOKEN', SERVICE_TOKEN);
+    for (const path of ['/api/repos', '/api/audit']) {
+      expect((await serve(request(path)))?.status, path).toBe(401);
+      expect((await serve(request(path, 'GET', 'Bearer wrong')))?.status, path).toBe(401);
     }
   });
-});
 
-describe('stubScanRepo', () => {
-  it('says plainly that nothing was scanned and queues no work', async () => {
-    vi.useFakeTimers({ now: new Date('2026-11-06T00:00:00Z') });
-    const { report, tasks } = await stubScanRepo('refit-example-org/billing-api', '/illustrative');
-    vi.useRealTimers();
-    expect(tasks).toEqual([]);
-    expect(report.items).toEqual([]);
-    expect(report.scannedAt).toBe('2026-11-06T00:00:00.000Z');
-    expect(report.errors[0]).toMatch(/Nothing was scanned/);
-  });
-});
-
-describe('buildParts', () => {
-  const NONE: Modules = { orchestrator: {}, api: {}, audit: {}, lifecycle: {}, notify: {} };
-  const TOKENS = { token: async () => 'ghs_test_installation_token' };
-  const DEPS = {
-    reports: { list: async () => [{ repo: 'org/a' }] },
-    tokens: TOKENS,
-    listRuns: async () => [],
-  } as unknown as PartsDeps;
-  const TASK = { id: 'illustrative-task' } as ExternalTask;
-
-  it('warns once per missing part, and every stub is safe to call', async () => {
-    const warnings: string[] = [];
-    const parts = buildParts(NONE, DEPS, {}, (line) => warnings.push(line));
-    expect(warnings.join('\n')).toMatch(/scanRepo/);
-    expect(warnings.join('\n')).toMatch(/PR lifecycle/);
-    expect(parts.routes).toEqual([]);
-    expect(await parts.findOpenPullRequest(1, TASK)).toBeUndefined();
-    await parts.refreshConflicts('org/a', 1, async () => {});
-    await parts.sendWeeklyDigest([]);
-    await expect(parts.runTasks({} as never)).rejects.toThrow(/no runRepoJob/);
-  });
-
-  it("passes P3's lifecycle what it asked for, including the rerun", async () => {
-    const seen: unknown[] = [];
-    const findTask = () => undefined;
-    const rerun = async () => {};
-    const parts = buildParts(
-      {
-        ...NONE,
-        lifecycle: {
-          createFindOpenPullRequest: ({ tokens }) => {
-            seen.push(tokens);
-            return async () => ({ url: 'https://example.com/illustrative', state: 'open' });
-          },
-          findTaskForPr: (listRuns) => {
-            seen.push(listRuns);
-            return findTask;
-          },
-          refreshConflicts: async (repo, options) => void seen.push(repo, options),
-        },
-      },
-      DEPS,
-      {},
-      () => {},
-    );
-    expect((await parts.findOpenPullRequest(1, TASK))?.state).toBe('open');
-    await parts.refreshConflicts('org/a', 7, rerun);
-    expect(seen).toEqual([
-      TOKENS,
-      DEPS.listRuns,
-      'org/a',
-      { installationId: 7, tokens: TOKENS, findTask, rerun },
-    ]);
-  });
-
-  it('only sends audit paths to the audit route, with the service-token check', async () => {
-    const calls: unknown[] = [];
-    const isServiceToken = () => true;
-    const parts = buildParts(
-      {
-        ...NONE,
-        api: { isServiceToken },
-        audit: {
-          AUDIT_PATHS: ['/api/audit'],
-          serveAudit: async (_request, _response, { isAuthorized, listRepos }) => {
-            calls.push(isAuthorized, await listRepos());
-          },
-        },
-      },
-      DEPS,
-      {},
-      () => {},
-    );
-    const [route] = parts.routes;
-    const request = (url: string, method = 'GET') => ({ url, method }) as never;
-    expect(await route(request('/api/other'), {} as never)).toBe(false);
-    expect(await route(request('/api/audit', 'POST'), {} as never)).toBe(false);
-    expect(calls).toEqual([]);
-    expect(await route(request('/api/audit?repo=org/a'), {} as never)).toBe(true);
-    expect(calls).toEqual([isServiceToken, ['org/a']]);
+  it('answers the audit route once authorized', async () => {
+    vi.stubEnv('REFIT_SERVICE_TOKEN', SERVICE_TOKEN);
+    const answer = await serve(request('/api/obligations', 'GET', `Bearer ${SERVICE_TOKEN}`));
+    expect(answer?.status).toBe(200);
+    expect(answer?.sent).toBe('[]');
   });
 });

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { devProxy } from '../vite.config';
 
 const SOURCE_DIR = 'src';
+const TEST_FILE = /\.test\.tsx?$/;
 
 function sourceFiles(directory: string): string[] {
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -32,7 +33,7 @@ describe('dev proxy', () => {
   it('never names the service token in browser code', () => {
     const offenders = sourceFiles(SOURCE_DIR).filter(
       (file) =>
-        !file.endsWith('devProxy.test.ts') &&
+        !TEST_FILE.test(file) &&
         /REFIT_SERVICE_TOKEN|VITE_[A-Z_]*TOKEN/.test(readFileSync(file, 'utf8')),
     );
     expect(offenders).toEqual([]);

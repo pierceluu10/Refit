@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { handleWebhook, verifySignature } from './webhooks.ts';
 import type { WebhookDeps } from './webhooks.ts';
+import { GITHUB_API, pullDiff } from './github.ts';
 import type { ComparedCommit } from './github.ts';
 import type { AppJob, HumanVerdict } from './types.ts';
 
@@ -27,15 +28,23 @@ const commit = (author: { type: string } | null, parents = 1): ComparedCommit =>
   parents: Array.from({ length: parents }, (_, index) => ({ sha: `parent-${index}` })),
 });
 
-function fakeDeps(compared: ComparedCommit[] = []) {
+const DIFF = 'diff --git a/pay.ts b/pay.ts\n+charge();\n';
+const answerDiff = async () => new Response(DIFF);
+
+function fakeDeps(compared: ComparedCommit[] = [], fetchDiff: typeof fetch = answerDiff) {
   const jobs: AppJob[] = [];
   const comparisons: string[][] = [];
   const verdicts: [string, HumanVerdict][] = [];
+  const finalDiffs: (string | undefined)[] = [];
+  const diffFetch = vi.fn(fetchDiff);
   const tokenRequests: number[] = [];
   const listedWith: string[] = [];
   const deps: WebhookDeps = {
     queue: { enqueue: async (job) => void jobs.push(job) },
-    recordVerdict: async (pr, verdict) => void verdicts.push([pr, verdict]),
+    recordVerdict: async (pr, verdict, finalDiff) => {
+      verdicts.push([pr, verdict]);
+      finalDiffs.push(finalDiff);
+    },
     tokens: {
       token: async (id) => {
         tokenRequests.push(id);
@@ -50,8 +59,10 @@ function fakeDeps(compared: ComparedCommit[] = []) {
       comparisons.push([token, repo, base, head]);
       return compared;
     },
+    pullDiff: (token, repo, number) =>
+      pullDiff(token, repo, number, diffFetch as unknown as typeof fetch),
   };
-  return { deps, jobs, verdicts, tokenRequests, listedWith, comparisons };
+  return { deps, jobs, verdicts, finalDiffs, diffFetch, tokenRequests, listedWith, comparisons };
 }
 
 describe('verifySignature', () => {
@@ -254,5 +265,91 @@ describe('synchronize verdicts', () => {
       fake.deps,
     );
     expect(fake.verdicts).toEqual([]);
+  });
+});
+
+describe('final diffs on verdicts', () => {
+  const PR_URL = 'https://github.com/refit-example-org/billing-api/pull/41';
+  const MERGED = () => fixture('pull_request.closed.merged');
+  const EDITED = () => ({
+    ...(fixture('pull_request.closed.merged') as object),
+    action: 'synchronize',
+    before: 'before-sha',
+    after: 'after-sha',
+    sender: PERSON,
+  });
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it("reads a merged PR's diff with the installation token and passes it on", async () => {
+    const fake = fakeDeps();
+    await handleWebhook('pull_request', MERGED(), fake.deps);
+    expect(fake.tokenRequests).toEqual([INSTALLATION_ID]);
+    const [url, init] = fake.diffFetch.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe(`${GITHUB_API}/repos/refit-example-org/billing-api/pulls/41`);
+    expect(init.headers).toMatchObject({ Authorization: `Bearer ${INSTALL_TOKEN}` });
+    expect(fake.verdicts).toEqual([[PR_URL, 'merged']]);
+    expect(fake.finalDiffs).toEqual([DIFF]);
+  });
+
+  it("reads an edited PR's diff and passes it on", async () => {
+    const fake = fakeDeps([commit(PERSON)]);
+    await handleWebhook('pull_request', EDITED(), fake.deps);
+    expect(fake.verdicts).toEqual([[PR_URL, 'edited']]);
+    expect(fake.finalDiffs).toEqual([DIFF]);
+  });
+
+  it('makes no fetch for a closed PR', async () => {
+    const fake = fakeDeps();
+    await handleWebhook('pull_request', fixture('pull_request.closed.unmerged'), fake.deps);
+    expect(fake.diffFetch).not.toHaveBeenCalled();
+    expect(fake.verdicts).toEqual([
+      ['https://github.com/refit-example-org/billing-api/pull/42', 'closed'],
+    ]);
+    expect(fake.finalDiffs).toEqual([undefined]);
+  });
+
+  it('makes no fetch for a bot push', async () => {
+    const fake = fakeDeps([commit(BOT)]);
+    await handleWebhook('pull_request', EDITED(), fake.deps);
+    expect(fake.diffFetch).not.toHaveBeenCalled();
+    expect(fake.verdicts).toEqual([]);
+  });
+
+  it('redacts secrets before the diff leaves for memory', async () => {
+    const leak = '+const API_KEY = "illustrative1234"\n';
+    const fake = fakeDeps([], async () => new Response(leak));
+    await handleWebhook('pull_request', MERGED(), fake.deps);
+    expect(fake.finalDiffs[0]).toContain('[redacted]');
+    expect(fake.finalDiffs[0]).not.toContain('illustrative1234');
+  });
+
+  it.each([
+    ['GitHub refuses', async () => new Response('{"message":"too_large"}', { status: 406 })],
+    [
+      'the network fails',
+      async () => {
+        throw new TypeError('fetch failed');
+      },
+    ],
+  ])('still records the verdict and logs when %s', async (_label, fetchDiff) => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const fake = fakeDeps([], fetchDiff);
+    await handleWebhook('pull_request', MERGED(), fake.deps);
+    expect(fake.verdicts).toEqual([[PR_URL, 'merged']]);
+    expect(fake.finalDiffs).toEqual([undefined]);
+    expect(errors).toHaveBeenCalledExactlyOnceWith(expect.stringContaining(PR_URL));
+    expect(errors.mock.calls[0][0]).not.toContain(INSTALL_TOKEN);
+  });
+
+  it('still records the verdict when the installation token cannot be had', async () => {
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const fake = fakeDeps();
+    fake.deps.tokens.token = async () => {
+      throw new Error('token refused');
+    };
+    await handleWebhook('pull_request', MERGED(), fake.deps);
+    expect(fake.verdicts).toEqual([[PR_URL, 'merged']]);
+    expect(errors).toHaveBeenCalledOnce();
   });
 });

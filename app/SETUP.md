@@ -32,8 +32,7 @@ install. Run everything from the repo root.
 ### Run it
 
 1. Terminal 1: `npm run tunnel -w @refit/app`.
-2. Terminal 2: `npm run dev -w @refit/app`. Read the startup lines: `using a stub for <part>` means
-   that module hasn't landed on this branch.
+2. Terminal 2: `npm run dev -w @refit/app`.
 3. `curl http://127.0.0.1:3000/healthz` answers `200`.
 4. Start the first scan, one of:
    - Not installed yet: the App's settings → **Install App** → `refit-dev` → **Only select
@@ -99,8 +98,6 @@ GitHub. Otherwise it prints stub links and touches nothing on GitHub. `--dry-run
   App's webhook secret.
 - **A run refuses to spend (no cap):** set `REFIT_AI_BUDGET_USD`, then restart the app.
 - **The sandbox fails (Docker off):** start Docker, then redeliver the delivery.
-- **`using a stub for <part>` at startup:** that module hasn't landed. A stubbed scan writes a report
-  whose `errors` say so, and queues no tasks.
 - **The queue is stuck or corrupt:** the app refuses to start on a corrupt queue file rather than drop
   its jobs. Stop the app, delete `.refit/queue.json` (this drops the waiting jobs) and start again.
 
@@ -247,5 +244,5 @@ Install on a test org first, never a real customer org. Check that:
 
 `main.ts` wires the queue to two jobs: `scan` (the orchestrator's `scanRepo`) and `run` (the
 orchestrator's `runRepoJob` with the App's PR opener). It serves memory's `listRunViews`, sends
-verdicts to memory's `recordVerdict`, and re-scans every installed repo weekly. Modules still landing
-from other prompts load through `parts.ts`, which logs a stub warning for each one that's missing.
+verdicts to memory's `recordVerdict` (with the PR's final diff for a merge or an edit), and re-scans
+every installed repo weekly. `parts.ts` wires in the other folders' modules.

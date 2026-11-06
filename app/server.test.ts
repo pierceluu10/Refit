@@ -35,6 +35,7 @@ async function start(overrides: Partial<WebhookServerDeps> = {}) {
     tokens: { token: async () => 'ghs_test_installation_token' },
     listRepos: async () => INSTALLED_REPOS,
     compareCommits: async () => [],
+    pullDiff: async () => '',
     listRunViews: async () => [],
     viewerRepos: async () => [],
     isServiceToken: () => false,
