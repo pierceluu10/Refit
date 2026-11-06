@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
+import type { Route } from './parts.ts';
 import { runsFor } from './runs.ts';
 import type { RunsDeps } from './runs.ts';
 import { handleWebhook, verifySignature } from './webhooks.ts';
@@ -22,6 +23,7 @@ export type WebhookServerDeps = WebhookDeps &
   RunsDeps & {
     webhookSecret: string;
     maxBodyBytes?: number;
+    routes?: Route[]; // the report and audit APIs
   };
 
 // Returns undefined when the body exceeds the cap; it keeps draining so the 413 can still be sent.
@@ -85,27 +87,35 @@ async function serveRuns(
   sendJson(response, OK, result.runs);
 }
 
+async function serveRoutes(
+  request: IncomingMessage,
+  response: ServerResponse,
+  routes: Route[],
+): Promise<void> {
+  for (const route of routes) if (await route(request, response)) return;
+  response.writeHead(NOT_FOUND).end();
+}
+
 export function createWebhookServer(deps: WebhookServerDeps): Server {
   return createServer((request, response) => {
-    const path = new URL(request.url ?? '/', 'http://localhost').pathname;
-    if (request.method === 'POST' && path === WEBHOOK_PATH) {
-      receiveWebhook(request, response, deps).catch((error: Error) => {
-        console.error(`webhook request failed: ${error.message}`);
+    const answer = (label: string, work: Promise<unknown>) => {
+      work.catch((error: Error) => {
+        console.error(`${label} request failed: ${error.message}`);
         if (!response.headersSent) response.writeHead(SERVER_ERROR);
         response.end();
       });
-      return;
+    };
+    // A target like `//` isn't a valid URL, and throwing here would take the whole process down.
+    const path = URL.parse(request.url ?? '/', 'http://localhost')?.pathname;
+    if (path === undefined) return response.writeHead(BAD_REQUEST).end();
+    if (request.method === 'POST' && path === WEBHOOK_PATH) {
+      return answer('webhook', receiveWebhook(request, response, deps));
     }
     if (request.method === 'GET' && path === HEALTH_PATH) return response.writeHead(OK).end();
     // Same-origin only: the dashboard is served beside the app, so no CORS headers.
     if (request.method === 'GET' && path === RUNS_PATH) {
-      serveRuns(request, response, deps).catch((error: Error) => {
-        console.error(`runs request failed: ${error.message}`);
-        if (!response.headersSent) response.writeHead(SERVER_ERROR);
-        response.end();
-      });
-      return;
+      return answer('runs', serveRuns(request, response, deps));
     }
-    response.writeHead(NOT_FOUND).end();
+    answer(`${request.method} ${path}`, serveRoutes(request, response, deps.routes ?? []));
   });
 }

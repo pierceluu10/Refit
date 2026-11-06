@@ -11,6 +11,99 @@ Settings page: <https://github.com/organizations/refit-dev/settings/apps/refit-a
 **Settings** → **Developer settings** → **GitHub Apps** → **Edit** next to the App). The URL changes
 after the rename below.
 
+## Morning runbook: refit-dev
+
+Runs the whole loop on the test org `refit-dev`: the App **Refit Agent** (ID `5275879`) on
+`refit-dev/demo-node-api`, `demo-python-app` and `demo-next-web`. Never add other repos to this
+install. Run everything from the repo root.
+
+### Before you start
+
+- [ ] Docker is running (`docker info`). The harness runs repo code only in its sandbox.
+- [ ] A founder has granted **Workflows: Read and write** (section 2) and approved it on the
+      `refit-dev` install. Without it, GitHub refuses commits that touch `.github/workflows/`, so a CI
+      PR ends as a failed run.
+- [ ] `ln -s "$HOME/.config/refit/app.env" app/.env`, if the link isn't there. That file holds the
+      App's credentials and `REFIT_SERVICE_TOKEN`.
+- [ ] `ANTHROPIC_API_KEY` and `REFIT_AI_BUDGET_USD` are exported in terminal 2's shell, or set in
+      `app/.env`. A real run refuses to spend without a cap. All jobs in one app process share that
+      cap, so restarting the app starts a new one.
+
+### Run it
+
+1. Terminal 1: `npm run tunnel -w @refit/app`.
+2. Terminal 2: `npm run dev -w @refit/app`. Read the startup lines: `using a stub for <part>` means
+   that module hasn't landed on this branch.
+3. `curl http://127.0.0.1:3000/healthz` answers `200`.
+4. Start the first scan, one of:
+   - Not installed yet: the App's settings → **Install App** → `refit-dev` → **Only select
+     repositories**, pick the three demo repos, **Install**.
+   - Already installed: the App's settings → **Advanced** → **Recent Deliveries**, open an
+     `installation` delivery with action `created`, **Redeliver**.
+   - Already installed, one repo: push a commit to that repo's default branch.
+5. Terminal 2 logs `queued scan <repo>` for each repo. When a scan finds work it logs
+   `queued run <repo>` per task.
+6. Each scan writes a report to `.refit/reports/` beside the queue file (`app/.refit/reports/` when
+   the app runs from `app/`), one JSON file per repo.
+7. Watch the PRs appear, as drafts on `refit/` branches:
+
+   ```sh
+   gh pr list --repo refit-dev/demo-node-api --state open --draft
+   ```
+
+   Repeat for `refit-dev/demo-python-app` and `refit-dev/demo-next-web`.
+
+8. Read every run. Load the token into the shell without printing it:
+
+   ```sh
+   set -a; . app/.env; set +a
+   curl -H "Authorization: Bearer $REFIT_SERVICE_TOKEN" http://127.0.0.1:3000/api/runs
+   ```
+
+9. Merge or close one PR. Terminal 2 logs `verdict merged <pr url>` or `verdict closed <pr url>`.
+
+### Stopping and scheduling
+
+- Stop one repo for good: remove it from the install, or uninstall. Its waiting jobs go, its running
+  jobs stop and its checkouts are deleted.
+- Pause one repo and keep the install: commit a `.refit.yml` with `paused: true`.
+- Weekly re-scan: the app keeps the last time in `.refit/schedule.json`. The first start only records
+  the time; every installed repo is re-scanned a week after it.
+
+### Repo settings: `.refit.yml`
+
+Optional, at the repo's root. These are the customer's choices.
+
+```yaml
+paused: true # stop scans and PRs for this repo
+ignore: # dependencies Refit should leave alone
+  - stripe
+  - node
+```
+
+`ignore` matches a change's dependency or provider, in any case. A file Refit can't read never stops
+a scan: what's wrong is listed in the report's `errors` and the valid parts still apply.
+
+### The CLI
+
+```sh
+npm run refit -w @refit/app -- run --repo <path> [--dry-run]
+```
+
+It opens real draft PRs when the App's credentials are present and the checkout's `origin` is on
+GitHub. Otherwise it prints stub links and touches nothing on GitHub. `--dry-run` stops before PRs.
+
+### If something goes wrong
+
+- **Deliveries answer `401` (bad signature):** `GITHUB_WEBHOOK_SECRET` in `app/.env` doesn't match the
+  App's webhook secret.
+- **A run refuses to spend (no cap):** set `REFIT_AI_BUDGET_USD`, then restart the app.
+- **The sandbox fails (Docker off):** start Docker, then redeliver the delivery.
+- **`using a stub for <part>` at startup:** that module hasn't landed. A stubbed scan writes a report
+  whose `errors` say so, and queues no tasks.
+- **The queue is stuck or corrupt:** the app refuses to start on a corrupt queue file rather than drop
+  its jobs. Stop the app, delete `.refit/queue.json` (this drops the waiting jobs) and start again.
+
 ## 1. General (basic information)
 
 - [ ] **GitHub App name**: `Refit` (34 characters max, unique across GitHub). Renaming changes the
@@ -43,6 +136,7 @@ Sidebar → **Permissions & events**. Under **Repository permissions**, set each
 | Contents      | Read and write                                |
 | Pull requests | Read and write                                |
 | Checks        | Read and write                                |
+| Workflows     | Read and write                                |
 | Metadata      | Read-only (mandatory; it can't be turned off) |
 
 Set every other repository permission to No access, unless it is already set and something still
@@ -106,6 +200,9 @@ Put these in `app/.env` (gitignored; `npm run dev` loads it). Never commit or pr
 | `HOST`                        | Default `127.0.0.1`                                                           |
 | `SMEE_URL`                    | Dev tunnel only                                                               |
 | `REFIT_QUEUE_FILE`            | Job queue file; default `.refit/queue.json` (a persistent path in production) |
+| `REFIT_QUEUE_CONCURRENCY`     | Jobs that run at once; default `2`                                            |
+| `REFIT_SERVICE_TOKEN`         | The dashboard's token: reads every run on `GET /api/runs`; server side only   |
+| `REFIT_SLACK_WEBHOOK_URL`     | Optional; `app/notify` posts to it                                            |
 | `REFIT_MEMORY_DIR`            | memory/'s store; absolute path on a persistent volume in production           |
 | `REFIT_AI_BUDGET_USD`         | Run cap for the loop; required once `ANTHROPIC_API_KEY` is set                |
 | `ANTHROPIC_API_KEY`           | Real model runs; without it the loop and memory use offline stubs             |
@@ -133,15 +230,22 @@ the repo root with `-w @refit/app`, or from inside `app/`.
 Install on a test org first, never a real customer org. Check that:
 
 - [ ] each delivery is answered `202` within a second, before the job runs;
-- [ ] installing queues one `understand` job per repo, and each runs (clone, `runRepoJob`, cleanup);
-- [ ] a run that opens a PR opens it as a draft from an `refit/` branch, never on the default branch;
-- [ ] pushing your own commit to an Refit PR records `edited`; **Update branch** records nothing;
-- [ ] adding and removing repos on the installation queues `understand` and `forget` jobs;
-- [ ] a push to the default branch queues an `understand` job with the new sha;
-- [ ] merging or closing a PR from an `refit/` branch records `merged` or `closed`;
-- [ ] uninstalling queues `forget` for every repo.
+- [ ] installing queues one `scan` job per repo, and each runs (fresh clone, `scanRepo`, report saved,
+      checkout deleted);
+- [ ] each task a scan finds queues a `run` job, and each runs on its own fresh clone;
+- [ ] a run that opens a PR opens it as a draft from a `refit/` branch, never on the default branch;
+- [ ] pushing your own commit to a Refit PR records `edited`; **Update branch** records nothing;
+- [ ] adding repos queues `scan` jobs; removing them drops their waiting jobs, stops their running
+      jobs and deletes their checkouts;
+- [ ] a push to the default branch queues a `scan` job with the new sha;
+- [ ] merging or closing a PR from a `refit/` branch records `merged` or `closed`;
+- [ ] uninstalling stops every job of that installation;
+- [ ] a `.refit.yml` with `paused: true` stops new scans and PRs for that repo, and `ignore` leaves
+      out those dependencies.
 
 ## What runs
 
-`main.ts` runs the orchestrator's `runRepoJob` for each job and serves memory's `listRunViews`.
-Verdicts go to memory's `recordVerdict`.
+`main.ts` wires the queue to two jobs: `scan` (the orchestrator's `scanRepo`) and `run` (the
+orchestrator's `runRepoJob` with the App's PR opener). It serves memory's `listRunViews`, sends
+verdicts to memory's `recordVerdict`, and re-scans every installed repo weekly. Modules still landing
+from other prompts load through `parts.ts`, which logs a stub warning for each one that's missing.

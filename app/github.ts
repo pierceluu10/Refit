@@ -1,4 +1,6 @@
 import { createSign } from 'node:crypto';
+import { InvalidRepoError } from './git.ts';
+import { REPO_PATTERN } from './types.ts';
 import type { InstallationTokens } from './types.ts';
 
 export const GITHUB_API = 'https://api.github.com';
@@ -129,6 +131,43 @@ async function listAll<T>(
     items.push(...batch);
     if (batch.length === 0 || items.length >= result.total_count) return items;
   }
+}
+
+// /app/installations answers a bare array, so its last page is the first short one.
+export async function listInstallations(
+  appJwt: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<{ id: number; suspended: boolean }[]> {
+  const installations: { id: number; suspended: boolean }[] = [];
+  for (let page = 1; ; page++) {
+    const batch = await githubRequest<{ id: number; suspended_at: string | null }[]>(
+      appJwt,
+      'GET',
+      `/app/installations?per_page=${PER_PAGE}&page=${page}`,
+      undefined,
+      fetchImpl,
+    );
+    installations.push(
+      ...batch.map(({ id, suspended_at }) => ({ id, suspended: Boolean(suspended_at) })),
+    );
+    if (batch.length < PER_PAGE) return installations;
+  }
+}
+
+export async function installationForRepo(
+  appJwt: string,
+  repo: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<number> {
+  if (!REPO_PATTERN.test(repo)) throw new InvalidRepoError(repo);
+  const installation = await githubRequest<{ id: number }>(
+    appJwt,
+    'GET',
+    `/repos/${repo}/installation`,
+    undefined,
+    fetchImpl,
+  );
+  return installation.id;
 }
 
 type Repository = { full_name: string };

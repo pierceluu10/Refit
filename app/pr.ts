@@ -1,10 +1,11 @@
-import type { OpenPullRequest, RunRecord } from '../shared/types.ts';
+import type { ExternalTask, RunRecord } from '../shared/types.ts';
 import { filesFromDiff } from './git.ts';
 import { githubRequest } from './github.ts';
 import { BRANCH_PREFIX } from './types.ts';
 import type {
   FileChange,
   InstallationTokens,
+  OpenAnyPullRequest,
   OpenPullRequestInput,
   OpenedPullRequest,
 } from './types.ts';
@@ -93,34 +94,45 @@ export const branchFor = (taskId: string) =>
     .slice(0, MAX_SLUG_CHARS)
     .replace(/^-+|-+$/g, '');
 
-// The harness writes prBody beside RunRecord's own fields (HarnessRunRecord).
-type WrittenRecord = RunRecord & { prBody?: string };
+// The harness writes prBody beside RunRecord's own fields (HarnessRunRecord), and may write a prTitle.
+type WrittenRecord = RunRecord & { prBody?: string; prTitle?: string };
 
-// The shared OpenPullRequest for one installation: the record's diff on refit/<task-slug>, as a draft.
+type Pull = { html_url: string; state: string; merged_at: string | null };
+
+async function pullsOnBranch(
+  tokens: InstallationTokens,
+  installationId: number,
+  task: { id: string; repo: string },
+  state: 'open' | 'all',
+  fetchImpl: typeof fetch,
+): Promise<Pull[]> {
+  const head = encodeURIComponent(`${task.repo.split('/')[0]}:${branchFor(task.id)}`);
+  return githubRequest<Pull[]>(
+    await tokens.token(installationId),
+    'GET',
+    `/repos/${encodePath(task.repo)}/pulls?state=${state}&head=${head}`,
+    undefined,
+    fetchImpl,
+  );
+}
+
+// The shared opener for one installation: the record's diff on refit/<task-slug>, as a draft.
 // A task that already has an open PR (the same change seen on a later push) gets that PR back.
 export function createOpenPullRequest(
   tokens: InstallationTokens,
   installationId: number,
   fetchImpl: typeof fetch = fetch,
-): OpenPullRequest {
+): OpenAnyPullRequest {
   return async (task, record: WrittenRecord, repoDir) => {
-    const branch = branchFor(task.id);
-    const owner = task.repo.split('/')[0];
-    const open = await githubRequest<{ html_url: string }[]>(
-      await tokens.token(installationId),
-      'GET',
-      `/repos/${encodePath(task.repo)}/pulls?state=open&head=${encodeURIComponent(`${owner}:${branch}`)}`,
-      undefined,
-      fetchImpl,
-    );
+    const open = await pullsOnBranch(tokens, installationId, task, 'open', fetchImpl);
     if (open.length > 0) return open[0].html_url;
-    const title = task.change.title;
+    const title = record.prTitle ?? task.change.title;
     const pull = await openPullRequest(
       tokens,
       installationId,
       {
         repo: task.repo,
-        branch,
+        branch: branchFor(task.id),
         title,
         body: record.prBody ?? `${title}\n\nSource: ${task.change.source.url}`,
         commitMessage: `chore(${task.change.provider}): ${title}`,
@@ -130,5 +142,23 @@ export function createOpenPullRequest(
       fetchImpl,
     );
     return pull.url;
+  };
+}
+
+export type ExistingPullRequest = { url: string; state: 'open' | 'merged' | 'closed' };
+
+// The PR a task's branch already has, if any: an open one wins, then a merged one, then a closed one.
+export function findPullRequestFor(
+  tokens: InstallationTokens,
+  installationId: number,
+  fetchImpl: typeof fetch = fetch,
+) {
+  return async (task: ExternalTask): Promise<ExistingPullRequest | undefined> => {
+    const pulls = await pullsOnBranch(tokens, installationId, task, 'all', fetchImpl);
+    const open = pulls.find((pull) => pull.state === 'open');
+    if (open) return { url: open.html_url, state: 'open' };
+    const merged = pulls.find((pull) => pull.merged_at !== null);
+    if (merged) return { url: merged.html_url, state: 'merged' };
+    return pulls[0] && { url: pulls[0].html_url, state: 'closed' };
   };
 }
