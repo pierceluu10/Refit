@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { MigrationTask } from '../shared/types.ts';
-import { filesFromDiff, writePrBody, type PrBodyInput } from './pr.ts';
+import type { ExternalTask, MigrationTask } from '../shared/types.ts';
+import { filesFromDiff, prTitle, writePrBody, type PrBodyInput } from './pr.ts';
 
 // Illustrative fixture, not a real customer repo. The key is fake but matches Stripe's shape.
 const fakeKey = 'sk_live_' + 'A1b2C3d4E5f6G7h8I9j0K1l2';
@@ -163,5 +163,67 @@ describe('writePrBody', () => {
     expect(body).not.toContain(fakeKey);
     expect(body).toContain('[redacted]');
     expect(body).not.toMatch(/generated with|co-authored-by|claude code/i);
+  });
+});
+
+describe('upgrade PR bodies', () => {
+  // Illustrative upgrade task, not a real customer repo.
+  const upgrade: ExternalTask = {
+    id: 'upgrade-1',
+    repo: 'example/demo-node-api',
+    priority: 1,
+    deadline: '2025-04-30',
+    usages: [],
+    change: {
+      provider: 'nodejs',
+      id: 'node-18-eol',
+      kind: 'runtime-eol',
+      title: 'Node.js 18 reaches end of life',
+      source: { url: 'https://example.com/node-release-schedule', quote: 'Node 18: end of life.' },
+      affects: {},
+      dependency: 'node',
+      dependencyKind: 'runtime',
+      toVersion: '22',
+      severity: 'deadline',
+    },
+    dependencies: [
+      {
+        repo: 'example/demo-node-api',
+        kind: 'runtime',
+        name: 'node',
+        version: '18',
+        declaredIn: [],
+      },
+    ],
+  };
+
+  it('titles an upgrade "Upgrade <dependency> <from> → <to>" and an API change by its title', () => {
+    expect(prTitle(upgrade)).toBe('Upgrade node 18 → 22');
+    expect(prTitle({ ...upgrade, dependencies: [] })).toBe('Upgrade node to 22');
+    expect(prTitle(task)).toBe(task.change.title);
+    const retirement = {
+      ...upgrade,
+      change: { ...upgrade.change, kind: 'model-retirement' as const },
+    };
+    expect(prTitle(retirement)).toBe('Node.js 18 reaches end of life');
+  });
+
+  it('carries the deadline, source, severity, runtime and files touched', () => {
+    const body = writePrBody({
+      ...base,
+      task: upgrade,
+      outcome: 'verified',
+      diff: 'diff --git a/.nvmrc b/.nvmrc\n-18\n+22\n',
+      checksRuntime: 'node 22',
+    });
+    expect(body).toContain('## Upgrade node 18 → 22 [Verified]');
+    expect(body).toContain('- Change: Node.js 18 reaches end of life');
+    expect(body).toContain('- Deadline: 2025-04-30');
+    expect(body).toContain('- Severity: deadline');
+    expect(body).toContain('- Source: https://example.com/node-release-schedule');
+    expect(body).toContain('after on node 22');
+    expect(body).toContain('- `.nvmrc`');
+    expect(body).toContain('### Unproven');
+    expect(body).toContain('### Behaviour changes');
   });
 });

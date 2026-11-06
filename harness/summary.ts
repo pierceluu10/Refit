@@ -1,9 +1,8 @@
 // A short account of a run for memory's recipe extraction: every tool call in order with what it
 // returned, and the checks after each iteration, so dead ends survive where a long transcript's
 // middle gets cut. Built from what the harness saw, at no AI cost.
-import type { MigrationTask } from '../shared/types.ts';
 import { redactSecrets } from './secrets.ts';
-import type { CheckComparison, CheckRun, FinishReport } from './types.ts';
+import type { CheckComparison, CheckRun, FinishReport, HarnessTask } from './types.ts';
 
 export type Step = { tool: string; input: unknown; output: string };
 
@@ -36,7 +35,7 @@ function checks(comparisons: CheckComparison[]): string {
 }
 
 export function summarizeRun(input: {
-  task: MigrationTask;
+  task: HarnessTask;
   outcome: string;
   costUsd: number;
   before: CheckRun[];
@@ -51,6 +50,11 @@ export function summarizeRun(input: {
   const lines = [
     `# ${task.id}: ${input.outcome}, $${input.costUsd.toFixed(4)}`,
     `Change: ${task.change.title} (${task.change.provider}, ${task.change.kind})`,
+    ...('dependencies' in task
+      ? [
+          `Dependency: ${task.change.dependency}${task.change.toVersion ? ` → ${task.change.toVersion}` : ''}`,
+        ]
+      : []),
     `Baseline checks: ${baseline.join(', ') || 'none'}`,
   ];
   input.iterations.forEach((iteration, index) => {

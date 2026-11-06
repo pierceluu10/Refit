@@ -1,9 +1,19 @@
-// runTask: sandbox → baseline checks → agent → re-check → iterate (escalating when stuck) → record.
+// runTask (API migrations) and runExternalTask (upgrades and any other external change):
+// sandbox → baseline checks → agent → re-check → iterate (escalating when stuck) → record.
 import { appendFileSync } from 'node:fs';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { MigrationTask, RetrieveRecipes, RunTask, ToolPack } from '../shared/types.ts';
+import type {
+  AgentTool,
+  ExternalTask,
+  MigrationTask,
+  Recipe,
+  RunExternalTask,
+  RunProof,
+  RunTask,
+  ToolPack,
+} from '../shared/types.ts';
 import { claudeAgentSession } from './agent.ts';
 import {
   compareChecks,
@@ -14,9 +24,11 @@ import {
   runChecks,
 } from './checks.ts';
 import { BudgetLedger, budgetFromEnv } from './ledger.ts';
-import { filesFromDiff, writePrBody } from './pr.ts';
+import { filesFromDiff, prTitle, writePrBody } from './pr.ts';
 import {
   PROMPT_VERSION,
+  isExternalTask,
+  targetRuntime,
   buildKickoffMessage,
   buildRetryMessage,
   buildSystemPrompt,
@@ -25,7 +37,7 @@ import {
 import { createSandbox, sandboxEnvNote } from './sandbox.ts';
 import { redactSecrets } from './secrets.ts';
 import { summarizeRun, type IterationSummary, type Step } from './summary.ts';
-import { buildTools } from './tools.ts';
+import { buildTools, localRuntimes, runOnRuntime, runtimeLabel } from './tools.ts';
 import type {
   CheckCommand,
   CheckComparison,
@@ -33,8 +45,11 @@ import type {
   FinishReport,
   HarnessDeps,
   HarnessRunRecord,
+  HarnessTask,
+  Runtime,
   Sandbox,
   SessionResult,
+  UpgradeKit,
   ValidatorRun,
 } from './types.ts';
 import { failingCheckers, gradeValidators } from './validators.ts';
@@ -51,7 +66,87 @@ const emptyToolPack = async (provider: string): Promise<ToolPack> => ({
   tools: [],
   playbooks: {},
 });
-const noRecipes: RetrieveRecipes = async () => [];
+const noRecipes = async (): Promise<Recipe[]> => [];
+
+const isAgentTool = (value: unknown): value is AgentTool =>
+  !!value &&
+  typeof value === 'object' &&
+  typeof (value as AgentTool).name === 'string' &&
+  typeof (value as AgentTool).description === 'string' &&
+  typeof (value as AgentTool).run === 'function' &&
+  !!(value as AgentTool).inputSchema &&
+  typeof (value as AgentTool).inputSchema === 'object';
+
+const isStringRecord = (value: unknown): value is Record<string, string> =>
+  !!value &&
+  typeof value === 'object' &&
+  !Array.isArray(value) &&
+  Object.values(value).every((item) => typeof item === 'string');
+
+// shortcut: F2's providers/upgrades/index.ts lands on another branch tonight and its export names
+// are not fixed yet, so this collects whatever it exports that looks like tools or playbooks: an
+// AgentTool, an array of them, a ToolPack-like object, a *playbooks record, or a factory below.
+const KIT_FACTORIES = [
+  'loadUpgradeToolPack',
+  'upgradeToolPack',
+  'createUpgradeToolPack',
+  'createUpgradeTools',
+];
+export async function upgradeKitFrom(
+  mod: Record<string, unknown>,
+  task: ExternalTask,
+): Promise<UpgradeKit> {
+  const tools: AgentTool[] = [];
+  const playbooks: Record<string, string> = {};
+  const take = (key: string, value: unknown) => {
+    if (isAgentTool(value)) tools.push(value);
+    else if (Array.isArray(value) && value.length && value.every(isAgentTool)) tools.push(...value);
+    else if (value && typeof value === 'object' && Array.isArray((value as ToolPack).tools)) {
+      tools.push(...(value as ToolPack).tools.filter(isAgentTool));
+      const books = (value as ToolPack).playbooks;
+      if (isStringRecord(books)) Object.assign(playbooks, books);
+    } else if (/playbooks$/i.test(key) && isStringRecord(value)) Object.assign(playbooks, value);
+  };
+  for (const [key, value] of Object.entries(mod)) {
+    if (typeof value === 'function' && KIT_FACTORIES.includes(key)) {
+      const made = await Promise.resolve()
+        .then(() => (value as (task: ExternalTask) => unknown)(task))
+        .catch(() => undefined);
+      take(key, made);
+    } else take(key, value);
+  }
+  const seen = new Set<string>();
+  return {
+    tools: tools.filter((tool) => !seen.has(tool.name) && seen.add(tool.name)),
+    playbooks,
+  };
+}
+
+const UPGRADES_MODULE = new URL('../providers/upgrades/index.ts', import.meta.url).href;
+const PROOF_MODULE = new URL('./proof/index.ts', import.meta.url).href;
+
+async function importOptional(specifier: string): Promise<Record<string, unknown> | undefined> {
+  try {
+    return (await import(/* @vite-ignore */ specifier)) as Record<string, unknown>;
+  } catch {
+    return undefined;
+  }
+}
+
+// F2's upgrade tools, or none until they land.
+export async function loadUpgradeKit(
+  task: ExternalTask,
+  specifier = UPGRADES_MODULE,
+): Promise<UpgradeKit> {
+  const mod = await importOptional(specifier);
+  return mod ? upgradeKitFrom(mod, task) : { tools: [], playbooks: {} };
+}
+
+// O6's runProof from harness/proof/, or undefined until it lands.
+export async function loadRunProof(specifier = PROOF_MODULE): Promise<RunProof | undefined> {
+  const mod = await importOptional(specifier);
+  return typeof mod?.runProof === 'function' ? (mod.runProof as RunProof) : undefined;
+}
 
 const newFailureCount = (comparisons: CheckComparison[]) =>
   comparisons.reduce((sum, comparison) => sum + comparison.newFailures.length, 0);
@@ -62,6 +157,8 @@ export function decideOutcome(input: {
   comparisons: CheckComparison[];
   after: CheckRun[];
   validatorRuns: ValidatorRun[];
+  // What the harness itself could not prove, such as the target runtime; any keeps it in needs-review.
+  harnessUnproven?: string[];
 }): HarnessRunRecord['outcome'] {
   const { diff, report, comparisons, after, validatorRuns } = input;
   const changed = diff.trim() !== '';
@@ -76,7 +173,8 @@ export function decideOutcome(input: {
     newFailureCount(comparisons) === 0 &&
     gradeValidators(report.validators, validatorRuns).every((grade) => grade.passed) &&
     failingCheckers(validatorRuns).length === 0 &&
-    report.unproven.length === 0;
+    report.unproven.length === 0 &&
+    (input.harnessUnproven ?? []).length === 0;
   return proven ? 'verified' : 'needs-review';
 }
 
@@ -84,6 +182,23 @@ export async function runTask(
   task: MigrationTask,
   repoDir: string,
   deps: HarnessDeps = {},
+): Promise<HarnessRunRecord> {
+  return runHarness(task, repoDir, deps);
+}
+
+// Any external change: runtime, framework, library, advisory, base image, CI, AI model or API.
+export async function runExternalTask(
+  task: ExternalTask,
+  repoDir: string,
+  deps: HarnessDeps = {},
+): Promise<HarnessRunRecord> {
+  return runHarness(task, repoDir, deps);
+}
+
+async function runHarness(
+  task: HarnessTask,
+  repoDir: string,
+  deps: HarnessDeps,
 ): Promise<HarnessRunRecord> {
   const ledger = new BudgetLedger(deps.budgetUsd ?? budgetFromEnv(), deps.chargeRun);
   const outDir =
@@ -111,6 +226,7 @@ export async function runTask(
       costUsd: ledger.spentUsd,
       transcriptPath,
       prBody: `The harness could not create a sandbox: ${message}`,
+      prTitle: prTitle(task),
       models,
       promptVersion: PROMPT_VERSION,
       recipeIds: [],
@@ -125,8 +241,19 @@ export async function runTask(
     const toolPack = await (deps.loadToolPack ?? emptyToolPack)(task.change.provider).catch(() =>
       emptyToolPack(task.change.provider),
     );
-    const retrieveRecipes = deps.retrieveRecipes ?? noRecipes;
+    const external = isExternalTask(task) ? task : undefined;
+    const retrieveRecipes = (
+      external ? (deps.retrieveExternalRecipes ?? noRecipes) : (deps.retrieveRecipes ?? noRecipes)
+    ) as (task: HarnessTask) => Promise<Recipe[]>;
     const recipes = await retrieveRecipes(task).catch(() => []);
+    const kit: UpgradeKit = external
+      ? await (deps.loadUpgradeKit ?? loadUpgradeKit)(external).catch(() => ({
+          tools: [],
+          playbooks: {},
+        }))
+      : { tools: [], playbooks: {} };
+    const runProof = deps.runProof ?? (await loadRunProof());
+    const runtimes = deps.runtimes ?? localRuntimes;
 
     const pm = await detectPackageManager(sandbox.dir);
     const pmVersion = await packageManagerVersion(sandbox.dir, pm);
@@ -134,6 +261,32 @@ export async function runTask(
     const checks = await detectChecks(sandbox.dir, pm, pmVersion);
     const before = await runChecks(sandbox, checks);
     log({ type: 'harness', phase: 'baseline', pm, pmVersion, install, checks, before });
+
+    // When the change moves a runtime, the checks after the change run on the new one: before on the
+    // old version, after on the new. If the sandbox cannot provide it, the PR says so.
+    const target = targetRuntime(task);
+    let checksRuntime: Runtime | undefined;
+    const kickoffNotes: string[] = [];
+    let runtimeProblem: string | undefined;
+    if (target) {
+      const probe = await runtimes.probe(sandbox, target);
+      log({ type: 'harness', phase: 'runtime-probe', target, probe });
+      if (probe.ok) {
+        checksRuntime = target;
+        kickoffNotes.push(
+          `The baseline checks ran on the sandbox's default runtime, on the original code. After your change the harness runs them on ${runtimeLabel(target)} (${probe.detail}).`,
+        );
+      } else {
+        runtimeProblem = `The checks could not run on ${runtimeLabel(target)} in this sandbox (${probe.detail}); they ran on its default runtime.`;
+        kickoffNotes.push(
+          `${runtimeProblem} Try \`run_checks\` with another \`runtime\` version of ${target.name}; if none works, the PR lists the runtime as unproven.`,
+        );
+      }
+    }
+    const afterChecks = (list: CheckCommand[]) =>
+      checksRuntime
+        ? runOnRuntime(sandbox, runtimes, checksRuntime, list)
+        : runChecks(sandbox, list);
 
     // Agent-named checks get their baseline from a second, untouched copy of the repo.
     const addCheck = async (check: CheckCommand): Promise<CheckRun> => {
@@ -162,6 +315,18 @@ export async function runTask(
       toolPack,
       retrieveRecipes,
       checks,
+      upgradeTools: kit.tools,
+      runProof,
+      runtimes,
+      onRuntime: (runtime) => {
+        // The agent found a working runtime; the final checks use it if it is the one that moves.
+        if (!target || runtime.name === target.name) {
+          checksRuntime = runtime;
+          if (!target || runtime.version.split('.')[0] === target.version.split('.')[0]) {
+            runtimeProblem = undefined;
+          }
+        }
+      },
       onFinish: (finished) => {
         report = finished;
         finishedThisIteration = true;
@@ -185,12 +350,18 @@ export async function runTask(
       tools,
       budgetUsd: ledger.capUsd,
       sandboxNote,
+      upgradePlaybooks: kit.playbooks,
     });
     const installOutput = install && `${install.stdout}\n${install.stderr}`.trim();
 
     const session = deps.session ?? claudeAgentSession;
     let model = MODEL;
-    let prompt = buildKickoffMessage(before, installOutput, packageManagerNote(pm, pmVersion));
+    let prompt = buildKickoffMessage(
+      before,
+      installOutput,
+      packageManagerNote(pm, pmVersion),
+      kickoffNotes,
+    );
     let sessionId: string | undefined;
     let after = before;
     let comparisons = compareChecks(before, after);
@@ -223,7 +394,7 @@ export async function runTask(
         result = { finalText: '', stopReason: 'error', error: String(error) };
       }
       sessionId = result.sessionId ?? sessionId;
-      after = await runChecks(sandbox, checks);
+      after = await afterChecks(checks);
       comparisons = compareChecks(before, after);
       const newFailures = newFailureCount(comparisons);
       log({ type: 'harness', phase: 'iteration', iteration, model, result, after, comparisons });
@@ -255,11 +426,21 @@ export async function runTask(
 
     const diff = redactSecrets(await sandbox.diff());
     const finalReport = report as FinishReport | undefined;
-    const outcome = decideOutcome({ diff, report: finalReport, comparisons, after, validatorRuns });
-    const notes =
-      ledger.remainingUsd <= reserveUsd
+    const harnessUnproven = runtimeProblem ? [runtimeProblem] : [];
+    const outcome = decideOutcome({
+      diff,
+      report: finalReport,
+      comparisons,
+      after,
+      validatorRuns,
+      harnessUnproven,
+    });
+    const notes = [
+      ...harnessUnproven,
+      ...(ledger.remainingUsd <= reserveUsd
         ? [`The run hit its AI budget of $${ledger.capUsd.toFixed(2)} before the agent finished.`]
-        : [];
+        : []),
+    ];
     const prBody = writePrBody({
       task,
       outcome,
@@ -273,6 +454,7 @@ export async function runTask(
       promptVersion: PROMPT_VERSION,
       sandboxNote,
       notes,
+      checksRuntime: checksRuntime && runtimeLabel(checksRuntime),
     });
     const summary = summarizeRun({
       task,
@@ -304,6 +486,8 @@ export async function runTask(
         };
       }),
       summary,
+      prTitle: prTitle(task),
+      checksRuntime: checksRuntime && runtimeLabel(checksRuntime),
     };
     log({ type: 'harness', phase: 'done', outcome, ledger: ledger.entries });
     await writeFile(join(outDir, 'diff.patch'), diff);
@@ -318,3 +502,4 @@ export async function runTask(
 }
 
 runTask satisfies RunTask;
+runExternalTask satisfies RunExternalTask;

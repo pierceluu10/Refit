@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { MigrationTask, Recipe, ToolPack } from '../shared/types.ts';
+import type { ExternalTask, MigrationTask, Recipe, ToolPack } from '../shared/types.ts';
 import {
   PROMPT_VERSION,
+  UPGRADE_PLAYBOOKS,
+  isExternalTask,
+  targetRuntime,
   buildKickoffMessage,
   buildRetryMessage,
   buildSystemPrompt,
@@ -81,7 +84,7 @@ const prompt = buildSystemPrompt({
 
 describe('buildSystemPrompt', () => {
   it('has a version', () => {
-    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-01.10');
+    expect(PROMPT_VERSION).toBe('harness-prompt/2026-11-06.1');
   });
 
   it('puts the sections in the plan order', () => {
@@ -259,5 +262,122 @@ describe('buildRetryMessage', () => {
     });
     expect(message).toContain('no new failures');
     expect(message).not.toContain('finish');
+  });
+});
+
+// Illustrative upgrade task shaped like the demo-node-api sample repo, not a real customer.
+const upgrade: ExternalTask = {
+  id: 'upgrade-1',
+  repo: 'example/demo-node-api',
+  priority: 1,
+  deadline: '2025-04-30',
+  usages: [],
+  change: {
+    provider: 'nodejs',
+    id: 'node-18-eol',
+    kind: 'runtime-eol',
+    title: 'Node.js 18 reaches end of life',
+    effectiveDate: '2025-04-30',
+    source: { url: 'https://example.com/node-release-schedule', quote: 'Node 18: end of life.' },
+    affects: { versions: ['18'] },
+    dependency: 'node',
+    dependencyKind: 'runtime',
+    fromVersions: ['18'],
+    toVersion: '22',
+    severity: 'deadline',
+  },
+  dependencies: [
+    {
+      repo: 'example/demo-node-api',
+      kind: 'runtime',
+      name: 'node',
+      version: '18',
+      declaredIn: [
+        { file: 'package.json', line: 5, text: '"node": ">=18"' },
+        { file: 'Dockerfile', line: 1, text: 'FROM node:18' },
+      ],
+    },
+  ],
+};
+
+describe('buildSystemPrompt for upgrades', () => {
+  const upgradePrompt = buildSystemPrompt({
+    task: upgrade,
+    toolPack: { provider: 'nodejs', tools: [], playbooks: {} },
+    recipes: [],
+    tools: [{ name: 'bump_version', description: 'Move a version' }],
+    budgetUsd: 5,
+    sandboxNote: 'local copy',
+    upgradePlaybooks: { 'runtime-eol': 'Illustrative F2 playbook text.' },
+  });
+
+  it('tells the agent what changed, the target, and every declared place', () => {
+    expect(upgradePrompt).toContain('keeps software from falling behind');
+    expect(upgradePrompt).toContain('- Dependency: node (runtime)');
+    expect(upgradePrompt).toContain('- Recommended target: 22');
+    expect(upgradePrompt).toContain('- Severity: deadline');
+    expect(upgradePrompt).toContain('- Deadline: 2025-04-30');
+    expect(upgradePrompt).toContain('> Node 18: end of life.');
+    expect(upgradePrompt).toContain('  - declared in package.json:5: `"node": ">=18"`');
+    expect(upgradePrompt).toContain('  - declared in Dockerfile:1: `FROM node:18`');
+  });
+
+  it('gives the upgrade workflow, the playbooks and the upgrade definition of done', () => {
+    expect(upgradePrompt).toContain('`bump_version` with `apply`');
+    expect(upgradePrompt).toContain(
+      '### Upgrade playbook: runtime-eol\n\nIllustrative F2 playbook text.',
+    );
+    expect(upgradePrompt).toContain(UPGRADE_PLAYBOOKS['runtime-eol']);
+    expect(upgradePrompt).toContain('after it on the new version');
+    expect(upgradePrompt).toContain('moves the node runtime to 22');
+    expect(upgradePrompt).toContain("verdict 'not-affected'");
+  });
+
+  it('keeps the API prompt for API tasks', () => {
+    expect(prompt).toContain('migrates code when external APIs change');
+    expect(prompt).not.toContain('bump_version` with `apply');
+  });
+
+  it('has guidance for every upgrade kind O2 covers', () => {
+    for (const kind of [
+      'runtime-eol',
+      'framework-major',
+      'dependency-major',
+      'security-fix',
+      'container-image-eol',
+      'ci-deprecation',
+      'model-retirement',
+    ]) {
+      expect(UPGRADE_PLAYBOOKS[kind]).toBeTruthy();
+    }
+  });
+
+  it('tells external tasks apart and finds the runtime the checks should run on', () => {
+    expect(isExternalTask(upgrade)).toBe(true);
+    expect(isExternalTask(task)).toBe(false);
+    expect(targetRuntime(upgrade)).toEqual({ name: 'node', version: '22' });
+    const image = {
+      ...upgrade,
+      change: {
+        ...upgrade.change,
+        kind: 'container-image-eol' as const,
+        dependency: 'python:3.9-slim',
+        dependencyKind: 'container-image' as const,
+        toVersion: '3.12-slim',
+      },
+    };
+    expect(targetRuntime(image)).toEqual({ name: 'python', version: '3.12' });
+    const library = {
+      ...upgrade,
+      change: { ...upgrade.change, dependency: 'next', dependencyKind: 'framework' as const },
+    };
+    expect(targetRuntime(library)).toBeUndefined();
+  });
+});
+
+describe('buildKickoffMessage notes', () => {
+  it('adds the harness notes, such as the runtime the checks will run on', () => {
+    const message = buildKickoffMessage([], undefined, undefined, ['After your change: node 22.']);
+    expect(message).toContain('After your change: node 22.');
   });
 });
