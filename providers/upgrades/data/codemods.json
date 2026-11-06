@@ -72,9 +72,9 @@
     ],
     "django": [
       {
-        "command": "django-upgrade --target-version <version> <files>",
-        "applies": "rewrites Django code towards a target version",
-        "url": "https://github.com/adamchainz/django-upgrade",
+        "command": "git ls-files -z -- '*.py' | xargs -0r django-upgrade",
+        "applies": "rewrites the files it is given to fix Django deprecation warnings; it does not recurse through directories",
+        "url": "https://django-upgrade.readthedocs.io/en/latest/usage.html",
         "official": false
       }
     ],
