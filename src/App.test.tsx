@@ -21,6 +21,17 @@ describe('site routes', () => {
     expect(document.title).toBe('Refit: Software that never falls behind');
   });
 
+  it.each([
+    ['/pricing', 'Refit: Pricing'],
+    ['/onboarding', 'Refit: Get started'],
+    ['/docs', 'Refit: Documentation'],
+    ['/app', 'Refit: Dashboard'],
+  ])('serves %s with its own tab title', (path, title) => {
+    renderRoute(path);
+    expect(document.title).toBe(title);
+    expect(screen.getByRole('heading', { level: 1 })).toBeVisible();
+  });
+
   it('contains keyboard focus in the dashboard drawer and restores it on Escape', () => {
     renderRoute('/app/runs');
     const trigger = screen.getByRole('button', { name: 'Open workspace navigation' });

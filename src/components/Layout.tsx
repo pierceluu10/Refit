@@ -32,14 +32,12 @@ export function Header() {
             }
           }}
         >
-          <a href="/#story" onClick={() => setOpen(false)}>
-            How it works
-          </a>
+          <NavLink to="/pricing">Pricing</NavLink>
           <NavLink to="/docs">Docs</NavLink>
           <a className="github-link" href={PROJECT_URL} target="_blank" rel="noreferrer">
             <GithubLogo weight="bold" /> GitHub <ArrowUpRight size={12} />
           </a>
-          <a className="button button-small button-dark" href="/#waitlist">
+          <a className="button button-small button-dark" href="/#top">
             Join the waitlist <ArrowRight />
           </a>
         </nav>
@@ -55,6 +53,7 @@ export function Footer() {
         <Brand />
         <p>Software that never falls behind.</p>
         <div>
+          <Link to="/pricing">Pricing</Link>
           <Link to="/docs">Documentation</Link>
           <a href={PROJECT_URL} target="_blank" rel="noreferrer">
             GitHub <ArrowUpRight size={13} />
@@ -63,7 +62,7 @@ export function Footer() {
       </div>
       <div className="footer-bottom">
         <span>© {new Date().getFullYear()} Refit</span>
-        <span>Open source. Human reviewed.</span>
+        <span>Every fix is a draft PR you review.</span>
         <span className="footer-status">
           <span /> In development
         </span>
@@ -81,6 +80,8 @@ export function PagePosition() {
     const titlesByPath: Record<string, string> = {
       '/': 'Refit: Software that never falls behind',
       '/docs': 'Refit: Documentation',
+      '/pricing': 'Refit: Pricing',
+      '/onboarding': 'Refit: Get started',
     };
     document.title = titlesByPath[pathname] ?? 'Refit: Dashboard';
   }, [pathname, hash]);
