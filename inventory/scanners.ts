@@ -90,13 +90,17 @@ function withHint<T extends object>(value: T, name: string): T & { hint?: string
   return hint ? { ...value, hint } : value;
 }
 
-async function readLines(repoDir: string, file: string): Promise<string[] | undefined> {
+export async function readLines(repoDir: string, file: string): Promise<string[] | undefined> {
   return (await readText(repoDir, file))?.split(/\r?\n/);
 }
 
-function lineMatch(file: string, index: number, line: string): LineMatch {
+export function lineMatch(file: string, index: number, line: string): LineMatch {
   return { file, line: index + 1, text: line.trim().slice(0, MAX_LINE_TEXT) };
 }
+
+// One place a version is set or implied. `source` says what the scanner recognised, so the agent
+// can tell a CI matrix from a Dockerfile; a signal is a lead for the agent to read, never a finding.
+export type VersionSignal = LineMatch & { name: string; version?: string; source: string };
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -862,11 +866,11 @@ const CONFIG_EXTENSIONS = new Set([
   '.gql',
 ]);
 
-function isEnvFile(name: string): boolean {
+export function isEnvFile(name: string): boolean {
   return /^\.env(\.|$)|\.env$/.test(name);
 }
 
-function isEnvTemplate(name: string): boolean {
+export function isEnvTemplate(name: string): boolean {
   return /example|sample|template/i.test(name);
 }
 
@@ -879,7 +883,7 @@ function isSourceOrConfig(file: string): boolean {
   return CODE_EXTENSIONS.has(extension) || CONFIG_EXTENSIONS.has(extension);
 }
 
-async function sourceAndConfigFiles(repoDir: string): Promise<string[]> {
+export async function sourceAndConfigFiles(repoDir: string): Promise<string[]> {
   return (await listFiles(repoDir)).filter(isSourceOrConfig);
 }
 
