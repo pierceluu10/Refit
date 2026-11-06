@@ -2,7 +2,11 @@
 <div class="page">
   <header class="nav">
     <a class="brand" href="#top" aria-label="Refit"><svg viewBox="10 11 20 18" aria-hidden="true"><path d="M10 11h15v6H16v6h-6zm20 18H15v-6h9v-6h6z"/></svg>Refit</a>
-    <a class="nav-cta" href="#top" data-focus-form>Join the waitlist</a>
+    <div class="nav-actions">
+      <a class="nav-link" href="/pricing">Pricing</a>
+      <a class="nav-link" href="/docs">Docs</a>
+      <a class="nav-cta" href="#top" data-focus-form>Join the waitlist</a>
+    </div>
   </header>
 
   <main>
@@ -13,8 +17,8 @@
           <source src="/launch/hero-desktop.mp4" type="video/mp4">
         </video>
         <div class="hero-copy">
-          <h1 id="headline">Agents that handle <br>your integrations.</h1>
-          <p class="sub">When an API changes, they send the fix to your coding agent.</p>
+          <h1 id="headline">Software that never <br>falls behind.</h1>
+          <p class="sub">Refit keeps your code current when the APIs, AI models, runtimes, frameworks, libraries and CI it depends on change.</p>
           <form class="waitlist" novalidate>
             <label for="email-hero">Email</label>
             <input id="email-hero" type="email" name="email" placeholder="you@company.com" autocomplete="email" aria-describedby="note-hero">
@@ -25,144 +29,100 @@
       </div>
     </section>
 
-    <section class="story" id="story" aria-label="What happens when an API changes">
+    <section class="story" id="story" aria-label="How Refit keeps your code current">
       <div class="stage" id="stage">
         <div class="panel stage-panel" id="stage-panel">
           <canvas class="dust" id="dust" aria-hidden="true"></canvas>
-          <canvas class="wheel" id="wheel" tabindex="0" role="slider" aria-label="Drag to spin" aria-valuemin="0" aria-valuemax="39" aria-valuenow="3" aria-valuetext="files.upload retired"></canvas>
+          <canvas class="wheel" id="wheel" tabindex="0" role="slider" aria-label="Changes Refit watches for. Drag to spin." aria-valuemin="0" aria-valuemax="39" aria-valuenow="0" aria-valuetext="Install Refit"></canvas>
           <ol class="marks" id="marks">
-            <li><button type="button" data-step="0" aria-label="Slack retires files.upload.">1</button></li>
-            <li><button type="button" data-step="1" aria-label="An agent finds the call in your code.">2</button></li>
-            <li><button type="button" data-step="2" aria-label="It writes the fix in a sandbox.">3</button></li>
-            <li><button type="button" data-step="3" aria-label="It traces the data, then runs the tests.">4</button></li>
-            <li><button type="button" data-step="4" aria-label="It runs your checks, before and after.">5</button></li>
-            <li><button type="button" data-step="5" aria-label="It opens a draft pull request.">6</button></li>
-            <li><button type="button" data-step="6" aria-label="The PR lands in your coding agent.">7</button></li>
+            <li><button type="button" data-step="0" aria-label="Install the app, pick your repos.">1</button></li>
+            <li><button type="button" data-step="1" aria-label="Scan what your code depends on.">2</button></li>
+            <li><button type="button" data-step="2" aria-label="Fix what's behind, in a sandbox.">3</button></li>
+            <li><button type="button" data-step="3" aria-label="Prove it, then open a draft PR.">4</button></li>
           </ol>
+          <p class="story-note">Illustrative example</p>
           <div class="sheet" id="sheet">
             <article class="step">
-              <h3 class="step-title">Slack retires files.upload.</h3>
-              <div class="leaf leaf-change">
+              <h3 class="step-title">Install the app, pick your repos.</h3>
+              <div class="leaf leaf-install">
                 <header class="leaf-head">
-                  <span class="logo" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><path d="M27.255 80.719c0 7.33-5.978 13.317-13.309 13.317C6.616 94.036.63 88.049.63 80.719s5.987-13.317 13.317-13.317h13.309zm6.709 0c0-7.33 5.987-13.317 13.317-13.317s13.317 5.986 13.317 13.317v33.335c0 7.33-5.986 13.317-13.317 13.317-7.33 0-13.317-5.987-13.317-13.317zm0 0" fill="#de1c59"/><path d="M47.281 27.255c-7.33 0-13.317-5.978-13.317-13.309C33.964 6.616 39.951.63 47.281.63s13.317 5.987 13.317 13.317v13.309zm0 6.709c7.33 0 13.317 5.987 13.317 13.317s-5.986 13.317-13.317 13.317H13.946C6.616 60.598.63 54.612.63 47.281c0-7.33 5.987-13.317 13.317-13.317zm0 0" fill="#35c5f0"/><path d="M100.745 47.281c0-7.33 5.978-13.317 13.309-13.317 7.33 0 13.317 5.987 13.317 13.317s-5.987 13.317-13.317 13.317h-13.309zm-6.709 0c0 7.33-5.987 13.317-13.317 13.317s-13.317-5.986-13.317-13.317V13.946C67.402 6.616 73.388.63 80.719.63c7.33 0 13.317 5.987 13.317 13.317zm0 0" fill="#2eb57d"/><path d="M80.719 100.745c7.33 0 13.317 5.978 13.317 13.309 0 7.33-5.987 13.317-13.317 13.317s-13.317-5.987-13.317-13.317v-13.309zm0-6.709c-7.33 0-13.317-5.987-13.317-13.317s5.986-13.317 13.317-13.317h33.335c7.33 0 13.317 5.986 13.317 13.317 0 7.33-5.987 13.317-13.317 13.317zm0 0" fill="#ebb02e"/></svg>
-</span>
-                  <span id="change-source">Slack API changelog</span>
-                  <span class="pill quiet" id="change-pill">Web API</span>
+                  <span class="logo" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M216,104v8a56.06,56.06,0,0,1-48.44,55.47A39.8,39.8,0,0,1,176,192v40a8,8,0,0,1-8,8H104a8,8,0,0,1-8-8V216H72a40,40,0,0,1-40-40A24,24,0,0,0,8,152a8,8,0,0,1,0-16,40,40,0,0,1,40,40,24,24,0,0,0,24,24H96v-8a39.8,39.8,0,0,1,8.44-24.53A56.06,56.06,0,0,1,56,112v-8a58.14,58.14,0,0,1,7.69-28.32A59.78,59.78,0,0,1,69.07,28,8,8,0,0,1,76,24a59.75,59.75,0,0,1,48,24h24a59.75,59.75,0,0,1,48-24,8,8,0,0,1,6.93,4,59.74,59.74,0,0,1,5.37,47.68A58,58,0,0,1,216,104Z"/></svg></span>
+                  <span id="install-source">example-org</span>
+                  <span class="pill quiet" id="install-pill">GitHub App</span>
                 </header>
-                <div class="call"><code id="change-call">files.upload</code><i class="strike"></i></div>
-                <p class="next"><span class="pill negative" id="change-state">Retired</span><span id="change-next">Node SDK: use <code>files.uploadV2</code>.</span></p>
-              </div>
-            </article>
-
-            <article class="step">
-              <h3 class="step-title">An agent finds the call in your code.</h3>
-              <div class="leaf leaf-code">
-                <header class="file-row"><b>acme/notifier</b><code>src/reports/send.ts:6</code><span class="pill small quiet push call-site">1 call site</span></header>
-                <div class="code">
-                  <i class="scan"></i>
-                  <div class="ln"><span class="g">1</span><code>import { WebClient } from '@slack/web-api';</code></div>
-                  <div class="ln"><span class="g">2</span><code> </code></div>
-                  <div class="ln"><span class="g">3</span><code>const slack = new WebClient(process.env.SLACK_BOT_TOKEN);</code></div>
-                  <div class="ln"><span class="g">4</span><code> </code></div>
-                  <div class="ln"><span class="g">5</span><code>export async function sendReport(channel: string, report: Buffer) {</code></div>
-                  <div class="ln lit"><span class="g">6</span><code>  await slack.files.upload({</code><span class="pill small negative lit-pill">retired</span></div>
-                  <div class="ln"><span class="g">7</span><code>    channels: channel,</code></div>
-                  <div class="ln"><span class="g">8</span><code>    file: report,</code></div>
-                  <div class="ln"><span class="g">9</span><code>    filename: 'weekly-report.csv',</code></div>
-                  <div class="ln"><span class="g">10</span><code>  });</code></div>
-                  <div class="ln"><span class="g">11</span><code>}</code></div>
-                </div>
-              </div>
-            </article>
-
-            <article class="step">
-              <h3 class="step-title">It writes the fix in a sandbox.</h3>
-              <div class="leaf leaf-diff">
-                <header class="file-row"><code>src/reports/send.ts</code><b class="push count"><span class="plus">+2</span> <span class="minus">−2</span></b></header>
-                <div class="diff">
-                  <div class="dl"><span class="g">5</span><code>export async function sendReport(channel: string, report: Buffer) {</code></div>
-                  <div class="dl del"><span class="g">6 −</span><code>  await slack.files.upload({</code></div>
-                  <div class="dl del"><span class="g">7 −</span><code>    channels: channel,</code></div>
-                  <div class="dl add"><span class="g">6 +</span><code>  await slack.files.uploadV2({</code></div>
-                  <div class="dl add"><span class="g">7 +</span><code>    channel_id: channel,</code></div>
-                  <div class="dl"><span class="g">8</span><code>    file: report,</code></div>
-                  <div class="dl"><span class="g">9</span><code>    filename: 'weekly-report.csv',</code></div>
-                  <div class="dl"><span class="g">10</span><code>  });</code></div>
-                  <div class="dl"><span class="g">11</span><code>}</code></div>
-                </div>
-              </div>
-            </article>
-
-            <article class="step">
-              <h3 class="step-title">It traces the data, then runs the tests.</h3>
-              <div class="leaf leaf-trace">
-                <header class="file-row"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M200,168a32.06,32.06,0,0,0-31,24H72a32,32,0,0,1,0-64h96a40,40,0,0,0,0-80H72a8,8,0,0,0,0,16h96a24,24,0,0,1,0,48H72a48,48,0,0,0,0,96h97a32,32,0,1,0,31-40Zm0,48a16,16,0,1,1,16-16A16,16,0,0,1,200,216Z"/></svg><b>Traced through your whole app</b><span class="pill small quiet push">4 files</span></header>
-                <ol class="trace">
-                  <li class="trace-row" style="--row:0">
-                    <i class="trace-dot"></i>
-                    <div class="trace-where"><code>channel_id: channel</code><span>src/reports/send.ts:7</span></div>
-                    <div class="trace-test"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>6 passed</div>
-                  </li>
-                  <li class="trace-row" style="--row:1">
-                    <i class="trace-dot"></i>
-                    <div class="trace-where"><code>sendReport(team.slackChannel, csv)</code><span>src/jobs/weekly.ts:22</span></div>
-                    <div class="trace-test"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>9 passed</div>
-                  </li>
-                  <li class="trace-row" style="--row:2">
-                    <i class="trace-dot"></i>
-                    <div class="trace-where"><code>team.slackChannel = body.channel</code><span>src/api/teams.ts:41</span></div>
-                    <div class="trace-test"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>14 passed</div>
-                  </li>
-                  <li class="trace-row" style="--row:3">
-                    <i class="trace-dot"></i>
-                    <div class="trace-where"><code>&lt;ChannelPicker onSave={save} /&gt;</code><span>web/settings/Slack.tsx:18</span></div>
-                    <div class="trace-test"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>12 passed</div>
-                  </li>
-                </ol>
-                <div class="bar landing"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>41 tests on this path passed</div>
-              </div>
-            </article>
-
-            <article class="step">
-              <h3 class="step-title">It runs your checks, before and after.</h3>
-              <div class="leaf leaf-checks">
-                <header class="file-row"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M208,36H48A20,20,0,0,0,28,56v56c0,54.29,26.32,87.22,48.4,105.29,23.71,19.39,47.44,26,48.44,26.29a12.1,12.1,0,0,0,6.32,0c1-.28,24.73-6.9,48.44-26.29,22.08-18.07,48.4-51,48.4-105.29V56A20,20,0,0,0,208,36Zm-4,76c0,35.71-13.09,64.69-38.91,86.15A126.28,126.28,0,0,1,128,219.38a126.14,126.14,0,0,1-37.09-21.23C65.09,176.69,52,147.71,52,112V60H204ZM79.51,144.49a12,12,0,1,1,17-17L112,143l47.51-47.52a12,12,0,0,1,17,17l-56,56a12,12,0,0,1-17,0Z"/></svg><b>Sandboxed copy</b></header>
-                <div class="checks">
-                  <div class="th">Check</div><div class="th">Before</div><div class="th">After</div>
-                  <div>Type check</div><div class="cell" style="--row:0"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>pass</div><div class="cell" style="--row:1"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>pass</div>
-                  <div>Build</div><div class="cell" style="--row:2"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>pass</div><div class="cell" style="--row:3"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>pass</div>
-                  <div>Tests</div><div class="cell" style="--row:4"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>41 passed</div><div class="cell" style="--row:5"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>41 passed</div>
-                </div>
-                <div class="bar landing"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>No new failures</div>
-              </div>
-            </article>
-
-            <article class="step">
-              <h3 class="step-title">It opens a draft pull request.</h3>
-              <div class="leaf leaf-pr">
-                <div class="pr-pills"><span class="pill quiet"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M108,64A36,36,0,1,0,60,97.94v60.12a36,36,0,1,0,24,0V97.94A36.07,36.07,0,0,0,108,64ZM72,52A12,12,0,1,1,60,64,12,12,0,0,1,72,52Zm0,152a12,12,0,1,1,12-12A12,12,0,0,1,72,204Zm140-45.94V110.63a27.81,27.81,0,0,0-8.2-19.8L173,60h19a12,12,0,0,0,0-24H144a12,12,0,0,0-12,12V96a12,12,0,0,0,24,0V77l30.83,30.83a4,4,0,0,1,1.17,2.83v47.43a36,36,0,1,0,24,0ZM200,204a12,12,0,1,1,12-12A12,12,0,0,1,200,204Z"/></svg>Draft</span><span class="pill positive flip-pill">Verified</span></div>
-                <div class="pr">
-                  <p class="pr-title">Move report uploads to files.uploadV2 <span>#12</span></p>
-                  <p class="pr-meta">refit-agent wants to merge 1 commit into main from <code>refit/slack-files-upload-v2</code></p>
-                  <ul class="pr-list">
-                    <li class="good"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>Type check, build and tests pass before and after</li>
-                    <li><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M232,48H160a40,40,0,0,0-32,16A40,40,0,0,0,96,48H24a8,8,0,0,0-8,8V200a8,8,0,0,0,8,8H96a24,24,0,0,1,24,24,8,8,0,0,0,16,0,24,24,0,0,1,24-24h72a8,8,0,0,0,8-8V56A8,8,0,0,0,232,48ZM96,192H32V64H96a24,24,0,0,1,24,24V200A39.81,39.81,0,0,0,96,192Zm128,0H160a39.81,39.81,0,0,0-24,8V88a24,24,0,0,1,24-24h64Z"/></svg>Source: Slack API changelog</li>
-                    <li class="careful"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM222.93,203.8a8.5,8.5,0,0,1-7.48,4.2H40.55a8.5,8.5,0,0,1-7.48-4.2,7.59,7.59,0,0,1,0-7.72L120.52,44.21a8.75,8.75,0,0,1,15,0l87.45,151.87A7.59,7.59,0,0,1,222.93,203.8ZM120,144V104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,180Z"/></svg>Unproven: callers that pass several channels</li>
+                <div class="install">
+                  <p class="install-title" id="install-title">Install Refit</p>
+                  <p class="install-meta" id="install-meta">Choose the repos it can read.</p>
+                  <ul class="repos" id="repos">
+                    <li class="repo" style="--row:0"><span class="repo-box"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z"/></svg></span><code>example-org/api</code></li>
+                    <li class="repo" style="--row:1"><span class="repo-box"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z"/></svg></span><code>example-org/web</code></li>
+                    <li class="repo" style="--row:2"><span class="repo-box"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z"/></svg></span><code>example-org/worker</code></li>
+                    <li class="repo is-off"><span class="repo-box"></span><code>example-org/sandbox</code></li>
                   </ul>
                 </div>
-                <div class="bar send"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M227.32,28.68a16,16,0,0,0-15.66-4.08l-.15,0L19.57,82.84a16,16,0,0,0-2.49,29.8L102,154l41.3,84.87A15.86,15.86,0,0,0,157.74,248q.69,0,1.38-.06a15.88,15.88,0,0,0,14-11.51l58.2-191.94c0-.05,0-.1,0-.15A16,16,0,0,0,227.32,28.68ZM157.83,231.85l-.05.14,0-.07-40.06-82.3,48-48a8,8,0,0,0-11.31-11.31l-48,48L24.08,98.25l-.07,0,.14,0L216,40Z"/></svg>Sending it to your coding agent</div>
               </div>
             </article>
 
             <article class="step">
-              <h3 class="step-title">The PR lands in your coding agent.</h3>
-              <div class="leaf leaf-term">
-                <header class="file-row"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,128a8,8,0,0,1-3,6.25l-40,32a8,8,0,1,1-10-12.5L107.19,128,75,102.25a8,8,0,1,1,10-12.5l40,32A8,8,0,0,1,128,128Zm48,24H136a8,8,0,0,0,0,16h40a8,8,0,0,0,0-16Zm56-96V200a16,16,0,0,1-16,16H40a16,16,0,0,1-16-16V56A16,16,0,0,1,40,40H216A16,16,0,0,1,232,56ZM216,200V56H40V200H216Z"/></svg><b>Your coding agent</b><code class="push">~/notifier</code></header>
-                <div class="term-body">
-                  <p class="line" style="--row:0">Refit opened draft PR #12: Move report uploads to files.uploadV2</p>
-                  <p class="line" style="--row:1">Slack retired files.upload, so Refit moved sendReport to files.uploadV2 and channels to channel_id. Type check, build and tests pass. Heads up: it now posts to one channel per call.</p>
-                  <p class="reply line" style="--row:2"><span>Looks good. Merge it.</span></p>
-                  <p class="line done" style="--row:3">Merged #12. Back to what you were doing.</p>
+              <h3 class="step-title">Scan what your code depends on.</h3>
+              <div class="leaf leaf-behind">
+                <header class="file-row"><b>What's behind</b><code>example-org/api</code><span class="pill small quiet push">4 found</span></header>
+                <ul class="behind">
+                  <li class="behind-row" style="--row:0">
+                    <div class="behind-what"><code>actions/upload-artifact@v3</code><span>CI action</span></div>
+                    <span class="pill small negative behind-when">Stopped Jan 30, 2025</span>
+                  </li>
+                  <li class="behind-row" style="--row:1">
+                    <div class="behind-what"><code>next@14</code><span>Framework</span></div>
+                    <span class="pill small negative behind-when">Support ended Oct 26, 2025</span>
+                  </li>
+                  <li class="behind-row" style="--row:2">
+                    <div class="behind-what"><code>claude-3-opus-20240229</code><span>AI model</span></div>
+                    <span class="pill small negative behind-when">Retired Jan 5, 2026</span>
+                  </li>
+                  <li class="behind-row" style="--row:3">
+                    <div class="behind-what"><code>node:22</code><span>Runtime</span></div>
+                    <span class="pill small quiet behind-when">Ends Apr 30, 2027</span>
+                  </li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="step">
+              <h3 class="step-title">Fix what's behind, in a sandbox.</h3>
+              <div class="leaf leaf-diff">
+                <header class="file-row"><code>Dockerfile</code><b class="push count"><span class="plus">+2</span> <span class="minus">−2</span></b></header>
+                <div class="diff">
+                  <div class="dl del"><span class="g">1 −</span><code>FROM node:22-alpine AS build</code></div>
+                  <div class="dl add"><span class="g">1 +</span><code>FROM node:24-alpine AS build</code></div>
+                  <div class="dl"><span class="g">2</span><code>WORKDIR /app</code></div>
+                  <div class="dl"><span class="g">3</span><code>COPY . .</code></div>
+                  <div class="dl"><span class="g">4</span><code>RUN npm ci &amp;&amp; npm run build</code></div>
+                  <div class="dl del"><span class="g">5 −</span><code>FROM node:22-alpine</code></div>
+                  <div class="dl add"><span class="g">5 +</span><code>FROM node:24-alpine</code></div>
+                  <div class="dl"><span class="g">6</span><code>COPY --from=build /app/dist ./dist</code></div>
+                  <div class="dl"><span class="g">7</span><code>CMD ["node", "dist/server.js"]</code></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="step">
+              <h3 class="step-title">Prove it, then open a draft PR.</h3>
+              <div class="leaf leaf-pr">
+                <div class="pr-pills"><span class="pill quiet"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M108,64A36,36,0,1,0,60,97.94v60.12a36,36,0,1,0,24,0V97.94A36.07,36.07,0,0,0,108,64ZM72,52A12,12,0,1,1,60,64,12,12,0,0,1,72,52Zm0,152a12,12,0,1,1,12-12A12,12,0,0,1,72,204Zm140-45.94V110.63a27.81,27.81,0,0,0-8.2-19.8L173,60h19a12,12,0,0,0,0-24H144a12,12,0,0,0-12,12V96a12,12,0,0,0,24,0V77l30.83,30.83a4,4,0,0,1,1.17,2.83v47.43a36,36,0,1,0,24,0ZM200,204a12,12,0,1,1,12-12A12,12,0,0,1,200,204Z"/></svg>Draft</span><span class="pill positive flip-pill">Checks pass</span></div>
+                <div class="pr">
+                  <p class="pr-title">Move api to Node.js 24 <span>#12</span></p>
+                  <p class="pr-meta">Refit wants to merge 1 commit into main from <code>refit/node-24</code></p>
+                  <div class="checks">
+                    <div class="th">Check</div><div class="th">Before</div><div class="th">After</div>
+                    <div>Type check</div><div class="cell" style="--row:0"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>pass</div><div class="cell" style="--row:1"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>pass</div>
+                    <div>Build</div><div class="cell" style="--row:2"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>pass</div><div class="cell" style="--row:3"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>pass</div>
+                    <div>Tests</div><div class="cell" style="--row:4"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>41 passed</div><div class="cell" style="--row:5"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>41 passed</div>
+                  </div>
+                  <ul class="pr-list">
+                    <li><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M232,48H160a40,40,0,0,0-32,16A40,40,0,0,0,96,48H24a8,8,0,0,0-8,8V200a8,8,0,0,0,8,8H96a24,24,0,0,1,24,24,8,8,0,0,0,16,0,24,24,0,0,1,24-24h72a8,8,0,0,0,8-8V56A8,8,0,0,0,232,48ZM96,192H32V64H96a24,24,0,0,1,24,24V200A39.81,39.81,0,0,0,96,192Zm128,0H160a39.81,39.81,0,0,0-24,8V88a24,24,0,0,1,24-24h64Z"/></svg>Source: Node.js release schedule</li>
+                    <li class="careful"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM222.93,203.8a8.5,8.5,0,0,1-7.48,4.2H40.55a8.5,8.5,0,0,1-7.48-4.2,7.59,7.59,0,0,1,0-7.72L120.52,44.21a8.75,8.75,0,0,1,15,0l87.45,151.87A7.59,7.59,0,0,1,222.93,203.8ZM120,144V104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,180Z"/></svg>Unproven: behavior under production traffic</li>
+                  </ul>
                 </div>
               </div>
             </article>
@@ -184,7 +144,7 @@
 
     <section class="closing" id="closing">
       <div class="panel closing-panel">
-        <h2 class="closing-title">Never read API docs again.</h2>
+        <h2 class="closing-title">Never fall behind again.</h2>
         <form class="waitlist" novalidate>
           <label for="email-closing">Email</label>
           <input id="email-closing" type="email" name="email" placeholder="you@company.com" autocomplete="email" aria-describedby="note-closing">

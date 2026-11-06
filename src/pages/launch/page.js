@@ -2,73 +2,87 @@ import { LOGOS } from './logos.js';
 import WORDMARK from './wordmark.txt?raw';
 import { wireWaitlistForms } from './forms';
 
+// Every entry is a real, published change. Sources are the vendors' own changelogs and release pages.
 const CHANGELOG = [
+  ['node', 'Node.js', 'Node.js 20 reached end of life', 'Security fixes stopped April 30, 2026.'],
+  [
+    'openai',
+    'OpenAI',
+    'Assistants API shut down',
+    'Ended August 26, 2026. Move to the Responses API.',
+  ],
+  [
+    'next',
+    'Next.js',
+    'Next.js 15 makes request APIs async',
+    'cookies(), headers() and params need await.',
+  ],
+  [
+    'github',
+    'GitHub Actions',
+    'upload-artifact v3 stopped working',
+    'Workflows on it fail since January 30, 2025.',
+  ],
   [
     'stripe',
     'Stripe',
     'PaymentIntent.charges removed',
     'API 2022-11-15 drops the list. Read latest_charge.',
   ],
-  [
-    'stripe',
-    'Stripe',
-    'Billing period moves to the item',
-    'Basil moves current_period_end onto subscription items.',
-  ],
-  ['stripe', 'Stripe', 'stripe-node 23', 'Major release pins a newer API version.'],
-  ['slack', 'Slack', 'files.upload retired', 'Node SDK: use files.uploadV2.'],
-  ['slack', 'Slack', 'channels.history retired', 'Use conversations.history instead.'],
-  ['twilio', 'Twilio', 'twilio 5 to 6', 'Major release of the Node helper library.'],
-  ['twilio', 'Twilio', 'Authy API end of support', 'Move verification to Verify.'],
-  ['openai', 'OpenAI', 'Assistants API sunset', 'Move to the Responses and Conversations APIs.'],
-  ['openai', 'OpenAI', 'whisper-1 deprecated', 'Move to gpt-transcribe or gpt-live-transcribe.'],
-  ['openai', 'OpenAI', 'Older snapshots shut down', 'Point chat calls at a current model.'],
-  ['shopify', 'Shopify', 'REST Admin API is legacy', 'New public apps must use GraphQL.'],
-  [
-    'shopify',
-    'Shopify',
-    'Quarterly version retired',
-    'Calls fall forward to the oldest accessible version.',
-  ],
-  ['paypal', 'PayPal', 'Payments v1 deprecated', 'Move to Orders v2 and Payments v2.'],
-  ['paypal', 'PayPal', 'Invoicing v1 deprecated', 'Move to Invoicing v2.'],
-  ['meta', 'Meta', 'Graph API v20 expired', 'Calls fall forward to the oldest usable version.'],
-  [
-    'meta',
-    'Meta',
-    'Instagram Basic Display ended',
-    'Business and creator apps move to the Instagram API.',
-  ],
-  [
-    'github',
-    'GitHub',
-    'REST version 2026-03-10',
-    'Removes deprecated fields such as has_downloads.',
-  ],
-  ['github', 'GitHub', 'Projects classic sunset', 'Use the new Projects instead.'],
-  ['google', 'Google', 'Places API legacy', 'Move to Places API (New) with field masks.'],
-  ['google', 'Google', 'Sign-In JS library deprecated', 'Move to Google Identity Services.'],
-  [
-    'salesforce',
-    'Salesforce',
-    'API versions 21 to 30 retired',
-    'Calls to old versions return errors.',
-  ],
-  [
-    'cloudflare',
-    'Cloudflare',
-    'Zone Settings Batch API deprecated',
-    'Read and edit each setting on its own.',
-  ],
+  ['numpy', 'NumPy', 'NumPy 2.0 removes np.float_', 'Use np.float64 instead.'],
   [
     'anthropic',
     'Anthropic',
-    'Older model ids retired',
-    'Requests to retired ids fail. Move to a current model.',
+    'claude-3-opus-20240229 retired',
+    'Requests fail since January 5, 2026.',
   ],
-  ['gemini', 'Gemini', 'Older models shut down', 'Move to a newer model id.'],
+  ['python', 'Python', 'Python 3.10 reached end of life', 'Support ended in October 2026.'],
+  ['react', 'React', 'React 19 removes ReactDOM.render', 'Use createRoot from react-dom/client.'],
+  [
+    'github',
+    'GitHub Actions',
+    'actions/cache v1 and v2 retired',
+    'Workflows on them fail since March 1, 2025.',
+  ],
+  ['slack', 'Slack', 'files.upload retired', 'Move to the two-step external upload methods.'],
+  ['pandas', 'pandas', 'pandas 2.0 removes DataFrame.append', 'Use pd.concat instead.'],
+  ['openai', 'OpenAI', 'gpt-4.5-preview shut down', 'Gone since July 14, 2025. Move to gpt-4.1.'],
+  [
+    'python',
+    'Python',
+    'Python 3.13 drops 19 old modules',
+    'cgi, crypt, telnetlib and others are gone.',
+  ],
+  [
+    'express',
+    'Express',
+    'Express 5 removes req.param()',
+    'Read req.params, req.body or req.query.',
+  ],
+  [
+    'github',
+    'GitHub Actions',
+    'ubuntu-20.04 runner retired',
+    'Gone since April 15, 2025. Use a newer image.',
+  ],
+  ['shopify', 'Shopify', 'REST Admin API is legacy', 'New public apps must use GraphQL.'],
+  [
+    'eslint',
+    'ESLint',
+    'ESLint 9 makes flat config the default',
+    'eslint.config.js replaces .eslintrc.',
+  ],
+  [
+    'django',
+    'Django',
+    'Django 4.0 removes url()',
+    'django.conf.urls.url() is gone. Use re_path().',
+  ],
 ];
-const SLACK_ENTRY = 3;
+// The page that rises off the wheel to become the first card. It appears once on the wheel, with its own atlas cell after the changelog's.
+const INSTALL_PAGE = 0;
+const INSTALL_CELL = CHANGELOG.length;
+const cellOf = (page) => (page === INSTALL_PAGE ? INSTALL_CELL : (page - 1) % CHANGELOG.length);
 
 const PHONE_MAX = 719;
 const STACKED_MAX = 1179;
@@ -86,15 +100,9 @@ const BEATS = [
   ['rest2', 0.6],
   ['fold3', 0.45],
   ['rest3', 0.6],
-  ['fold4', 0.45],
-  ['rest4', 0.6],
-  ['fold5', 0.45],
-  ['rest5', 0.6],
-  ['fold6', 0.45],
-  ['rest6', 0.6],
 ];
 const SPIN_TURNS = 3.5;
-const STEP_COUNT = 7;
+const STEP_COUNT = 4;
 
 const WHEEL_DESKTOP = {
   pages: 40,
@@ -130,8 +138,10 @@ const WHEEL_PHONE = {
   perspective: 900,
   front: -58,
 };
-const ATLAS_DESKTOP = { columns: 4, rows: 7, cellWidth: 880, cellHeight: 484 };
-const ATLAS_PHONE = { columns: 4, rows: 7, cellWidth: 600, cellHeight: 360 };
+const ATLAS_COLUMNS = 4;
+const ATLAS_ROWS = Math.ceil((INSTALL_CELL + 1) / ATLAS_COLUMNS);
+const ATLAS_DESKTOP = { columns: ATLAS_COLUMNS, rows: ATLAS_ROWS, cellWidth: 880, cellHeight: 484 };
+const ATLAS_PHONE = { columns: ATLAS_COLUMNS, rows: ATLAS_ROWS, cellWidth: 600, cellHeight: 360 };
 const DRAG = { mouseY: 0.35, mouseX: 0.15, touchX: 0.35, friction: 1.5, settle: 9, restSpeed: 8 };
 const PULL_LIFT = 110;
 const PULL_CENTER_LEAD = 2;
@@ -165,6 +175,7 @@ const CAPTION_FROM = 0.8;
 const INK = '#000';
 const QUIET_INK = '#6b6b6b';
 const HAIRLINE = '#e5e5e5';
+const MONOGRAM = { letters: 2, corner: 0.25, type: 0.46, baseline: 0.66 };
 
 // The logo and name as drawn on tryrefit.dev. Black and white on purpose.
 const WORDMARK_RAMP = ' .:-=+*#%@';
@@ -225,18 +236,24 @@ function wireFocusLinks() {
   }
 }
 
+function logoMarkup(key, provider) {
+  if (!LOGOS[key])
+    return `<span class="logo monogram" aria-hidden="true">${provider.slice(0, MONOGRAM.letters)}</span>`;
+  const { box, odd, paths, fills } = LOGOS[key];
+  const svg = paths
+    .map(
+      (d, index) =>
+        `<path fill="${fills[index % fills.length]}" d="${d}"${odd ? ' fill-rule="evenodd"' : ''}/>`,
+    )
+    .join('');
+  return `<span class="logo" aria-hidden="true"><svg viewBox="0 0 ${box} ${box}">${svg}</svg></span>`;
+}
+
 function fillPagesList() {
   const list = byId('pages-list');
   for (const [key, provider, title, line] of CHANGELOG) {
     const item = document.createElement('li');
-    const { box, odd, paths, fills } = LOGOS[key];
-    const svg = paths
-      .map(
-        (d, index) =>
-          `<path fill="${fills[index % fills.length]}" d="${d}"${odd ? ' fill-rule="evenodd"' : ''}/>`,
-      )
-      .join('');
-    item.innerHTML = `<span class="logo" aria-hidden="true"><svg viewBox="0 0 ${box} ${box}">${svg}</svg></span><span>${provider}</span><b>${title}</b><span>${line}</span>`;
+    item.innerHTML = `${logoMarkup(key, provider)}<span>${provider}</span><b>${title}</b><span>${line}</span>`;
     list.append(item);
   }
 }
@@ -339,6 +356,19 @@ function drawLogo(ctx, key, x, y, size) {
   ctx.restore();
 }
 
+function drawMonogram(ctx, provider, x, y, size) {
+  ctx.fillStyle = INK;
+  ctx.beginPath();
+  ctx.roundRect(x, y, size, size, size * MONOGRAM.corner);
+  ctx.fill();
+  ctx.save();
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  setFont(ctx, `600 ${size * MONOGRAM.type}px "Geist Variable"`);
+  ctx.fillText(provider.slice(0, MONOGRAM.letters), x + size / 2, y + size * MONOGRAM.baseline);
+  ctx.restore();
+}
+
 function wrapLines(ctx, text, width) {
   const lines = [];
   let line = '';
@@ -359,7 +389,8 @@ function drawChangelogPage(ctx, [key, provider, title, line], wheel) {
   const unit = wheel.width / WHEEL_DESKTOP.width;
   const margin = 24 * unit;
   const inner = wheel.width - margin * 2;
-  drawLogo(ctx, key, margin, 18 * unit, 24 * unit);
+  if (LOGOS[key]) drawLogo(ctx, key, margin, 18 * unit, 24 * unit);
+  else drawMonogram(ctx, provider, margin, 18 * unit, 24 * unit);
   ctx.fillStyle = INK;
   setFont(ctx, `500 ${16 * unit}px "Geist Variable"`);
   ctx.fillText(provider, margin + 32 * unit, 36 * unit);
@@ -388,8 +419,8 @@ function baselineIn(ctx, rect) {
   return rect.top + (rect.height - (ascent + descent)) / 2 + ascent;
 }
 
-/* The Slack page prints the same layout as the DOM leaf it turns into, measured from that leaf. */
-function drawSlackPage(ctx, leaf, wheel) {
+/* The install page prints the same layout as the DOM leaf it turns into, measured from that leaf, with its boxes still empty as they are when it arrives. */
+function drawInstallPage(ctx, leaf, wheel) {
   const base = leaf.getBoundingClientRect();
   const factor = wheel.width / base.width;
   const rectOf = (element) => {
@@ -401,66 +432,64 @@ function drawSlackPage(ctx, leaf, wheel) {
       height: rect.height * factor,
     };
   };
-  const fontOf = (element) => {
-    const style = getComputedStyle(element);
-    return [
+  const useFontOf = (style) => {
+    setFont(
+      ctx,
       `${style.fontWeight} ${parseFloat(style.fontSize) * factor}px ${style.fontFamily}`,
       (parseFloat(style.letterSpacing) || 0) * factor,
-    ];
+    );
   };
   const text = (element) => {
-    const [font, spacing] = fontOf(element);
-    setFont(ctx, font, spacing);
+    const style = getComputedStyle(element);
+    useFontOf(style);
+    ctx.fillStyle = style.color;
     const rect = rectOf(element);
     ctx.fillText(element.textContent, rect.left, baselineIn(ctx, rect));
   };
   const logo = rectOf(leaf.querySelector('.leaf-head .logo'));
-  drawLogo(ctx, 'slack', logo.left, logo.top, logo.width);
-  ctx.fillStyle = INK;
-  text(byId('change-source'));
+  drawLogo(ctx, 'github', logo.left, logo.top, logo.width);
+  text(byId('install-source'));
   const head = rectOf(leaf.querySelector('.leaf-head'));
   ctx.fillStyle = HAIRLINE;
   ctx.fillRect(0, head.top + head.height - factor, wheel.width, factor);
 
-  const pillBox = (element) => {
-    const rect = rectOf(element);
-    const style = getComputedStyle(element);
-    ctx.save();
+  const pill = byId('install-pill');
+  const pillRect = rectOf(pill);
+  const pillStyle = getComputedStyle(pill);
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(pillRect.left, pillRect.top, pillRect.width, pillRect.height, pillRect.height / 2);
+  ctx.lineWidth = Math.max(1, factor);
+  ctx.strokeStyle = HAIRLINE;
+  ctx.stroke();
+  useFontOf(pillStyle);
+  ctx.fillStyle = pillStyle.color;
+  ctx.textAlign = 'center';
+  ctx.fillText(pill.textContent, pillRect.left + pillRect.width / 2, baselineIn(ctx, pillRect));
+  ctx.restore();
+
+  text(byId('install-title'));
+  text(byId('install-meta'));
+  for (const repo of byId('repos').children) {
+    const box = repo.querySelector('.repo-box');
+    const boxRect = rectOf(box);
+    const boxStyle = getComputedStyle(box);
     ctx.beginPath();
-    ctx.roundRect(rect.left, rect.top, rect.width, rect.height, rect.height / 2);
-    if (style.boxShadow === 'none') {
-      ctx.fillStyle = style.backgroundColor;
-      ctx.fill();
-    } else {
-      ctx.lineWidth = Math.max(1, factor);
-      ctx.strokeStyle = HAIRLINE;
-      ctx.stroke();
-    }
-    const [font, spacing] = fontOf(element);
-    setFont(ctx, font, spacing);
-    ctx.fillStyle = style.color;
-    ctx.textAlign = 'center';
-    ctx.fillText(element.textContent, rect.left + rect.width / 2, baselineIn(ctx, rect));
-    ctx.restore();
-  };
-  pillBox(byId('change-pill'));
-  pillBox(byId('change-state'));
-  ctx.fillStyle = INK;
-  text(byId('change-call'));
-  const next = byId('change-next');
-  const [nextFont] = fontOf(next);
-  const [codeFont] = fontOf(next.querySelector('code'));
-  setFont(ctx, nextFont);
-  const baseline = baselineIn(ctx, rectOf(next));
-  for (const node of next.childNodes) {
-    const range = document.createRange();
-    range.selectNode(node);
-    setFont(ctx, node.nodeType === Node.TEXT_NODE ? nextFont : codeFont);
-    ctx.fillText(node.textContent, rectOf(range).left, baseline);
+    ctx.roundRect(
+      boxRect.left,
+      boxRect.top,
+      boxRect.width,
+      boxRect.height,
+      parseFloat(boxStyle.borderTopLeftRadius) * factor,
+    );
+    ctx.lineWidth = Math.max(1, factor);
+    ctx.strokeStyle = boxStyle.borderTopColor;
+    ctx.stroke();
+    text(repo.querySelector('code'));
   }
 }
 
-function paintAtlas(canvas, config, wheel, slackLeaf) {
+function paintAtlas(canvas, config, wheel, installLeaf) {
   const ctx = canvas.getContext('2d');
   canvas.width = config.columns * config.cellWidth;
   canvas.height = config.rows * config.cellHeight;
@@ -468,21 +497,26 @@ function paintAtlas(canvas, config, wheel, slackLeaf) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.textBaseline = 'alphabetic';
   const scale = config.cellWidth / wheel.width;
-  CHANGELOG.forEach((entry, index) => {
+  const printCell = (cell, draw) => {
     ctx.save();
     ctx.translate(
-      (index % config.columns) * config.cellWidth,
-      Math.floor(index / config.columns) * config.cellHeight,
+      (cell % config.columns) * config.cellWidth,
+      Math.floor(cell / config.columns) * config.cellHeight,
     );
     ctx.scale(scale, scale);
-    if (index === SLACK_ENTRY) drawSlackPage(ctx, slackLeaf, wheel);
-    else drawChangelogPage(ctx, entry, wheel);
+    // On a phone the install card runs past the wheel page's height, where the next cell starts.
+    ctx.beginPath();
+    ctx.rect(0, 0, wheel.width, wheel.height);
+    ctx.clip();
+    draw();
     ctx.restore();
-  });
+  };
+  CHANGELOG.forEach((entry, cell) => printCell(cell, () => drawChangelogPage(ctx, entry, wheel)));
+  printCell(INSTALL_CELL, () => drawInstallPage(ctx, installLeaf, wheel));
 }
 
 /* The wheel: real quads through a depth buffer, so pages sort and mirror themselves, with flat shading for depth. */
-function createWheel(canvas, slackLeaf) {
+function createWheel(canvas, installLeaf) {
   const gl = canvas.getContext('webgl2', { antialias: true, alpha: true, depth: true });
   if (!gl) return null;
   stopped.addEventListener('abort', () => gl.getExtension('WEBGL_lose_context')?.loseContext());
@@ -562,7 +596,7 @@ function createWheel(canvas, slackLeaf) {
 
   function printAtlas() {
     atlasConfig = isPhone() ? ATLAS_PHONE : ATLAS_DESKTOP;
-    paintAtlas(atlas, atlasConfig, config, slackLeaf);
+    paintAtlas(atlas, atlasConfig, config, installLeaf);
     gl.bindTexture(gl.TEXTURE_2D, texture);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, atlas);
     gl.generateMipmap(gl.TEXTURE_2D);
@@ -611,7 +645,7 @@ function createWheel(canvas, slackLeaf) {
     get config() {
       return config;
     },
-    /* Where the stopped Slack page sits, as a CSS transform's pieces for the DOM leaf that replaces it. */
+    /* Where the stopped install page sits, as a CSS transform's pieces for the DOM leaf that replaces it. */
     seatPose(leafWidth) {
       const theta = config.front;
       const model = multiply(baseMatrix(), rotateX(theta));
@@ -629,8 +663,8 @@ function createWheel(canvas, slackLeaf) {
         rim: leafWidth / config.width,
       };
     },
-    draw({ spin, exit, speed, hideSlack, settle }) {
-      const key = `${spin}|${exit}|${hideSlack}|${speed}|${settle}`;
+    draw({ spin, exit, speed, hideInstall, settle }) {
+      const key = `${spin}|${exit}|${hideInstall}|${speed}|${settle}`;
       if (key === lastKey) return;
       lastKey = key;
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -645,10 +679,9 @@ function createWheel(canvas, slackLeaf) {
       const cellWidth = 1 / atlasConfig.columns;
       const cellHeight = 1 / atlasConfig.rows;
       const reach = config.hub + config.height / 2;
-      const slackPage = SLACK_ENTRY;
       for (let page = 0; page < config.pages; page += 1) {
-        if (hideSlack && page === slackPage) continue;
-        const theta = (page - slackPage) * step + config.front + spin;
+        if (hideInstall && page === INSTALL_PAGE) continue;
+        const theta = (page - INSTALL_PAGE) * step + config.front + spin;
         const model = multiply(base, rotateX(theta));
         const centerZ = model[6] * -reach + model[14] - config.depth + config.exitDepth * exit;
         const edgeOn = 1 - Math.abs(model[10]);
@@ -667,14 +700,14 @@ function createWheel(canvas, slackLeaf) {
           config.height,
           config.hub + config.lift * closeness,
         );
-        const entry = page % CHANGELOG.length;
+        const cell = cellOf(page);
         gl.uniformMatrix4fv(uniforms.uModel, false, model);
         gl.uniform1f(uniforms.uShade, lit * WHEEL_SHADE);
         gl.uniform1f(uniforms.uFront, closeness);
         gl.uniform4f(
           uniforms.uCellRect,
-          (entry % atlasConfig.columns) * cellWidth,
-          Math.floor(entry / atlasConfig.columns) * cellHeight,
+          (cell % atlasConfig.columns) * cellWidth,
+          Math.floor(cell / atlasConfig.columns) * cellHeight,
           cellWidth,
           cellHeight,
         );
@@ -903,7 +936,7 @@ export function startLaunchPage(shadowRoot, signal) {
     const phone = isPhone();
     const stacked = innerWidth <= STACKED_MAX;
     stagePanel.style.removeProperty('--leaf-h');
-    // Text wraps on a phone, so there the tallest card sets the height all seven share.
+    // Text wraps on a phone, so there the tallest card sets the height all four share.
     if (phone)
       stagePanel.style.setProperty(
         '--leaf-h',
@@ -1137,7 +1170,7 @@ export function startLaunchPage(shadowRoot, signal) {
         spin: Math.round((spin + WHEEL_EXIT.spin * exit) * 100) / 100,
         exit: Math.round(exit * 400) / 400,
         speed: spinSpeed < 1 ? 0 : Math.round(spinSpeed),
-        hideSlack: pullAmount > 0,
+        hideInstall: pullAmount > 0,
         settle: Math.round(easeMove(progress(spinProgress, SETTLE_FROM, 1)) * 100) / 100,
       });
     }
@@ -1213,11 +1246,14 @@ export function startLaunchPage(shadowRoot, signal) {
       spinState.target =
         Math.round((spinState.target ?? spinState.offset) / step + direction) * step;
       const page =
-        (((SLACK_ENTRY - Math.round(spinState.target / step)) % wheel.config.pages) +
+        (((INSTALL_PAGE - Math.round(spinState.target / step)) % wheel.config.pages) +
           wheel.config.pages) %
         wheel.config.pages;
       wheelCanvas.setAttribute('aria-valuenow', String(page));
-      wheelCanvas.setAttribute('aria-valuetext', CHANGELOG[page % CHANGELOG.length][2]);
+      wheelCanvas.setAttribute(
+        'aria-valuetext',
+        page === INSTALL_PAGE ? byId('install-title').textContent : CHANGELOG[cellOf(page)][2],
+      );
     });
   }
 
@@ -1233,7 +1269,7 @@ export function startLaunchPage(shadowRoot, signal) {
     });
   }
 
-  /* The wheel's Slack page has to match the card at the moment it turns into it, so it is measured at that card's seat height. */
+  /* The wheel's install page has to match the card at the moment it turns into it, so it is measured at that card's seat height. */
   function printAtlas() {
     measure();
     leaves[0].style.height = `${metrics.seat.height}px`;
