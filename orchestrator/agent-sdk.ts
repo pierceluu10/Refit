@@ -4,6 +4,7 @@ import { basename, join, resolve, sep } from 'node:path';
 import { query, type CanUseTool, type SDKResultMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { Budget } from './budget.ts';
 import type { AskModel } from './match.ts';
+import { modelFor } from './models.ts';
 
 const READ_TOOLS = ['Read', 'Grep', 'Glob'];
 
@@ -60,7 +61,7 @@ export function readOnlyInRepo(repoDir: string): CanUseTool {
 // credentials when there is no ANTHROPIC_API_KEY. Cost is the SDK's own total_cost_usd estimate.
 // Given a repoDir, the agent can read the code before judging, which matters most for "not affected".
 export function agentSdk(opts: { budget: Budget; model?: string }): AskModel {
-  const model = opts.model ?? 'claude-opus-5-5';
+  const model = opts.model ?? modelFor('match');
   return async ({ system, prompt, schema, repoDir }) => {
     // The agent may spend what is free of the run cap; the SDK checks that only between turns.
     const hold = await opts.budget.reserve('an Agent SDK match run', Infinity, 0.01);

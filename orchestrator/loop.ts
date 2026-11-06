@@ -5,15 +5,30 @@ import type {
   OpenPullRequest,
   ProviderChange,
   ProviderHints,
+  RecordAudit,
   RunRecord,
   RunTask,
   WatchProvider,
 } from '../shared/types.ts';
 import { MATCH_BATCH, type MatchChanges, type MatchedTask } from './match.ts';
 import type { Queue } from './queue.ts';
+import {
+  audit,
+  buildReport,
+  externalVerdictTask,
+  scanExternal,
+  watchExternalOrg,
+  type AnyTask,
+  type ApiScan,
+  type ExternalDeps,
+  type ExternalScan,
+  type ScanItemReport,
+  type WatchExternal,
+} from './scan.ts';
+import { asMigrationTask } from './stubs-external.ts';
 
 // Stores a run in memory/. repoDir is the checkout the run read.
-export type RecordRun = (task: MigrationTask, record: RunRecord, repoDir: string) => Promise<void>;
+export type RecordRun = (task: AnyTask, record: RunRecord, repoDir: string) => Promise<void>;
 
 // RunRecord has no free-text field, so `note` carries the match agent's reasoning for a not-affected
 // verdict, or the error behind a failure. transcriptPath stays '' when no transcript exists.
@@ -31,6 +46,13 @@ export type LoopDeps = {
   recordRun: RecordRun;
   queue: Queue;
   log?: (line: string) => void;
+  // The external-change path: dependencies, their watchers, the external match agent and the
+  // upgrade harness. Without it the loop runs API changes only.
+  external?: ExternalDeps;
+  // O5's audit trail: detected, matched, not-affected and pr-opened, with evidence.
+  recordAudit?: RecordAudit;
+  // Saves the repo's "what's behind" report after a run, for the dashboard.
+  recordReport?: (report: ScanItemReport) => Promise<void>;
 };
 
 export type Org = { name: string; repos: { repo: string; dir: string }[] };
@@ -146,13 +168,16 @@ export async function runOrg(org: Org, deps: LoopDeps, opts: RunOptions = {}): P
   const log = deps.log ?? (() => {});
   const state: RunState = { costUsd: 0, errors: [] };
   const watch = watchOrg(deps, opts, state);
+  const watchExternal = deps.external && watchExternalOrg(deps.external, deps, opts, state);
   log(
     `${org.name}: ${org.repos.length} repo(s), ${Object.keys(deps.watchers).length} provider folder watcher(s)`,
   );
 
   // Repos run at once; the queue bounds the work in flight and the run budget bounds the spend.
   const perRepo = await Promise.all(
-    org.repos.map((target) => runRepo(target, watch, deps, opts, state)),
+    org.repos.map((target) =>
+      runRepo(target, watch, deps, opts, state, watchExternal || undefined),
+    ),
   );
   const records = perRepo.flat();
 
@@ -167,18 +192,155 @@ export async function runOrg(org: Org, deps: LoopDeps, opts: RunOptions = {}): P
   };
 }
 
+// The API half of one repo's scan: its usage map, and every API change as a task, a not-affected
+// verdict or a match that failed.
+export type RepoScan = {
+  usages: ApiUsage[];
+  apiChanges: ProviderChange[];
+  api: ApiScan;
+  external: ExternalScan;
+  report: ScanItemReport;
+};
+
+const emptyExternal: ExternalScan = {
+  dependencies: [],
+  surfaces: [],
+  changes: [],
+  tasks: [],
+  notAffected: [],
+  unmatched: [],
+  costUsd: 0,
+};
+
+// inventory → watch → match for one repo, API and external changes alike. Nothing runs here: the
+// result is the "what's behind" report and the tasks to attempt.
+export async function scanTarget(
+  { repo, dir }: { repo: string; dir: string },
+  watch: WatchRepo,
+  watchExternal: WatchExternal | undefined,
+  deps: LoopDeps,
+  state: RunState = { costUsd: 0, errors: [] },
+): Promise<RepoScan> {
+  const { queue } = deps;
+  const log = deps.log ?? (() => {});
+  const errorsBefore = state.errors.length;
+  const api: ApiScan = { tasks: [], notAffected: [], unmatched: [] };
+  let usages: ApiUsage[] = [];
+  let changes: ProviderChange[] = [];
+  let costUsd = 0;
+  const inventoryOk = await (async () => {
+    try {
+      usages = await queue.add(`${repo}:inventory`, () => deps.inventory(dir, repo));
+      changes = await watch(usages);
+      return true;
+    } catch (error) {
+      const failure = `inventory failed after retries: ${errorText(error)}`;
+      state.errors.push(`${repo}: ${failure}`);
+      log(`ERROR ${repo}: ${failure}`);
+      // With no usage map, the folder watchers' changes are the ones this repo is known to face.
+      changes = await watch([]);
+      api.unmatched.push(...changes.map((change) => ({ change, failure })));
+      return false;
+    }
+  })();
+
+  // The external half runs alongside the API match; it needs only the usage map.
+  const externalScan = deps.external
+    ? scanExternal({ repo, dir }, usages, changes, deps.external, watchExternal!, deps, state)
+    : Promise.resolve(emptyExternal);
+
+  if (inventoryOk) {
+    // Each batch is one match call with its own retries, so a call that keeps failing fails only its
+    // changes. Those are reported failed rather than attempted: without a match there is no ranking,
+    // and running the harness on every change (160 on 2026-11-01's dev run) spends the cap on doomed tasks.
+    const batches: ProviderChange[][] = [];
+    for (let i = 0; i < changes.length; i += MATCH_BATCH)
+      batches.push(changes.slice(i, i + MATCH_BATCH));
+    log(
+      `${repo}: ${usages.length} API usage(s), ${changes.length} provider change(s) to match in ${batches.length} call(s)`,
+    );
+    const matched = await Promise.allSettled(
+      batches.map((batch, i) =>
+        queue.add(`${repo}:match:${i + 1}`, () =>
+          deps.match({ repo, changes: batch, usages, repoDir: dir }),
+        ),
+      ),
+    );
+    matched.forEach((result, i) => {
+      const batch = batches[i];
+      if (result.status === 'rejected') {
+        const failure = `match failed after retries: ${errorText(result.reason)}`;
+        state.errors.push(`${repo}: ${failure}`);
+        log(`ERROR ${repo}: ${failure}`);
+        api.unmatched.push(...batch.map((change) => ({ change, failure })));
+        return;
+      }
+      const { tasks: found, notAffected } = result.value;
+      state.costUsd += result.value.costUsd;
+      costUsd += result.value.costUsd;
+      api.tasks.push(...found);
+      for (const change of batch.filter((c) => !found.some((t) => t.change.id === c.id))) {
+        const verdict = notAffected.find((v) => v.changeId === change.id);
+        if (verdict) {
+          api.notAffected.push({ change, reasoning: verdict.reasoning });
+          continue;
+        }
+        // A matcher that gave no verdict does not end the change: the harness judges it.
+        const notes =
+          'The match agent returned no verdict for this change. Check the repo for any use of it, then migrate or conclude not affected.';
+        api.tasks.push({
+          ...verdictTask(repo, change, usages),
+          notes,
+          reasoning: notes,
+          urgency: 'unknown',
+          callSites: [],
+        });
+      }
+    });
+    // Each call ranks its own tasks. Across calls the most urgent go first, so they reach the run
+    // budget first; the sort is stable, so each call's own order holds within an urgency.
+    if (batches.length > 1) api.tasks.sort((a, b) => urgencyRank(a) - urgencyRank(b));
+    api.tasks.forEach((task, i) => (task.priority = i + 1));
+  }
+
+  const external = await externalScan;
+  costUsd += external.costUsd;
+  const report = buildReport(
+    repo,
+    api,
+    external,
+    usages,
+    costUsd,
+    state.errors.slice(errorsBefore),
+  );
+  for (const item of report.items)
+    await audit(deps, state, {
+      repo,
+      changeId: item.change.id,
+      action: 'detected',
+      evidence: [`${item.change.source.url}: ${item.change.source.quote}`],
+    });
+  return { usages, apiChanges: changes, api, external, report };
+}
+
 // Every change ends as an attempted task or a recorded verdict for this repo; nothing ends silently.
 export async function runRepo(
-  { repo, dir }: { repo: string; dir: string },
+  target: { repo: string; dir: string },
   watch: WatchRepo,
   deps: LoopDeps,
   opts: RunOptions = {},
   state: RunState = { costUsd: 0, errors: [] },
+  watchExternal?: WatchExternal,
 ): Promise<LoopRecord[]> {
+  const { repo, dir } = target;
   const { queue } = deps;
   const log = deps.log ?? (() => {});
+  const external =
+    deps.external && (watchExternal ?? watchExternalOrg(deps.external, deps, opts, state));
+  const scan = await scanTarget(target, watch, external || undefined, deps, state);
+  const { usages } = scan;
 
-  async function finish(task: MigrationTask, result: LoopRecord): Promise<LoopRecord> {
+  async function finish(task: AnyTask, result: LoopRecord): Promise<LoopRecord> {
     try {
       await queue.add(`${task.id}:record`, () => deps.recordRun(task, result, dir));
     } catch (error) {
@@ -189,82 +351,55 @@ export async function runRepo(
     return result;
   }
 
-  let usages: ApiUsage[] = [];
-  let changes: ProviderChange[];
-  const notAttempted = (batch: ProviderChange[], failure: string) =>
-    batch.map((change) => {
-      const task = verdictTask(repo, change, usages);
-      return finish(task, record(task.id, 'failed', `not attempted: ${failure}`));
-    });
-  try {
-    usages = await queue.add(`${repo}:inventory`, () => deps.inventory(dir, repo));
-    changes = await watch(usages);
-  } catch (error) {
-    const failure = `inventory failed after retries: ${errorText(error)}`;
-    state.errors.push(`${repo}: ${failure}`);
-    log(`ERROR ${repo}: ${failure}`);
-    // With no usage map, the folder watchers' changes are the ones this repo is known to face.
-    return Promise.all(notAttempted(await watch([]), failure));
-  }
-
-  // Each batch is one match call with its own retries, so a call that keeps failing fails only its
-  // changes. Those are reported failed rather than attempted: without a match there is no ranking,
-  // and running the harness on every change (160 on 2026-11-01's dev run) spends the cap on doomed tasks.
-  const batches: ProviderChange[][] = [];
-  for (let i = 0; i < changes.length; i += MATCH_BATCH)
-    batches.push(changes.slice(i, i + MATCH_BATCH));
-  log(
-    `${repo}: ${usages.length} API usage(s), ${changes.length} provider change(s) to match in ${batches.length} call(s)`,
-  );
-  const matched = await Promise.allSettled(
-    batches.map((batch, i) =>
-      queue.add(`${repo}:match:${i + 1}`, () =>
-        deps.match({ repo, changes: batch, usages, repoDir: dir }),
-      ),
-    ),
-  );
-
-  const tasks: MatchedTask[] = [];
   const verdicts: Promise<LoopRecord>[] = [];
-  matched.forEach((result, i) => {
-    const batch = batches[i];
-    if (result.status === 'rejected') {
-      const failure = `match failed after retries: ${errorText(result.reason)}`;
-      state.errors.push(`${repo}: ${failure}`);
-      log(`ERROR ${repo}: ${failure}`);
-      verdicts.push(...notAttempted(batch, failure));
-      return;
-    }
-    const { tasks: found, notAffected, costUsd } = result.value;
-    state.costUsd += costUsd;
-    tasks.push(...found);
-    for (const change of batch.filter((c) => !found.some((t) => t.change.id === c.id))) {
-      const verdict = notAffected.find((v) => v.changeId === change.id);
-      if (verdict) {
-        const task = verdictTask(repo, change, usages);
-        verdicts.push(finish(task, record(task.id, 'not-affected', verdict.reasoning)));
-        continue;
-      }
-      // A matcher that gave no verdict does not end the change: the harness judges it.
-      const notes =
-        'The match agent returned no verdict for this change. Check the repo for any use of it, then migrate or conclude not affected.';
-      tasks.push({
-        ...verdictTask(repo, change, usages),
-        notes,
-        reasoning: notes,
-        urgency: 'unknown',
-        callSites: [],
-      });
-    }
-  });
-  // Each call ranks its own tasks. Across calls the most urgent go first, so they reach the run
-  // budget first; the sort is stable, so each call's own order holds within an urgency.
-  if (batches.length > 1) tasks.sort((a, b) => urgencyRank(a) - urgencyRank(b));
-  tasks.forEach((task, i) => (task.priority = i + 1));
+  for (const { change, failure } of scan.api.unmatched) {
+    const task = verdictTask(repo, change, usages);
+    verdicts.push(finish(task, record(task.id, 'failed', `not attempted: ${failure}`)));
+  }
+  for (const { change, reasoning } of scan.api.notAffected) {
+    const task = verdictTask(repo, change, usages);
+    verdicts.push(
+      audit(deps, state, {
+        repo,
+        changeId: change.id,
+        action: 'not-affected',
+        evidence: [reasoning],
+      }).then(() => finish(task, record(task.id, 'not-affected', reasoning))),
+    );
+  }
+  for (const { change, failure } of scan.external.unmatched) {
+    const task = externalVerdictTask(repo, change, scan.external.dependencies);
+    verdicts.push(finish(task, record(task.id, 'failed', `not attempted: ${failure}`)));
+  }
+  for (const { change, reasoning } of scan.external.notAffected) {
+    const task = externalVerdictTask(repo, change, scan.external.dependencies);
+    verdicts.push(
+      audit(deps, state, {
+        repo,
+        changeId: change.id,
+        action: 'not-affected',
+        evidence: [reasoning],
+      }).then(() => finish(task, record(task.id, 'not-affected', reasoning))),
+    );
+  }
 
   const capReached = () => opts.capUsd !== undefined && state.costUsd >= opts.capUsd;
 
-  async function attempt(task: MatchedTask): Promise<LoopRecord> {
+  // One attempt, for an API task (runTask) or an external one (runExternalTask), then its PR.
+  async function attempt(
+    task: AnyTask,
+    prTask: MigrationTask,
+    run: () => Promise<RunRecord>,
+    alsoResolves: string[] = [],
+  ): Promise<LoopRecord> {
+    await audit(deps, state, {
+      repo,
+      changeId: task.change.id,
+      action: 'matched',
+      evidence: [task.notes ?? '', ...alsoResolves.map((id) => `also resolves ${id}`)].filter(
+        Boolean,
+      ),
+    });
     let result: LoopRecord;
     try {
       result = await queue.add(task.id, async () =>
@@ -274,8 +409,8 @@ export async function runRepo(
               'failed',
               `run budget reached before this task: $${state.costUsd.toFixed(4)} spent of the $${opts.capUsd} cap`,
             )
-          : // runTask hands the repo to the harness, which runs repo code only in its sandbox, never on this host.
-            deps.runTask(task, dir),
+          : // The harness runs repo code only in its sandbox, never on this host.
+            run(),
       );
     } catch (error) {
       result = record(task.id, 'failed', `runTask failed after retries: ${errorText(error)}`);
@@ -286,8 +421,16 @@ export async function runRepo(
     if (shippable && result.diff && !opts.dryRun) {
       const ready = result;
       try {
-        const pr = await queue.add(`${task.id}:pr`, () => deps.openPullRequest(task, ready, dir));
+        const pr = await queue.add(`${task.id}:pr`, () => deps.openPullRequest(prTask, ready, dir));
         result = { ...ready, pr };
+        for (const changeId of [task.change.id, ...alsoResolves])
+          await audit(deps, state, {
+            repo,
+            changeId,
+            action: 'pr-opened',
+            pr,
+            evidence: ready.checks.map((c) => `${c.name}: before ${c.before}; after ${c.after}`),
+          });
       } catch (error) {
         result = {
           ...ready,
@@ -299,5 +442,33 @@ export async function runRepo(
     return finish(task, result);
   }
 
-  return Promise.all([...verdicts, ...tasks.map(attempt)]);
+  const apiAttempts = scan.api.tasks.map((task) =>
+    attempt(task, task, () => deps.runTask(task, dir)),
+  );
+  const externalAttempts = scan.external.tasks.map((task) =>
+    attempt(
+      task,
+      // The PR opener takes the API task shape; the external change and its declarations ride along.
+      { ...asMigrationTask(task), dependencies: task.dependencies } as MigrationTask,
+      () => deps.external!.runExternalTask(task, dir),
+      task.alsoResolves.map((a) => a.changeId),
+    ),
+  );
+  const records = await Promise.all([...verdicts, ...apiAttempts, ...externalAttempts]);
+
+  if (deps.recordReport) {
+    // The report as it stands after the run: rows whose task opened a PR are pr-open.
+    const prs = new Map(records.flatMap((r) => (r.pr ? [[r.taskId, r.pr] as const] : [])));
+    const items = scan.report.items.map((item) =>
+      item.taskId && prs.has(item.taskId)
+        ? { ...item, status: 'pr-open' as const, pr: prs.get(item.taskId) }
+        : item,
+    );
+    try {
+      await deps.recordReport({ ...scan.report, items });
+    } catch (error) {
+      state.errors.push(`saving the ${repo} report failed: ${errorText(error)}`);
+    }
+  }
+  return records;
 }

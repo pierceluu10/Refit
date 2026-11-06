@@ -1,8 +1,9 @@
-// The orchestrator's entry point for the GitHub App: the whole loop on one checked-out repo.
-import type { RunRepoJob } from '../shared/types.ts';
-import { createBudget } from './budget.ts';
+// The orchestrator's entry points: runRepoJob for the GitHub App, scanRepo for the "what's behind" report.
+import type { ExternalTask, RunRepoJob, ScanRepo } from '../shared/types.ts';
+import { createBudget, type Budget } from './budget.ts';
 import { createDeps } from './deps.ts';
-import { runOrg, type LoopDeps } from './loop.ts';
+import { runOrg, scanTarget, watchOrg, type LoopDeps, type RunState } from './loop.ts';
+import { apiAsExternalTask, watchExternalOrg, type ScanItemReport } from './scan.ts';
 
 // inventory → watch → match → harness → the caller's PR opener → record, for one repo.
 export function createRunRepoJob(
@@ -22,14 +23,52 @@ export function createRunRepoJob(
   };
 }
 
-let shared: RunRepoJob | undefined;
+// inventory → watch → match for one repo, with nothing attempted: the report, and every task in one
+// shape (API tasks carry dependencyKind 'api'), most urgent first.
+export function createScanRepo(
+  deps: Omit<LoopDeps, 'openPullRequest'>,
+): (...args: Parameters<ScanRepo>) => Promise<{ report: ScanItemReport; tasks: ExternalTask[] }> {
+  return async (repo, dir) => {
+    const state: RunState = { costUsd: 0, errors: [] };
+    const full: LoopDeps = { ...deps, openPullRequest: async () => '' };
+    const watch = watchOrg(full, {}, state);
+    const watchExternal = deps.external && watchExternalOrg(deps.external, deps, {}, state);
+    const scan = await scanTarget({ repo, dir }, watch, watchExternal || undefined, full, state);
+    const byId = new Map<string, ExternalTask>([
+      ...scan.external.tasks.map((t) => [t.id, t] as const),
+      ...scan.api.tasks.map((t) => [t.id, apiAsExternalTask(t)] as const),
+    ]);
+    // The report's rows are already ranked; the tasks follow them.
+    const order = [...new Set(scan.report.items.flatMap((i) => (i.taskId ? [i.taskId] : [])))];
+    const tasks = order.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
+    tasks.forEach((task, i) => (task.priority = i + 1));
+    return { report: scan.report, tasks };
+  };
+}
+
+let shared: { deps: Omit<LoopDeps, 'openPullRequest'>; budget?: Budget } | undefined;
 
 // Every job in this process shares one run budget (REFIT_AI_BUDGET_USD) and one queue, so jobs
 // the app runs at once can never each spend the cap. Without ANTHROPIC_API_KEY, offline stubs stand in.
-export const runRepoJob: RunRepoJob = (input) => {
+function sharedDeps() {
   if (!shared) {
     const budget = process.env.ANTHROPIC_API_KEY ? createBudget() : undefined;
-    shared = createRunRepoJob(createDeps({ budget }), budget?.capUsd);
+    shared = { deps: createDeps({ budget }), budget };
   }
-  return shared(input);
+  return shared;
+}
+
+let job: RunRepoJob | undefined;
+export const runRepoJob: RunRepoJob = (input) => {
+  if (!job) {
+    const { deps, budget } = sharedDeps();
+    job = createRunRepoJob(deps, budget?.capUsd);
+  }
+  return job(input);
+};
+
+let scanner: ReturnType<typeof createScanRepo> | undefined;
+export const scanRepo: ScanRepo = (repo, dir) => {
+  scanner ??= createScanRepo(sharedDeps().deps);
+  return scanner(repo, dir);
 };

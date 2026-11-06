@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import type { ApiUsage, MigrationTask, ProviderChange } from '../shared/types.ts';
 import { costOf, worstCaseUsd, type Budget } from './budget.ts';
+import { modelFor } from './models.ts';
 
 // A task plus the agent's reasoning: which call sites, why, and how urgent.
 export type MatchedTask = MigrationTask & {
@@ -151,7 +152,7 @@ export function messagesApi(opts: {
   budget: Budget;
   model?: string;
 }): AskModel {
-  const model = opts.model ?? 'claude-opus-5-5';
+  const model = opts.model ?? modelFor('match');
   return async ({ system, prompt, schema }) => {
     // No silent SDK retries: each try is one request against one hold, and the queue retries.
     const client = opts.client ?? new Anthropic({ maxRetries: 0 });

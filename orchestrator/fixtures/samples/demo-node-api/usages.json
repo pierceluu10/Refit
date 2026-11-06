@@ -1,0 +1,17 @@
+[
+  {
+    "repo": "demo-node-api",
+    "provider": "openai",
+    "via": "sdk",
+    "sdk": { "name": "openai", "version": "4.20.0" },
+    "callSites": [
+      {
+        "file": "src/reply.js",
+        "line": 7,
+        "operation": "chat.completions.create",
+        "fields": ["model", "messages"],
+        "notes": "(illustrative) model: 'gpt-4-0613'"
+      }
+    ]
+  }
+]

@@ -1,0 +1,17 @@
+[
+  {
+    "repo": "demo-python-app",
+    "provider": "stripe",
+    "via": "sdk",
+    "sdk": { "name": "stripe", "version": "5.5.0" },
+    "callSites": [
+      {
+        "file": "app/pay.py",
+        "line": 6,
+        "operation": "Charge.create",
+        "fields": ["amount", "currency", "source"],
+        "notes": "(illustrative) charges a card token passed as source"
+      }
+    ]
+  }
+]
