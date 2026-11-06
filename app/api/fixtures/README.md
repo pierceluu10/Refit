@@ -1,0 +1,2 @@
+`pulls.list.json` was recorded with `gh api 'repos/pierceluu10/Refit/pulls?state=closed&per_page=2'` on 2026-11-05, then trimmed to the fields kept here; state, draft, base ref and timestamps are as recorded.
+Replaced with fictional values: org and repo (`refit-example-org/billing-api`), logins, ids, numbers, shas, titles, bodies, and the head refs (one set to a `refit/` branch, the other a human branch).

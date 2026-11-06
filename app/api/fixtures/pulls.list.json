@@ -1,0 +1,100 @@
+[
+  {
+    "url": "https://api.github.com/repos/refit-example-org/billing-api/pulls/41",
+    "id": 7000,
+    "html_url": "https://github.com/refit-example-org/billing-api/pull/41",
+    "number": 41,
+    "state": "closed",
+    "locked": false,
+    "title": "Upgrade Next.js to 16",
+    "user": {
+      "login": "example-maintainer",
+      "id": 8000,
+      "type": "User",
+      "site_admin": false
+    },
+    "body": "Illustrative body: upgrades the fictional billing-api to Next.js 16.",
+    "created_at": "2026-11-03T05:20:14Z",
+    "updated_at": "2026-11-03T08:29:19Z",
+    "closed_at": "2026-11-03T08:29:19Z",
+    "merged_at": "2026-11-03T08:29:19Z",
+    "draft": false,
+    "head": {
+      "label": "refit-example-org:refit/next-16-upgrade",
+      "ref": "refit/next-16-upgrade",
+      "sha": "1111111111111111111111111111111111111111",
+      "repo": {
+        "id": 9000,
+        "name": "billing-api",
+        "full_name": "refit-example-org/billing-api",
+        "private": true,
+        "html_url": "https://github.com/refit-example-org/billing-api",
+        "default_branch": "main"
+      }
+    },
+    "base": {
+      "label": "refit-example-org:main",
+      "ref": "main",
+      "sha": "cccccccccccccccccccccccccccccccccccccccc",
+      "repo": {
+        "id": 9000,
+        "name": "billing-api",
+        "full_name": "refit-example-org/billing-api",
+        "private": true,
+        "html_url": "https://github.com/refit-example-org/billing-api",
+        "default_branch": "main"
+      }
+    },
+    "author_association": "MEMBER",
+    "auto_merge": null
+  },
+  {
+    "url": "https://api.github.com/repos/refit-example-org/billing-api/pulls/40",
+    "id": 7001,
+    "html_url": "https://github.com/refit-example-org/billing-api/pull/40",
+    "number": 40,
+    "state": "closed",
+    "locked": false,
+    "title": "Add invoice export",
+    "user": {
+      "login": "example-maintainer",
+      "id": 8000,
+      "type": "User",
+      "site_admin": false
+    },
+    "body": "Illustrative body: a person adds an invoice export.",
+    "created_at": "2026-11-03T05:19:12Z",
+    "updated_at": "2026-11-03T08:29:24Z",
+    "closed_at": "2026-11-03T08:29:24Z",
+    "merged_at": "2026-11-03T08:29:24Z",
+    "draft": false,
+    "head": {
+      "label": "refit-example-org:add-invoice-export",
+      "ref": "add-invoice-export",
+      "sha": "2222222222222222222222222222222222222222",
+      "repo": {
+        "id": 9000,
+        "name": "billing-api",
+        "full_name": "refit-example-org/billing-api",
+        "private": true,
+        "html_url": "https://github.com/refit-example-org/billing-api",
+        "default_branch": "main"
+      }
+    },
+    "base": {
+      "label": "refit-example-org:main",
+      "ref": "main",
+      "sha": "cccccccccccccccccccccccccccccccccccccccc",
+      "repo": {
+        "id": 9000,
+        "name": "billing-api",
+        "full_name": "refit-example-org/billing-api",
+        "private": true,
+        "html_url": "https://github.com/refit-example-org/billing-api",
+        "default_branch": "main"
+      }
+    },
+    "author_association": "MEMBER",
+    "auto_merge": null
+  }
+]
