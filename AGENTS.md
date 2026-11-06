@@ -1,22 +1,25 @@
 # Agent guide
 
-This repository holds Refit: a GitHub App that reads an organization's codebases, understands which external APIs they use, watches those APIs for changes, migrates the affected code, proves the migration works and opens a PR. It was briefly renamed Aptitude on 2026-11-01 and went back to Refit on 2026-11-05. The old deterministic engine stays in git history; don't port it back. `REFIT-PLAN.md` is the plan.
+This repository holds Refit: a GitHub App that reads an organization's codebases, understands which external APIs they use, watches those APIs for changes, migrates the affected code, proves the migration works and opens a PR. It was briefly renamed Aptitude on 2026-11-01 and went back to Refit on 2026-11-05. The old deterministic engine stays in git history. Its data may be reused, but not its design. `REFIT-PLAN.md` is the plan.
 
-## AI-first: the rule above all others
+## The rule above all others
 
-An AI agent does the understanding, deciding and editing. Code exists to give it tools, context and a way to check its work.
+Plain code decides what to look at. AI fixes anything new, and proven fixes become plain code. Plain code never decides that something can't be fixed.
 
-- Let the model read and reason: reading code, understanding API usage, reading changelogs, deciding whether a change matters, planning and editing.
-- Parsers, scanners, validators and codemods are tools the agent may call to go faster or check itself. Never gates.
-- Every task ends in a PR or a "not affected" verdict, with an honest note on what's unproven. Never a silent stop.
-- Guidance lives in prompts, playbooks and memory, not in `if` statements.
+An AI agent does the understanding and editing of anything new. Code finds the work, compares it against what's known, checks the result, and runs fixes that have been proven.
+
+- Let the model read and reason: reading changelogs once per source, settling matches plain code finds unclear, planning and editing fixes.
+- Parsers, scanners and comparisons may decide whether a repo needs work. A repo with no match has no task and stops at about $0. Validators and rescans prove the result. Once something matches, a fix is always attempted.
+- Every task ends in a PR, a "not affected" verdict, or "couldn't fix" with a short report, with an honest note on what's unproven. Never a silent stop.
+- Guidance lives in prompts, playbooks and memory. Fixes proven by merged PRs may live as plain code. If one fails on a repo, AI takes over, so a proven fix can never block an attempt.
 - When the agent is unsure, it tries anyway and says so in the PR.
 
 Reject these in review:
 
-- a hand-written rule that decides whether a repo, file or change is "supported";
-- any branch that ends a task without an attempt (`stop`, `refuse`, `skip`, "separate reviewed change");
-- a fixed list of patterns as the only way to find API usage;
+- a hand-written rule that decides whether a repo, file or change can be fixed or is "supported";
+- any branch that ends a matched task without an attempt (`stop`, `refuse`, `skip`, "separate reviewed change");
+- a fixed list as the only way to find API usage. The unlisted-provider queue and the AI sweep keep the list from being the only way to find things, and neither may be removed;
+- treating an unlisted provider as "nothing to do";
 - AI calls shaped as "answer yes or no, decline if unsure";
 - "cautious" defaults that make the agent do less.
 
