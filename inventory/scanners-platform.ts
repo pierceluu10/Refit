@@ -2,7 +2,8 @@
 // scanners.ts they return raw signals with file and 1-based line numbers and never decide what
 // matters; the agent reads the lines they point to.
 import path from 'node:path';
-import { listFiles } from './repo-files.ts';
+import { grepLines, listFiles } from './repo-files.ts';
+import type { LineMatch } from './repo-files.ts';
 import { lineMatch, readLines } from './scanners.ts';
 import type { VersionSignal } from './scanners.ts';
 
@@ -388,4 +389,21 @@ export async function findCiVersions(
     signals: await scanFiles(repoDir, files, (file) => CI_FILE.test(file), ciSignals),
     otherCiFiles: files.filter((file) => OTHER_CI_FILE.test(file)),
   };
+}
+
+// ---- Setup files ----
+
+const SETUP_FILE =
+  /(?:^|\/)(?:GNUmakefile|Makefile|[Jj]ustfile|Taskfile\.ya?ml|Procfile|Brewfile|Vagrantfile|tox\.ini|noxfile\.py|\.?mise\.toml|(?:flake|shell)\.nix|README[^/]*|CONTRIBUTING[^/]*|[^/]+\.(?:sh|bash|tf|mk))$|(?:^|\/)(?:scripts|bin|\.devcontainer|infra|deploy)\/[^/]+$/;
+// shortcut: only common install commands and versioned URLs, widen when a real repo shows a miss.
+const INSTALLS_A_VERSION =
+  /\b(?:nvm (?:install|use)|pyenv (?:install|local|global)|asdf (?:install|local|global)|python\d\.\d+|pip\d\.\d+|node[-@ ]v?\d+|apt(?:-get)? install|apk add|brew install|(?:yum|dnf) install)\b|https?:\/\/\S*\d+\.\d+/i;
+
+// Files that set versions in ways no parser reads, so the agent reads them itself.
+export async function findSetupFiles(
+  repoDir: string,
+): Promise<{ files: string[]; versionLines: LineMatch[] }> {
+  const files = (await listFiles(repoDir)).filter((file) => SETUP_FILE.test(file));
+  const { matches } = await grepLines(repoDir, INSTALLS_A_VERSION, { files });
+  return { files, versionLines: matches };
 }

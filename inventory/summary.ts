@@ -45,7 +45,8 @@ export function summarizeDependencies(
   if (dependencies.length === 0) return `${repo}: no dependencies were recorded.${incomplete}`;
   const byKind = new Map<string, string[]>();
   for (const { kind, name, version, package: owner, declaredIn } of dependencies) {
-    const label = [name, version, owner && `in ${owner}`, `(${places(declaredIn.length)})`];
+    const shownVersion = version && !name.includes(version) ? version : undefined;
+    const label = [name, shownVersion, owner && `in ${owner}`, `(${places(declaredIn.length)})`];
     byKind.set(kind, [...(byKind.get(kind) ?? []), label.filter(Boolean).join(' ')]);
   }
   const lines = [...byKind].map(([kind, entries]) => `${kind}: ${entries.join(', ')}`);

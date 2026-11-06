@@ -4,7 +4,12 @@ import { z } from 'zod';
 import type { DependencyCollector, DependencyEntry } from './dependency-collector.ts';
 import { findDirectDependencies } from './scanners-libraries.ts';
 import { findAiModels } from './scanners-models.ts';
-import { findCiVersions, findContainerImages, findRuntimeVersions } from './scanners-platform.ts';
+import {
+  findCiVersions,
+  findContainerImages,
+  findRuntimeVersions,
+  findSetupFiles,
+} from './scanners-platform.ts';
 import { callSiteSchema, hintsSchema, json } from './tools.ts';
 import type { InventoryTool } from './tools.ts';
 
@@ -82,6 +87,13 @@ export function dependencyScanTools(repoDir: string): InventoryTool[] {
         'Find GitHub Actions versions, runner images, setup-action versions and matrix values, and list other CI files to read. Leads only.',
       shape: {},
       run: async () => json(await findCiVersions(repoDir)),
+    },
+    {
+      name: 'find_setup_files',
+      description:
+        'List build, setup and script files no parser reads (Makefile, shell scripts, tox.ini, README...), and lines in them that install or pin something at a version. Read these files yourself.',
+      shape: {},
+      run: async () => json(await findSetupFiles(repoDir)),
     },
     {
       name: 'find_direct_dependencies',

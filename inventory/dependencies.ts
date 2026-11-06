@@ -11,6 +11,7 @@ import { DependencyCollector } from './dependency-collector.ts';
 import { mergeApiUsages } from './dependency-merge.ts';
 import type { DependencyFinding } from './dependency-merge.ts';
 import { dependencyRecordTools, dependencyScanTools } from './dependency-tools.ts';
+import { mergeHints } from './hints.ts';
 import {
   DEPENDENCY_AREA_READER_DESCRIPTION,
   DEPENDENCY_AREA_READER_PROMPT,
@@ -24,6 +25,10 @@ import { readTools, recordTools } from './tools.ts';
 export const DEFAULT_DEPENDENCY_RUN_CAP_USD = 1.2;
 // Computed so typecheck and bundling accept it before P5's module lands on this branch.
 const SURFACES_MODULE = './surfaces/index.ts';
+const REGISTRY_ECOSYSTEMS = new Set(['npm', 'pypi']);
+const GITHUB_ACTIONS_ECOSYSTEM = 'github-actions';
+// owner/repo at the start of an action or reusable workflow; local ./ paths and docker:// don't match.
+const GITHUB_ACTION_REPOSITORY = /^(\w[\w.-]*\/[\w.-]+)/;
 
 export type DependencyOptions = InventoryOptions & { surfaces?: InventorySurfaces };
 
@@ -58,9 +63,24 @@ async function surfacesOf(
   try {
     return await (surfaces ?? (await loadSurfaces()))(repoDir, repo);
   } catch (error) {
-    errors.push(`Platform and regulated surfaces were not read: ${(error as Error).message}`);
+    // Node's message for a missing module holds this machine's paths; errors reach the dashboard.
+    const missing = (error as NodeJS.ErrnoException).code === 'ERR_MODULE_NOT_FOUND';
+    const reason = missing ? 'inventory/surfaces is not available' : (error as Error).message;
+    errors.push(`Platform and regulated surfaces were not read: ${reason}`);
     return [];
   }
+}
+
+// What a name alone tells a watcher, for entries where the agent left hints out. The agent's hints stay.
+function withDerivedHints(finding: DependencyFinding): DependencyFinding {
+  const ecosystem = finding.ecosystem?.toLowerCase() ?? '';
+  const action =
+    ecosystem === GITHUB_ACTIONS_ECOSYSTEM ? GITHUB_ACTION_REPOSITORY.exec(finding.name)?.[1] : '';
+  const hints = mergeHints(finding.hints, {
+    ...(REGISTRY_ECOSYSTEMS.has(ecosystem) ? { packages: [finding.name] } : {}),
+    ...(action ? { docsUrls: [`https://github.com/${action}`] } : {}),
+  });
+  return hints ? { ...finding, hints } : finding;
 }
 
 export async function runDependencyInventory(
@@ -97,7 +117,7 @@ export async function runDependencyInventory(
     ...mergeApiUsages(
       dependencyCollector.list().map(({ dependency }) => dependency),
       usages,
-    ),
+    ).map(withDerivedHints),
     ...(await surfacesOf(repoDir, repo, options.surfaces, errors)),
   ];
 

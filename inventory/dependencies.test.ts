@@ -199,6 +199,37 @@ describe('runDependencyInventory with a fake model', () => {
     expect(roots.map((dependency) => dependency.package)).toEqual(['apps/web', undefined]);
   });
 
+  it('derives hints a name already implies, and keeps what the agent recorded', async () => {
+    const place = [{ file: '.nvmrc', line: 1 }];
+    const { report } = await run(DEMO_NODE_API, [
+      record(
+        { kind: 'library', name: 'express', ecosystem: 'npm', declaredIn: place },
+        {
+          kind: 'library',
+          name: 'flask',
+          ecosystem: 'PyPI',
+          declaredIn: place,
+          hints: { docsUrls: ['https://github.com/pallets/flask'] },
+        },
+        { kind: 'ci', name: 'actions/checkout', ecosystem: 'github-actions', declaredIn: place },
+        {
+          kind: 'ci',
+          name: './.github/actions/deploy',
+          ecosystem: 'github-actions',
+          declaredIn: place,
+        },
+        { kind: 'runtime', name: 'node', declaredIn: place },
+      ),
+    ]);
+    expect(report.dependencies.map((dependency) => dependency.hints)).toEqual([
+      { packages: ['express'] },
+      { packages: ['flask'], docsUrls: ['https://github.com/pallets/flask'] },
+      { docsUrls: ['https://github.com/actions/checkout'] },
+      undefined,
+      undefined,
+    ]);
+  });
+
   it('gives the scanners to the agent, reading real leads from each sample repo', async () => {
     const scanners: ScriptedCall[] = [
       'find_runtime_versions',
@@ -345,8 +376,9 @@ describe('scannerGap', () => {
   it('separates what the agent found alone from what scanners pointed at', async () => {
     const repoDir = await repoWith({
       '.nvmrc': '18\n',
-      Makefile: 'install:\n\tcurl -fsSL https://nodejs.org/dist/v16.20.0/node.tar.gz | tar x\n',
-      'README.md': 'Needs Node 18.\n',
+      'ops/pins.txt': 'release\nnode sixteen\n',
+      'docs/runtime.txt': 'Needs Node 18.\n',
+      'src/tag.js': "load('https://analytics.example.org/tag.js');\n",
     });
     const gap = await scannerGap(repoDir, [
       {
@@ -356,7 +388,7 @@ describe('scannerGap', () => {
         version: '18',
         declaredIn: [
           { file: '.nvmrc', line: 1 },
-          { file: 'README.md', line: 1 },
+          { file: 'docs/runtime.txt', line: 1 },
         ],
       },
       {
@@ -364,11 +396,19 @@ describe('scannerGap', () => {
         kind: 'runtime',
         name: 'node',
         version: '16',
-        declaredIn: [{ file: 'Makefile', line: 2 }],
+        declaredIn: [{ file: 'ops/pins.txt', line: 2 }],
+      },
+      {
+        repo: 'a/b',
+        kind: 'api',
+        name: 'analytics.example.org',
+        declaredIn: [],
+        callSites: [{ file: 'src/tag.js', line: 1, operation: 'script' }],
       },
     ]);
+    // The HTTP scanner saw the analytics host, so that one isn't the agent's alone.
     expect(gap.findings).toEqual([{ kind: 'runtime', name: 'node', version: '16' }]);
-    expect(gap.declarations.map(({ file }) => file)).toEqual(['README.md', 'Makefile']);
+    expect(gap.declarations.map(({ file }) => file)).toEqual(['docs/runtime.txt', 'ops/pins.txt']);
     expect(gap.unusedSignals).toEqual([]);
   });
 });

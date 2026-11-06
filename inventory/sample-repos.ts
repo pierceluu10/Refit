@@ -631,6 +631,27 @@ def summarize(text):
         messages=[{"role": "user", "content": text}],
     )
 `,
+  // These three have declarations no scanner knows how to read.
+  Makefile: `setup:
+\tnvm install 16.20.2
+\tpython3.8 -m venv .venv
+`,
+  'scripts/lint-dockerfiles.sh': `#!/bin/sh
+curl -fsSL -o hadolint https://github.com/hadolint/hadolint/releases/download/v2.12.0/hadolint-Linux-x86_64
+./hadolint apps/web/Dockerfile
+`,
+  'apps/web/src/fallback.ts': `import OpenAI from 'openai';
+
+const family = 'gpt';
+const generation = '3.5';
+
+export async function fallbackReply(client: OpenAI, text: string) {
+  return client.chat.completions.create({
+    model: [family, generation, 'turbo'].join('-'),
+    messages: [{ role: 'user', content: text }],
+  });
+}
+`,
   '.github/workflows/ci.yml': `name: CI
 on: push
 jobs:

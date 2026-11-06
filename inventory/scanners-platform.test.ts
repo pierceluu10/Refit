@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { DEMO_NEXT_WEB, DEMO_NODE_API, DEMO_PYTHON_APP, MONOREPO } from './sample-repos.ts';
 import type { RepoFiles } from './sample-repos.ts';
-import { findCiVersions, findContainerImages, findRuntimeVersions } from './scanners-platform.ts';
+import {
+  findCiVersions,
+  findContainerImages,
+  findRuntimeVersions,
+  findSetupFiles,
+} from './scanners-platform.ts';
 import type { VersionSignal } from './scanners.ts';
 import { makeRepo, removeRepo } from './test-fixtures.ts';
 
@@ -381,5 +386,30 @@ describe('findCiVersions', () => {
       'Jenkinsfile',
       'ci/azure-pipelines.yml',
     ]);
+  });
+});
+
+describe('findSetupFiles', () => {
+  it('points at setup files and the lines in them that pin a version', async () => {
+    const repoDir = await makeRepo(MONOREPO);
+    const { files, versionLines } = await findSetupFiles(repoDir);
+    await removeRepo(repoDir);
+    expect(files).toEqual(['Makefile', 'scripts/lint-dockerfiles.sh']);
+    expect(versionLines.map(({ file, line }) => `${file}:${line}`)).toEqual([
+      'Makefile:2',
+      'Makefile:3',
+      'scripts/lint-dockerfiles.sh:2',
+    ]);
+  });
+
+  it('ignores ordinary source, and lines with no install or version', async () => {
+    const repoDir = await makeRepo({
+      'src/app.py': 'import python3.8\n',
+      'run.sh': 'echo hello\nnode-v18-linux\napt-get install -y curl\n',
+    });
+    const { files, versionLines } = await findSetupFiles(repoDir);
+    await removeRepo(repoDir);
+    expect(files).toEqual(['run.sh']);
+    expect(versionLines.map(({ line }) => line)).toEqual([2, 3]);
   });
 });

@@ -1,9 +1,15 @@
 // Measures what the agent's reading added: declarations of its findings that no scanner signalled.
 // A measure for evaluations; it plays no part in a run and decides nothing.
 import type { DependencyFinding } from '../dependency-merge.ts';
+import { findHttpCalls } from '../scanners.ts';
 import { findDirectDependencies } from '../scanners-libraries.ts';
 import { findAiModels } from '../scanners-models.ts';
-import { findCiVersions, findContainerImages, findRuntimeVersions } from '../scanners-platform.ts';
+import {
+  findCiVersions,
+  findContainerImages,
+  findRuntimeVersions,
+  findSetupFiles,
+} from '../scanners-platform.ts';
 
 export type ScannerGap = {
   // Found by the agent and pointed at by no scanner line at all.
@@ -38,6 +44,12 @@ async function scannerLines(repoDir: string): Promise<Map<string, string>> {
     for (const { file, line } of occurrences) add(file, line, model);
   }
   for (const { file, line, text } of settings) add(file, line, text);
+  for (const { file, line } of (await findSetupFiles(repoDir)).versionLines) {
+    add(file, line, 'setup line');
+  }
+  for (const { host, examples } of (await findHttpCalls(repoDir)).hosts) {
+    for (const { file, line } of examples) add(file, line, host);
+  }
   return lines;
 }
 
