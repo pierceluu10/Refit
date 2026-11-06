@@ -100,7 +100,7 @@ Prompt IDs keep their original letters, so O6 and P5 stay O6 and P5 even though 
 | Pierce (10x)   | **P1** App: install → scan → PRs                  | `app/` except `app/api/`, `app/lifecycle/`, `app/notify/`, `app/audit/`                                                                   | $4              |
 | Pierce (10x)   | **P2** Inventory: every dependency                | `inventory/` except `inventory/surfaces/`                                                                                                 | $5              |
 | Pierce (10x)   | **P3** Report API, PR lifecycle and notifications | `app/api/` (new), `app/lifecycle/` (new), `app/notify/` (new)                                                                             | $1              |
-| Pierce (10x)   | **P4** Website, onboarding and dashboard          | `src/`, `public/`, `index.html` except `src/compliance/`                                                                                  | $0              |
+| Pierce (10x)   | **P4** Website, onboarding and dashboard          | `src/`, `public/`, `index.html`, `package.json` dependencies, except `src/compliance/`                                                    | $0              |
 | Pierce (10x)   | **P6** Platforms and rules view, audit export     | `src/compliance/` (new), `app/audit/` (new)                                                                                               | $0              |
 | Furqan (5x)    | **F1** Watchers for every change source           | `providers/` except `providers/toolkit/`, `providers/upgrades/`, `providers/platforms/`, `providers/*/tools.ts`, `providers/*/playbooks/` | $4              |
 | Furqan (5x)    | **F2** Tools and playbooks for upgrades           | `providers/toolkit/`, `providers/*/tools.ts`, `providers/*/playbooks/`, `providers/upgrades/` (new)                                       | $3              |
@@ -510,9 +510,13 @@ Use subagents for the API, the lifecycle and notifications. Branch `mvp/app-api`
 ### P4: website, onboarding and dashboard (Pierce)
 
 ```text
-Update Refit's website and dashboard in src/ for "software that never falls behind." Read MVP-PLAN.md (sections 1–7), DESIGN.md and AGENTS.md on origin/mvp. Keep DESIGN.md's design system: polish, don't redesign.
+Update Refit's website and dashboard for "software that never falls behind." Read MVP-PLAN.md (sections 1–7), DESIGN.md and AGENTS.md on origin/mvp.
 
-Replace the current site in place; don't build a second one. Rewrite the existing pages and components (src/pages/Landing.tsx, Docs.tsx, Workspace.tsx, Runs.tsx, Tasks.tsx, Demo.tsx, src/components/, src/data.ts) and keep the existing router, layout and URLs where they still make sense. Remove the old API-migration-only copy everywhere. Delete pages, routes and fixtures the new site no longer uses rather than leaving them behind, and update or replace their tests. No parallel "v2" pages, folders or routes.
+Start from the live site, not mvp's current src/. tryrefit.dev deploys from origin/pre-launch-website, which shares no history with mvp. As your first commit on `mvp/site`, replace mvp's src/, public/ and index.html with the versions from origin/pre-launch-website, and add any package.json dependencies they need. Build every page from that site; don't create a second one.
+
+The landing page stays src/pages/launch/ at `/`: keep its ASCII hero video, goose, card wheel, styling and working waitlist. Change only the words and card contents to match the brief below, and fit the four steps into the existing wheel. DESIGN.md applies to the dashboard and docs, not to the landing page's look.
+
+Remove the old API-migration-only copy everywhere. Delete pages, routes and fixtures the new site no longer uses, and update or replace their tests. No parallel "v2" pages, folders or routes.
 
 Deliver:
 - Landing page: "Software that never falls behind." Plain language a non-technical buyer gets in ten seconds: Refit keeps code current when APIs, AI models, runtimes, frameworks, libraries and CI change. How it works in four steps (install, scan, fix, prove). No invented customers, logos or metrics.
@@ -525,7 +529,7 @@ Deliver:
 - Data from P3's /api endpoints; until they land, fixture data visibly labelled "Example data."
 - Docs page: what Refit watches, what a PR contains, the hard limits, and how to pause or ignore something with .refit.yml.
 Tests for every new page. No AI spend.
-Use subagents for the landing and pricing, onboarding and docs, and the dashboard. Branch `mvp/site`, draft PR into `mvp`. Edit only src/, public/ and index.html, except src/compliance/, which P6 owns. Add the route and navigation link for P6's Platforms and rules page in the existing router (import it from src/compliance/index.tsx, with a stub until it lands).
+Use subagents for the landing and pricing, onboarding and docs, and the dashboard. Branch `mvp/site`, draft PR into `mvp`. Edit only src/, public/, index.html and the dependencies in package.json, except src/compliance/, which P6 owns. Add the route and navigation link for P6's Platforms and rules page in the existing router (import it from src/compliance/index.tsx, with a stub until it lands).
 ```
 
 ### P6: the Platforms and rules view, and audit export (Pierce)
