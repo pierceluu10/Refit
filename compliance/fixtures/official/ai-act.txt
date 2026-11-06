@@ -1,0 +1,13 @@
+FIXTURE FOR OFFLINE TESTS. Excerpts transcribed from memory on 2026-11-06 in a cloud session whose network could not reach the official site. This is not a saved snapshot of the page: check every passage against the live source before relying on its wording.
+
+Regulation (EU) 2024/1689 of the European Parliament and of the Council of 13 June 2024 laying down harmonised rules on artificial intelligence (Artificial Intelligence Act)
+
+Article 50
+Transparency obligations for providers and deployers of certain AI systems
+1. Providers shall ensure that AI systems intended to interact directly with natural persons are designed and developed in such a way that the natural persons concerned are informed that they are interacting with an AI system, unless this is obvious from the point of view of a natural person who is reasonably well-informed, observant and circumspect, taking into account the circumstances and the context of use.
+2. Providers of AI systems, including general-purpose AI systems, generating synthetic audio, image, video or text content, shall ensure that the outputs of the AI system are marked in a machine-readable format and detectable as artificially generated or manipulated.
+
+Article 113
+Entry into force and application
+This Regulation shall enter into force on the twentieth day following that of its publication in the Official Journal of the European Union.
+It shall apply from 2 August 2026.

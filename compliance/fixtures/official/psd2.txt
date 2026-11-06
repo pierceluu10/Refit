@@ -1,0 +1,10 @@
+FIXTURE FOR OFFLINE TESTS. Excerpts transcribed from memory on 2026-11-06 in a cloud session whose network could not reach the official site. This is not a saved snapshot of the page: check every passage against the live source before relying on its wording.
+
+Directive (EU) 2015/2366 of the European Parliament and of the Council of 25 November 2015 on payment services in the internal market
+
+Article 97
+Authentication
+1. Member States shall ensure that a payment service provider applies strong customer authentication where the payer:
+(a) accesses its payment account online;
+(b) initiates an electronic payment transaction;
+(c) carries out any action through a remote channel which may imply a risk of payment fraud or other abuses.

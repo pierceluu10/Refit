@@ -1,0 +1,6 @@
+FIXTURE FOR OFFLINE TESTS. Excerpts transcribed from memory on 2026-11-06 in a cloud session whose network could not reach the official site. This is not a saved snapshot of the page: check every passage against the live source before relying on its wording.
+
+California Privacy Protection Agency. California Consumer Privacy Act Regulations (Cal. Code Regs., tit. 11, § 7000 and following)
+
+§ 7025. Opt-Out Preference Signals.
+(b) A business that sells or shares personal information shall process any opt-out preference signal that meets the following requirements as a valid request to opt-out of sale/sharing:

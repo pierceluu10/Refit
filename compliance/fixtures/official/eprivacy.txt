@@ -1,0 +1,7 @@
+FIXTURE FOR OFFLINE TESTS. Excerpts transcribed from memory on 2026-11-06 in a cloud session whose network could not reach the official site. This is not a saved snapshot of the page: check every passage against the live source before relying on its wording.
+
+Directive 2002/58/EC (Directive on privacy and electronic communications), Article 5(3) as amended by Directive 2009/136/EC
+
+Article 5
+Confidentiality of the communications
+3. Member States shall ensure that the storing of information, or the gaining of access to information already stored, in the terminal equipment of a subscriber or user is only allowed on condition that the subscriber or user concerned has given his or her consent, having been provided with clear and comprehensive information, in accordance with Directive 95/46/EC, inter alia, about the purposes of the processing.

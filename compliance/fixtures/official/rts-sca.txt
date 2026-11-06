@@ -1,0 +1,11 @@
+FIXTURE FOR OFFLINE TESTS. Excerpts transcribed from memory on 2026-11-06 in a cloud session whose network could not reach the official site. This is not a saved snapshot of the page: check every passage against the live source before relying on its wording.
+
+Commission Delegated Regulation (EU) 2018/389 of 27 November 2017 supplementing Directive (EU) 2015/2366 with regard to regulatory technical standards for strong customer authentication and common and secure open standards of communication
+
+Article 4
+Authentication code
+1. Where payment service providers apply strong customer authentication in accordance with Article 97(1) of Directive (EU) 2015/2366, the authentication shall be based on two or more elements which are categorised as knowledge, possession and inherence and shall result in the generation of an authentication code.
+
+Article 38
+Entry into force
+2. It shall apply from 14 September 2019.

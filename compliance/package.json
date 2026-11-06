@@ -2,5 +2,9 @@
   "name": "@refit/compliance",
   "version": "0.0.0",
   "private": true,
-  "type": "module"
+  "type": "module",
+  "scripts": {
+    "live-read": "node --experimental-strip-types scripts/live-read.ts",
+    "save-fixtures": "node --experimental-strip-types scripts/save-fixtures.ts"
+  }
 }

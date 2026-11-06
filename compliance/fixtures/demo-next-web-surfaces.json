@@ -1,0 +1,34 @@
+[
+  {
+    "repo": "refit-dev/demo-next-web",
+    "kind": "regulated-surface",
+    "name": "checkout-page",
+    "declaredIn": [
+      { "file": "app/checkout/page.tsx", "line": 1, "text": "Stripe checkout page with card form" },
+      {
+        "file": "app/checkout/page.tsx",
+        "line": 9,
+        "text": "<Script src=\"https://www.googletagmanager.com/gtag/js\" />"
+      }
+    ],
+    "notes": "Example data. Payment flow: card details are collected on this page."
+  },
+  {
+    "repo": "refit-dev/demo-next-web",
+    "kind": "regulated-surface",
+    "name": "cookie-banner",
+    "declaredIn": [
+      { "file": "components/CookieBanner.tsx", "line": 4, "text": "Accept button only" }
+    ],
+    "notes": "Example data. Analytics load in app/layout.tsx before the banner is answered."
+  },
+  {
+    "repo": "refit-dev/demo-next-web",
+    "kind": "regulated-surface",
+    "name": "signup-form",
+    "declaredIn": [
+      { "file": "app/signup/page.tsx", "line": 6, "text": "<input placeholder=\"Email\" />" }
+    ],
+    "notes": "Example data. Personal data and a user interface form."
+  }
+]

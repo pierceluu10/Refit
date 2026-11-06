@@ -1,0 +1,18 @@
+FIXTURE FOR OFFLINE TESTS. Excerpts transcribed from memory on 2026-11-06 in a cloud session whose network could not reach the official site. This is not a saved snapshot of the page: check every passage against the live source before relying on its wording.
+
+Directive (EU) 2019/882 of the European Parliament and of the Council of 17 April 2019 on the accessibility requirements for products and services
+
+Article 4
+Accessibility requirements
+1. Member States shall ensure, in accordance with paragraphs 2, 3 and 5 of this Article and subject to Article 14, that economic operators only place on the market products and only provide services that comply with the accessibility requirements set out in Annex I.
+
+Article 31
+Transposition
+1. Member States shall adopt and publish, by 28 June 2022, the laws, regulations and administrative provisions necessary to comply with this Directive.
+2. They shall apply those measures from 28 June 2025.
+
+ANNEX I
+Section IV
+(g) e-commerce services:
+(i) providing the information concerning accessibility of the products and services being sold when this information is provided by the responsible economic operator;
+(ii) ensuring accessibility of the functionality for identification, security and payment when delivered as part of a service instead of a product by making it perceivable, operable, understandable and robust;
