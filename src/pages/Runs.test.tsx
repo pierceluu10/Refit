@@ -101,6 +101,12 @@ describe('runs', () => {
     expect(labels).toEqual(['Verified', 'Failed', 'Needs review', 'Not affected']);
   });
 
+  it('shows an unknown provider by its raw name', async () => {
+    renderRuns(respond(liveRuns));
+    await screen.findByRole('list', { name: 'Runs' });
+    expect(within(rows()[1]).getByText('test-provider')).toBeVisible();
+  });
+
   it('links a pull request only when the run has one', async () => {
     renderRuns(respond(liveRuns));
     await screen.findByRole('list', { name: 'Runs' });
@@ -112,6 +118,14 @@ describe('runs', () => {
       'Pull request for test-change-verified on test-owner/app (opens in a new tab)',
     );
     expect(within(rows()[1]).queryByRole('link')).not.toBeInTheDocument();
+  });
+
+  it('shows a pull request address that is not a web address as plain text', async () => {
+    const pr = 'javascript:alert(1)';
+    renderRuns(respond([{ ...liveRuns[0], pr }]));
+    await screen.findByRole('list', { name: 'Runs' });
+    expect(screen.queryByRole('link', { name: /^Pull request/ })).not.toBeInTheDocument();
+    expect(screen.getByText('Pull request')).toBeVisible();
   });
 
   it('asks the API for one repository from a deep link', async () => {
@@ -154,12 +168,12 @@ describe('runs', () => {
 
   it('shows an error when the API fails', async () => {
     renderRuns(respond({ error: 'boom' }, 500));
-    expect(await screen.findByRole('alert')).toHaveTextContent('The runs API answered 500.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('The API answered 500.');
   });
 
   it('shows an error when the API returns something other than a list', async () => {
     renderRuns(respond({ runs: [] }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('something other than a list');
+    expect(await screen.findByRole('alert')).toHaveTextContent('something unexpected');
   });
 
   it.each([
@@ -172,7 +186,7 @@ describe('runs', () => {
     renderRuns(fetcher());
     await screen.findByRole('list', { name: 'Runs' });
     expect(screen.getByText('Example data')).toBeVisible();
-    expect(screen.getByText(/No runs API is reachable/)).toBeVisible();
+    expect(screen.getByText(/No Refit API is reachable/)).toBeVisible();
     expect(rows()).toHaveLength(exampleRuns.length);
   });
 

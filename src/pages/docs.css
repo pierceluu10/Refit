@@ -63,10 +63,10 @@
 .docs-content .button {
   margin-top: 24px;
 }
-.docs-content .text-link {
-  margin-top: 24px;
+.docs-content p a {
   color: var(--blue);
-  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .docs-content table {
   width: 100%;
@@ -92,7 +92,6 @@
 .docs-content td:last-child {
   color: var(--muted);
 }
-.docs-content ol,
 .docs-content ul {
   padding-left: 22px;
   margin-top: 23px;
@@ -116,6 +115,27 @@
 .docs-callout p {
   margin-top: 7px;
   font-size: 12px;
+}
+.docs-code {
+  background: var(--code);
+  color: #d4deed;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 25px;
+}
+.docs-code > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 16px;
+  border-bottom: 1px solid #354051;
+  font: 12px var(--mono);
+}
+.docs-code pre {
+  padding: 22px;
+  overflow: auto;
+  line-height: 1.8;
+  font-size: 13px;
 }
 @media (max-width: 900px) {
   .docs-layout {
@@ -162,5 +182,9 @@
   }
   .docs-content td:first-child {
     width: 36%;
+  }
+  .docs-code pre {
+    font-size: 11px;
+    padding: 18px;
   }
 }

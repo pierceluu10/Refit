@@ -31,3 +31,4 @@ class VisibleObserver {
 vi.stubGlobal('IntersectionObserver', VisibleObserver);
 window.scrollTo = vi.fn();
 Element.prototype.scrollIntoView = vi.fn();
+Element.prototype.animate = vi.fn();

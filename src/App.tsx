@@ -1,9 +1,10 @@
 import { ArrowLeft } from '@phosphor-icons/react';
 import { Link, Route, Routes } from 'react-router-dom';
 import { PagePosition } from './components/Layout';
-import { Landing } from './pages/Landing';
-import { Demo } from './pages/Demo';
 import { Docs } from './pages/Docs';
+import { Launch } from './pages/launch/Launch';
+import { Onboarding } from './pages/Onboarding';
+import { Pricing } from './pages/Pricing';
 import { Workspace } from './pages/Workspace';
 
 export function App() {
@@ -14,8 +15,9 @@ export function App() {
       </a>
       <PagePosition />
       <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/demo" element={<Demo />} />
+        <Route path="/" element={<Launch />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/onboarding" element={<Onboarding />} />
         <Route path="/docs" element={<Docs />} />
         <Route path="/app/*" element={<Workspace />} />
         <Route path="*" element={<NotFound />} />

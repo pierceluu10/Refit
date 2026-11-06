@@ -1,0 +1,162 @@
+<!-- prettier-ignore -->
+<div class="page">
+  <header class="nav">
+    <a class="brand" href="#top" aria-label="Refit"><svg viewBox="10 11 20 18" aria-hidden="true"><path d="M10 11h15v6H16v6h-6zm20 18H15v-6h9v-6h6z"/></svg>Refit</a>
+    <div class="nav-actions">
+      <a class="nav-link" href="/pricing">Pricing</a>
+      <a class="nav-link" href="/docs">Docs</a>
+      <a class="nav-cta" href="#top" data-focus-form>Join the waitlist</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="top">
+      <div class="panel hero-panel" id="hero-panel">
+        <video class="hero-video" id="hero-video" autoplay muted loop playsinline preload="auto" poster="/launch/hero-poster.jpg" aria-hidden="true">
+          <source src="/launch/hero-phone.mp4" type="video/mp4" media="(max-width: 719px), (max-aspect-ratio: 1/1)">
+          <source src="/launch/hero-desktop.mp4" type="video/mp4">
+        </video>
+        <div class="hero-copy">
+          <h1 id="headline">Software that never <br>falls behind.</h1>
+          <p class="sub">Refit keeps your code current when the APIs, AI models, runtimes, frameworks, libraries and CI it depends on change.</p>
+          <form class="waitlist" novalidate>
+            <label for="email-hero">Email</label>
+            <input id="email-hero" type="email" name="email" placeholder="you@company.com" autocomplete="email" aria-describedby="note-hero">
+            <button class="join" type="submit">Join the waitlist</button>
+            <p class="note" id="note-hero" role="status"></p>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <section class="story" id="story" aria-label="How Refit keeps your code current">
+      <div class="stage" id="stage">
+        <div class="panel stage-panel" id="stage-panel">
+          <canvas class="dust" id="dust" aria-hidden="true"></canvas>
+          <canvas class="wheel" id="wheel" tabindex="0" role="slider" aria-label="Changes Refit watches for. Drag to spin." aria-valuemin="0" aria-valuemax="39" aria-valuenow="0" aria-valuetext="Install Refit"></canvas>
+          <ol class="marks" id="marks">
+            <li><button type="button" data-step="0" aria-label="Install the app, pick your repos.">1</button></li>
+            <li><button type="button" data-step="1" aria-label="Scan what your code depends on.">2</button></li>
+            <li><button type="button" data-step="2" aria-label="Fix what's behind, in a sandbox.">3</button></li>
+            <li><button type="button" data-step="3" aria-label="Prove it, then open a draft PR.">4</button></li>
+          </ol>
+          <p class="story-note">Illustrative example</p>
+          <div class="sheet" id="sheet">
+            <article class="step">
+              <h3 class="step-title">Install the app, pick your repos.</h3>
+              <div class="leaf leaf-install">
+                <header class="leaf-head">
+                  <span class="logo" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><path d="M216,104v8a56.06,56.06,0,0,1-48.44,55.47A39.8,39.8,0,0,1,176,192v40a8,8,0,0,1-8,8H104a8,8,0,0,1-8-8V216H72a40,40,0,0,1-40-40A24,24,0,0,0,8,152a8,8,0,0,1,0-16,40,40,0,0,1,40,40,24,24,0,0,0,24,24H96v-8a39.8,39.8,0,0,1,8.44-24.53A56.06,56.06,0,0,1,56,112v-8a58.14,58.14,0,0,1,7.69-28.32A59.78,59.78,0,0,1,69.07,28,8,8,0,0,1,76,24a59.75,59.75,0,0,1,48,24h24a59.75,59.75,0,0,1,48-24,8,8,0,0,1,6.93,4,59.74,59.74,0,0,1,5.37,47.68A58,58,0,0,1,216,104Z"/></svg></span>
+                  <span id="install-source">example-org</span>
+                  <span class="pill quiet" id="install-pill">GitHub App</span>
+                </header>
+                <div class="install">
+                  <p class="install-title" id="install-title">Install Refit</p>
+                  <p class="install-meta" id="install-meta">Choose the repos it can read.</p>
+                  <ul class="repos" id="repos">
+                    <li class="repo" style="--row:0"><span class="repo-box"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z"/></svg></span><code>example-org/api</code></li>
+                    <li class="repo" style="--row:1"><span class="repo-box"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z"/></svg></span><code>example-org/web</code></li>
+                    <li class="repo" style="--row:2"><span class="repo-box"><svg viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M232.49,80.49l-128,128a12,12,0,0,1-17,0l-56-56a12,12,0,1,1,17-17L96,183,215.51,63.51a12,12,0,0,1,17,17Z"/></svg></span><code>example-org/worker</code></li>
+                    <li class="repo is-off"><span class="repo-box"></span><code>example-org/sandbox</code></li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+
+            <article class="step">
+              <h3 class="step-title">Scan what your code depends on.</h3>
+              <div class="leaf leaf-behind">
+                <header class="file-row"><b>What's behind</b><code>example-org/api</code><span class="pill small quiet push">4 found</span></header>
+                <ul class="behind">
+                  <li class="behind-row" style="--row:0">
+                    <div class="behind-what"><code>actions/upload-artifact@v3</code><span>CI action</span></div>
+                    <span class="pill small negative behind-when">Stopped Jan 30, 2025</span>
+                  </li>
+                  <li class="behind-row" style="--row:1">
+                    <div class="behind-what"><code>next@14</code><span>Framework</span></div>
+                    <span class="pill small negative behind-when">Support ended Oct 26, 2025</span>
+                  </li>
+                  <li class="behind-row" style="--row:2">
+                    <div class="behind-what"><code>claude-3-opus-20240229</code><span>AI model</span></div>
+                    <span class="pill small negative behind-when">Retired Jan 5, 2026</span>
+                  </li>
+                  <li class="behind-row" style="--row:3">
+                    <div class="behind-what"><code>node:22</code><span>Runtime</span></div>
+                    <span class="pill small quiet behind-when">Ends Apr 30, 2027</span>
+                  </li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="step">
+              <h3 class="step-title">Fix what's behind, in a sandbox.</h3>
+              <div class="leaf leaf-diff">
+                <header class="file-row"><code>Dockerfile</code><b class="push count"><span class="plus">+2</span> <span class="minus">−2</span></b></header>
+                <div class="diff">
+                  <div class="dl del"><span class="g">1 −</span><code>FROM node:22-alpine AS build</code></div>
+                  <div class="dl add"><span class="g">1 +</span><code>FROM node:24-alpine AS build</code></div>
+                  <div class="dl"><span class="g">2</span><code>WORKDIR /app</code></div>
+                  <div class="dl"><span class="g">3</span><code>COPY . .</code></div>
+                  <div class="dl"><span class="g">4</span><code>RUN npm ci &amp;&amp; npm run build</code></div>
+                  <div class="dl del"><span class="g">5 −</span><code>FROM node:22-alpine</code></div>
+                  <div class="dl add"><span class="g">5 +</span><code>FROM node:24-alpine</code></div>
+                  <div class="dl"><span class="g">6</span><code>COPY --from=build /app/dist ./dist</code></div>
+                  <div class="dl"><span class="g">7</span><code>CMD ["node", "dist/server.js"]</code></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="step">
+              <h3 class="step-title">Prove it, then open a draft PR.</h3>
+              <div class="leaf leaf-pr">
+                <div class="pr-pills"><span class="pill quiet"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M108,64A36,36,0,1,0,60,97.94v60.12a36,36,0,1,0,24,0V97.94A36.07,36.07,0,0,0,108,64ZM72,52A12,12,0,1,1,60,64,12,12,0,0,1,72,52Zm0,152a12,12,0,1,1,12-12A12,12,0,0,1,72,204Zm140-45.94V110.63a27.81,27.81,0,0,0-8.2-19.8L173,60h19a12,12,0,0,0,0-24H144a12,12,0,0,0-12,12V96a12,12,0,0,0,24,0V77l30.83,30.83a4,4,0,0,1,1.17,2.83v47.43a36,36,0,1,0,24,0ZM200,204a12,12,0,1,1,12-12A12,12,0,0,1,200,204Z"/></svg>Draft</span><span class="pill positive flip-pill">Checks pass</span></div>
+                <div class="pr">
+                  <p class="pr-title">Move api to Node.js 24 <span>#12</span></p>
+                  <p class="pr-meta">Refit wants to merge 1 commit into main from <code>refit/node-24</code></p>
+                  <div class="checks">
+                    <div class="th">Check</div><div class="th">Before</div><div class="th">After</div>
+                    <div>Type check</div><div class="cell" style="--row:0"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>pass</div><div class="cell" style="--row:1"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>pass</div>
+                    <div>Build</div><div class="cell" style="--row:2"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>pass</div><div class="cell" style="--row:3"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>pass</div>
+                    <div>Tests</div><div class="cell" style="--row:4"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>41 passed</div><div class="cell" style="--row:5"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M128,24A104,104,0,1,0,232,128,104.11,104.11,0,0,0,128,24Zm45.66,85.66-56,56a8,8,0,0,1-11.32,0l-24-24a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32Z"/></svg>41 passed</div>
+                  </div>
+                  <ul class="pr-list">
+                    <li><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M232,48H160a40,40,0,0,0-32,16A40,40,0,0,0,96,48H24a8,8,0,0,0-8,8V200a8,8,0,0,0,8,8H96a24,24,0,0,1,24,24,8,8,0,0,0,16,0,24,24,0,0,1,24-24h72a8,8,0,0,0,8-8V56A8,8,0,0,0,232,48ZM96,192H32V64H96a24,24,0,0,1,24,24V200A39.81,39.81,0,0,0,96,192Zm128,0H160a39.81,39.81,0,0,0-24,8V88a24,24,0,0,1,24-24h64Z"/></svg>Source: Node.js release schedule</li>
+                    <li class="careful"><svg class="icon" viewBox="0 0 256 256" fill="currentColor" aria-hidden="true"><path d="M236.8,188.09,149.35,36.22h0a24.76,24.76,0,0,0-42.7,0L19.2,188.09a23.51,23.51,0,0,0,0,23.72A24.35,24.35,0,0,0,40.55,224h174.9a24.35,24.35,0,0,0,21.33-12.19A23.51,23.51,0,0,0,236.8,188.09ZM222.93,203.8a8.5,8.5,0,0,1-7.48,4.2H40.55a8.5,8.5,0,0,1-7.48-4.2,7.59,7.59,0,0,1,0-7.72L120.52,44.21a8.75,8.75,0,0,1,15,0l87.45,151.87A7.59,7.59,0,0,1,222.93,203.8ZM120,144V104a8,8,0,0,1,16,0v40a8,8,0,0,1-16,0Zm20,36a12,12,0,1,1-12-12A12,12,0,0,1,140,180Z"/></svg>Unproven: behavior under production traffic</li>
+                  </ul>
+                </div>
+              </div>
+            </article>
+          </div>
+          <ul class="pages-list" id="pages-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="limits" id="limits">
+      <h2>What it will never do</h2>
+      <ul id="limits-list">
+        <li>Run your code outside a sandbox.</li>
+        <li>Spend more than the cap you set.</li>
+        <li>Merge a PR or push to your default branch.</li>
+        <li>Print or commit a secret.</li>
+      </ul>
+    </section>
+
+    <section class="closing" id="closing">
+      <div class="panel closing-panel">
+        <h2 class="closing-title">Never fall behind again.</h2>
+        <form class="waitlist" novalidate>
+          <label for="email-closing">Email</label>
+          <input id="email-closing" type="email" name="email" placeholder="you@company.com" autocomplete="email" aria-describedby="note-closing">
+          <button class="join" type="submit">Join the waitlist</button>
+          <p class="note" id="note-closing" role="status"></p>
+        </form>
+        <div class="wordmark" id="wordmark" role="img" aria-label="Refit">
+          <pre aria-hidden="true"></pre>
+          <pre class="wordmark-lens" aria-hidden="true"></pre>
+        </div>
+        <footer class="footer">© 2026 Refit</footer>
+      </div>
+    </section>
+  </main>
+</div>

@@ -1,0 +1,89 @@
+/* A ledger of plans: one row each, separated by fine rules, so the three read as lines to compare. */
+.pricing {
+  padding: 88px 40px 112px;
+}
+.pricing h1 {
+  max-width: 13em;
+  font-size: clamp(40px, 6.2vw, 72px);
+  line-height: 1.06;
+}
+.pricing-plans {
+  margin: 72px 0 0;
+  padding: 0;
+  list-style: none;
+  border-bottom: 1px solid var(--border);
+}
+.pricing-plan {
+  display: grid;
+  grid-template-columns: 2fr 3fr 4fr auto;
+  align-items: baseline;
+  gap: 24px;
+  padding-block: 32px;
+  border-top: 1px solid var(--border);
+}
+.pricing-plan h2 {
+  font-size: 18px;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  font-weight: 550;
+}
+.pricing-price {
+  font-size: 32px;
+  line-height: 1.2;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+.pricing-terms {
+  color: var(--muted);
+  font-size: 14px;
+}
+.pricing-terms p {
+  max-width: 44ch;
+}
+.pricing-plan .button {
+  align-self: center;
+}
+@media (hover: hover) and (pointer: fine) {
+  .pricing-plan .button-primary:hover {
+    background: #194ac2;
+  }
+  .pricing-plan .button-secondary:hover {
+    background: var(--canvas);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pricing-plan .button:active {
+    transform: none;
+  }
+}
+@media (max-width: 900px) {
+  .pricing-plan {
+    grid-template-columns: 1fr auto;
+    gap: 8px 24px;
+  }
+  .pricing-terms {
+    grid-column: 1;
+  }
+  .pricing-plan .button {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+  }
+}
+@media (max-width: 640px) {
+  .pricing {
+    padding: 48px 22px 72px;
+  }
+  .pricing-plans {
+    margin-top: 48px;
+  }
+  .pricing-plan {
+    grid-template-columns: minmax(0, 1fr);
+    padding-block: 28px;
+  }
+  .pricing-plan .button {
+    grid-column: 1;
+    grid-row: auto;
+    margin-top: 12px;
+  }
+}
