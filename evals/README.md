@@ -47,11 +47,21 @@ Each file keeps the set's purpose and selection criteria (they describe how Refi
 repos) and the repo entries: slug, frozen commit and small metadata. Agents may open, trace and
 debug these freely.
 
-One set is curated here rather than recovered:
+Two sets are curated here rather than recovered:
 
-| Set               | Repos | What it holds                                                                      |
-| ----------------- | ----- | ---------------------------------------------------------------------------------- |
-| `longtail-dev-20` | 20    | 15 smaller providers, through raw HTTP (11), an SDK (4), webhooks (3), GraphQL (2) |
+| Set               | Repos | What it holds                                                                           |
+| ----------------- | ----- | --------------------------------------------------------------------------------------- |
+| `longtail-dev-20` | 20    | 15 smaller providers, through raw HTTP (11), an SDK (4), webhooks (3), GraphQL (2)      |
+| `upgrade-dev-20`  | 20    | 12 JS/TS and 8 Python repos on an end-of-life Node or Python, or an old framework major |
+
+`upgrade-dev-20` (curated 2026-11-06) is the upgrade set: 13 `runtime-eol` (Node 8 to 18,
+Python 3.7 to 3.9), 6 `framework-major` (Next.js 12 to 14, Django 2.2 and 4.x) and 1
+`dependency-major` (react-scripts). Each entry records every place the version is declared (the
+exact line, copied from the file at the pinned commit), the test command and files, and why it was
+picked. Tests were **not run** (`tests.ran: false`): repo code runs only in the sandbox, and none
+was available while curating. The `to` versions are suggested targets, not announcements. EOL
+quotes come from the Node.js Release schedule and endoflife.date's source files on GitHub, pinned
+to commits, because their websites were unreachable from the curating machine.
 
 Each entry names its provider, how the code reaches it, the pending change (kind, date, the
 provider's own page and an exact quote) and every call site (file, line and the line's text) at a
