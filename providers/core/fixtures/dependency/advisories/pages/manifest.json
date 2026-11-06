@@ -1,0 +1,37 @@
+{
+  "provider": "flask",
+  "fetchedAt": "2026-11-06T05:21:37.283Z",
+  "note": "Every page one run read, cut to what the agent was shown (at most 120000 characters). Test input only.",
+  "sources": [
+    {
+      "id": "api-osv-dev-v1-query-package-flask-ecosystem-pypi-version-1-1-2",
+      "url": "https://api.osv.dev/v1/query?package=flask&ecosystem=pypi&version=1.1.2",
+      "status": 200,
+      "ok": true,
+      "file": "api-osv-dev-v1-query-package-flask-ecosystem-pypi-version-1-1-2.txt",
+      "chars": 933,
+      "truncated": false,
+      "sha256": "92df44805b0b673c2abbe3d87e2e59736d96033a3d500e7f65fff3299209f25e"
+    },
+    {
+      "id": "flask-palletsprojects-com-page-changes",
+      "url": "https://flask.palletsprojects.com/page/changes/",
+      "status": 200,
+      "ok": true,
+      "file": "flask-palletsprojects-com-page-changes.txt",
+      "chars": 19151,
+      "truncated": true,
+      "sha256": "551535487c7f647f49b102ec58b84f96a44f426c2c396d7bdcc9b90060c2258f"
+    },
+    {
+      "id": "pypi-org-pypi-flask-json",
+      "url": "https://pypi.org/pypi/flask/json",
+      "status": 200,
+      "ok": true,
+      "file": "pypi-org-pypi-flask-json.txt",
+      "chars": 880,
+      "truncated": false,
+      "sha256": "95bd7f6814e9413ace49fcf19d0f15a2a2d39153514b93fd40b192c495ed4c4b"
+    }
+  ]
+}

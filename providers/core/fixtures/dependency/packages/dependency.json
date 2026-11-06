@@ -1,0 +1,8 @@
+{
+  "repo": "cli",
+  "kind": "library",
+  "name": "express",
+  "version": "4.18.2",
+  "ecosystem": "npm",
+  "declaredIn": []
+}

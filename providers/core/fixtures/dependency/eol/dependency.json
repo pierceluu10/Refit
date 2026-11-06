@@ -1,0 +1,8 @@
+{
+  "repo": "cli",
+  "kind": "container-image",
+  "name": "node:18-bookworm",
+  "version": "18-bookworm",
+  "ecosystem": "docker",
+  "declaredIn": []
+}

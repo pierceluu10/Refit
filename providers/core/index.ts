@@ -9,3 +9,5 @@ export * from './knowledge.ts';
 export * from './registry.ts';
 export * from './packages.ts';
 export * from './any-watcher.ts';
+export * from './dependency-sources.ts';
+export * from './dependency-watcher.ts';

@@ -1,0 +1,37 @@
+{
+  "provider": "node-18-bookworm",
+  "fetchedAt": "2026-11-06T05:21:33.029Z",
+  "note": "Every page one run read, cut to what the agent was shown (at most 120000 characters). Test input only.",
+  "sources": [
+    {
+      "id": "raw-githubusercontent-com-nodejs-release-main-schedule-json",
+      "url": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
+      "status": 200,
+      "ok": true,
+      "file": "raw-githubusercontent-com-nodejs-release-main-schedule-json.txt",
+      "chars": 2729,
+      "truncated": false,
+      "sha256": "96f63b47316b1d9e141e6a23ed8ee55f3cebfeff43b6450c37bbff427e3e8dc8"
+    },
+    {
+      "id": "endoflife-date-api-debian-json",
+      "url": "https://endoflife.date/api/debian.json",
+      "status": 200,
+      "ok": true,
+      "file": "endoflife-date-api-debian-json.txt",
+      "chars": 5444,
+      "truncated": false,
+      "sha256": "2468c399e02663eed7677d552bcfb366fbc99a3b8f1788fceb0010efa97d8ac0"
+    },
+    {
+      "id": "endoflife-date-api-nodejs-json",
+      "url": "https://endoflife.date/api/nodejs.json",
+      "status": 200,
+      "ok": true,
+      "file": "endoflife-date-api-nodejs-json.txt",
+      "chars": 5712,
+      "truncated": false,
+      "sha256": "299e903247664f9bd694c0055e3cd4518b10ff6aca6fab670aaad3fd76ceca7a"
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+{
+  "note": "Hand-checked against the saved pages on 2026-11-06. Example fixture.",
+  "changes": [
+    {
+      "provider": "actions-checkout",
+      "id": "actions-checkout:checkout-v2-behind-v7",
+      "kind": "ci-deprecation",
+      "title": "actions/checkout v2 is five majors behind (v7 current); v5 moved the action to Node 24, so v2 should be upgraded",
+      "source": {
+        "url": "https://api.github.com/repos/actions/checkout/releases?per_page=100",
+        "quote": "Update actions checkout to use node 24 by @salmanmkc in https://github.com/actions/checkout/pull/2226"
+      },
+      "affects": {
+        "versions": ["v2"],
+        "sdk": "actions/checkout"
+      },
+      "dependencyKind": "ci",
+      "dependency": "actions/checkout",
+      "fromVersions": ["v2"],
+      "toVersion": "v7",
+      "severity": "notice"
+    },
+    {
+      "provider": "actions-checkout",
+      "id": "actions-checkout:checkout-v2-8-0-unsafe-pr-checkout-blocked",
+      "kind": "ci-deprecation",
+      "title": "Floating tag v2 (now v2.8.0) since 2026-07-20 refuses fork PR checkouts in pull_request_target/workflow_run unless allow-unsafe-pr-checkout is set (breaking)",
+      "source": {
+        "url": "https://api.github.com/repos/actions/checkout/releases?per_page=100",
+        "quote": "**[BREAKING]** backport `allow-unsafe-pr-checkout` to v2 by @aiqiaoy in https://github.com/actions/checkout/pull/2504"
+      },
+      "affects": {
+        "fields": ["allow-unsafe-pr-checkout", "ref", "repository"],
+        "versions": ["v2"],
+        "sdk": "actions/checkout"
+      },
+      "effectiveDate": "2026-07-20",
+      "dependencyKind": "ci",
+      "dependency": "actions/checkout",
+      "fromVersions": ["v2"],
+      "toVersion": "v7",
+      "severity": "breaking"
+    },
+    {
+      "provider": "actions-checkout",
+      "id": "actions-checkout:checkout-v7-pwn-request-block",
+      "kind": "ci-deprecation",
+      "title": "actions/checkout v7 (GA 2026-06-18) blocks fork PR head/merge checkouts in pull_request_target and workflow_run; backported to floating major tags (v1 excluded)",
+      "source": {
+        "url": "https://github.blog/changelog/2026-06-18-safer-pull_request_target-defaults-for-github-actions-checkout/",
+        "quote": "Workflows pinned to a floating major tag (e.g., actions/checkout@v4) will automatically pick up the change."
+      },
+      "affects": {
+        "fields": ["allow-unsafe-pr-checkout"],
+        "versions": ["v2", "v7"],
+        "sdk": "actions/checkout"
+      },
+      "effectiveDate": "2026-07-20",
+      "dependencyKind": "ci",
+      "dependency": "actions/checkout",
+      "fromVersions": ["v2"],
+      "toVersion": "v7",
+      "severity": "breaking"
+    },
+    {
+      "provider": "actions-checkout",
+      "id": "actions-checkout:pull-request-target-blocked-default-2026-12-02",
+      "kind": "ci-deprecation",
+      "title": "GitHub Actions will block pull_request_target by default in public repos from Dec 2, 2026 (brownouts Nov 9 and Nov 16) unless an Actions event policy allows it",
+      "source": {
+        "url": "https://github.blog/changelog/label/actions/feed/",
+        "quote": "Starting December 2, 2026, GitHub Actions will block pull_request_target events by default in all public repositories, unless an applicable Actions event policy explicitly allows them."
+      },
+      "affects": {
+        "operations": ["pull_request_target"]
+      },
+      "effectiveDate": "2026-12-02",
+      "dependencyKind": "ci",
+      "dependency": "actions/checkout",
+      "fromVersions": ["all"],
+      "severity": "deadline"
+    },
+    {
+      "provider": "actions-checkout",
+      "id": "actions-checkout:checkout-v6-runner-min-version",
+      "kind": "ci-deprecation",
+      "title": "checkout v6 stores credentials under RUNNER_TEMP and needs runner v2.329.0+ for Docker container actions; v5 (Node 24) needs runner v2.327.1+",
+      "source": {
+        "url": "https://api.github.com/repos/actions/checkout/releases?per_page=100",
+        "quote": "This requires a minimum Actions Runner version of [v2.329.0]"
+      },
+      "affects": {
+        "versions": ["v5", "v6"],
+        "sdk": "actions/checkout"
+      },
+      "effectiveDate": "2025-11-20",
+      "dependencyKind": "ci",
+      "dependency": "actions/checkout",
+      "fromVersions": ["v2"],
+      "toVersion": "v7",
+      "severity": "notice"
+    }
+  ]
+}

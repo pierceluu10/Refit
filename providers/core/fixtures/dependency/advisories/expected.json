@@ -1,0 +1,80 @@
+{
+  "note": "Hand-checked against the saved pages on 2026-11-06. Example fixture.",
+  "changes": [
+    {
+      "provider": "flask",
+      "id": "flask:3-major",
+      "kind": "framework-major",
+      "title": "Flask 3.0 removes previously deprecated code, requires Werkzeug >= 3.0.0 (3.1 drops Python 3.8); repo on 1.1.2 must cross 2.x and 3.x",
+      "source": {
+        "url": "https://flask.palletsprojects.com/page/changes/",
+        "quote": "Remove previously deprecated code. #5223"
+      },
+      "affects": {
+        "versions": ["<3.0.0"],
+        "sdk": "flask"
+      },
+      "dependencyKind": "library",
+      "dependency": "flask",
+      "fromVersions": ["<3.0.0"],
+      "toVersion": "3.1.3",
+      "severity": "breaking"
+    },
+    {
+      "provider": "flask",
+      "id": "flask:2-major",
+      "kind": "framework-major",
+      "title": "Flask 2.0 drops Python 2 and 3.5, bumps Werkzeug/Jinja2/Click minimums; 2.1-2.3 remove deprecated code (before_first_request, JSON config keys, send_file renames, ENV)",
+      "source": {
+        "url": "https://flask.palletsprojects.com/page/changes/",
+        "quote": "The FLASK_ENV environment variable, ENV config key, and app.env\nproperty are removed."
+      },
+      "affects": {
+        "operations": ["before_first_request", "send_file", "config.from_json", "json_encoder"],
+        "versions": ["<2.0.0"],
+        "sdk": "flask"
+      },
+      "dependencyKind": "library",
+      "dependency": "flask",
+      "fromVersions": ["<2.0.0"],
+      "toVersion": "2.3.3",
+      "severity": "breaking"
+    },
+    {
+      "provider": "flask",
+      "id": "flask:cve-2023-30861",
+      "kind": "security-fix",
+      "title": "GHSA-m2qf-hxjv-5gpq / CVE-2023-30861: session cookie disclosure due to missing Vary: Cookie; fix is 2.2.5/2.3.2, crossing a major from 1.1.2",
+      "source": {
+        "url": "https://osv.dev/vulnerability/GHSA-m2qf-hxjv-5gpq",
+        "quote": "Flask vulnerable to possible disclosure of permanent session cookie due to missing Vary: Cookie header"
+      },
+      "affects": {
+        "sdk": "flask"
+      },
+      "dependencyKind": "library",
+      "dependency": "flask",
+      "fromVersions": ["<2.2.5", "<2.3.2"],
+      "toVersion": "2.2.5",
+      "severity": "security"
+    },
+    {
+      "provider": "flask",
+      "id": "flask:cve-2026-27205",
+      "kind": "security-fix",
+      "title": "GHSA-68rp-wp8r-4726 / CVE-2026-27205: session lacks Vary: Cookie when accessed via in/len; fix 3.1.3 crosses major from 1.1.2",
+      "source": {
+        "url": "https://osv.dev/vulnerability/GHSA-68rp-wp8r-4726",
+        "quote": "Flask session does not add `Vary: Cookie` header when accessed in some ways"
+      },
+      "affects": {
+        "sdk": "flask"
+      },
+      "dependencyKind": "library",
+      "dependency": "flask",
+      "fromVersions": ["<3.1.3"],
+      "toVersion": "3.1.3",
+      "severity": "security"
+    }
+  ]
+}

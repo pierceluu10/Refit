@@ -1,0 +1,59 @@
+{
+  "provider": "express",
+  "fetchedAt": "2026-11-06T05:21:36.516Z",
+  "note": "Every page one run read, cut to what the agent was shown (at most 120000 characters). Test input only.",
+  "sources": [
+    {
+      "id": "api-osv-dev-v1-query-package-express-ecosystem-npm-version-4-18-2",
+      "url": "https://api.osv.dev/v1/query?package=express&ecosystem=npm&version=4.18.2",
+      "status": 200,
+      "ok": true,
+      "file": "api-osv-dev-v1-query-package-express-ecosystem-npm-version-4-18-2.txt",
+      "chars": 419,
+      "truncated": false,
+      "sha256": "15ca88c7d445ea3642e8e1f6ea10ca3b96de94bb71d8809cc2269cc0ecbed710"
+    },
+    {
+      "id": "raw-githubusercontent-com-expressjs-express-head-changelog-md",
+      "url": "https://raw.githubusercontent.com/expressjs/express/HEAD/CHANGELOG.md",
+      "status": 404,
+      "ok": false,
+      "file": "raw-githubusercontent-com-expressjs-express-head-changelog-md.txt",
+      "chars": 0,
+      "truncated": true,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "error": "HTTP 404"
+    },
+    {
+      "id": "api-github-com-repos-expressjs-express-releases-per-page-100",
+      "url": "https://api.github.com/repos/expressjs/express/releases?per_page=100",
+      "status": 200,
+      "ok": true,
+      "file": "api-github-com-repos-expressjs-express-releases-per-page-100.txt",
+      "chars": 21138,
+      "truncated": true,
+      "sha256": "d16bfd27f103d0f6ee3ebfa0e197e7bc60fb4d6953fb80acb7aea34479e45bd2"
+    },
+    {
+      "id": "registry-npmjs-org-express",
+      "url": "https://registry.npmjs.org/express",
+      "status": 200,
+      "ok": true,
+      "file": "registry-npmjs-org-express.txt",
+      "chars": 963,
+      "truncated": false,
+      "sha256": "df101584ce84a9f41c037f324e82eaba56394c79bbc6833d2b82b72f29a27fdf"
+    },
+    {
+      "id": "raw-githubusercontent-com-expressjs-express-head-readme-md",
+      "url": "https://raw.githubusercontent.com/expressjs/express/HEAD/README.md",
+      "status": 404,
+      "ok": false,
+      "file": "raw-githubusercontent-com-expressjs-express-head-readme-md.txt",
+      "chars": 14,
+      "truncated": false,
+      "sha256": "d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed",
+      "error": "HTTP 404"
+    }
+  ]
+}

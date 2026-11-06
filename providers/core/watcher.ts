@@ -28,7 +28,7 @@ export type WatchDeps = {
   maxTokens?: number;
 };
 
-const CHANGE_SCHEMA = {
+export const CHANGE_SCHEMA = {
   type: 'object',
   properties: {
     id: { type: 'string' },
@@ -63,13 +63,21 @@ export function slug(text: string): string {
   );
 }
 
-function strings(value: unknown): string[] | undefined {
+export function strings(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const out = value
     .filter((item): item is string => typeof item === 'string' && item.trim() !== '')
     .map((s) => s.trim());
   return out.length ? out : undefined;
 }
+
+export type Normalised<C> = { changes: C[]; issues: WatchIssue[]; unverifiedQuotes: string[] };
+
+/** A change type other than ProviderChange: what submit_changes asks for and how it checks a submission. */
+export type ChangeShape<C> = {
+  schema: Record<string, unknown>;
+  normalise: (raw: unknown, reader: PageReader) => Normalised<C>;
+};
 
 /**
  * Turns the model's submission into ProviderChange[] and lists problems. It
@@ -80,7 +88,9 @@ export function normaliseChanges(
   provider: string,
   raw: unknown,
   reader?: PageReader,
-): { changes: ProviderChange[]; issues: WatchIssue[]; unverifiedQuotes: string[] } {
+  /** Which kinds are valid, for callers whose changes have more than the MigrationKinds. */
+  kinds: readonly string[] = MIGRATION_KINDS,
+): Normalised<ProviderChange> {
   const issues: WatchIssue[] = [];
   const unverifiedQuotes: string[] = [];
   const list = Array.isArray(raw) ? raw : [];
@@ -100,7 +110,7 @@ export function normaliseChanges(
     const id = `${provider}:${count > 1 ? `${base}-${count}` : base}`;
 
     let kind = entry.kind as MigrationKind;
-    if (!MIGRATION_KINDS.includes(kind)) {
+    if (!kinds.includes(kind)) {
       issues.push({
         changeId: id,
         message: `kind "${String(entry.kind)}" is not a MigrationKind; stored as "other"`,
@@ -185,7 +195,7 @@ export async function runWatch(
 }
 
 /** One watcher agent run: what it is told, what it may read, and which tools it has besides the page tools. */
-export type WatchAgentRun = {
+export type WatchAgentRun<C = ProviderChange> = {
   /** ProviderChange.provider for every change, and the prefix of their ids. */
   provider: string;
   /** Ledger label for its model calls. */
@@ -197,23 +207,29 @@ export type WatchAgentRun = {
   tools?: LoopTool[];
   /** Tools Anthropic runs, such as web search. Optional: a run they break is retried without them. */
   serverTools?: ServerTool[];
+  /** Defaults to ProviderChange. */
+  shape?: ChangeShape<C>;
 };
 
 /**
  * The shared watcher loop. The model reads and submits; code checks the
  * submission's shape and quotes and hands every problem back. It never drops a change.
  */
-export async function runWatchAgent(
-  run: WatchAgentRun,
+export async function runWatchAgent<C = ProviderChange>(
+  run: WatchAgentRun<C>,
   deps: WatchDeps = {},
-): Promise<WatchReport> {
+): Promise<WatchReport<C>> {
   const budget = deps.budget ?? budgetFromEnv();
   const base = deps.model ?? anthropicModel();
   const model = metered(base, budget, run.label);
   const spentBefore = budget.spentUsd;
   const { reader } = run;
 
-  let latest: ReturnType<typeof normaliseChanges> | undefined;
+  const normalise =
+    run.shape?.normalise ??
+    ((raw: unknown, pages: PageReader) =>
+      normaliseChanges(run.provider, raw, pages) as unknown as Normalised<C>);
+  let latest: Normalised<C> | undefined;
   let notes = '';
   let clean = false;
   const submit: LoopTool = {
@@ -223,7 +239,7 @@ export async function runWatchAgent(
     input_schema: {
       type: 'object',
       properties: {
-        changes: { type: 'array', items: CHANGE_SCHEMA },
+        changes: { type: 'array', items: run.shape?.schema ?? CHANGE_SCHEMA },
         notes: {
           type: 'string',
           description:
@@ -233,7 +249,7 @@ export async function runWatchAgent(
       required: ['changes'],
     },
     async run(input) {
-      latest = normaliseChanges(run.provider, input.changes, reader);
+      latest = normalise(input.changes, reader);
       if (typeof input.notes === 'string') notes = input.notes.trim();
       clean = latest.issues.length === 0;
       if (clean) return { content: `accepted ${latest.changes.length} changes` };

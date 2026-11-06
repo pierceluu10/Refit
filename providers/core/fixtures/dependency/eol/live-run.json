@@ -1,0 +1,124 @@
+{
+  "note": "Live run: claude-sonnet-5-5 through the Messages API on 2026-11-06, reading live pages. pages/ keeps what the agent was shown. Output recorded as returned, not edited.",
+  "runAt": "2026-11-06T05:21:27.221Z",
+  "model": "claude-sonnet-5-5",
+  "promptVersion": "dependency-watch-v1",
+  "input": {
+    "dependency": {
+      "repo": "cli",
+      "kind": "container-image",
+      "name": "node:18-bookworm",
+      "version": "18-bookworm",
+      "ecosystem": "docker",
+      "declaredIn": []
+    },
+    "webSearch": true,
+    "capUsd": 0.7
+  },
+  "report": {
+    "provider": "node-18-bookworm",
+    "changes": [
+      {
+        "provider": "node-18-bookworm",
+        "id": "node-18-bookworm:node-18-end-of-life",
+        "kind": "runtime-eol",
+        "title": "Node.js 18 reached end of life on 2025-04-30; node:18-bookworm gets no more fixes. Move to Node 26 LTS (or 24).",
+        "source": {
+          "url": "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
+          "quote": "\"end\": \"2025-04-30\",\n\"codename\": \"Hydrogen\""
+        },
+        "affects": {
+          "versions": ["18"]
+        },
+        "effectiveDate": "2025-04-30",
+        "dependencyKind": "container-image",
+        "dependency": "node:18-bookworm",
+        "fromVersions": ["18"],
+        "toVersion": "26",
+        "severity": "deadline"
+      },
+      {
+        "provider": "node-18-bookworm",
+        "id": "node-18-bookworm:debian-bookworm-eol",
+        "kind": "container-image-eol",
+        "title": "Debian 12 Bookworm (OS in the tag) regular support ended 2026-07-11; end of life 2028-06-30 (within 2 years); Trixie is current.",
+        "source": {
+          "url": "https://endoflife.date/api/debian.json",
+          "quote": "\"eol\": \"2028-06-30\""
+        },
+        "affects": {
+          "versions": ["bookworm", "12"]
+        },
+        "effectiveDate": "2028-06-30",
+        "dependencyKind": "container-image",
+        "dependency": "node:18-bookworm",
+        "fromVersions": ["12"],
+        "toVersion": "13 (trixie)",
+        "severity": "notice"
+      }
+    ],
+    "issues": [],
+    "unverifiedQuotes": [],
+    "sourcesRead": [
+      "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json",
+      "https://endoflife.date/api/debian.json",
+      "https://endoflife.date/api/nodejs.json"
+    ],
+    "model": "claude-sonnet-5-5",
+    "costUsd": 0.0447623,
+    "turns": 2,
+    "summary": "Only read endoflife.date nodejs and debian JSON and the Node release schedule. Bookworm EOL is beyond 12 months, so included as notice (the Debian-side deadline is 2028-06-30). Didn't read Docker Hub tags or security releases.",
+    "log": [
+      {
+        "turn": 1,
+        "stopReason": "tool_use",
+        "inputTokens": 6468,
+        "outputTokens": 166,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"eol-nodejs\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://endoflife.date/api/debian.json\"}"
+          },
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"schedule-nodejs\"}"
+          }
+        ]
+      },
+      {
+        "turn": 2,
+        "stopReason": "tool_use",
+        "inputTokens": 14421,
+        "outputTokens": 575,
+        "calls": [
+          {
+            "tool": "submit_changes",
+            "input": "{\"changes\":[{\"id\":\"node-18-end-of-life\",\"kind\":\"runtime-eol\",\"title\":\"Node.js 18 reached end of life on 2025-04-30; node:18-bookworm gets no more fixes. Move to Node 26 LTS (or 24).\",\"effectiveDate\":\"2025-04-30\",\"source\":{\"url\":\"https://raw.githubusercontent.com/nodejs/Release/main/schedule.json\",\"q"
+          }
+        ]
+      }
+    ],
+    "name": "Node 18 Bookworm",
+    "hints": {},
+    "packages": [],
+    "startingPages": [
+      "https://endoflife.date/api/nodejs.json",
+      "https://endoflife.date/api/all.json",
+      "https://raw.githubusercontent.com/nodejs/Release/main/schedule.json"
+    ],
+    "errors": [],
+    "dependency": {
+      "repo": "cli",
+      "kind": "container-image",
+      "name": "node:18-bookworm",
+      "version": "18-bookworm",
+      "ecosystem": "docker",
+      "declaredIn": []
+    },
+    "failed": false
+  }
+}

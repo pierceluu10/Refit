@@ -86,9 +86,9 @@ export type ProviderKnowledge = {
 
 export type WatchIssue = { changeId?: string; message: string };
 
-export type WatchReport = {
+export type WatchReport<C = ProviderChange> = {
   provider: string;
-  changes: ProviderChange[];
+  changes: C[];
   /** Problems the checks found and the agent did not fix. Never used to drop a change. */
   issues: WatchIssue[];
   /** Ids of changes whose quote was not found verbatim in a page the agent read. */

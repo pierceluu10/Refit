@@ -1,0 +1,233 @@
+{
+  "note": "Live run: claude-sonnet-5-5 through the Messages API on 2026-11-06, reading live pages. pages/ keeps what the agent was shown. Output recorded as returned, not edited.",
+  "runAt": "2026-11-06T05:21:28.081Z",
+  "model": "claude-sonnet-5-5",
+  "promptVersion": "dependency-watch-v1",
+  "input": {
+    "dependency": {
+      "repo": "cli",
+      "kind": "ci",
+      "name": "actions/checkout",
+      "version": "v2",
+      "ecosystem": "github-actions",
+      "declaredIn": []
+    },
+    "webSearch": true,
+    "capUsd": 0.7
+  },
+  "report": {
+    "provider": "actions-checkout",
+    "changes": [
+      {
+        "provider": "actions-checkout",
+        "id": "actions-checkout:checkout-v2-behind-v7",
+        "kind": "ci-deprecation",
+        "title": "actions/checkout v2 is five majors behind (v7 current); v2 runs on an obsolete Node runtime and should be upgraded",
+        "source": {
+          "url": "https://api.github.com/repos/actions/checkout/releases?per_page=100",
+          "quote": "Update actions checkout to use node 24 by @salmanmkc in https://github.com/actions/checkout/pull/2226"
+        },
+        "affects": {
+          "versions": ["v2"],
+          "sdk": "actions/checkout"
+        },
+        "dependencyKind": "ci",
+        "dependency": "actions/checkout",
+        "fromVersions": ["v2"],
+        "toVersion": "v7",
+        "severity": "notice"
+      },
+      {
+        "provider": "actions-checkout",
+        "id": "actions-checkout:checkout-v2-8-0-unsafe-pr-checkout-blocked",
+        "kind": "ci-deprecation",
+        "title": "Floating tag v2 (now v2.8.0) since 2026-07-20 refuses fork PR checkouts in pull_request_target/workflow_run unless allow-unsafe-pr-checkout is set (breaking)",
+        "source": {
+          "url": "https://api.github.com/repos/actions/checkout/releases?per_page=100",
+          "quote": "**[BREAKING]** backport `allow-unsafe-pr-checkout` to v2 by @aiqiaoy in https://github.com/actions/checkout/pull/2504"
+        },
+        "affects": {
+          "fields": ["allow-unsafe-pr-checkout", "ref", "repository"],
+          "versions": ["v2"],
+          "sdk": "actions/checkout"
+        },
+        "effectiveDate": "2026-07-20",
+        "dependencyKind": "ci",
+        "dependency": "actions/checkout",
+        "fromVersions": ["v2"],
+        "toVersion": "v7",
+        "severity": "breaking"
+      },
+      {
+        "provider": "actions-checkout",
+        "id": "actions-checkout:checkout-v7-pwn-request-block",
+        "kind": "ci-deprecation",
+        "title": "actions/checkout v7 (GA 2026-06-18) blocks fork PR head/merge checkouts in pull_request_target and workflow_run; backported to floating major tags (v1 excluded)",
+        "source": {
+          "url": "https://github.blog/changelog/2026-06-18-safer-pull_request_target-defaults-for-github-actions-checkout/",
+          "quote": "Workflows pinned to a floating major tag (e.g., actions/checkout@v4) will automatically pick up the change."
+        },
+        "affects": {
+          "fields": ["allow-unsafe-pr-checkout"],
+          "versions": ["v2", "v7"],
+          "sdk": "actions/checkout"
+        },
+        "effectiveDate": "2026-07-20",
+        "dependencyKind": "ci",
+        "dependency": "actions/checkout",
+        "fromVersions": ["v2"],
+        "toVersion": "v7",
+        "severity": "breaking"
+      },
+      {
+        "provider": "actions-checkout",
+        "id": "actions-checkout:pull-request-target-blocked-default-2026-12-02",
+        "kind": "ci-deprecation",
+        "title": "GitHub Actions will block pull_request_target by default in public repos from Dec 2, 2026 (brownouts Nov 9 and Nov 16) unless an Actions event policy allows it",
+        "source": {
+          "url": "https://github.blog/changelog/label/actions/feed/",
+          "quote": "Starting December 2, 2026, GitHub Actions will block pull_request_target events by default in all public repositories, unless an applicable Actions event policy explicitly allows them."
+        },
+        "affects": {
+          "operations": ["pull_request_target"]
+        },
+        "effectiveDate": "2026-12-02",
+        "dependencyKind": "ci",
+        "dependency": "actions/checkout",
+        "fromVersions": ["all"],
+        "severity": "deadline"
+      },
+      {
+        "provider": "actions-checkout",
+        "id": "actions-checkout:checkout-v6-runner-min-version",
+        "kind": "ci-deprecation",
+        "title": "checkout v6 stores credentials under RUNNER_TEMP and requires runner v2.329.0+ for Docker container actions; v5 requires runner v2.327.1+ (Node 24)",
+        "source": {
+          "url": "https://api.github.com/repos/actions/checkout/releases?per_page=100",
+          "quote": "This requires a minimum Actions Runner version of [v2.329.0]"
+        },
+        "affects": {
+          "versions": ["v5", "v6"],
+          "sdk": "actions/checkout"
+        },
+        "effectiveDate": "2025-11-20",
+        "dependencyKind": "ci",
+        "dependency": "actions/checkout",
+        "fromVersions": ["v2"],
+        "toVersion": "v7",
+        "severity": "notice"
+      }
+    ],
+    "issues": [],
+    "unverifiedQuotes": [],
+    "sourcesRead": [
+      "https://api.github.com/repos/actions/checkout/releases?per_page=100",
+      "https://github.blog/changelog/label/actions/feed/",
+      "https://github.blog/changelog/2026-06-18-safer-pull_request_target-defaults-for-github-actions-checkout/"
+    ],
+    "model": "claude-sonnet-5-5",
+    "costUsd": 0.1059573,
+    "turns": 6,
+    "summary": "Read first page of releases, the June 2026 changelog post, and the Actions changelog feed (first 15000 chars of 25529). Did not read runner-images README or the rest of the releases list (older releases). Node12/16 deprecation for v2 is older than the window and was not sourced here.",
+    "log": [
+      {
+        "turn": 1,
+        "stopReason": "tool_use",
+        "inputTokens": 6399,
+        "outputTokens": 52,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"action-releases\"}"
+          }
+        ]
+      },
+      {
+        "turn": 2,
+        "stopReason": "tool_use",
+        "inputTokens": 13133,
+        "outputTokens": 164,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"url\":\"https://github.blog/changelog/2026-06-18-safer-pull_request_target-defaults-for-github-actions-checkout/\"}"
+          },
+          {
+            "tool": "search_page",
+            "input": "{\"source_id\":\"github-actions-changelog\",\"query\":\"node20\"}"
+          }
+        ]
+      },
+      {
+        "turn": 3,
+        "stopReason": "tool_use",
+        "inputTokens": 15442,
+        "outputTokens": 171,
+        "calls": [
+          {
+            "tool": "search_page",
+            "input": "{\"source_id\":\"github-actions-changelog\",\"query\":\"pull_request_target blocked\"}"
+          },
+          {
+            "tool": "search_page",
+            "input": "{\"source_id\":\"github-actions-changelog\",\"query\":\"node\"}"
+          }
+        ]
+      },
+      {
+        "turn": 4,
+        "stopReason": "tool_use",
+        "inputTokens": 16063,
+        "outputTokens": 56,
+        "calls": [
+          {
+            "tool": "read_page",
+            "input": "{\"source_id\":\"github-actions-changelog\"}"
+          }
+        ]
+      },
+      {
+        "turn": 5,
+        "stopReason": "tool_use",
+        "inputTokens": 21384,
+        "outputTokens": 1520,
+        "calls": [
+          {
+            "tool": "submit_changes",
+            "input": "{\"changes\":[{\"id\":\"checkout-v2-behind-v7\",\"kind\":\"ci-deprecation\",\"title\":\"actions/checkout v2 is five majors behind (v7 current); v2 runs on an obsolete Node runtime and should be upgraded\",\"source\":{\"url\":\"https://api.github.com/repos/actions/checkout/releases?per_page=100\",\"quote\":\"Update actions"
+          }
+        ]
+      },
+      {
+        "turn": 6,
+        "stopReason": "tool_use",
+        "inputTokens": 23033,
+        "outputTokens": 1424,
+        "calls": [
+          {
+            "tool": "submit_changes",
+            "input": "{\"changes\":[{\"id\":\"checkout-v2-behind-v7\",\"kind\":\"ci-deprecation\",\"title\":\"actions/checkout v2 is five majors behind (v7 current); v2 runs on an obsolete Node runtime and should be upgraded\",\"source\":{\"url\":\"https://api.github.com/repos/actions/checkout/releases?per_page=100\",\"quote\":\"Update actions"
+          }
+        ]
+      }
+    ],
+    "name": "Actions Checkout",
+    "hints": {},
+    "packages": [],
+    "startingPages": [
+      "https://api.github.com/repos/actions/checkout/releases?per_page=100",
+      "https://github.blog/changelog/label/actions/feed/",
+      "https://raw.githubusercontent.com/actions/runner-images/main/README.md"
+    ],
+    "errors": [],
+    "dependency": {
+      "repo": "cli",
+      "kind": "ci",
+      "name": "actions/checkout",
+      "version": "v2",
+      "ecosystem": "github-actions",
+      "declaredIn": []
+    },
+    "failed": false
+  }
+}

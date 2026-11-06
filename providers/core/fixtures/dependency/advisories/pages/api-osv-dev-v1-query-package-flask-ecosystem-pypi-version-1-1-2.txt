@@ -1,0 +1,21 @@
+OSV advisories for flask at 1.1.2: 4.
+
+## GHSA-68rp-wp8r-4726 (CVE-2026-27205, PYSEC-2026-2151)
+https://osv.dev/vulnerability/GHSA-68rp-wp8r-4726
+Flask session does not add `Vary: Cookie` header when accessed in some ways
+Severity: LOW. First fixed in: 3.1.3.
+
+## GHSA-m2qf-hxjv-5gpq (CVE-2023-30861, PYSEC-2023-62)
+https://osv.dev/vulnerability/GHSA-m2qf-hxjv-5gpq
+Flask vulnerable to possible disclosure of permanent session cookie due to missing Vary: Cookie header
+Severity: HIGH. First fixed in: 2.3.2, 2.2.5.
+
+## PYSEC-2023-62 (CVE-2023-30861, GHSA-m2qf-hxjv-5gpq)
+https://osv.dev/vulnerability/PYSEC-2023-62
+No summary given.
+Severity: not given. First fixed in: 70f906c51ce49c485f1d355703e9cc3386b1cc2b, afd63b16170b7c047f5758eb910c416511e9c965, 2.2.5, 2.3.2.
+
+## PYSEC-2026-2151 (CVE-2026-27205, GHSA-68rp-wp8r-4726)
+https://osv.dev/vulnerability/PYSEC-2026-2151
+No summary given.
+Severity: not given. First fixed in: 3.1.3.

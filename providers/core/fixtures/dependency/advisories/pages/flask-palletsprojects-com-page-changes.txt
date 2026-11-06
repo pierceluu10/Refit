@@ -1,0 +1,643 @@
+### Navigation
+
+-
+index
+
+-
+modules |
+
+-
+previous |
+
+- Flask Documentation (3.1.x) »
+
+- Changes
+
+# Changes¶
+
+## Version 3.1.3¶
+
+Released 2026-02-18
+
+- The session is marked as accessed for operations that only access the keys
+but not the values, such as in and len. GHSA-68rp-wp8r-4726
+
+## Version 3.1.2¶
+
+Released 2025-08-19
+
+- stream_with_context does not fail inside async views. #5774
+
+- When using follow_redirects in the test client, the final state
+of session is correct. #5786
+
+- Relax type hint for passing bytes IO to send_file. #5776
+
+## Version 3.1.1¶
+
+Released 2025-05-13
+
+- Fix signing key selection order when key rotation is enabled via
+SECRET_KEY_FALLBACKS. GHSA-4grg-w6v8-c28g
+
+- Fix type hint for cli_runner.invoke. #5645
+
+- flask --help loads the app and plugins first to make sure all commands
+are shown. #5673
+
+- Mark sans-io base class as being able to handle views that return
+AsyncIterable. This is not accurate for Flask, but makes typing easier
+for Quart. #5659
+
+## Version 3.1.0¶
+
+Released 2024-11-13
+
+- Drop support for Python 3.8. #5623
+
+- Update minimum dependency versions to latest feature releases.
+Werkzeug >= 3.1, ItsDangerous >= 2.2, Blinker >= 1.9. #5624,5633
+
+- Provide a configuration option to control automatic option
+responses. #5496
+
+- Flask.open_resource/open_instance_resource and
+Blueprint.open_resource take an encoding parameter to use when
+opening in text mode. It defaults to utf-8. #5504
+
+- Request.max_content_length can be customized per-request instead of only
+through the MAX_CONTENT_LENGTH config. Added
+MAX_FORM_MEMORY_SIZE and MAX_FORM_PARTS config. Added documentation
+about resource limits to the security page. #5625
+
+- Add support for the Partitioned cookie attribute (CHIPS), with the
+SESSION_COOKIE_PARTITIONED config. #5472
+
+- -e path takes precedence over default .env and .flaskenv files.
+load_dotenv loads default files in addition to a path unless
+load_defaults=False is passed. #5628
+
+- Support key rotation with the SECRET_KEY_FALLBACKS config, a list of old
+secret keys that can still be used for unsigning. Extensions will need to
+add support. #5621
+
+- Fix how setting host_matching=True or subdomain_matching=False
+interacts with SERVER_NAME. Setting SERVER_NAME no longer restricts
+requests to only that domain. #5553
+
+- Request.trusted_hosts is checked during routing, and can be set through
+the TRUSTED_HOSTS config. #5636
+
+## Version 3.0.3¶
+
+Released 2024-04-07
+
+- The default hashlib.sha1 may not be available in FIPS builds. Don’t
+access it at import time so the developer has time to change the default.
+#5448
+
+- Don’t initialize the cli attribute in the sansio scaffold, but rather in
+the Flask concrete class. #5270
+
+## Version 3.0.2¶
+
+Released 2024-02-03
+
+- Correct type for jinja_loader property. #5388
+
+- Fix error with --extra-files and --exclude-patterns CLI options.
+#5391
+
+## Version 3.0.1¶
+
+Released 2024-01-18
+
+- Correct type for path argument to send_file. #5336
+
+- Fix a typo in an error message for the flask run --key option. #5344
+
+- Session data is untagged without relying on the built-in json.loads
+object_hook. This allows other JSON providers that don’t implement that.
+#5381
+
+- Address more type findings when using mypy strict mode. #5383
+
+## Version 3.0.0¶
+
+Released 2023-09-30
+
+- Remove previously deprecated code. #5223
+
+- Deprecate the __version__ attribute. Use feature detection, or
+importlib.metadata.version("flask"), instead. #5230
+
+- Restructure the code such that the Flask (app) and Blueprint
+classes have Sans-IO bases. #5127
+
+- Allow self as an argument to url_for. #5264
+
+- Require Werkzeug >= 3.0.0.
+
+## Version 2.3.3¶
+
+Released 2023-08-21
+
+- Python 3.12 compatibility.
+
+- Require Werkzeug >= 2.3.7.
+
+- Use flit_core instead of setuptools as build backend.
+
+- Refactor how an app’s root and instance paths are determined. #5160
+
+## Version 2.3.2¶
+
+Released 2023-05-01
+
+- Set Vary: Cookie header when the session is accessed, modified, or refreshed.
+
+- Update Werkzeug requirement to >=2.3.3 to apply recent bug fixes.
+GHSA-m2qf-hxjv-5gpq
+
+## Version 2.3.1¶
+
+Released 2023-04-25
+
+- Restore deprecated from flask import Markup. #5084
+
+## Version 2.3.0¶
+
+Released 2023-04-25
+
+- Drop support for Python 3.7. #5072
+
+- Update minimum requirements to the latest versions: Werkzeug>=2.3.0, Jinja2>3.1.2,
+itsdangerous>=2.1.2, click>=8.1.3.
+
+- Remove previously deprecated code. #4995
+
+- The push and pop methods of the deprecated _app_ctx_stack and
+_request_ctx_stack objects are removed. top still exists to give
+extensions more time to update, but it will be removed.
+
+- The FLASK_ENV environment variable, ENV config key, and app.env
+property are removed.
+
+- The session_cookie_name, send_file_max_age_default, use_x_sendfile,
+propagate_exceptions, and templates_auto_reload properties on app
+are removed.
+
+- The JSON_AS_ASCII, JSON_SORT_KEYS, JSONIFY_MIMETYPE, and
+JSONIFY_PRETTYPRINT_REGULAR config keys are removed.
+
+- The app.before_first_request and bp.before_app_first_request decorators
+are removed.
+
+- json_encoder and json_decoder attributes on app and blueprint, and the
+corresponding json.JSONEncoder and JSONDecoder classes, are removed.
+
+- The json.htmlsafe_dumps and htmlsafe_dump functions are removed.
+
+- Calling setup methods on blueprints after registration is an error instead of a
+warning. #4997
+
+- Importing escape and Markup from flask is deprecated. Import them
+directly from markupsafe instead. #4996
+
+- The app.got_first_request property is deprecated. #4997
+
+- The locked_cached_property decorator is deprecated. Use a lock inside the
+decorated function if locking is needed. #4993
+
+- Signals are always available. blinker>=1.6.2 is a required dependency. The
+signals_available attribute is deprecated. #5056
+
+- Signals support async subscriber functions. #5049
+
+- Remove uses of locks that could cause requests to block each other very briefly.
+#4993
+
+- Use modern packaging metadata with pyproject.toml instead of setup.cfg.
+#4947
+
+- Ensure subdomains are applied with nested blueprints. #4834
+
+- config.from_file can use text=False to indicate that the parser wants a
+binary file instead. #4989
+
+- If a blueprint is created with an empty name it raises a ValueError.
+#5010
+
+- SESSION_COOKIE_DOMAIN does not fall back to SERVER_NAME. The default is not
+to set the domain, which modern browsers interpret as an exact match rather than
+a subdomain match. Warnings about localhost and IP addresses are also removed.
+#5051
+
+- The routes command shows each rule’s subdomain or host when domain
+matching is in use. #5004
+
+- Use postponed evaluation of annotations. #5071
+
+## Version 2.2.5¶
+
+Released 2023-05-02
+
+- Update for compatibility with Werkzeug 2.3.3.
+
+- Set Vary: Cookie header when the session is accessed, modified, or refreshed.
+
+## Version 2.2.4¶
+
+Released 2023-04-25
+
+- Update for compatibility with Werkzeug 2.3.
+
+## Version 2.2.3¶
+
+Released 2023-02-15
+
+- Autoescape is enabled by default for .svg template files. #4831
+
+- Fix the type of template_folder to accept pathlib.Path. #4892
+
+- Add --debug option to the flask run command. #4777
+
+## Version 2.2.2¶
+
+Released 2022-08-08
+
+- Update Werkzeug dependency to >= 2.2.2. This includes fixes related
+to the new faster router, header parsing, and the development
+server. #4754
+
+- Fix the default value for app.env to be "production". This
+attribute remains deprecated. #4740
+
+## Version 2.2.1¶
+
+Released 2022-08-03
+
+- Setting or accessing json_encoder or json_decoder raises a
+deprecation warning. #4732
+
+## Version 2.2.0¶
+
+Released 2022-08-01
+
+- Remove previously deprecated code. #4667
+
+- Old names for some send_file parameters have been removed.
+download_name replaces attachment_filename, max_age
+replaces cache_timeout, and etag replaces add_etags.
+Additionally, path replaces filename in
+send_from_directory.
+
+- The RequestContext.g property returning AppContext.g is
+removed.
+
+- Update Werkzeug dependency to >= 2.2.
+
+- The app and request contexts are managed using Python context vars
+directly rather than Werkzeug’s LocalStack. This should result
+in better performance and memory use. #4682
+
+- Extension maintainers, be aware that _app_ctx_stack.top
+and _request_ctx_stack.top are deprecated. Store data on
+g instead using a unique prefix, like
+g._extension_name_attr.
+
+- The FLASK_ENV environment variable and app.env attribute are
+deprecated, removing the distinction between development and debug
+mode. Debug mode should be controlled directly using the --debug
+option or app.run(debug=True). #4714
+
+- Some attributes that proxied config keys on app are deprecated:
+session_cookie_name, send_file_max_age_default,
+use_x_sendfile, propagate_exceptions, and
+templates_auto_reload. Use the relevant config keys instead.
+#4716
+
+- Add new customization points to the Flask app object for many
+previously global behaviors.
+
+- flask.url_for will call app.url_for. #4568
+
+- flask.abort will call app.aborter.
+Flask.aborter_class and Flask.make_aborter can be used
+to customize this aborter. #4567
+
+- flask.redirect will call app.redirect. #4569
+
+- flask.json is an instance of JSONProvider. A different
+provider can be set to use a different JSON library.
+flask.jsonify will call app.json.response, other
+functions in flask.json will call corresponding functions in
+app.json. #4692
+
+- JSON configuration is moved to attributes on the default
+app.json provider. JSON_AS_ASCII, JSON_SORT_KEYS,
+JSONIFY_MIMETYPE, and JSONIFY_PRETTYPRINT_REGULAR are
+deprecated. #4692
+
+- Setting custom json_encoder and json_decoder classes on the
+app or a blueprint, and the corresponding json.JSONEncoder and
+JSONDecoder classes, are deprecated. JSON behavior can now be
+overridden using the app.json provider interface. #4692
+
+- json.htmlsafe_dumps and json.htmlsafe_dump are deprecated,
+the function is built-in to Jinja now. #4692
+
+- Refactor register_error_handler to consolidate error checking.
+Rewrite some error messages to be more consistent. #4559
+
+- Use Blueprint decorators and functions intended for setup after
+registering the blueprint will show a warning. In the next version,
+this will become an error just like the application setup methods.
+#4571
+
+- before_first_request is deprecated. Run setup code when creating
+the application instead. #4605
+
+- Added the View.init_every_request class attribute. If a view
+subclass sets this to False, the view will not create a new
+instance on every request. #2520.
+
+- A flask.cli.FlaskGroup Click group can be nested as a
+sub-command in a custom CLI. #3263
+
+- Add --app and --debug options to the flask CLI, instead
+of requiring that they are set through environment variables.
+#2836
+
+- Add --env-file option to the flask CLI. This allows
+specifying a dotenv file to load in addition to .env and
+.flaskenv. #3108
+
+- It is no longer required to decorate custom CLI commands on
+app.cli or blueprint.cli with @with_appcontext, an app
+context will already be active at that point. #2410
+
+- SessionInterface.get_expiration_time uses a timezone-aware
+value. #4645
+
+- View functions can return generators directly instead of wrapping
+them in a Response. #4629
+
+- Add stream_template and stream_template_string functions to
+render a template as a stream of pieces. #4629
+
+- A new implementation of context preservation during debugging and
+testing. #4666
+
+- request, g, and other context-locals point to the
+correct data when running code in the interactive debugger
+console. #2836
+
+- Teardown functions are always run at the end of the request,
+even if the context is preserved. They are also run after the
+preserved context is popped.
+
+- stream_with_context preserves context separately from a
+with client block. It will be cleaned up when
+response.get_data() or response.close() is called.
+
+- Allow returning a list from a view function, to convert it to a
+JSON response like a dict is. #4672
+
+- When type checking, allow TypedDict to be returned from view
+functions. #4695
+
+- Remove the --eager-loading/--lazy-loading options from the
+flask run command. The app is always eager loaded the first
+time, then lazily loaded in the reloader. The reloader always prints
+errors immediately but continues serving. Remove the internal
+DispatchingApp middleware used by the previous implementation.
+#4715
+
+## Version 2.1.3¶
+
+Released 2022-07-13
+
+- Inline some optional imports that are only used for certain CLI
+commands. #4606
+
+- Relax type annotation for after_request functions. #4600
+
+- instance_path for namespace packages uses the path closest to
+the imported submodule. #4610
+
+- Clearer error message when render_template and
+render_template_string are used outside an application context.
+#4693
+
+## Version 2.1.2¶
+
+Released 2022-04-28
+
+- Fix type annotation for json.loads, it accepts str or bytes.
+#4519
+
+- The --cert and --key options on flask run can be given
+in either order. #4459
+
+## Version 2.1.1¶
+
+Released on 2022-03-30
+
+- Set the minimum required version of importlib_metadata to 3.6.0,
+which is required on Python < 3.10. #4502
+
+## Version 2.1.0¶
+
+Released 2022-03-28
+
+- Drop support for Python 3.6. #4335
+
+- Update Click dependency to >= 8.0. #4008
+
+- Remove previously deprecated code. #4337
+
+- The CLI does not pass script_info to app factory functions.
+
+- config.from_json is replaced by
+config.from_file(name, load=json.load).
+
+- json functions no longer take an encoding parameter.
+
+- safe_join is removed, use werkzeug.utils.safe_join
+instead.
+
+- total_seconds is removed, use timedelta.total_seconds
+instead.
+
+- The same blueprint cannot be registered with the same name. Use
+name= when registering to specify a unique name.
+
+- The test client’s as_tuple parameter is removed. Use
+response.request.environ instead. #4417
+
+- Some parameters in send_file and send_from_directory were
+renamed in 2.0. The deprecation period for the old names is extended
+to 2.2. Be sure to test with deprecation warnings visible.
+
+- attachment_filename is renamed to download_name.
+
+- cache_timeout is renamed to max_age.
+
+- add_etags is renamed to etag.
+
+- filename is renamed to path.
+
+- The RequestContext.g property is deprecated. Use g directly
+or AppContext.g instead. #3898
+
+- copy_current_request_context can decorate async functions.
+#4303
+
+- The CLI uses importlib.metadata instead of pkg_resources to
+load command entry points. #4419
+
+- Overriding FlaskClient.open will not cause an error on redirect.
+#3396
+
+- Add an --exclude-patterns option to the flask run CLI
+command to specify patterns that will be ignored by the reloader.
+#4188
+
+- When using lazy loading (the default with the debugger), the Click
+context from the flask run command remains available in the
+loader thread. #4460
+
+- Deleting the session cookie uses the httponly flag.
+#4485
+
+- Relax typing for errorhandler to allow the user to use more
+precise types and decorate the same function multiple times.
+#4095, 4295, 4297
+
+- Fix typing for __exit__ methods for better compatibility with
+ExitStack. #4474
+
+- From Werkzeug, for redirect responses the Location header URL
+will remain re
+[... 3545 characters not shown ...]
+## Version 2.0.0¶
+
+Released 2021-05-11
+
+- Drop support for Python 2 and 3.5.
+
+- Bump minimum versions of other Pallets projects: Werkzeug >= 2,
+Jinja2 >= 3, MarkupSafe >= 2, ItsDangerous >= 2, Click >= 8. Be sure
+to check the change logs for each project. For better compatibility
+with other applications (e.g. Celery) that still require Click 7,
+there is no hard dependency on Click 8 yet, but using Click 7 will
+trigger a DeprecationWarning and Flask 2.1 will depend on Click 8.
+
+- JSON support no longer uses simplejson. To use another JSON module,
+override app.json_encoder and json_decoder. #3555
+
+- The encoding option to JSON functions is deprecated. #3562
+
+- Passing script_info to app factory functions is deprecated. This
+was not portable outside the flask command. Use
+click.get_current_context().obj if it’s needed. #3552
+
+- The CLI shows better error messages when the app failed to load
+when looking up commands. #2741
+
+- Add SessionInterface.get_cookie_name to allow setting the
+session cookie name dynamically. #3369
+
+- Add Config.from_file to load config using arbitrary file
+loaders, such as toml.load or json.load.
+Config.from_json is deprecated in favor of this. #3398
+
+- The flask run command will only defer errors on reload. Errors
+present during the initial call will cause the server to exit with
+the traceback immediately. #3431
+
+- send_file raises a ValueError when passed an io object
+in text mode. Previously, it would respond with 200 OK and an empty
+file. #3358
+
+- When using ad-hoc certificates, check for the cryptography library
+instead of PyOpenSSL. #3492
+
+- When specifying a factory function with FLASK_APP, keyword
+argument can be passed. #3553
+
+- When loading a .env or .flaskenv file, the current working
+directory is no longer changed to the location of the file.
+#3560
+
+- When returning a (response, headers) tuple from a view, the
+headers replace rather than extend existing headers on the response.
+For example, this allows setting the Content-Type for
+jsonify(). Use response
+[... 8957 characters not shown ...]
+## Version 1.0¶
+
+Released 2018-04-26
+
+- Python 2.6 and 3.3 are no longer supported.
+
+- Bump minimum dependency versions to the latest stable versions:
+Werkzeug >= 0.14, Jinja >= 2.10, itsdangerous >= 0.24, Click >= 5.1.
+#2586
+
+- Skip app.run when a Flask application is run from the command
+line. This avoids some behavior that was confusing to debug.
+
+- Change the default for JSONIFY_PRETTYPRINT_REGULAR to
+False. ~json.jsonify returns a compact format by default,
+and an indented format in debug mode. #2193
+
+- Flask.__init__ accepts the host_matching argument and sets
+it on Flask.url_map. #1559
+
+- Flask.__init__ accepts the static_host argument and passes
+it as the host argument when defining the static route.
+#1559
+
+- send_file supports Unicode in attachment_filename.
+#2223
+
+- Pass _scheme argument from url_for to
+Flask.handle_url_build_error. #2017
+
+- Flask.add_url_rule accepts the provide_automatic_options
+argument to disable adding the OPTIONS method. #1489
+
+- MethodView subclasses inherit method handlers from base classes.
+#1936
+
+- Errors caused while opening the session at the beginning of the
+request are handled by the app’s error handlers. #2254
+
+- Blueprints gained Blueprint.json_encoder and
+Blueprint.json_decoder attributes to override the app’s
+encoder and decoder. #1898
+
+- Flask.make_response raises TypeError instead of
+ValueError for bad response types. The error messages have been
+improved to describe why the type is invalid. #2256
+
+- Add routes CLI command to output routes registered on the
+application. #2259
+
+- Show warning when session cookie domain is a bare hostname or an IP
+address, as these may not behave properly in some browsers, such as
+Chrome. #2282
+
+- Allow IP address as exact session cookie domain. #2282
+
+- SESSION_COOKIE_DOMAIN is set if it is detected through
+SERVER_NAME. #2282
+
+- Auto-detect zero-argument app factory called create_app or
+make_app from FLASK_APP. #2297
+
+- Factory functions are not required to take a script_info
+parameter to work with the flas
+[... 32572 characters not shown ...]
