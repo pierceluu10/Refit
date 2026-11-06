@@ -119,18 +119,26 @@ export class UsageCollector {
     });
   }
 
-  private async lineAt(file: string, line: number): Promise<{ text: string } | { reason: string }> {
-    let text: string | undefined;
-    try {
-      text = await readText(this.repoDir, file);
-    } catch (error) {
-      return { reason: `cannot read ${file}: ${(error as Error).message}` };
-    }
-    if (text === undefined) return { reason: `${file} is binary or too large` };
-    const lines = text.split('\n');
-    if (!Number.isInteger(line) || line < 1 || line > lines.length) {
-      return { reason: `${file} has ${lines.length} lines; line ${line} does not exist` };
-    }
-    return { text: lines[line - 1].trim().slice(0, LINE_PREVIEW_LENGTH) };
+  private lineAt(file: string, line: number): Promise<{ text: string } | { reason: string }> {
+    return readLineAt(this.repoDir, file, line);
   }
+}
+
+export async function readLineAt(
+  repoDir: string,
+  file: string,
+  line: number,
+): Promise<{ text: string } | { reason: string }> {
+  let text: string | undefined;
+  try {
+    text = await readText(repoDir, file);
+  } catch (error) {
+    return { reason: `cannot read ${file}: ${(error as Error).message}` };
+  }
+  if (text === undefined) return { reason: `${file} is binary or too large` };
+  const lines = text.split('\n');
+  if (!Number.isInteger(line) || line < 1 || line > lines.length) {
+    return { reason: `${file} has ${lines.length} lines; line ${line} does not exist` };
+  }
+  return { text: lines[line - 1].trim().slice(0, LINE_PREVIEW_LENGTH) };
 }

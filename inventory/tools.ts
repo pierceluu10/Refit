@@ -32,7 +32,7 @@ const MAX_READ_LINES = 1500;
 const DEFAULT_GREP_RESULTS = 100;
 const MAX_LISTED_FILES = 500;
 
-const callSiteSchema = z.object({
+export const callSiteSchema = z.object({
   file: z.string().describe('Repo-relative path'),
   line: z.number().int().describe('1-based line of the call (or of the handler for webhooks)'),
   operation: z
@@ -44,6 +44,24 @@ const callSiteSchema = z.object({
     .optional()
     .describe('What the code does with the response, wrappers involved, uncertainty'),
 });
+
+export const hintsSchema = z
+  .object({
+    packages: z
+      .array(z.string())
+      .optional()
+      .describe('Package names from the manifests, e.g. "stripe", "@stripe/stripe-js"'),
+    hosts: z
+      .array(z.string())
+      .optional()
+      .describe('Bare API hostnames seen in code or config, e.g. "api.stripe.com"'),
+    docsUrls: z
+      .array(z.string())
+      .optional()
+      .describe('Official docs, changelog or source repository URLs, e.g. from package_links'),
+  })
+  .optional()
+  .describe("Where a watcher should look for this dependency's changes. Merged across calls.");
 
 const usageShape = {
   provider: z
@@ -65,26 +83,10 @@ const usageShape = {
     .optional()
     .describe('The API version the code pins (apiVersion option, /v1/ path, version header)'),
   callSites: z.array(callSiteSchema),
-  hints: z
-    .object({
-      packages: z
-        .array(z.string())
-        .optional()
-        .describe('Package names from the manifests, e.g. "stripe", "@stripe/stripe-js"'),
-      hosts: z
-        .array(z.string())
-        .optional()
-        .describe('Bare API hostnames seen in code or config, e.g. "api.stripe.com"'),
-      docsUrls: z
-        .array(z.string())
-        .optional()
-        .describe('Official docs, changelog or source repository URLs, e.g. from package_links'),
-    })
-    .optional()
-    .describe("Where a watcher should look for this provider's changes. Merged across calls."),
+  hints: hintsSchema,
 };
 
-function json(value: unknown): string {
+export function json(value: unknown): string {
   return JSON.stringify(value, null, 1);
 }
 

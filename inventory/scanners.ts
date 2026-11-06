@@ -106,7 +106,7 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function indentOf(line: string): number {
+export function indentOf(line: string): number {
   return line.length - line.trimStart().length;
 }
 
@@ -179,11 +179,17 @@ function collectStrings(
 }
 
 // `arrays` set: entries are PEP 508 string arrays under matching keys; otherwise `name = version`.
-type TomlRule = { table: RegExp; dev: boolean; arrays?: RegExp };
+type TomlRule = { table: RegExp; dev: boolean; arrays?: RegExp; devKeys?: RegExp };
 
 const PYPROJECT_RULES: TomlRule[] = [
+  { table: /^build-system$/, dev: true, arrays: /^requires$/ },
   { table: /^project$/, dev: false, arrays: /^dependencies$/ },
-  { table: /^project\.optional-dependencies$/, dev: false, arrays: /./ },
+  {
+    table: /^project\.optional-dependencies$/,
+    dev: false,
+    arrays: /./,
+    devKeys: /^(dev|tests?|lint|docs?)$/,
+  },
   { table: /^dependency-groups$/, dev: true, arrays: /./ },
   { table: /^tool\.poetry\.dependencies$/, dev: false },
   { table: /^tool\.poetry\.(dev-dependencies|group\.[^.]+\.dependencies)$/, dev: true },
@@ -200,7 +206,7 @@ const CARGO_RULES: TomlRule[] = [
 const TOML_HEADER = /^\s*\[\[?([^\]]+)\]/;
 const TOML_KEY_VALUE = /^\s*("[^"]+"|'[^']+'|[A-Za-z0-9_.-]+)\s*=\s*(.+)$/;
 
-function unquote(value: string): string {
+export function unquote(value: string): string {
   return value.replace(/^["']|["']$/g, '');
 }
 
@@ -222,7 +228,8 @@ function parseToml(lines: string[], rules: TomlRule[]): Dependency[] {
     }
     const entry = rule && TOML_KEY_VALUE.exec(lines[index]);
     if (!rule || !entry) continue;
-    const { arrays, dev } = rule;
+    const { arrays } = rule;
+    const dev = rule.dev || (rule.devKeys?.test(unquote(entry[1])) ?? false);
     if (!arrays) {
       dependencies.push(dependency(unquote(entry[1]), tomlVersion(entry[2]), index, dev));
     } else if (arrays.test(unquote(entry[1])) && entry[2].startsWith('[')) {
@@ -243,6 +250,23 @@ function parseSetupPy(lines: string[]): Dependency[] {
       addRequirement(dependencies, value, line, false),
     );
   }
+  return dependencies;
+}
+
+// `install_requires =` is an ini value: the requirements continue on indented lines.
+function parseSetupCfg(lines: string[]): Dependency[] {
+  const dependencies: Dependency[] = [];
+  let inList = false;
+  lines.forEach((line, index) => {
+    if (inList && (line.trim() === '' || /^\s*[#;]/.test(line))) return;
+    if (inList && /^\s/.test(line)) {
+      addRequirement(dependencies, line, index, false);
+      return;
+    }
+    const opening = /^install_requires\s*=\s*(.*)$/.exec(line);
+    inList = opening !== null;
+    if (opening?.[1]) addRequirement(dependencies, opening[1], index, false);
+  });
   return dependencies;
 }
 
@@ -342,6 +366,8 @@ function parseCsproj(lines: string[]): Dependency[] {
 
 const MANIFEST_PARSERS: {
   name: RegExp;
+  // Also matches by full path, for manifests named only by their directory (requirements/dev.txt).
+  path?: RegExp;
   ecosystem: Manifest['ecosystem'];
   parse: (lines: string[], name: string) => Dependency[];
 }[] = [
@@ -361,10 +387,16 @@ const MANIFEST_PARSERS: {
     ecosystem: 'php',
     parse: (lines) => parseJsonSections(lines, { require: false, 'require-dev': true }),
   },
-  { name: /^requirements.*\.txt$/, ecosystem: 'python', parse: parseRequirementsFile },
+  {
+    name: /^(requirements|constraints).*\.txt$/,
+    path: /(^|\/)requirements\/[^/]+\.txt$/,
+    ecosystem: 'python',
+    parse: parseRequirementsFile,
+  },
   { name: /^pyproject\.toml$/, ecosystem: 'python', parse: (l) => parseToml(l, PYPROJECT_RULES) },
   { name: /^Pipfile$/, ecosystem: 'python', parse: (lines) => parseToml(lines, PIPFILE_RULES) },
   { name: /^setup\.py$/, ecosystem: 'python', parse: parseSetupPy },
+  { name: /^setup\.cfg$/, ecosystem: 'python', parse: parseSetupCfg },
   { name: /^go\.mod$/, ecosystem: 'go', parse: parseGoMod },
   { name: /^Gemfile$/, ecosystem: 'ruby', parse: parseGemfile },
   { name: /^Cargo\.toml$/, ecosystem: 'rust', parse: (lines) => parseToml(lines, CARGO_RULES) },
@@ -375,7 +407,7 @@ const MANIFEST_PARSERS: {
 
 function manifestParser(file: string) {
   const name = path.posix.basename(file);
-  return MANIFEST_PARSERS.find((parser) => parser.name.test(name));
+  return MANIFEST_PARSERS.find((parser) => parser.name.test(name) || parser.path?.test(file));
 }
 
 export async function listManifests(
@@ -397,15 +429,15 @@ export async function listManifests(
 
 // ---- Lockfiles ----
 
-type LockedEntry = { version: string; line: number };
-type LockReader = (lines: string[], name: string) => LockedEntry[];
+export type LockedEntry = { version: string; line: number };
+export type LockReader = (lines: string[], name: string) => LockedEntry[];
 
 function normalizePackageName(name: string): string {
   return name.toLowerCase().replace(/[-_.]+/g, '-');
 }
 
 // Finds the first `"<versionKey>": "x"` among a JSON object's direct children starting at `start`.
-function jsonChildVersion(
+export function jsonChildVersion(
   lines: string[],
   start: number,
   childIndent: number,
@@ -437,8 +469,11 @@ const readNpmLock: LockReader = (lines, name) =>
     'version',
   );
 
-const readYarnLock: LockReader = (lines, name) =>
-  lines.flatMap((line, index) => {
+export type YarnEntry = LockedEntry & { specs: string[] };
+
+// Every entry of `name`, with the specs (`name@^14.2.0`) its header line lists.
+export function yarnEntries(lines: string[], name: string): YarnEntry[] {
+  return lines.flatMap((line, index) => {
     if (/^\s|^#/.test(line) || !line.trimEnd().endsWith(':')) return [];
     const specs = line
       .trimEnd()
@@ -448,10 +483,14 @@ const readYarnLock: LockReader = (lines, name) =>
     if (!specs.some((spec) => spec.startsWith(`${name}@`))) return [];
     for (let next = index + 1; next < lines.length && /^\s/.test(lines[next]); next += 1) {
       const version = /^\s+version:?\s+"?([^"\s]+)"?/.exec(lines[next]);
-      if (version) return [{ version: version[1], line: next + 1 }];
+      if (version) return [{ version: version[1], line: next + 1, specs }];
     }
     return [];
   });
+}
+
+const readYarnLock: LockReader = (lines, name) =>
+  yarnEntries(lines, name).map(({ version, line }) => ({ version, line }));
 
 const readPnpmLock: LockReader = (lines, name) => {
   const key = new RegExp(String.raw`^\s+['"]?/?${escapeRegExp(name)}[@/](\d[^:('"\s]*)`);
@@ -541,7 +580,7 @@ const readGradleLock: LockReader = (lines, name) => {
   });
 };
 
-const LOCK_READERS: Record<string, LockReader> = {
+export const LOCK_READERS: Record<string, LockReader> = {
   'package-lock.json': readNpmLock,
   'npm-shrinkwrap.json': readNpmLock,
   'yarn.lock': readYarnLock,

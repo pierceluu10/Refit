@@ -236,6 +236,65 @@ describe('listManifests', () => {
   });
 });
 
+describe('listManifests coverage of Python manifests', () => {
+  it('reads setup.cfg install_requires, skipping comments and blank lines', async () => {
+    const repoDir = await makeRepo({
+      'setup.cfg':
+        '[options]\ninstall_requires =\n    requests>=2.0\n    # skipped\n\n    click==8.1.0\npython_requires = >=3.9\n',
+      'inline/setup.cfg': '[options]\ninstall_requires = flask>=2\n',
+    });
+    try {
+      const { manifests } = await listManifests(repoDir);
+      expect(manifests.map(({ file, dependencies }) => [file, dependencies])).toEqual([
+        ['inline/setup.cfg', [{ name: 'flask', version: '>=2', line: 2 }]],
+        [
+          'setup.cfg',
+          [
+            { name: 'requests', version: '>=2.0', line: 3 },
+            { name: 'click', version: '==8.1.0', line: 6 },
+          ],
+        ],
+      ]);
+    } finally {
+      await removeRepo(repoDir);
+    }
+  });
+
+  it('reports pyproject build-system requires as dev', async () => {
+    const repoDir = await makeRepo({
+      'pyproject.toml': '[build-system]\nrequires = ["setuptools>=61", "wheel"]\n',
+    });
+    try {
+      const { manifests } = await listManifests(repoDir);
+      expect(manifests[0].dependencies).toEqual([
+        { name: 'setuptools', version: '>=61', line: 2, dev: true },
+        { name: 'wheel', version: '', line: 2, dev: true },
+      ]);
+    } finally {
+      await removeRepo(repoDir);
+    }
+  });
+
+  it('treats requirements/ directory files and constraints.txt as manifests', async () => {
+    const repoDir = await makeRepo({
+      'requirements/base.txt': 'flask==3.0.0\n',
+      'requirements/dev.txt': '-r base.txt\npytest==8.0.0\n',
+      'constraints.txt': 'urllib3<2\n',
+      'docs/notes.txt': 'flask==1.0\n',
+    });
+    try {
+      const { manifests } = await listManifests(repoDir);
+      expect(manifests.map(({ file, dependencies }) => [file, dependencies])).toEqual([
+        ['constraints.txt', [{ name: 'urllib3', version: '<2', line: 1 }]],
+        ['requirements/base.txt', [{ name: 'flask', version: '==3.0.0', line: 1 }]],
+        ['requirements/dev.txt', [{ name: 'pytest', version: '==8.0.0', line: 2, dev: true }]],
+      ]);
+    } finally {
+      await removeRepo(repoDir);
+    }
+  });
+});
+
 describe('lockedVersions', () => {
   it('resolves stripe in package-lock v3 (including nested copies) and yarn.lock', async () => {
     expect(await lockedVersions(repo, 'stripe')).toEqual([

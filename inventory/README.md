@@ -34,6 +34,33 @@ Watchers should read `usage.hints` as leads, not facts: `packages` to look up re
 `hosts` to match a provider's API surface, `docsUrls` (often a source repository) to read docs,
 changelogs and GitHub releases. Any field can be missing.
 
+## Every dependency
+
+`inventoryDependencies(repoDir, repo)` returns `DependencyUsage[]`: language runtimes, frameworks,
+libraries, AI models, APIs and SDKs, container images and CI versions, each with every place its
+version is declared. `runDependencyInventory` is the same run with the whole report.
+
+- **One run, both answers.** The report holds `dependencies` and `usages` (the same `ApiUsage[]` as
+  `inventoryRepo`), so a caller that needs both should call `runDependencyInventory` once rather
+  than pay for two agents. It also holds `errors`, for `ScanReport.errors`.
+- **The agent decides.** `scanners-platform.ts`, `scanners-libraries.ts` and `scanners-models.ts`
+  give it leads and `prompt.ts` holds the guidance. It records with `record_dependencies`;
+  `dependency-collector.ts` checks each location against the file and keeps that line's real text.
+- **Entries.** One per kind, name, ecosystem, version and package, so places that disagree on a
+  version stay separate, and each monorepo package that declares its own version has its own entry.
+- **Two fields beyond the contract.** `DependencyFinding` is a `DependencyUsage` plus `hints`
+  (`ProviderHints`, for F1's watchers) and `package` (the monorepo directory). `shared/types.ts` is
+  outside this folder, so they aren't on `DependencyUsage` yet; adding them there is additive.
+- **APIs and SDKs.** `dependency-merge.ts` folds the API inventory in: an SDK's call sites and hints
+  join its package's entry, and a pinned version or raw HTTP use adds an `api` entry.
+- **Surfaces.** P5's `inventorySurfaces` results are added from `surfaces/index.ts`. If that module
+  is missing or fails, the inventory is kept and `errors` says so.
+- **Secrets.** The report is passed through `redactSecrets`, and a committed env file only ever
+  contributes its key names.
+
+`evaluation/scanner-gap.ts` measures what the agent found that no scanner pointed at. It plays no
+part in a run.
+
 ## Run it
 
 ```sh
@@ -42,6 +69,7 @@ REFIT_AI_BUDGET_USD=1 REFIT_SPEND_LOG=~/.refit/spend.jsonl \
 ```
 
 Writes `<owner__name>.json` (the report), `.txt` (the human summary) and `.transcript.jsonl`.
+Add `--dependencies` for the dependency inventory, which also writes `.scanner-gap.json`.
 Point `--out` outside the repository being read. Unit tests use a scripted fake model and cost $0.
 
 See `EVALUATION.md` for the 10-repo evaluation.
