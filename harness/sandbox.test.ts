@@ -3,7 +3,13 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { createSandbox, sandboxEnvNote } from './sandbox.ts';
+import {
+  createSandbox,
+  isOfficialRuntime,
+  parseRuntime,
+  runtimeImage,
+  sandboxEnvNote,
+} from './sandbox.ts';
 import type { Sandbox } from './types.ts';
 
 function dockerAvailable(): boolean {
@@ -113,6 +119,39 @@ describe('local sandbox', () => {
   });
 });
 
+describe('runtimes', () => {
+  it('parses the ways an agent names a runtime', () => {
+    expect(parseRuntime('node@20')).toEqual({ name: 'node', version: '20' });
+    expect(parseRuntime('nodejs v22.11.0')).toEqual({ name: 'node', version: '22.11.0' });
+    expect(parseRuntime('python3.11')).toEqual({ name: 'python', version: '3.11' });
+    expect(parseRuntime('python 3.12.4')).toEqual({ name: 'python', version: '3.12.4' });
+    expect(parseRuntime('ruby 3.3')).toBeUndefined();
+  });
+
+  it('maps a runtime to its official image and knows the tested ones', () => {
+    expect(runtimeImage({ name: 'node', version: '18' })).toBe('node:18-bookworm');
+    expect(runtimeImage({ name: 'python', version: '3.9' })).toBe('python:3.9-bookworm');
+    expect(isOfficialRuntime({ name: 'node', version: '24.1.0' })).toBe(true);
+    expect(isOfficialRuntime({ name: 'python', version: '3.13.1' })).toBe(true);
+    expect(isOfficialRuntime({ name: 'node', version: '16' })).toBe(false);
+    expect(isOfficialRuntime({ name: 'python', version: '3.8' })).toBe(false);
+  });
+
+  it('says plainly when the local sandbox cannot honour a runtime or install scripts', async () => {
+    const local = await createSandbox(repoDir, {
+      mode: 'local',
+      runtime: { name: 'node', version: '20' },
+      installScripts: true,
+    });
+    sandbox = local;
+    expect(local.installScripts).toBe(false);
+    expect(local.notes.join('\n')).toMatch(/Install scripts stayed off/);
+    expect(local.notes.join('\n')).toMatch(/Asked for node 20.*unproven/);
+    const env = await local.exec('env');
+    expect(env.stdout).toContain('npm_config_ignore_scripts=true');
+  });
+});
+
 describe('env files', () => {
   it('copies env templates but never real env files', async () => {
     const names = [
@@ -202,6 +241,37 @@ describe('docker sandbox', () => {
       } finally {
         delete process.env.FOO_TOKEN;
       }
+    },
+    10 * 60 * 1000,
+  );
+
+  it.skipIf(!dockerAvailable())(
+    'runs on the chosen runtime image',
+    async () => {
+      const box = await createSandbox(repoDir, {
+        mode: 'docker',
+        runtime: { name: 'node', version: '20' },
+      });
+      sandbox = box;
+      expect(box.image).toBe('node:20-bookworm');
+      expect((await box.exec('node -v')).stdout).toMatch(/^v20\./);
+    },
+    10 * 60 * 1000,
+  );
+
+  it.skipIf(!dockerAvailable())(
+    'runs install scripts in the container only when the agent asks',
+    async () => {
+      await fs.writeFile(
+        path.join(repoDir, 'package.json'),
+        JSON.stringify({ name: 'fixture', version: '1.0.0', scripts: { preinstall: 'touch RAN' } }),
+      );
+      const box = await createSandbox(repoDir, { mode: 'docker', installScripts: true });
+      sandbox = box;
+      expect(sandboxEnvNote(box)).toMatch(/install scripts enabled at the agent's request/);
+      expect((await box.exec('env')).stdout).not.toContain('npm_config_ignore_scripts');
+      expect((await box.exec('npm install --no-audit --no-fund')).code).toBe(0);
+      await expect(fs.access(path.join(box.dir, 'RAN'))).resolves.toBeUndefined();
     },
     10 * 60 * 1000,
   );

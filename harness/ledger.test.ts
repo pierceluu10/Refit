@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { budgetFromEnv, usageCostUsd } from './ledger.ts';
+import { createRunBudget } from '../shared/models.ts';
+import { BudgetExceededError, BudgetLedger, budgetFromEnv, usageCostUsd } from './ledger.ts';
 
 describe('budgetFromEnv', () => {
   it('takes only a positive, finite dollar cap', () => {
@@ -21,7 +22,24 @@ describe('usageCostUsd', () => {
     });
     expect(usageCostUsd('claude-sonnet-5-5', usage(0))).toBeCloseTo(2.5);
     expect(usageCostUsd('claude-sonnet-5-5', usage(1_000_000))).toBeCloseTo(4);
-    // An unknown model is priced as Opus 5.5 ($4/M input), so a live charge never undercounts.
-    expect(usageCostUsd('some-new-model', { input_tokens: 1_000_000 })).toBeCloseTo(4);
+  });
+
+  it('reads prices from the model layer and never guesses at an unknown model', () => {
+    expect(usageCostUsd('claude-haiku-5-5', { input_tokens: 1_000_000 })).toBeCloseTo(0.1);
+    expect(() => usageCostUsd('some-new-model', { input_tokens: 1 })).toThrow(/shared\/models.ts/);
+  });
+});
+
+describe('BudgetLedger with a run budget', () => {
+  it('charges the run and refuses once the run cap is used, even with its own cap left', () => {
+    const run = createRunBudget(1);
+    const first = new BudgetLedger(5, undefined, run);
+    first.charge({ model: 'claude-sonnet-5-5', costUsd: 0.75, note: 'task 1' });
+    const second = new BudgetLedger(5, undefined, run);
+    expect(second.remainingUsd).toBeCloseTo(0.25);
+    second.charge({ model: 'claude-sonnet-5-5', costUsd: 0.3, note: 'task 2' });
+    expect(run.spentUsd()).toBeCloseTo(1.05);
+    expect(() => second.assertCanSpend()).toThrow(BudgetExceededError);
+    expect(() => first.assertCanSpend()).toThrow(/run's budget/);
   });
 });

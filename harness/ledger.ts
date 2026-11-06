@@ -1,6 +1,16 @@
 // Hard limit 2: a run-level dollar cap. Every model call is charged here.
 
-export class BudgetExceededError extends Error {}
+import {
+  BudgetExceededError,
+  budgetCapFromEnv,
+  usageCostUsd as priceUsage,
+  type SpendCap,
+  type TokenUsage,
+} from '../shared/models.ts';
+
+// One error class across the harness and the model layer, so a cap hit anywhere reads the same.
+export { BudgetExceededError };
+export type { TokenUsage };
 
 export type LedgerEntry = { model: string; costUsd: number; note: string };
 
@@ -9,48 +19,26 @@ export type LedgerEntry = { model: string; costUsd: number; note: string };
 // throw ends the query as an error. The harness's own ledger already enforces its cap.
 export type ChargeRun = (usd: number, label: string) => void;
 
-// Dollars per million tokens. Source: Anthropic model pricing (claude-api skill, cached 2026-10-06),
-// the same rates as orchestrator/budget.ts. Cache writes cost 1.25x input for 5 minutes, 2x for 1 hour;
-// web search is $10 per 1,000 searches.
-const PRICES: Record<string, { input: number; output: number; cacheRead: number }> = {
-  'claude-opus-5-5': { input: 4, output: 20, cacheRead: 0.2 },
-  'claude-sonnet-5-5': { input: 2, output: 10, cacheRead: 0.2 },
-};
-const WEB_SEARCH_USD = 0.01;
-
-// The fields both a message_start usage and a message_delta usage carry; null means not reported.
-export type TokenUsage = {
-  input_tokens?: number | null;
-  output_tokens?: number | null;
-  cache_creation_input_tokens?: number | null;
-  cache_read_input_tokens?: number | null;
-  cache_creation?: { ephemeral_1h_input_tokens?: number | null } | null;
-  server_tool_use?: { web_search_requests?: number | null } | null;
-};
-
+// Prices come from the model layer (shared/models.ts), the one table every ledger reads. An unknown
+// model throws there rather than being guessed at, so add new models to that table first.
 export function usageCostUsd(model: string, usage: TokenUsage): number {
-  // An unknown model is priced as Opus, so a live charge does not undercount; the SDK's total reconciles it.
-  const price = PRICES[Object.keys(PRICES).find((id) => model.includes(id)) ?? 'claude-opus-5-5'];
-  const writes = usage.cache_creation_input_tokens ?? 0;
-  const hourWrites = Math.min(writes, usage.cache_creation?.ephemeral_1h_input_tokens ?? 0);
-  const tokens =
-    (usage.input_tokens ?? 0) * price.input +
-    (writes - hourWrites) * price.input * 1.25 +
-    hourWrites * price.input * 2 +
-    (usage.cache_read_input_tokens ?? 0) * price.cacheRead +
-    (usage.output_tokens ?? 0) * price.output;
-  return tokens / 1e6 + (usage.server_tool_use?.web_search_requests ?? 0) * WEB_SEARCH_USD;
+  return priceUsage(model, usage);
 }
 
 export class BudgetLedger {
   readonly entries: LedgerEntry[] = [];
   readonly capUsd: number;
   private readonly onCharge?: ChargeRun;
+  private readonly run?: SpendCap;
   private readonly cumulative = new Map<string, number>();
 
-  constructor(capUsd: number, onCharge?: ChargeRun) {
+  // `run` is the run-level budget this ledger draws on (shared/models.ts SpendCap). With it, a
+  // charge counts against both caps and the ledger refuses to spend once either is used. Pass the
+  // run budget here or forward charges to it through onCharge, not both, or spend counts twice.
+  constructor(capUsd: number, onCharge?: ChargeRun, run?: SpendCap) {
     this.capUsd = capUsd;
     this.onCharge = onCharge;
+    this.run = run;
     if (!Number.isFinite(capUsd) || capUsd <= 0) {
       throw new Error(`Budget cap must be a positive number of dollars, got ${capUsd}`);
     }
@@ -61,15 +49,17 @@ export class BudgetLedger {
   }
 
   get remainingUsd(): number {
-    return Math.max(0, this.capUsd - this.spentUsd);
+    const own = Math.max(0, this.capUsd - this.spentUsd);
+    return this.run ? Math.min(own, Math.max(0, this.run.capUsd - this.run.spentUsd())) : own;
   }
 
   get exhausted(): boolean {
-    return this.spentUsd >= this.capUsd;
+    return this.remainingUsd <= 0;
   }
 
   charge(entry: LedgerEntry): void {
     this.entries.push(entry);
+    this.run?.chargeUsd(entry.costUsd, `harness ${entry.model}: ${entry.note}`);
     this.onCharge?.(entry.costUsd, `harness ${entry.model}: ${entry.note}`);
   }
 
@@ -90,18 +80,18 @@ export class BudgetLedger {
   // Call before every model call.
   assertCanSpend(): void {
     if (this.exhausted) {
+      const run =
+        this.run && this.run.spentUsd() >= this.run.capUsd
+          ? `; the run's budget of $${this.run.capUsd.toFixed(2)} is used`
+          : '';
       throw new BudgetExceededError(
-        `AI budget of $${this.capUsd.toFixed(2)} used ($${this.spentUsd.toFixed(4)} spent)`,
+        `AI budget of $${this.capUsd.toFixed(2)} used ($${this.spentUsd.toFixed(4)} spent)${run}`,
       );
     }
   }
 }
 
+// The cap for a run, from REFIT_AI_BUDGET_USD. Without it the run refuses to spend.
 export function budgetFromEnv(env: NodeJS.ProcessEnv = process.env): number {
-  const raw = env.REFIT_AI_BUDGET_USD;
-  const capUsd = Number(raw);
-  if (!raw || !Number.isFinite(capUsd) || capUsd <= 0) {
-    throw new Error('Set REFIT_AI_BUDGET_USD to a positive dollar cap for this run');
-  }
-  return capUsd;
+  return budgetCapFromEnv(env);
 }
