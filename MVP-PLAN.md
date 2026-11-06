@@ -88,23 +88,23 @@ Fifteen prompts, split by Claude plan capacity. There are four Claude accounts, 
 
 Prompt IDs keep their original letters, so O6 and P5 stay O6 and P5 even though Otabek B runs both. Every prompt owns its files; no two prompts edit the same file.
 
-| Claude         | Prompt                                            | Owns                                                                                                                                      | Proposed AI cap |
-| -------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
-| Otabek A (10x) | **O1** Orchestrator: any external change          | `orchestrator/`, `README.md`, `AGENTS.md`, `.env.example`, root config lines                                                              | $3              |
-| Otabek A (10x) | **O2** Harness agent: upgrades                    | `harness/agent.ts`, `prompt.ts`, `tools.ts`, `pr.ts`, `summary.ts`, `run.ts`, `types.ts`, `index.ts` and their tests                      | $6              |
-| Otabek A (10x) | **O3** Sandbox, checks, ledger and model layer    | `harness/sandbox.ts`, `checks.ts`, `secrets.ts`, `ledger.ts`, `validators.ts` and their tests; `shared/models.ts` (new)                   | $2              |
-| Otabek A (10x) | **O4** Memory and evals                           | `memory/`, `evals/`                                                                                                                       | $4              |
-| Otabek A (10x) | **O5** Rules and regulations agent, audit trail   | `compliance/` (new workspace)                                                                                                             | $4              |
-| Otabek B (5x)  | **O6** Proof for platform and rule changes        | `harness/proof/` (new)                                                                                                                    | $2              |
-| Otabek B (5x)  | **P5** Inventory: platform and regulated surfaces | `inventory/surfaces/` (new)                                                                                                               | $3              |
-| Pierce (10x)   | **P1** App: install → scan → PRs                  | `app/` except `app/api/`, `app/lifecycle/`, `app/notify/`, `app/audit/`                                                                   | $4              |
-| Pierce (10x)   | **P2** Inventory: every dependency                | `inventory/` except `inventory/surfaces/`                                                                                                 | $5              |
-| Pierce (10x)   | **P3** Report API, PR lifecycle and notifications | `app/api/` (new), `app/lifecycle/` (new), `app/notify/` (new)                                                                             | $1              |
-| Pierce (10x)   | **P4** Website, onboarding and dashboard          | `src/`, `public/`, `index.html`, `package.json` dependencies, except `src/compliance/`                                                    | $0              |
-| Pierce (10x)   | **P6** Platforms and rules view, audit export     | `src/compliance/` (new), `app/audit/` (new)                                                                                               | $0              |
-| Furqan (5x)    | **F1** Watchers for every change source           | `providers/` except `providers/toolkit/`, `providers/upgrades/`, `providers/platforms/`, `providers/*/tools.ts`, `providers/*/playbooks/` | $4              |
-| Furqan (5x)    | **F2** Tools and playbooks for upgrades           | `providers/toolkit/`, `providers/*/tools.ts`, `providers/*/playbooks/`, `providers/upgrades/` (new)                                       | $3              |
-| Furqan (5x)    | **F3** Platform and infrastructure watchers       | `providers/platforms/` (new)                                                                                                              | $3              |
+| Claude         | Prompt                                            | Owns                                                                                                                                          | Proposed AI cap |
+| -------------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| Otabek A (10x) | **O1** Orchestrator: any external change          | `orchestrator/`, `README.md`, `AGENTS.md`, `.env.example`, root config lines                                                                  | $3              |
+| Otabek A (10x) | **O2** Harness agent: upgrades                    | `harness/agent.ts`, `prompt.ts`, `tools.ts`, `pr.ts`, `summary.ts`, `run.ts`, `types.ts`, `index.ts` and their tests                          | $6              |
+| Otabek A (10x) | **O3** Sandbox, checks, ledger and model layer    | `harness/sandbox.ts`, `checks.ts`, `secrets.ts`, `ledger.ts`, `validators.ts` and their tests; `shared/models.ts` (new)                       | $2              |
+| Otabek A (10x) | **O4** Memory and evals                           | `memory/`, `evals/`                                                                                                                           | $4              |
+| Otabek A (10x) | **O5** Rules and regulations agent, audit trail   | `compliance/` (new workspace)                                                                                                                 | $4              |
+| Otabek B (5x)  | **O6** Proof for platform and rule changes        | `harness/proof/` (new)                                                                                                                        | $2              |
+| Otabek B (5x)  | **P5** Inventory: platform and regulated surfaces | `inventory/surfaces/` (new)                                                                                                                   | $3              |
+| Pierce (10x)   | **P1** App: install → scan → PRs                  | `app/` except `app/api/`, `app/lifecycle/`, `app/notify/`, `app/audit/`                                                                       | $4              |
+| Pierce (10x)   | **P2** Inventory: every dependency                | `inventory/` except `inventory/surfaces/`                                                                                                     | $5              |
+| Pierce (10x)   | **P3** Report API, PR lifecycle and notifications | `app/api/` (new), `app/lifecycle/` (new), `app/notify/` (new)                                                                                 | $1              |
+| Pierce (10x)   | **P4** Website, onboarding and dashboard          | `src/`, `public/`, `index.html`, `vercel.json`, root `package.json` dependencies, the dev proxy in `vite.config.ts`, except `src/compliance/` | $0              |
+| Pierce (10x)   | **P6** Platforms and rules view, audit export     | `src/compliance/` (new), `app/audit/` (new)                                                                                                   | $0              |
+| Furqan (5x)    | **F1** Watchers for every change source           | `providers/` except `providers/toolkit/`, `providers/upgrades/`, `providers/platforms/`, `providers/*/tools.ts`, `providers/*/playbooks/`     | $4              |
+| Furqan (5x)    | **F2** Tools and playbooks for upgrades           | `providers/toolkit/`, `providers/*/tools.ts`, `providers/*/playbooks/`, `providers/upgrades/` (new)                                           | $3              |
+| Furqan (5x)    | **F3** Platform and infrastructure watchers       | `providers/platforms/` (new)                                                                                                                  | $3              |
 
 **Proposed total: $44** (Otabek A $19, Otabek B $5, Pierce $10, Furqan $10). Core prompts are $32 of it. The founders approve these caps before launch. These are API dollars for Refit's own model calls, separate from the Claude plans that run the sessions.
 
@@ -140,16 +140,16 @@ Model calls go through one model layer (O3), so every part draws on the same run
 2. Add section 6's types to `shared/types.ts` on `mvp`. Run typecheck.
 3. Confirm the caps with the other founders.
 
-### Pierce (twenty minutes, no AI)
+### Pierce (done 2026-11-05)
 
-1. Create a test GitHub org (for example `refit-demo`, an illustrative name). Install nothing yet.
-2. Create three sample repos, labelled in their README as Refit demo repos:
+1. Test org: `refit-dev`, which owns the app. Its install covers only the three sample repos below; never add others.
+2. Three private sample repos in `refit-dev`, labelled in their README as Refit demo repos:
    - **`demo-node-api`**: an Express service on Node 18 (`engines`, `.nvmrc`, Dockerfile `FROM node:18`), calling OpenAI with a retired model, with a few passing tests.
    - **`demo-python-app`**: a Flask app on Python 3.9 (`.python-version`, `pyproject.toml`), using the Stripe SDK at an old major, with pytest tests.
    - **`demo-next-web`**: a Next.js app on an older major, with a GitHub Actions workflow on deprecated action versions (for example an old `actions/checkout`), a Stripe checkout page, a cookie banner and a signup form with a few accessibility problems.
    - In `demo-node-api`, also add a Kubernetes manifest using a removed API version (for example `extensions/v1beta1` Ingress) and a `serverless.yml` on a retired Lambda runtime (for example `nodejs16.x`).
 3. In the Refit Agent App's settings (ID 5275879): turn on webhooks, add the permissions and events from `app/SETUP.md`, point the webhook at the smee or tunnel URL from `app/SETUP.md`.
-4. Put the app's credentials in each laptop's local `.env` (never committed).
+4. Keep the app's credentials in a local env file, never committed. On Pierce's laptop that's `~/.config/refit/app.env`; P1 and P3 link it as `app/.env`.
 
 ### Every laptop
 
@@ -318,7 +318,7 @@ export type RecordAudit = (entry: AuditEntry) => Promise<void>; // O5
 
 - Branch from `origin/mvp` with `--no-track`; open a **draft PR into `mvp`**. Never push to `main`, never merge.
 - Edit only the files you own (section 3). Code against section 6's types, with a local stub until the real module lands.
-- Each workspace adds its dependencies to its own `package.json`, never the root.
+- Each workspace adds its dependencies to its own `package.json`, never the root. The one exception is P4, because the site's dependencies live in the root `package.json`.
 - Follow the AI-first rule: the model reads, decides and edits; scanners, parsers and validators are tools, never gates. No rule that decides a repo or change is "unsupported." No task ends without an attempt.
 - The four hard limits, in code: untrusted repo code runs only in the sandbox; a run-level dollar cap; PRs only; never print or commit secrets.
 - Every real model run sets `REFIT_AI_BUDGET_USD` to the prompt's cap. **No real benchmark tonight.**
@@ -459,9 +459,12 @@ Use subagents for platforms and infrastructure, security standards, and regulate
 ### P1: the app runs install → scan → PRs (Pierce)
 
 ```text
-Make Refit's GitHub App in app/ run the whole loop on a real test org. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md, AGENTS.md, app/SETUP.md and shared/types.ts on origin/mvp.
+Make Refit's GitHub App in app/ run the whole loop on the test org, refit-dev. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md, AGENTS.md, app/SETUP.md and shared/types.ts on origin/mvp.
+
+First run `ln -s "$HOME/.config/refit/app.env" app/.env`; that file holds the app's credentials. The install covers only refit-dev/demo-node-api, demo-python-app and demo-next-web; never add others.
 
 Deliver:
+- GET /api/runs stays in app/server.ts and app/runs.ts. Also accept REFIT_SERVICE_TOKEN there, using the service-token check from app/api/index.ts (stub until it lands), so the dashboard can read every run. GitHub user tokens keep their per-viewer scoping.
 - Install: when the app is installed or repos are added, list the selected repos and queue a scan for each. Removing repos or uninstalling stops their jobs and deletes their checkouts.
 - Scan job: fresh checkout into a temp directory (repo code never runs on the host) → O1's scanRepo → store the ScanReport → queue each ExternalTask.
 - Run job: O1's runRepoJob with the existing createOpenPullRequest; draft PRs on refit/<task-slug> branches. Never push to a default branch, never merge.
@@ -471,7 +474,7 @@ Deliver:
 - Replace the CLI's stub PR link with the real opener when app credentials are present; keep the stub when they're not.
 - Wire in P3's and P6's parts with local stubs until they land: mount the routes from app/api/index.ts and app/audit/index.ts in the server, call app/lifecycle/index.ts before opening each PR, and call app/notify/index.ts after each run.
 - app/SETUP.md: a morning runbook to install on the test org, trigger a scan, and watch PRs appear.
-Secrets only from env; never commit or print them. Tests with recorded webhook payloads. One real end-to-end run on the test org's demo-node-api, capped at $4.
+Secrets only from env; never commit or print them. Tests with recorded webhook payloads. Nothing merges overnight, so once O1's draft PR and the PRs it depends on are ready, test them in a throwaway local merge with one real end-to-end run on refit-dev/demo-node-api, capped at $4. You're the only session that runs the smee tunnel. If those PRs aren't ready, don't spend on a run against stubs; say in the status note that the real run hasn't happened.
 Use subagents for install and scan, triggers and the queue, and settings and the runbook. Branch `mvp/app`, draft PR into `mvp`. Edit only app/ except app/api/, app/lifecycle/ and app/notify/ (P3) and app/audit/ (P6). AI spend cap: $4.
 ```
 
@@ -490,7 +493,7 @@ The agent reads the repo like a new engineer and finds, with every place each ve
 - GitHub Actions versions and runner images.
 Fast scanners (manifests, lockfiles, Dockerfiles, workflow files) point the agent at likely files; the agent's reading is the source of truth and can find what no scanner knows. Monorepos: one entry per package that declares its own version.
 Also fill ProviderHints so F1's watchers know where to look. inventoryDependencies also returns P5's inventorySurfaces results (import from inventory/surfaces/index.ts, stub until it lands).
-Tests: fixtures for the three sample repos plus a monorepo; one real run per sample repo, capped at $5 total. Report what it found that the scanners missed.
+Tests: fixtures for the three sample repos (refit-dev/demo-node-api, demo-python-app and demo-next-web; clone them with gh) plus a monorepo; one real run per sample repo, capped at $5 total. Report what it found that the scanners missed.
 Use subagents for runtimes and images and CI, libraries and frameworks, and models and APIs. Branch `mvp/inventory`, draft PR into `mvp`. Edit only inventory/ except inventory/surfaces/, which P5 owns. AI spend cap: $5.
 ```
 
@@ -499,11 +502,13 @@ Use subagents for runtimes and images and CI, libraries and frameworks, and mode
 ```text
 Build the parts of Refit's app that keep PRs tidy and let people see results. Read MVP-PLAN.md (sections 1–7), AGENTS.md, app/SETUP.md and shared/types.ts on origin/mvp.
 
+First run `ln -s "$HOME/.config/refit/app.env" app/.env`; that file holds the app's credentials and REFIT_SERVICE_TOKEN. The test org is refit-dev, and its install covers only the three demo repos; never add others. Don't run the smee tunnel; P1 does.
+
 Deliver, in new folders so you don't collide with P1. Each folder exports from its own index.ts; P1 wires them into the server and the run job:
-- app/api/: an authenticated HTTP API (REFIT_SERVICE_TOKEN) the dashboard reads: GET /api/repos, GET /api/report?repo= (the latest ScanReport), GET /api/runs (O4's RunViews), GET /api/prs. JSON only; never return secrets or raw repo contents.
+- app/api/: an authenticated HTTP API (REFIT_SERVICE_TOKEN) the dashboard reads: GET /api/repos, GET /api/report?repo= (the latest ScanReport), GET /api/prs. JSON only; never return secrets or raw repo contents. GET /api/runs already exists in app/server.ts and P1 owns it, so don't add a second route; export the service-token check from app/api/index.ts for P1 to use there. The token is only ever read on the server.
 - app/lifecycle/: PR lifecycle. Before opening a PR, find an open Refit PR for the same dependency and target and update it instead of opening a second one; when a newer target supersedes an open PR, update or close the old one with a comment saying why; keep BehindItem.status in step (open → pr-open → merged); when a PR's branch conflicts with the default branch, re-run the task on a fresh checkout.
 - app/notify/: a short Slack message (REFIT_SLACK_WEBHOOK_URL, optional) when a verified PR opens and when a deadline is under 30 days; a weekly digest per org of what's behind. No secrets, no repo contents beyond names, titles and links.
-Tests with recorded payloads and a fake GitHub client. AI spend: up to $1 for one real lifecycle check on the test org.
+Tests with recorded payloads and a fake GitHub client. AI spend: up to $1 for one real lifecycle check on the demo repos, once a Refit PR exists there to check. If none does, don't spend; say in the status note that the real check hasn't happened.
 Use subagents for the API, the lifecycle and notifications. Branch `mvp/app-api`, draft PR into `mvp`. Edit only app/api/, app/lifecycle/ and app/notify/. AI spend cap: $1.
 ```
 
@@ -512,9 +517,9 @@ Use subagents for the API, the lifecycle and notifications. Branch `mvp/app-api`
 ```text
 Update Refit's website and dashboard for "software that never falls behind." Read MVP-PLAN.md (sections 1–7), DESIGN.md and AGENTS.md on origin/mvp.
 
-Start from the live site, not mvp's current src/. tryrefit.dev deploys from origin/pre-launch-website, which shares no history with mvp. As your first commit on `mvp/site`, replace mvp's src/, public/ and index.html with the versions from origin/pre-launch-website, and add any package.json dependencies they need. Build every page from that site; don't create a second one.
+Start from the live site, not mvp's current src/. tryrefit.dev deploys from origin/pre-launch-website, which shares no history with mvp. As your first commit on `mvp/site`, replace mvp's src/, public/ and index.html with the versions from origin/pre-launch-website, and add its vercel.json and the @fontsource/doto dependency. Keep mvp's tsconfig.json and vite.config.ts, and keep mvp's src/pages/Runs.tsx and its test, which already read /api/runs. Delete src/pages/directions/, and don't add the fonts or Remotion that only those pages use. Build every page from that site; don't create a second one.
 
-The landing page stays src/pages/launch/ at `/`: keep its ASCII hero video, goose, card wheel, styling and working waitlist. Change only the words and card contents to match the brief below, and fit the four steps into the existing wheel. DESIGN.md applies to the dashboard and docs, not to the landing page's look.
+The landing page stays src/pages/launch/ at `/`: keep its ASCII hero video, goose, card wheel, styling and working waitlist. Change only the words and card contents to match the brief below, and fit the four steps into the existing wheel. The waitlist stays the page's main button; "Install the GitHub App" lives on the onboarding route. DESIGN.md applies to the dashboard and docs, not to the landing page's look.
 
 Remove the old API-migration-only copy everywhere. Delete pages, routes and fixtures the new site no longer uses, and update or replace their tests. No parallel "v2" pages, folders or routes.
 
@@ -526,10 +531,10 @@ Deliver:
   - What's behind: every BehindItem per repo, sorted by deadline, with the dependency, current version, what changed, target, deadline, source link and status; filters by repo, kind and status.
   - Runs: O4's RunViews with outcome, cost and PR link.
   - Repo detail: everything one repo depends on (DependencyUsage[]) and its open PRs.
-- Data from P3's /api endpoints; until they land, fixture data visibly labelled "Example data."
+- Data from P3's /api endpoints; until they land, fixture data visibly labelled "Example data." Never put REFIT_SERVICE_TOKEN in browser code or a VITE_ variable. For the local dashboard, add a dev proxy in vite.config.ts that attaches the token on the server; a deployed site shows Example data until real sign-in exists.
 - Docs page: what Refit watches, what a PR contains, the hard limits, and how to pause or ignore something with .refit.yml.
 Tests for every new page. No AI spend.
-Use subagents for the landing and pricing, onboarding and docs, and the dashboard. Branch `mvp/site`, draft PR into `mvp`. Edit only src/, public/, index.html and the dependencies in package.json, except src/compliance/, which P6 owns. Add the route and navigation link for P6's Platforms and rules page in the existing router (import it from src/compliance/index.tsx, with a stub until it lands).
+Use subagents for the landing and pricing, onboarding and docs, and the dashboard. Branch `mvp/site`, draft PR into `mvp`. Edit only src/, public/, index.html, vercel.json, the dependencies in the root package.json and the dev proxy in vite.config.ts, except src/compliance/, which P6 owns. Add the route and navigation link for P6's Platforms and rules page in the existing router (import it from src/compliance/index.tsx, with a stub until it lands).
 ```
 
 ### P6: the Platforms and rules view, and audit export (Pierce)
@@ -544,7 +549,7 @@ Deliver:
   - Rules: each obligation, whether it applies and why, what Refit changed, what each check showed, what a person or lawyer must confirm, and the PR.
   - The audit trail per repo, with an "Export CSV" button.
   - A visible note: "Refit doesn't give legal advice. Have counsel confirm the items marked for review."
-- Data from the API; until it lands, fixture data visibly labelled "Example data."
+- Data from the API through P4's dev proxy, never with REFIT_SERVICE_TOKEN in browser code; until it lands, fixture data visibly labelled "Example data."
 Tests for the page and the export. No AI spend.
 Use subagents for the API and export, and the page. Branch `mvp/rules-view`, draft PR into `mvp`. Edit only src/compliance/ and app/audit/.
 ```
