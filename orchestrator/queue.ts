@@ -1,3 +1,6 @@
+// An error another try cannot fix, such as a part that is not on this branch yet. Never retried.
+export class FinalError extends Error {}
+
 // The loop only needs this much from a queue, so a real one (SQS, BullMQ) can replace it later.
 export type Queue = {
   // Runs the job once a slot is free, retrying with backoff; rejects with the last error when retries run out.
@@ -49,7 +52,8 @@ export function createMemoryQueue({
           try {
             return await job();
           } catch (error) {
-            if (attempt >= retries || !shouldRetry(error)) throw error;
+            if (attempt >= retries || error instanceof FinalError || !shouldRetry(error))
+              throw error;
             const wait = backoffMs * 2 ** attempt;
             log(
               `${name}: attempt ${attempt + 1} failed (${error instanceof Error ? error.message : String(error)}); retrying in ${wait}ms`,

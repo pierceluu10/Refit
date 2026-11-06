@@ -1,6 +1,7 @@
 // Offline stand-ins: deps.ts uses them when no model is available, and the PR opener until the app passes its own.
 import { appendFile, mkdir, readFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { existsSync } from 'node:fs';
+import { basename, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type {
   ApiUsage,
@@ -17,8 +18,13 @@ const fixture = (name: string) => fileURLToPath(new URL(`./fixtures/${name}`, im
 const readJson = async <T>(file: string): Promise<T> => JSON.parse(await readFile(file, 'utf8'));
 
 // Stub for inventory/: replays a fixture usage map relabelled for the repo. It never reads the repo.
-export function stubInventory(file = fixture('usages.json')): InventoryRepo {
-  return async (_repoDir, repo) => (await readJson<ApiUsage[]>(file)).map((u) => ({ ...u, repo }));
+// A checkout named after one of the sample repos in fixtures/samples/ replays that sample's map.
+export function stubInventory(file?: string): InventoryRepo {
+  return async (repoDir, repo) => {
+    const sample = fixture(`samples/${basename(repoDir)}/usages.json`);
+    const from = file ?? (existsSync(sample) ? sample : fixture('usages.json'));
+    return (await readJson<ApiUsage[]>(from)).map((u) => ({ ...u, repo }));
+  };
 }
 
 // Stub for providers/: replays the fixture changes for one provider and ignores `since`.

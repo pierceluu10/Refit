@@ -1,0 +1,182 @@
+[
+  {
+    "provider": "nodejs",
+    "id": "node-18-eol",
+    "kind": "runtime-eol",
+    "dependencyKind": "runtime",
+    "dependency": "node",
+    "fromVersions": ["18"],
+    "toVersion": "22",
+    "severity": "deadline",
+    "title": "Node.js 18 reaches end of life",
+    "effectiveDate": "2025-04-30",
+    "source": {
+      "url": "https://nodejs.org/en/about/previous-releases",
+      "quote": "(illustrative) Node.js 18 reached end of life on 2025-04-30 and no longer receives security fixes."
+    },
+    "affects": { "versions": ["18"] }
+  },
+  {
+    "provider": "docker-official-images",
+    "id": "node-18-image-eol",
+    "kind": "container-image-eol",
+    "dependencyKind": "container-image",
+    "dependency": "node",
+    "fromVersions": ["18"],
+    "toVersion": "22",
+    "severity": "deadline",
+    "title": "node:18 base images are no longer updated",
+    "effectiveDate": "2025-04-30",
+    "source": {
+      "url": "https://hub.docker.com/_/node",
+      "quote": "(illustrative) Tags for end-of-life Node.js versions are no longer rebuilt."
+    },
+    "affects": { "versions": ["18"] }
+  },
+  {
+    "provider": "nodejs",
+    "id": "node-16-eol",
+    "kind": "runtime-eol",
+    "dependencyKind": "runtime",
+    "dependency": "node",
+    "fromVersions": ["16"],
+    "toVersion": "22",
+    "severity": "deadline",
+    "title": "Node.js 16 reaches end of life",
+    "effectiveDate": "2023-09-11",
+    "source": {
+      "url": "https://nodejs.org/en/about/previous-releases",
+      "quote": "(illustrative) Node.js 16 reached end of life on 2023-09-11."
+    },
+    "affects": { "versions": ["16"] }
+  },
+  {
+    "provider": "python",
+    "id": "python-3.9-eol",
+    "kind": "runtime-eol",
+    "dependencyKind": "runtime",
+    "dependency": "python",
+    "fromVersions": ["3.9"],
+    "toVersion": "3.13",
+    "severity": "deadline",
+    "title": "Python 3.9 reaches end of life",
+    "effectiveDate": "2025-10-31",
+    "source": {
+      "url": "https://devguide.python.org/versions/",
+      "quote": "(illustrative) Python 3.9 reaches end of life in October 2025."
+    },
+    "affects": { "versions": ["3.9"] }
+  },
+  {
+    "provider": "openai",
+    "id": "openai-gpt-4-0613-retirement",
+    "kind": "model-retirement",
+    "dependencyKind": "ai-model",
+    "dependency": "gpt-4-0613",
+    "severity": "deadline",
+    "title": "gpt-4-0613 is retired from the API",
+    "effectiveDate": "2026-12-01",
+    "source": {
+      "url": "https://platform.openai.com/docs/deprecations",
+      "quote": "(illustrative) gpt-4-0613 will be shut down; requests that name it will fail."
+    },
+    "affects": { "operations": ["chat.completions.create"], "fields": ["model"] }
+  },
+  {
+    "provider": "nextjs",
+    "id": "next-13-to-15",
+    "kind": "framework-major",
+    "dependencyKind": "framework",
+    "dependency": "next",
+    "fromVersions": ["13"],
+    "toVersion": "15",
+    "severity": "breaking",
+    "title": "Next.js 13 is no longer supported; upgrade to 15",
+    "source": {
+      "url": "https://nextjs.org/docs/app/guides/upgrading",
+      "quote": "(illustrative) Next.js 13 no longer receives fixes. Follow the upgrade guides to 14 and 15."
+    },
+    "affects": { "versions": ["13"] }
+  },
+  {
+    "provider": "github",
+    "id": "actions-checkout-v2-node12",
+    "kind": "ci-deprecation",
+    "dependencyKind": "ci",
+    "dependency": "actions/checkout",
+    "fromVersions": ["v2"],
+    "toVersion": "v4",
+    "severity": "deadline",
+    "title": "actions/checkout@v2 runs on a retired Node.js runtime",
+    "effectiveDate": "2024-06-01",
+    "source": {
+      "url": "https://github.blog/changelog/",
+      "quote": "(illustrative) Actions that run on Node 12 are no longer supported on hosted runners."
+    },
+    "affects": { "versions": ["v2"] }
+  },
+  {
+    "provider": "github",
+    "id": "ubuntu-20.04-runner-retired",
+    "kind": "ci-deprecation",
+    "dependencyKind": "ci",
+    "dependency": "ubuntu-20.04",
+    "toVersion": "ubuntu-24.04",
+    "severity": "deadline",
+    "title": "The ubuntu-20.04 hosted runner image is retired",
+    "effectiveDate": "2025-04-15",
+    "source": {
+      "url": "https://github.com/actions/runner-images",
+      "quote": "(illustrative) The Ubuntu 20.04 runner image is retired; jobs that request it fail."
+    },
+    "affects": {}
+  },
+  {
+    "provider": "kubernetes",
+    "id": "k8s-ingress-extensions-v1beta1-removed",
+    "kind": "k8s-version",
+    "dependencyKind": "infrastructure",
+    "dependency": "Ingress",
+    "fromVersions": ["extensions/v1beta1"],
+    "toVersion": "networking.k8s.io/v1",
+    "severity": "breaking",
+    "title": "Ingress in extensions/v1beta1 is removed",
+    "source": {
+      "url": "https://kubernetes.io/docs/reference/using-api/deprecation-guide/",
+      "quote": "(illustrative) The extensions/v1beta1 API version of Ingress is no longer served; use networking.k8s.io/v1."
+    },
+    "affects": { "versions": ["extensions/v1beta1"] }
+  },
+  {
+    "provider": "aws-lambda",
+    "id": "lambda-nodejs16-deprecated",
+    "kind": "serverless-runtime",
+    "dependencyKind": "infrastructure",
+    "dependency": "nodejs16.x",
+    "toVersion": "nodejs22.x",
+    "severity": "deadline",
+    "title": "The nodejs16.x Lambda runtime is deprecated",
+    "effectiveDate": "2024-06-12",
+    "source": {
+      "url": "https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html",
+      "quote": "(illustrative) Lambda no longer applies security patches to the nodejs16.x runtime."
+    },
+    "affects": {}
+  },
+  {
+    "provider": "pallets",
+    "id": "flask-1-eol",
+    "kind": "framework-major",
+    "dependencyKind": "framework",
+    "dependency": "flask",
+    "fromVersions": ["1"],
+    "toVersion": "3",
+    "severity": "notice",
+    "title": "Flask 1.x is unsupported",
+    "source": {
+      "url": "https://flask.palletsprojects.com/en/stable/changes/",
+      "quote": "(illustrative) Only the latest feature release of Flask is supported."
+    },
+    "affects": { "versions": ["1"] }
+  }
+]

@@ -1,62 +1,113 @@
 # orchestrator
 
-Refit's end-to-end loop. For each repo it runs inventory → watch → match → harness → PR → record,
-and every change ends as an attempted task or a recorded verdict.
+Refit's end-to-end loop. For each repo it runs inventory → watch → match → "what's behind" report →
+harness → PR → record, for API changes and for every other external change (runtimes, frameworks,
+libraries, advisories, AI models, images, CI, Kubernetes, serverless, platforms and rules). Every
+change ends as an attempted task or a recorded verdict.
 
-| File           | What it does                                                                        |
-| -------------- | ----------------------------------------------------------------------------------- |
-| `index.ts`     | `runRepoJob`, the app's entry point, and `createRunRepoJob` for explicit deps       |
-| `loop.ts`      | `runOrg` and `runRepo`: watching, matching in batches, attempts, PRs, records       |
-| `deps.ts`      | `createDeps`, the one place that picks real or stub parts and gives each its budget |
-| `budget.ts`    | The run budget: one cap, shared through holds                                       |
-| `match.ts`     | The match agent: changes and a usage map in, ranked tasks and verdicts out          |
-| `agent-sdk.ts` | A second match transport, on the Claude Agent SDK, that can read the code           |
-| `queue.ts`     | An in-process queue with concurrency and retries, behind a replaceable interface    |
-| `stubs.ts`     | Offline stand-ins, and the stub for `anyProviderWatcher` until providers/ has it    |
-| `cli.ts`       | `refit run --repo <path> [--repo <path> ...] [--dry-run] [--out <file>]`            |
+| File                | What it does                                                                              |
+| ------------------- | ----------------------------------------------------------------------------------------- |
+| `index.ts`          | `runRepoJob` and `scanRepo`, the app's entry points; `createRunRepoJob`, `createScanRepo` |
+| `loop.ts`           | `runOrg`, `runRepo` and `scanTarget`: watching, matching, attempts, PRs, records, audits  |
+| `scan.ts`           | The external half: dependencies, their watchers, rules, the report rows                   |
+| `external-match.ts` | The match agent for external changes, its hints, ranking and task shaping                 |
+| `match.ts`          | The match agent for API changes                                                           |
+| `deps.ts`           | `createDeps`, the one place that picks real or stub parts and gives each its budget       |
+| `upstream.ts`       | Loads P2, P5, F1, F3 and O2's entry points once they land; stand-ins until then           |
+| `models.ts`         | The model per step and its price, from `shared/models.ts` (O3) once it lands              |
+| `budget.ts`         | The run budget: one cap, shared through holds                                             |
+| `agent-sdk.ts`      | A second match transport, on the Claude Agent SDK, that can read the code                 |
+| `queue.ts`          | An in-process queue with concurrency and retries, behind a replaceable interface          |
+| `stubs.ts`          | Offline stand-ins for the API path                                                        |
+| `stubs-external.ts` | Offline stand-ins for the external path, and `asMigrationTask`                            |
+| `cli.ts`            | `refit scan` and `refit run`                                                              |
+| `fixtures/`         | Illustrative changes and usages, and `samples/`: stand-ins for the three demo repos       |
 
-## For the app: `runRepoJob`
+## CLI
+
+```sh
+node orchestrator/cli.ts scan --repo <path> [--repo <path> ...] [--out report.json]
+node orchestrator/cli.ts run --repo <path> [--repo <path> ...] [--dry-run] [--out runs.jsonl]
+```
+
+`scan` prints the "what's behind" table (deadline, severity, dependency, version → target, status,
+change), then each not-affected verdict with its reason, then anything that could not be read. It
+never opens a PR. `run` does the same and attempts every task; `--dry-run` stops before PRs.
+
+## For the app: `runRepoJob` and `scanRepo`
 
 ```ts
-import { runRepoJob } from '../orchestrator/index.ts';
+import { runRepoJob, scanRepo } from '../orchestrator/index.ts';
 
 const records = await runRepoJob({ repo: 'owner/name', dir: checkout, openPullRequest });
+const { report, tasks } = await scanRepo('owner/name', checkout);
 ```
 
 - `dir` is a fresh checkout. The orchestrator only reads it; repo code runs only in the harness sandbox.
-- `openPullRequest(task, record, dir)` is called once for each task that ends verified or needs-review
-  with a diff, unless `dryRun` is set. A PR that fails to open turns that record into `failed`.
-- It returns every record: one per provider change the repo faced. A job that ends with errors and
-  no records (the inventory and every watcher failed) throws with the errors instead of returning `[]`.
-- Every job in one process shares **one** run budget, `REFIT_AI_BUDGET_USD`, and one queue, so jobs
-  started together can never each spend the cap. Pass your own deps and cap to `createRunRepoJob`
-  for a budget per org or per install.
+- `scanRepo` returns the `ScanReport` and every task, API ones included (`change.dependencyKind`
+  `'api'`), most urgent first. Report rows carry two extra fields: `taskId`, and `reason`, the
+  match agent's words for why a row is open, merged into another task, or not affected.
+- `openPullRequest(task, record, dir)` is called once for each task that ends verified or
+  needs-review with a diff, unless `dryRun` is set. For an external task the `task` is in the API
+  shape (`asMigrationTask`): its `change.kind` is `'other'` when the kind is new in the MVP, and its
+  notes and `dependencies` field carry the external change and every place it is declared.
+- After a run, the repo's report is saved with each row's PR (`status: 'pr-open'`) under
+  `$TMPDIR/refit-reports/`.
+- Every job in one process shares **one** run budget, `REFIT_AI_BUDGET_USD`, and one queue.
 - With `ANTHROPIC_API_KEY` set, it needs `REFIT_AI_BUDGET_USD` and refuses to start without it.
   Without the key, offline stubs stand in for every AI part.
+
+## The external path
+
+1. **Inventory.** P2's `inventoryDependencies` and P5's `inventorySurfaces`, loaded from their modules
+   by `upstream.ts`. Until P2 lands, a manifest reader in `stubs-external.ts` stands in and says so
+   in each dependency's notes.
+2. **Watch.** F1's `watchDependency` and F3's `watchPlatforms` for every dependency, once per org
+   run; O5's `watchRegulations` once per run and `obligationsToChanges` per repo. Until F1 lands, a
+   real run reports each dependency as "not watched" in the report's errors: it never replays
+   fixture changes as if they were findings.
+3. **Match.** `external-match.ts`: one agent call per repo reads every change against every
+   dependency and call site. Name and version overlap, the companions a runtime moves with, and days
+   to the deadline go in as hints. Every change comes back as a task or a not-affected reason; one
+   with no verdict is still attempted.
+4. **Shape.** One task per change per repo. Changes that move the same dependency to the same target
+   (Node 18's end of life and the node:18 image's) become one task, and the second row points at it.
+   A runtime task lists the base image, version files and CI lines that move with it.
+5. **Rank.** Deadline first, then severity (security first), then the agent's impact.
+6. **Attempt.** O2's `runExternalTask` on its own hold of the run budget. Until O2 lands, today's
+   harness `runTask` attempts the upgrade from the task's notes.
+7. **Audit.** O5's `recordAudit` at detected, matched, not-affected and pr-opened. A failing audit
+   store shows up in the errors and never stops the run.
 
 ## The run budget
 
 The cap is shared through holds. A part holds its share before it runs and settles to what it spent
 when it ends, so parts that run at once never spend the same remainder, and spend plus holds never
 passes the cap. A part that cannot get its minimum waits while other holds are open, and is refused
-once none could free enough.
+once none could free enough. Prices come from `models.ts`, which reads `shared/models.ts` once O3
+lands, so no model is priced as another.
 
 | Part                     | Holds                                                            | Notes                                     |
 | ------------------------ | ---------------------------------------------------------------- | ----------------------------------------- |
 | One provider read        | `WATCH_USD` ($1.50)                                              | Cached per provider per UTC day           |
 | One inventory            | inventory's `DEFAULT_RUN_CAP_USD` ($0.60)                        |                                           |
-| One match call           | Its worst case                                                   | Up to `MATCH_BATCH` (50) changes per call |
+| One match call           | Its worst case                                                   | API: up to `MATCH_BATCH` (50) changes     |
 | One task                 | Up to `TASK_USD` ($5), or a quarter of what is free in a big run | Starts only with `MIN_TASK_USD` ($2) free |
 | Learning from an attempt | `MEMORY_USD` ($1)                                                | Records with no attempt hold nothing      |
 
-A task's recipes come out of its own hold, from what it has above `MIN_TASK_USD`. A part whose spend
-is unknown counts its whole hold as spent: a harness run or an inventory that throws, or a match
-call that may have been billed. A harness that throws comes back as a failed record, so the queue
-does not retry it and count its share again. A refusal from the run budget is never retried.
+P2, P5, F1, F3 and O5's entry points take no budget argument, so the orchestrator cannot hold their
+spend; they draw on the cap through the model layer (O3). Check that at integration.
 
-## Watching
+## Watching API providers
 
 Every provider folder in `providers/` is read once per org run, as a head start. After a repo's
 inventory, every provider in its usage map with no folder gets its own watcher, led by the usage's
-`hints` and SDK package names. That watcher is `anyProviderWatcher` from `providers/core/any-watcher.ts`;
-until it lands, `stubs.ts` stands in and reports the provider as unwatched in the run's errors.
+`hints` and SDK package names. That watcher is `anyProviderWatcher` from `providers/core/any-watcher.ts`.
+
+## Real match run
+
+```sh
+REFIT_AI_BUDGET_USD=3 ANTHROPIC_API_KEY=... node orchestrator/match-real.ts --external
+```
+
+Runs the external match agent on the three sample repos against every fixture change.

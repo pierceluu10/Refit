@@ -17,17 +17,23 @@ import { anyProviderWatcher } from '../providers/core/any-watcher.ts';
 import { BudgetLedger as WatchLedger } from '../providers/core/model.ts';
 import { folderWatcher, listProviderIds } from '../providers/core/registry.ts';
 import { hintsFor, loadToolPack } from '../providers/toolkit/pack.ts';
+import { obligationsToChanges, recordAudit, watchRegulations } from '../compliance/index.ts';
 import type {
+  MigrationTask,
   ProviderChange,
   ProviderHints,
+  RunExternalTask,
   RunRecord,
   ToolPack,
+  WatchDependency,
   WatchProvider,
 } from '../shared/types.ts';
 import { BudgetExceededError, type Budget, type Hold } from './budget.ts';
 import type { LoopDeps } from './loop.ts';
+import { createExternalMatchAgent } from './external-match.ts';
 import { createMatchAgent } from './match.ts';
-import { createMemoryQueue } from './queue.ts';
+import type { AnyTask, ExternalDeps, ScanItemReport } from './scan.ts';
+import { createMemoryQueue, FinalError } from './queue.ts';
 import {
   stubInventory,
   stubMatch,
@@ -36,9 +42,35 @@ import {
   stubRunTask,
   stubWatcher,
 } from './stubs.ts';
+import {
+  asMigrationTask,
+  stubInventoryDependencies,
+  stubMatchExternal,
+  stubRunExternalTask,
+  stubWatchDependency,
+} from './stubs-external.ts';
+import { loadUpstream } from './upstream.ts';
 
 // Run records go outside the target repo; Refit never writes into a repo except through a PR.
 export const defaultOut = join(tmpdir(), 'refit-runs.jsonl');
+
+// The latest "what's behind" report per repo, outside every target repo.
+export const defaultReports = join(tmpdir(), 'refit-reports');
+
+// Saves a repo's report as <dir>/<owner_name>.json.
+export function saveReport(dir: string): (report: ScanItemReport) => Promise<void> {
+  return async (report) => {
+    await mkdir(dir, { recursive: true });
+    await writeFile(
+      join(dir, `${report.repo.replace(/[^\w.-]+/g, '_')}.json`),
+      `${JSON.stringify(report, null, 2)}\n`,
+    );
+  };
+}
+
+// An ExternalTask carries the dependencies it moves; an API task does not.
+export const isExternalTask = (task: AnyTask): task is Exclude<AnyTask, MigrationTask> =>
+  'dependencies' in task && Array.isArray(task.dependencies);
 
 // Provider changelogs change at most daily, so one read per provider per UTC day serves every run.
 export const defaultWatchCache = join(tmpdir(), 'refit-watch');
@@ -179,11 +211,13 @@ export function createDeps({
   budget,
   log = (line: string) => console.error(line),
   watchCache = defaultWatchCache,
+  reports = defaultReports,
 }: {
   out?: string;
   budget?: Budget;
   log?: (line: string) => void;
   watchCache?: string;
+  reports?: string;
 }): LoopDeps {
   const queue = createMemoryQueue({
     concurrency: CONCURRENCY,
@@ -209,6 +243,17 @@ export function createDeps({
       recordRun: stubRecordRun(out),
       queue,
       log,
+      external: {
+        inventoryDependencies: stubInventoryDependencies(),
+        watchDependency: stubWatchDependency(),
+        match: stubMatchExternal,
+        runExternalTask: stubRunExternalTask,
+        // O5's placeholders return nothing until the rules agent lands.
+        watchRegulations,
+        obligationsToChanges,
+      },
+      recordAudit,
+      recordReport: saveReport(reports),
     };
   }
   if (!budget) throw new Error('ANTHROPIC_API_KEY is set, so pass a budget from createBudget().');
@@ -221,6 +266,72 @@ export function createDeps({
   });
   const providerIds = listProviderIds();
   const appendRecord = stubRecordRun(out);
+
+  // A harness run on its own hold of the run budget, with recipes from memory. With `upgrade`, O2's
+  // runExternalTask runs the external task instead, on the same hold; it retrieves its own recipes.
+  const harnessTask = async (
+    task: MigrationTask,
+    dir: string,
+    upgrade?: { run: RunExternalTask; task: Parameters<RunExternalTask>[0] },
+  ): Promise<RunRecord> => {
+    const freeUsd = budget.capUsd - budget.spentUsd() - budget.heldUsd();
+    let hold: Hold;
+    try {
+      hold = await budget.reserve(
+        `task ${task.id}`,
+        Math.max(TASK_USD, freeUsd / CONCURRENCY),
+        MIN_TASK_USD,
+      );
+    } catch (error) {
+      if (!(error instanceof BudgetExceededError)) throw error;
+      const leftUsd = budget.capUsd - budget.spentUsd();
+      return failed(
+        task.id,
+        0,
+        `not attempted: $${leftUsd.toFixed(2)} of the run cap left, below the $${MIN_TASK_USD} a task needs`,
+      );
+    }
+    let spentUsd = 0;
+    try {
+      // Recipes come first, from what the hold has above the harness's minimum.
+      const ai = memory(
+        new MemoryBudget(Math.max(Math.min(MEMORY_USD, hold.usd - MIN_TASK_USD), 0)),
+      );
+      const recipes = upgrade
+        ? []
+        : await createRetriever(ai)(task).catch((error) => {
+            log(`memory: no recipes for ${task.id}: ${error}`);
+            return [];
+          });
+      const recipesUsd = ai.budget.spentUsd;
+      // shortcut: a harness that throws reports no spend, so until it returns its whole share counts as spent; charge it live through the harness's chargeRun (O5) once that lands.
+      spentUsd = hold.usd;
+      const record = upgrade
+        ? await upgrade.run(upgrade.task, dir)
+        : await runTask(task, dir, {
+            budgetUsd: hold.usd - recipesUsd,
+            // Any provider: its own pack when its folder has one, plus the generic tools and
+            // playbooks, led by the inventory's hints. Only folder ids are ever imported.
+            loadToolPack: (provider): Promise<ToolPack> =>
+              loadToolPack(provider, { hints: hintsFor(task.usages) }),
+            retrieveRecipes: async () => recipes,
+          });
+      spentUsd = recipesUsd + record.costUsd;
+      return record;
+    } catch (error) {
+      // Returned rather than thrown: a queue retry would count the share as spent again.
+      const message = error instanceof Error ? error.message : String(error);
+      return failed(
+        task.id,
+        spentUsd,
+        spentUsd > 0
+          ? `runTask failed: ${message}; its spend is unknown, so its whole $${spentUsd.toFixed(2)} share counts as spent`
+          : `runTask failed: ${message}`,
+      );
+    } finally {
+      hold.settle(spentUsd);
+    }
+  };
 
   return {
     inventory: async (dir, repo) => {
@@ -243,65 +354,14 @@ export function createDeps({
     ),
     watchAny: (provider, hints) => anyWatcher(provider, hints, budget, watchCache),
     match: createMatchAgent({ budget }),
-    runTask: async (task, dir) => {
-      const freeUsd = budget.capUsd - budget.spentUsd() - budget.heldUsd();
-      let hold: Hold;
-      try {
-        hold = await budget.reserve(
-          `task ${task.id}`,
-          Math.max(TASK_USD, freeUsd / CONCURRENCY),
-          MIN_TASK_USD,
-        );
-      } catch (error) {
-        if (!(error instanceof BudgetExceededError)) throw error;
-        const leftUsd = budget.capUsd - budget.spentUsd();
-        return failed(
-          task.id,
-          0,
-          `not attempted: $${leftUsd.toFixed(2)} of the run cap left, below the $${MIN_TASK_USD} a task needs`,
-        );
-      }
-      let spentUsd = 0;
-      try {
-        // Recipes come first, from what the hold has above the harness's minimum.
-        const ai = memory(
-          new MemoryBudget(Math.max(Math.min(MEMORY_USD, hold.usd - MIN_TASK_USD), 0)),
-        );
-        const recipes = await createRetriever(ai)(task).catch((error) => {
-          log(`memory: no recipes for ${task.id}: ${error}`);
-          return [];
-        });
-        const recipesUsd = ai.budget.spentUsd;
-        // shortcut: a harness that throws reports no spend, so until it returns its whole share counts as spent; charge it live through the harness's chargeRun (O5) once that lands.
-        spentUsd = hold.usd;
-        const record = await runTask(task, dir, {
-          budgetUsd: hold.usd - recipesUsd,
-          // Any provider: its own pack when its folder has one, plus the generic tools and
-          // playbooks, led by the inventory's hints. Only folder ids are ever imported.
-          loadToolPack: (provider): Promise<ToolPack> =>
-            loadToolPack(provider, { hints: hintsFor(task.usages) }),
-          retrieveRecipes: async () => recipes,
-        });
-        spentUsd = recipesUsd + record.costUsd;
-        return record;
-      } catch (error) {
-        // Returned rather than thrown: a queue retry would count the share as spent again.
-        const message = error instanceof Error ? error.message : String(error);
-        return failed(
-          task.id,
-          spentUsd,
-          spentUsd > 0
-            ? `runTask failed: ${message}; its spend is unknown, so its whole $${spentUsd.toFixed(2)} share counts as spent`
-            : `runTask failed: ${message}`,
-        );
-      } finally {
-        hold.settle(spentUsd);
-      }
-    },
+    runTask: (task, dir) => harnessTask(task, dir),
     // shortcut: a real PR needs the GitHub App's installation token and the repo's owner/name, which only the app has; the app passes its opener to runRepoJob.
     openPullRequest: stubOpenPullRequest,
-    recordRun: async (task, record, dir) => {
-      await appendRecord(task, record, dir);
+    recordRun: async (anyTask, record, dir) => {
+      await appendRecord(anyTask, record, dir);
+      // Memory takes the API task shape until O4 lands; the external change rides along in its notes.
+      const task = isExternalTask(anyTask) ? asMigrationTask(anyTask) : anyTask;
+
       const { recipeIds } = record as Partial<HarnessRunRecord>;
       const transcript = record.transcriptPath
         ? await readFile(record.transcriptPath, 'utf8').catch(() => undefined)
@@ -334,5 +394,35 @@ export function createDeps({
     },
     queue,
     log,
+    external: {
+      // Until P2's agent lands, the manifest reader stands in, and says so in each dependency's notes.
+      inventoryDependencies: async (dir, repo) =>
+        ((await loadUpstream()).inventoryDependencies ?? stubInventoryDependencies())(dir, repo),
+      inventorySurfaces: async (dir, repo) => {
+        const surfaces = (await loadUpstream()).inventorySurfaces;
+        return surfaces ? surfaces(dir, repo) : [];
+      },
+      watchDependency: async (dep, since) => {
+        const watch: WatchDependency | undefined = (await loadUpstream()).watchDependency;
+        // Fixture changes in a real run would be invented findings, so an unwatched dependency is an error.
+        if (!watch)
+          throw new FinalError(`not watched: providers/index.ts has no watchDependency yet (F1)`);
+        return watch(dep, since);
+      },
+      watchPlatforms: async (dep, since) => {
+        const watch = (await loadUpstream()).watchPlatforms;
+        return watch ? watch(dep, since) : [];
+      },
+      watchRegulations,
+      obligationsToChanges,
+      match: createExternalMatchAgent({ budget }),
+      runExternalTask: async (task, dir) => {
+        const run = (await loadUpstream()).runExternalTask;
+        // Until O2 lands, today's harness attempts the upgrade from the task's notes.
+        return harnessTask(asMigrationTask(task), dir, run && { run, task });
+      },
+    } satisfies ExternalDeps,
+    recordAudit,
+    recordReport: saveReport(reports),
   };
 }

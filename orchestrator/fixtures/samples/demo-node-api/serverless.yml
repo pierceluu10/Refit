@@ -1,0 +1,4 @@
+service: demo-node-api
+provider:
+  name: aws
+  runtime: nodejs16.x
