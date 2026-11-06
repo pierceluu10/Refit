@@ -31,16 +31,6 @@
   background: var(--blue-tint);
   color: var(--blue);
 }
-.docs-source {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  border-top: 1px solid var(--border);
-  margin-top: 25px;
-  padding-top: 20px;
-  color: var(--muted);
-  font-size: 10px;
-}
 .docs-content {
   max-width: 720px;
   min-width: 0;
@@ -73,10 +63,10 @@
 .docs-content .button {
   margin-top: 24px;
 }
-.docs-content .text-link {
-  margin-top: 24px;
+.docs-content p a {
   color: var(--blue);
-  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 .docs-content table {
   width: 100%;
@@ -102,7 +92,6 @@
 .docs-content td:last-child {
   color: var(--muted);
 }
-.docs-content ol,
 .docs-content ul {
   padding-left: 22px;
   margin-top: 23px;
@@ -176,9 +165,6 @@
     white-space: nowrap;
     background: #f0f2f6;
     font-size: 11px;
-  }
-  .docs-source {
-    display: none;
   }
   .docs-content h1 {
     font-size: 44px;
