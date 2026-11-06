@@ -1,21 +1,25 @@
-import type { MigrationTask, RunTask } from '../shared/types.ts';
+import type { RunExternalTask, RunTask } from '../shared/types.ts';
 import { BudgetExceededError } from './ai.ts';
 import type { MemoryStore } from './store.ts';
-import type { SelfEvalReport, StoredRun } from './types.ts';
+import type { AnyTask, SelfEvalReport, StoredRun } from './types.ts';
+import { isExternalTask } from './upgrade.ts';
 
 // Reruns a fixed set of past tasks with today's memory to see whether learning helps.
 // Running happens in the injected RunTask, which owns the sandbox.
 export async function runSelfEval({
   store,
   runTask,
+  runExternalTask,
   prepareRepo,
   size = 5,
   now = () => new Date(),
 }: {
   store: MemoryStore;
   runTask: RunTask;
+  // Reruns an upgrade or other external task. Without it, those tasks are reported as not rerun.
+  runExternalTask?: RunExternalTask;
   // A working copy of the repo at the run's commit. Throwing BudgetExceededError ends the reruns.
-  prepareRepo: (task: MigrationTask, run: StoredRun) => Promise<string>;
+  prepareRepo: (task: AnyTask, run: StoredRun) => Promise<string>;
   size?: number;
   now?: () => Date;
 }): Promise<SelfEvalReport> {
@@ -39,9 +43,19 @@ export async function runSelfEval({
   for (const [index, taskId] of taskIds.entries()) {
     const latest = runs.filter((run) => run.task.id === taskId).at(-1);
     if (!latest) continue;
+    const { task } = latest;
+    if (isExternalTask(task) && !runExternalTask) {
+      notes.push(
+        `${taskId} is an external task and no runExternalTask was given, so it was not rerun.`,
+      );
+      continue;
+    }
     let after: SelfEvalReport['results'][number]['after'];
     try {
-      const record = await runTask(latest.task, await prepareRepo(latest.task, latest));
+      const dir = await prepareRepo(task, latest);
+      const record = isExternalTask(task)
+        ? await runExternalTask!(task, dir)
+        : await runTask(task, dir);
       costUsd += record.costUsd;
       after = record.outcome;
     } catch (error) {

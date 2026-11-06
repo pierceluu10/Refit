@@ -2,11 +2,12 @@ import type { Model } from './ai.ts';
 import { succeeded } from './extract.ts';
 import type { MemoryStore } from './store.ts';
 import type { MemoryRecipe, StoredRun } from './types.ts';
+import { kindOf, recipeLabel } from './upgrade.ts';
 
 export const PROMOTE_AT_REPOS = 3;
 export const DEMOTE_AT_FAILURES = 2;
 
-const SYSTEM = `You turn a migration recipe that worked on several repos into a reusable prompt block for a coding agent.
+const SYSTEM = `You turn a migration or upgrade recipe that worked on several repos into a reusable prompt block for a coding agent.
 Write concise, generalised advice for a senior engineer: when it applies, the approach, what to watch for.
 Write it as guidance the engineer adapts to the code in front of them, not as rules. Drop repo-specific names.`;
 
@@ -45,7 +46,8 @@ async function skillPrompt(recipe: MemoryRecipe, model?: Model): Promise<string>
         system: SYSTEM,
         prompt: JSON.stringify({
           provider: recipe.provider,
-          kind: recipe.kind,
+          kind: kindOf(recipe),
+          ...(recipe.ranges?.length && { versionRanges: recipe.ranges }),
           preconditions: recipe.preconditions,
           steps: recipe.steps,
           pitfalls: recipe.pitfalls,
@@ -66,7 +68,7 @@ async function skillPrompt(recipe: MemoryRecipe, model?: Model): Promise<string>
     }
   }
   return [
-    `Guidance for ${recipe.provider} ${recipe.kind} migrations, verified on ${recipe.verifiedRepos} repos. Adapt it to the code in front of you.`,
+    `Guidance for ${recipeLabel(recipe)}, verified on ${recipe.verifiedRepos} repos. Adapt it to the code in front of you.`,
     `When it applies: ${recipe.preconditions}`,
     `Approach:\n${recipe.steps}`,
     `Watch for: ${recipe.pitfalls}`,

@@ -1,14 +1,15 @@
-import type { MigrationTask } from '../shared/types.ts';
 import { cosine, type Embedder, type Model } from './ai.ts';
 import type { MemoryStore } from './store.ts';
-import type { MemoryRecipe } from './types.ts';
+import type { AnyTask, MemoryRecipe } from './types.ts';
+import { isExternalTask, kindOf, recipeLabel, upgradeKey } from './upgrade.ts';
 
-export function describeTask(task: MigrationTask): string {
+export function describeTask(task: AnyTask): string {
   const { change } = task;
   const lines = [
     `Provider: ${change.provider}`,
     `Kind: ${change.kind}`,
     `Change: ${change.title}`,
+    ...upgradeLines(task),
     `Source: ${change.source.quote}`,
     `Affects operations: ${change.affects.operations?.join(', ') ?? ''}`,
     `Affects fields: ${change.affects.fields?.join(', ') ?? ''}`,
@@ -27,10 +28,29 @@ export function describeTask(task: MigrationTask): string {
   return lines.join('\n');
 }
 
+// What an external task adds: the dependency, the version range and every place it is declared.
+function upgradeLines(task: AnyTask): string[] {
+  if (!isExternalTask(task)) return [];
+  const { change } = task;
+  const key = upgradeKey(task);
+  return [
+    `Dependency: ${change.dependency} (${change.dependencyKind})`,
+    `Upgrade: ${key?.range ?? ''}`,
+    `Severity: ${change.severity ?? ''}`,
+    ...task.dependencies.flatMap((dep) => [
+      `Uses: ${dep.name}${dep.version ? `@${dep.version}` : ''}${dep.ecosystem ? ` (${dep.ecosystem})` : ''}`,
+      ...dep.declaredIn.map(
+        (place) => `  declared in ${place.file}${place.text ? `: ${place.text}` : ''}`,
+      ),
+    ]),
+  ];
+}
+
 export function describeRecipe(recipe: MemoryRecipe): string {
   return [
     `Provider: ${recipe.provider}`,
-    `Kind: ${recipe.kind}`,
+    `Kind: ${kindOf(recipe)}`,
+    ...(recipe.ranges?.length ? [`Upgrades: ${recipe.ranges.join(', ')}`] : []),
     `Preconditions: ${recipe.preconditions}`,
     `Steps: ${recipe.steps}`,
     `Pitfalls: ${recipe.pitfalls}`,
@@ -55,9 +75,9 @@ const PICK_SCHEMA = {
   },
 };
 
-const PICK_SYSTEM = `You advise an engineer who is about to migrate code for an API change.
-From notes left by past verified migrations, choose the ones worth reading before starting.
-A note from another provider can still help when the migration has the same shape.
+const PICK_SYSTEM = `You advise an engineer who is about to change code because something outside it changed: an API, or a runtime, framework, library, AI model, base image or CI version that is retiring or has a new major.
+From notes left by past verified runs, choose the ones worth reading before starting.
+A note from another provider, dependency or version range can still help when the change has the same shape (for example a node 16 → 20 note for a node 18 → 22 upgrade, or a Django note for a Flask upgrade that hits the same Python change).
 Order picks from most to least useful and say in one sentence why each helps.
 Return an empty list only if none of the notes would help.`;
 
@@ -68,10 +88,10 @@ export function createRetriever(deps: {
   limit?: number;
   candidates?: number;
   judgeAllUpTo?: number;
-}): (task: MigrationTask) => Promise<MemoryRecipe[]> {
+}): (task: AnyTask) => Promise<MemoryRecipe[]> {
   const { store, embedder, model, limit = 3, candidates = 10, judgeAllUpTo = 50 } = deps;
 
-  async function rank(task: MigrationTask): Promise<MemoryRecipe[]> {
+  async function rank(task: AnyTask): Promise<MemoryRecipe[]> {
     const recipes = await store.listRecipes();
     if (recipes.length === 0) return [];
 
@@ -103,11 +123,12 @@ export function createRetriever(deps: {
     );
   }
 
-  async function judge(task: MigrationTask, shortlist: MemoryRecipe[], model: Model) {
+  async function judge(task: AnyTask, shortlist: MemoryRecipe[], model: Model) {
     const notes = shortlist.map((recipe) =>
       [
         `### ${recipe.id}`,
-        `Provider: ${recipe.provider}, kind: ${recipe.kind}`,
+        `Provider: ${recipe.provider}, kind: ${kindOf(recipe)}`,
+        ...(recipe.ranges?.length ? [`Upgrades: ${recipe.ranges.join(', ')}`] : []),
         `Active skill: ${recipe.skill?.status === 'active' ? 'yes' : 'no'}; ${track(recipe)}`,
         `Preconditions: ${recipe.preconditions}`,
         `Steps: ${recipe.steps}`,
@@ -163,7 +184,7 @@ export function renderMemoryForPrompt(recipes: MemoryRecipe[]): string {
   const isSkill = (recipe: MemoryRecipe) => recipe.skill?.status === 'active';
   const blocks = [
     '## Memory from past runs',
-    'Advice from verified past migrations. Use your judgement: follow what fits this repo, ignore what does not.',
+    'Advice from verified past runs. Use your judgement: follow what fits this repo, ignore what does not.',
     ...recipes
       .filter(isSkill)
       .map((recipe) => `### Proven skill (${track(recipe)})\n${recipe.skill!.prompt}`),
@@ -171,7 +192,7 @@ export function renderMemoryForPrompt(recipes: MemoryRecipe[]): string {
       .filter((recipe) => !isSkill(recipe))
       .map((recipe) =>
         [
-          `### Recipe: ${recipe.provider} ${recipe.kind} (${track(recipe)})`,
+          `### Recipe: ${recipeLabel(recipe)} (${track(recipe)})`,
           `Preconditions: ${recipe.preconditions}`,
           `Steps:\n${recipe.steps}`,
           `Pitfalls: ${recipe.pitfalls}`,

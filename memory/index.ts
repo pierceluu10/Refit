@@ -1,10 +1,18 @@
-import type { MigrationTask, RetrieveRecipes, RunRecord, RunView } from '../shared/types.ts';
+import type {
+  ExternalTask,
+  MigrationTask,
+  RetrieveExternalRecipes,
+  RetrieveRecipes,
+  RunRecord,
+  RunView,
+  ScanReport,
+} from '../shared/types.ts';
 import { defaultAi, type Embedder, type Model } from './ai.ts';
-import { extractRecipe, succeeded } from './extract.ts';
+import { extractRecipe, sha, succeeded } from './extract.ts';
 import { createRetriever } from './retrieve.ts';
 import { promoteSkills, recordRecipeOutcome } from './skills.ts';
 import { JsonMemoryStore, type MemoryStore } from './store.ts';
-import type { HumanVerdict, MemoryRecipe, StoredRun } from './types.ts';
+import type { AnyTask, HumanVerdict, MemoryRecipe, StoredRun } from './types.ts';
 import { toRunView } from './views.ts';
 
 export * from './ai.ts';
@@ -15,6 +23,7 @@ export { promoteSkills, recordRecipeOutcome } from './skills.ts';
 export { JsonMemoryStore, type MemoryStore } from './store.ts';
 export type * from './types.ts';
 export { toRunView } from './views.ts';
+export { isExternalTask, recipeLabel, upgradeKey, versionLabel } from './upgrade.ts';
 
 export type MemoryDeps = { store: MemoryStore; embedder: Embedder; model?: Model };
 
@@ -28,6 +37,12 @@ export function defaultMemory(): MemoryDeps {
 
 // The RetrieveRecipes entry point from shared/types.ts; harness/prompt.ts injects what it returns.
 export const retrieveRecipes: RetrieveRecipes = (task: MigrationTask) =>
+  createRetriever(defaultMemory())(task);
+
+// The RetrieveExternalRecipes entry point (O4) for upgrades and every other external change: the
+// same retriever, so embeddings shortlist and the model judges which recipes help. Upgrade recipes
+// are keyed by dependency and version range, and API recipes stay readable to the same judge.
+export const retrieveExternalRecipes: RetrieveExternalRecipes = (task: ExternalTask) =>
   createRetriever(defaultMemory())(task);
 
 type Learned = {
@@ -53,7 +68,7 @@ function oneAtATime<T>(task: () => Promise<T>): Promise<T> {
 // `commit` is the commit the run read; the self-eval reruns the task on it.
 export async function learnFromRun(
   input: {
-    task: MigrationTask;
+    task: AnyTask;
     record: RunRecord;
     transcript?: string;
     usedRecipeIds?: string[];
@@ -74,18 +89,25 @@ export async function learnFromRun(
 // which pull_request events send which verdict. A merge or edit turns a needs-review run into a
 // success, distilled into a recipe unless it already was. A close counts against the recipes and
 // skills the run used, and takes its repo back off the recipe it was distilled into.
+// `options.finalDiff` is the PR's diff after a human's edits. When it is new, the run is distilled
+// again with it, so the recipe follows what the human actually merged.
 export async function recordVerdict(
   runIdOrPr: string,
   verdict: HumanVerdict,
   deps: MemoryDeps = defaultMemory(),
+  options: { finalDiff?: string } = {},
 ): Promise<Learned | undefined> {
-  const recorded = await deps.store.recordVerdict(runIdOrPr, verdict);
+  const recorded = await deps.store.recordVerdict(runIdOrPr, verdict, options.finalDiff);
   if (!recorded) return undefined;
   return oneAtATime(async () => {
     const run = (await deps.store.getRun(recorded.id)) ?? recorded;
     const demoted = await recordRecipeOutcome(run, deps);
-    const distilled = run.extraction?.status === 'done' && run.extraction.mode === 'recipe';
-    return learn(run, demoted, deps, succeeded(run.record) && !distilled);
+    const { extraction } = run;
+    const distilled = extraction?.status === 'done' && extraction.mode === 'recipe';
+    const humanDiffIsNew =
+      run.humanDiff !== undefined &&
+      !(extraction?.status === 'done' && extraction.humanDiffSha === sha(run.humanDiff));
+    return learn(run, demoted, deps, succeeded(run.record) && (!distilled || humanDiffIsNew));
   });
 }
 
@@ -100,6 +122,38 @@ export async function listRunViews(
     .filter((run) => filter.repo === undefined || run.task.repo === filter.repo)
     .sort((a, b) => b.recordedAt.localeCompare(a.recordedAt) || b.id.localeCompare(a.id));
   return runs.slice(0, filter.limit ?? runs.length).map(toRunView);
+}
+
+// Saves one scan's report, for the dashboard's history. The orchestrator calls it after scanRepo.
+export async function recordScanReport(
+  report: ScanReport,
+  store: MemoryStore = defaultMemory().store,
+): Promise<void> {
+  await store.saveScan(report);
+}
+
+// Scan reports newest first, optionally for one repo, for the dashboard's history.
+export async function listScanReports(
+  filter: { repo?: string; limit?: number } = {},
+  store: MemoryStore = defaultMemory().store,
+): Promise<ScanReport[]> {
+  const scans = (await store.listScans())
+    .filter((scan) => filter.repo === undefined || scan.repo === filter.repo)
+    .sort((a, b) => b.scannedAt.localeCompare(a.scannedAt));
+  return scans.slice(0, filter.limit ?? scans.length).map(({ id: _id, ...report }) => report);
+}
+
+// The latest report for each repo, newest first: what the "What's behind" page shows.
+export async function latestScanReports(
+  filter: { repos?: string[] } = {},
+  store: MemoryStore = defaultMemory().store,
+): Promise<ScanReport[]> {
+  const latest = new Map<string, ScanReport>();
+  for (const report of await listScanReports({}, store)) {
+    if (filter.repos && !filter.repos.includes(report.repo)) continue;
+    if (!latest.has(report.repo)) latest.set(report.repo, report);
+  }
+  return [...latest.values()];
 }
 
 // Promotion runs after every run and verdict, since either can change how many repos a recipe is verified on.
