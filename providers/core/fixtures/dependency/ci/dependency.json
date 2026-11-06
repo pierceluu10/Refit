@@ -1,0 +1,8 @@
+{
+  "repo": "cli",
+  "kind": "ci",
+  "name": "actions/checkout",
+  "version": "v2",
+  "ecosystem": "github-actions",
+  "declaredIn": []
+}

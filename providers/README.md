@@ -21,6 +21,26 @@ providers/
 
 Providers today: `stripe`, `shopify`, `meta` (Graph and Marketing API), `openai`, `twilio`, and `github`. `github` has no `watcher.ts`. It shows that a new provider needs only a folder with `provider.json`, `prompt.md`, `knowledge.json` and fixtures. The registry finds it, `watchAll()` runs it, and `core/providers.test.ts` tests it.
 
+## Any dependency
+
+`watchDependency(dep, since, deps?)` from `providers/index.ts` watches anything the inventory finds and returns `ExternalChange[]`. One agent reads the sources for the dependency's kind, and the feeds are inputs it may use (`core/dependency-sources.ts`, with its guidance in `core/prompt.ts`):
+
+| Kind                                              | Sources                                                                                          |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `runtime`, `container-image`                      | endoflife.date, official release schedules                                                       |
+| `framework`                                       | the above, plus the two rows below                                                               |
+| `library`, `sdk`                                  | npm and PyPI, changelogs, GitHub releases; OSV and the GitHub Advisory Database                  |
+| `api`                                             | the API watcher above                                                                            |
+| `ai-model`                                        | OpenAI, Anthropic and Google deprecation pages                                                   |
+| `ci`                                              | the action's releases, GitHub's changelog, the runner-images README                              |
+| `platform`, `infrastructure`, `security-standard` | `watchPlatforms` from `providers/platforms/index.ts`, when it exists; otherwise a recorded error |
+| `regulated-surface`                               | not read here: `compliance/` turns rules into changes                                            |
+
+- Pass `deps.budget` to draw on the run's ledger; without it, every call in the process shares one ledger from `REFIT_AI_BUDGET_USD`.
+- Pass `deps.onReport`, or call `runDependencyWatch`, to get `errors` (what could not be read, for `ScanReport.errors`), the cost and the log. A run that never reached an answer throws `WatchFailedError`.
+- Pages and registry reads are cached on disk for a day, in `REFIT_WATCH_CACHE_DIR` or `~/.cache/refit/watch`. Failures are not cached.
+- `npm run dep -w providers -- <name> --kind <kind> [--version v] [--ecosystem e] [--save dir]` runs one real read. `core/fixtures/dependency/<group>/` holds one saved read per source group, replayed offline.
+
 ## Adding a provider
 
 1. Create `providers/<id>/provider.json` with 3–6 starting pages. Pick pages whose server response holds the real text: server-rendered HTML, RSS or Atom feeds, the GitHub releases API (`"format": "github-releases"`), raw `CHANGELOG.md` files, or a docs site's `.md` pages.

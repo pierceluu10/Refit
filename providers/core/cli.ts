@@ -6,17 +6,24 @@
 //               any <provider> [--packages a,b] [--hosts h] [--docs url,url] [--since YYYY-MM-DD]
 //                   [--save <dir>] [--no-search] [--max-turns n] [--max-tokens n]
 //               --save writes hints.json, packages.json, pages/ and live-run.json for offline tests.
+//   dep         watch one dependency of any kind (spends AI, capped):
+//               dep <name> --kind <DependencyKind> [--version v] [--ecosystem e] [--since YYYY-MM-DD]
+//                   [--save <dir>] [--no-search] [--max-turns n] [--max-tokens n] [--max-usd n]
+//               --max-usd lowers the cap for this read below REFIT_AI_BUDGET_USD.
+//               --save writes dependency.json, packages.json, pages/ and live-run.json.
 
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 import { runAnyWatch, DEFAULT_WEB_SEARCH, type AnyWatchReport } from './any-watcher.ts';
+import { runDependencyWatch } from './dependency-watcher.ts';
 import { httpFetcher, recordSnapshot } from './fetch.ts';
 import { draftKnowledge } from './knowledge.ts';
-import { budgetFromEnv } from './model.ts';
+import { BudgetLedger, budgetFromEnv } from './model.ts';
 import { savePages, type PageReader } from './page-tools.ts';
-import { ANY_WATCH_PROMPT_VERSION } from './prompt.ts';
+import { ANY_WATCH_PROMPT_VERSION, DEPENDENCY_WATCH_PROMPT_VERSION } from './prompt.ts';
 import { listProviderIds, loadProvider } from './registry.ts';
+import type { DependencyUsage } from '../../shared/types.ts';
 
 const [command, target = 'all', ...rest] = process.argv.slice(2);
 const budget = budgetFromEnv(1);
@@ -92,6 +99,74 @@ if (command === 'any') {
     `${report.provider}: ${report.changes.length} changes, ${report.unverifiedQuotes.length} unverified quotes, ${report.issues.length} issues, ${report.turns} turns`,
   );
   console.error(`AI spend: $${budget.spentUsd.toFixed(4)} of $${budget.capUsd}`);
+} else if (command === 'dep') {
+  const { values } = parseArgs({
+    args: rest,
+    options: {
+      kind: { type: 'string' },
+      version: { type: 'string' },
+      ecosystem: { type: 'string' },
+      since: { type: 'string' },
+      save: { type: 'string' },
+      'no-search': { type: 'boolean' },
+      'max-turns': { type: 'string' },
+      'max-tokens': { type: 'string' },
+      'max-usd': { type: 'string' },
+    },
+  });
+  if (!values.kind) {
+    console.error('usage: cli.ts dep <name> --kind <DependencyKind> [--version v] [--ecosystem e]');
+    process.exit(2);
+  }
+  const dependency: DependencyUsage = {
+    repo: 'cli',
+    kind: values.kind as DependencyUsage['kind'],
+    name: target,
+    ...(values.version ? { version: values.version } : {}),
+    ...(values.ecosystem ? { ecosystem: values.ecosystem } : {}),
+    declaredIn: [],
+  };
+  const ledger = new BudgetLedger(
+    Math.min(budget.capUsd, values['max-usd'] ? Number(values['max-usd']) : budget.capUsd),
+  );
+  const maxTurns = values['max-turns'] ? Number(values['max-turns']) : undefined;
+  const maxTokens = values['max-tokens'] ? Number(values['max-tokens']) : undefined;
+  let reader: PageReader | undefined;
+  const runAt = new Date().toISOString();
+  const report = await runDependencyWatch(dependency, values.since, {
+    budget: ledger,
+    webSearch: values['no-search'] ? false : undefined,
+    maxTurns,
+    maxTokens,
+    onPages: (pages) => (reader = pages),
+  });
+  console.log(JSON.stringify(report, null, 2));
+  if (values.save && reader) {
+    const dir = resolve(values.save);
+    mkdirSync(dir, { recursive: true });
+    savePages(reader, join(dir, 'pages'), { provider: report.provider });
+    writeFileSync(join(dir, 'dependency.json'), `${JSON.stringify(dependency, null, 2)}\n`);
+    writeFileSync(join(dir, 'packages.json'), `${JSON.stringify(report.packages, null, 2)}\n`);
+    const record = {
+      note: `Live run: ${report.model} through the Messages API on ${runAt.slice(0, 10)}, reading live pages. pages/ keeps what the agent was shown. Output recorded as returned, not edited.`,
+      runAt,
+      model: report.model,
+      promptVersion: DEPENDENCY_WATCH_PROMPT_VERSION,
+      input: {
+        dependency,
+        ...(values.since ? { since: values.since } : {}),
+        webSearch: !values['no-search'],
+        capUsd: ledger.capUsd,
+      },
+      report,
+    };
+    writeFileSync(join(dir, 'live-run.json'), `${JSON.stringify(record, null, 2)}\n`);
+    console.error(`saved ${dir}`);
+  }
+  console.error(
+    `${report.provider}: ${report.changes.length} changes, ${report.unverifiedQuotes.length} unverified quotes, ${report.issues.length} issues, ${report.errors.length} read errors, ${report.turns} turns`,
+  );
+  console.error(`AI spend: $${ledger.spentUsd.toFixed(4)} of $${ledger.capUsd}`);
 } else {
   const since = rest[0];
   const ids = target === 'all' ? listProviderIds() : [target];

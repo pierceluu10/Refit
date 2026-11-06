@@ -4,7 +4,7 @@
 // exact source quotes. A provider folder, when one exists, is a head start: its prompt, knowledge and
 // starting pages. Code only fetches, checks quotes and output shape, and never decides relevance.
 
-import type { ProviderHints, WatchProvider } from '../../shared/types.ts';
+import type { ProviderChange, ProviderHints, WatchProvider } from '../../shared/types.ts';
 import type { LoopTool } from './agent.ts';
 import { httpFetcher, type FetchedPage } from './fetch.ts';
 import { budgetFromEnv, type ServerTool } from './model.ts';
@@ -28,11 +28,31 @@ import {
   PROVIDERS_DIR,
 } from './folders.ts';
 import type { LoadedProvider, ProviderSource, WatchReport } from './types.ts';
-import { NO_SUBMISSION, WatchFailedError, runWatchAgent, slug, type WatchDeps } from './watcher.ts';
+import {
+  NO_SUBMISSION,
+  WatchFailedError,
+  runWatchAgent,
+  slug,
+  type ChangeShape,
+  type WatchDeps,
+} from './watcher.ts';
 
 export type WebSearchOption = { type?: string; maxUses?: number };
 
-export type AnyWatchDeps = WatchDeps & {
+/** What a watcher for more than API providers adds to a read: its own brief, feeds and change shape. */
+export type WatchExtension<C> = {
+  /** Replaces the API watcher's system prompt. */
+  system?: (input: { name: string; prompt: string; webSearch: boolean }) => string;
+  /** Added to the task. */
+  task?: string;
+  /** More starting pages. */
+  sources?: ProviderSource[];
+  /** Feeds read before the agent starts, listed among the sources, so quotes from them check. */
+  pages?: FetchedPage[];
+  shape?: ChangeShape<C>;
+};
+
+export type AnyWatchDeps<C = ProviderChange> = WatchDeps & {
   /** npm and PyPI lookups; tests and replays pass saved ones. */
   registry?: PackageRegistry;
   /** Where provider folders live, for the head start. */
@@ -41,12 +61,13 @@ export type AnyWatchDeps = WatchDeps & {
   webSearch?: false | WebSearchOption;
   /** Packages looked up before the agent starts; the agent can look up more itself. */
   maxPackages?: number;
-  onReport?: (report: AnyWatchReport) => void;
+  onReport?: (report: AnyWatchReport<C>) => void;
+  extend?: WatchExtension<C>;
   /** Called with the pages the run read, so a caller can save them as fixtures. */
   onPages?: (reader: PageReader) => void;
 };
 
-export type AnyWatchReport = WatchReport & {
+export type AnyWatchReport<C = ProviderChange> = WatchReport<C> & {
   /** The provider's display name: the folder's name, or the provider id as the inventory wrote it. */
   name: string;
   hints: ProviderHints;
@@ -55,6 +76,8 @@ export type AnyWatchReport = WatchReport & {
   /** What the registries said about each package, as the agent saw it. */
   packages: PackageInfo[];
   startingPages: string[];
+  /** What could not be read: failed registry lookups and pages. */
+  errors: string[];
 };
 
 // Three searches a call: enough to find a provider's pages, and a small part of a call's worst case.
@@ -135,7 +158,7 @@ async function readPackages(
   registry: PackageRegistry,
   reader: PageReader,
   sources: Sources,
-): Promise<{ infos: PackageInfo[]; rendered: string[] }> {
+): Promise<{ infos: PackageInfo[]; rendered: string[]; errors: string[] }> {
   const looked = await Promise.all(
     names.map(async (pinned) => {
       const name = packageName(pinned);
@@ -164,6 +187,7 @@ async function readPackages(
   );
   const infos: PackageInfo[] = [];
   const rendered: string[] = [];
+  const errors = looked.flatMap(({ lookup }) => lookup.errors);
   for (const { name, lookup, found } of looked) {
     for (const { info, notes } of found) {
       infos.push(info);
@@ -193,7 +217,7 @@ async function readPackages(
     else if (lookup.errors.length)
       rendered.push(`Lookup problems for ${name}: ${lookup.errors.join('; ')}`);
   }
-  return { infos, rendered };
+  return { infos, rendered, errors };
 }
 
 function lookupTool(
@@ -231,12 +255,12 @@ function lookupTool(
  * usages. When providers/ has a folder for it, the folder's hints join the
  * given ones and its prompt, knowledge and pages are the head start.
  */
-export async function runAnyWatch(
+export async function runAnyWatch<C = ProviderChange>(
   provider: string,
   given: ProviderHints = {},
   since?: string,
-  deps: AnyWatchDeps = {},
-): Promise<AnyWatchReport> {
+  deps: AnyWatchDeps<C> = {},
+): Promise<AnyWatchReport<C>> {
   const id = provider.trim().toLowerCase();
   const budget = deps.budget ?? budgetFromEnv();
   const folder = folderFor(id, deps.root ?? PROVIDERS_DIR);
@@ -246,7 +270,8 @@ export async function runAnyWatch(
   const registry = deps.registry ?? registryClient();
 
   const sources = new Sources();
-  for (const source of folder?.sources ?? []) sources.add(source);
+  for (const source of [...(folder?.sources ?? []), ...(deps.extend?.sources ?? [])])
+    sources.add(source);
   const docs = (hints.docsUrls ?? []).map(httpsUrl).filter((url): url is string => Boolean(url));
   docs.forEach((url, i) =>
     sources.add({
@@ -268,14 +293,14 @@ export async function runAnyWatch(
   }
 
   const reader = new PageReader(deps.fetcher ?? httpFetcher(), sources.list);
+  for (const page of deps.extend?.pages ?? []) reader.add(page);
   const maxPackages = deps.maxPackages ?? 8;
   const names = [...new Set((hints.packages ?? []).map((p) => p.trim()).filter(Boolean))];
-  const { infos, rendered } = await readPackages(
-    names.slice(0, maxPackages),
-    registry,
-    reader,
-    sources,
-  );
+  const {
+    infos,
+    rendered,
+    errors: lookupErrors,
+  } = await readPackages(names.slice(0, maxPackages), registry, reader, sources);
   if (names.length > maxPackages)
     rendered.push(
       `Not looked up yet (use lookup_package if they matter): ${names.slice(maxPackages).join(', ')}`,
@@ -287,14 +312,19 @@ export async function runAnyWatch(
     ? [{ type: webSearch.type, name: 'web_search', max_uses: webSearch.maxUses }]
     : undefined;
 
-  const report = await runWatchAgent(
+  const report = await runWatchAgent<C>(
     {
       provider: id,
       label: `watch-any:${id}`,
       reader,
       system: (withServerTools) =>
-        anyWatchSystemPrompt({ name, prompt: folder?.prompt ?? '', webSearch: withServerTools }),
-      prompt: anyWatchUserPrompt({
+        (deps.extend?.system ?? anyWatchSystemPrompt)({
+          name,
+          prompt: folder?.prompt ?? '',
+          webSearch: withServerTools,
+        }),
+      shape: deps.extend?.shape,
+      prompt: `${anyWatchUserPrompt({
         name,
         since,
         today,
@@ -303,7 +333,7 @@ export async function runAnyWatch(
         sources: sources.list,
         packages: rendered,
         knowledge: folder?.knowledge,
-      }),
+      })}${deps.extend?.task ? `\n\n${deps.extend.task}` : ''}`,
       tools: [lookupTool(registry, reader, sources, infos)],
       serverTools,
     },
@@ -311,8 +341,11 @@ export async function runAnyWatch(
   );
   deps.onPages?.(reader);
   // An empty result is only "nothing changed" if something was read: with every fetch failed it means nothing.
-  const registryUrls = new Set(infos.map((info) => info.registryUrl));
-  const loaded = report.sourcesRead.filter((url) => !registryUrls.has(url));
+  const alreadyGiven = new Set([
+    ...infos.map((info) => info.registryUrl),
+    ...(deps.extend?.pages ?? []).map((page) => page.url),
+  ]);
+  const loaded = report.sourcesRead.filter((url) => !alreadyGiven.has(url));
   const issues =
     loaded.length === 0 &&
     report.changes.length === 0 &&
@@ -327,6 +360,17 @@ export async function runAnyWatch(
     ...(folder ? { folder: folder.id } : {}),
     packages: infos,
     startingPages: sources.list.map((source) => source.url),
+    // A 404 on a page guessed along the way (a CHANGELOG.md) is not a gap; on a starting page it is.
+    errors: [
+      ...lookupErrors,
+      ...[...reader.pages.values()]
+        .filter(
+          (page) =>
+            !page.ok &&
+            (page.status !== 404 || sources.list.some((source) => source.url === page.url)),
+        )
+        .map((page) => `${page.url}: ${page.error ?? `HTTP ${page.status}`}`),
+    ],
   };
 }
 

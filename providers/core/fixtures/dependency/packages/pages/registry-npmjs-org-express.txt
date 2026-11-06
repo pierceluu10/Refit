@@ -1,0 +1,13 @@
+### npm package express
+Registry data: https://registry.npmjs.org/express (read 2026-11-06); page: https://www.npmjs.com/package/express
+Description: "Fast, unopinionated, minimalist web framework"
+Repository: https://github.com/expressjs/express
+Homepage: https://expressjs.com/
+Latest: 5.3.0 (published 2026-10-09); 290 versions in the registry.
+Major lines (stable releases):
+- 5.x: 5.0.0 (2024-09-10) to 5.3.0 (2026-10-09), 6 releases
+- 4.x: 4.0.0 (2014-04-09) to 4.22.3 (2026-09-14), 95 releases
+- 3.x: 3.0.0 (2012-10-23) to 3.21.2 (2015-07-31), 96 releases; deprecated: "No longer maintained. Please upgrade to a stable version."
+- 2.x: 2.0.0 (2011-03-18) to 2.5.11 (2012-07-04), 39 releases; deprecated: "express 2.x series is deprecated"
+- 1.x: 1.0.0 (2010-12-29) to 1.0.8 (2011-03-02), 9 releases; deprecated: "express 1.x series is deprecated"
+- 0.x: 0.14.0 (2010-12-29) to 0.14.1 (2010-12-29), 2 releases; deprecated: "express 0.x series is deprecated"

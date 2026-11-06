@@ -6,6 +6,7 @@
   "scripts": {
     "live-read": "node core/cli.ts live-read",
     "watch": "node core/cli.ts watch",
+    "dep": "node core/cli.ts dep",
     "knowledge": "node core/cli.ts knowledge"
   },
   "dependencies": {

@@ -1,0 +1,37 @@
+{
+  "provider": "actions-checkout",
+  "fetchedAt": "2026-11-06T05:21:48.950Z",
+  "note": "Every page one run read, cut to what the agent was shown (at most 120000 characters). Test input only.",
+  "sources": [
+    {
+      "id": "api-github-com-repos-actions-checkout-releases-per-page-100",
+      "url": "https://api.github.com/repos/actions/checkout/releases?per_page=100",
+      "status": 200,
+      "ok": true,
+      "file": "api-github-com-repos-actions-checkout-releases-per-page-100.txt",
+      "chars": 15037,
+      "truncated": true,
+      "sha256": "454557ea30cf0316e7c5db00761ef1185d100f61469d64706484248328812bc0"
+    },
+    {
+      "id": "github-blog-changelog-label-actions-feed",
+      "url": "https://github.blog/changelog/label/actions/feed/",
+      "status": 200,
+      "ok": true,
+      "file": "github-blog-changelog-label-actions-feed.txt",
+      "chars": 15037,
+      "truncated": true,
+      "sha256": "d1150766f3867fa8e5dff3b399e18f5f8565f46df2d34c889047d2f4fcd3df6c"
+    },
+    {
+      "id": "github-blog-changelog-2026-06-18-safer-pull-request-target-defaults-for-github-actions-che",
+      "url": "https://github.blog/changelog/2026-06-18-safer-pull_request_target-defaults-for-github-actions-checkout/",
+      "status": 200,
+      "ok": true,
+      "file": "github-blog-changelog-2026-06-18-safer-pull-request-target-defaults-for-github-actions-che.txt",
+      "chars": 5870,
+      "truncated": false,
+      "sha256": "2264b85ad5eed0432efe15c86e9c80c38c0543fe8725475bfc2aad40ef19bda7"
+    }
+  ]
+}

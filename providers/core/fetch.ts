@@ -4,8 +4,9 @@
 import { createHash } from 'node:crypto';
 import { lookup as dnsLookup, type LookupAddress, type LookupOptions } from 'node:dns';
 import { lookup } from 'node:dns/promises';
-import { mkdirSync, readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { mkdirSync, readFileSync, renameSync, statSync, writeFileSync, existsSync } from 'node:fs';
 import { request as httpsRequest } from 'node:https';
+import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { brotliDecompressSync, gunzipSync, inflateSync } from 'node:zlib';
 import type { ProviderSource } from './types.ts';
@@ -256,7 +257,7 @@ type SafeResponse = { response: Response; finalUrl: string } | { error: string }
 /** One GET as the fetchers use it. The default is pinnedGet; tests pass a stand-in. */
 export type HttpGet = (
   url: string,
-  init: { headers: Record<string, string>; signal: AbortSignal },
+  init: { headers: Record<string, string>; signal: AbortSignal; method?: string; body?: string },
 ) => Promise<Response>;
 
 type LookupCallback = (
@@ -313,7 +314,7 @@ export const pinnedGet: HttpGet = (url, init) =>
     const request = httpsRequest(
       url,
       {
-        method: 'GET',
+        method: init.method ?? 'GET',
         headers: { 'accept-encoding': 'gzip, deflate, br', ...init.headers },
         lookup: guardedLookup() as never,
         signal: init.signal,
@@ -349,21 +350,27 @@ export const pinnedGet: HttpGet = (url, init) =>
       },
     );
     request.on('error', reject);
-    request.end();
+    request.end(init.body);
   });
 
-/** GitHub endpoints the optional token is sent to: release lists, for their rate limit. */
-const GITHUB_TOKEN_PATH = /^\/repos\/[^/]+\/[^/]+\/releases(\/|$)/;
+/** GitHub endpoints the optional token is sent to: release lists and advisories, for their rate limit. */
+const GITHUB_TOKEN_PATH = /^\/repos\/[^/]+\/[^/]+\/releases(\/|$)|^\/advisories(\/|$)/;
 
 /**
  * One GET that follows redirects by hand, so every hop is checked before it is
  * requested: public https, and a host whose addresses are all public. githubToken
- * goes to api.github.com release lists only.
+ * goes to api.github.com release lists and advisories only. A body makes it a POST.
  */
 async function safeGet(
   url: string,
   headers: Record<string, string>,
-  options: { timeoutMs?: number; githubToken?: string; lookup?: HostLookup; get?: HttpGet },
+  options: {
+    timeoutMs?: number;
+    githubToken?: string;
+    lookup?: HostLookup;
+    get?: HttpGet;
+    body?: string;
+  },
 ): Promise<SafeResponse> {
   const resolve = options.lookup ?? systemLookup;
   const get = options.get ?? pinnedGet;
@@ -394,10 +401,12 @@ async function safeGet(
     const response = await get(parsed.href, {
       headers: sent,
       signal: AbortSignal.timeout(options.timeoutMs ?? 30_000),
+      ...(options.body ? { method: 'POST', body: options.body } : {}),
     });
     const location = response.headers.get('location');
     if (response.status >= 300 && response.status < 400 && location) {
       await response.body?.cancel();
+      if (options.body) return { error: `a POST was redirected to ${location}` };
       target = new URL(location, target).toString();
       continue;
     }
@@ -409,8 +418,8 @@ async function safeGet(
 /**
  * Live HTTP. maxChars bounds what one page can add to the agent's context.
  * Redirects are followed by hand so every hop is checked as public https.
- * githubToken, when given, is sent to api.github.com release lists only (it
- * lifts the 60-requests-an-hour limit on release feeds), never to any other
+ * githubToken, when given, is sent to api.github.com release lists and advisories only (it
+ * lifts the 60-requests-an-hour limit on those feeds), never to any other
  * path or host. Use a token that can read public repositories only.
  */
 export function httpFetcher(
@@ -472,7 +481,8 @@ export type JsonResult =
 
 /** Reads JSON documents, such as package registry metadata. Tests pass recorded ones. */
 export interface JsonFetcher {
-  json(url: string): Promise<JsonResult>;
+  /** A body POSTs it as JSON, for query APIs such as OSV's. */
+  json(url: string, body?: unknown): Promise<JsonResult>;
 }
 
 /**
@@ -490,16 +500,21 @@ export function httpJsonFetcher(
 ): JsonFetcher {
   const maxBytes = options.maxBytes ?? 40_000_000;
   return {
-    async json(url) {
+    async json(url, body) {
       try {
         const got = await safeGet(
           url,
-          { 'user-agent': USER_AGENT, accept: 'application/json' },
+          {
+            'user-agent': USER_AGENT,
+            accept: 'application/json',
+            ...(body === undefined ? {} : { 'content-type': 'application/json' }),
+          },
           {
             timeoutMs: options.timeoutMs ?? 60_000,
             githubToken: options.githubToken,
             lookup: options.lookup,
             get: options.get,
+            ...(body === undefined ? {} : { body: JSON.stringify(body) }),
           },
         );
         if ('error' in got) return { ok: false, status: 0, url, error: got.error };
@@ -513,10 +528,10 @@ export function httpJsonFetcher(
           await response.body?.cancel();
           return { ok: false, status: response.status, url, error: `over ${maxBytes} bytes` };
         }
-        const body = await response.text();
-        if (body.length > maxBytes)
+        const text = await response.text();
+        if (text.length > maxBytes)
           return { ok: false, status: response.status, url, error: `over ${maxBytes} bytes` };
-        return { ok: true, status: response.status, url, data: JSON.parse(body) as unknown };
+        return { ok: true, status: response.status, url, data: JSON.parse(text) as unknown };
       } catch (error) {
         return {
           ok: false,
@@ -525,6 +540,77 @@ export function httpJsonFetcher(
           error: error instanceof Error ? error.message : String(error),
         };
       }
+    },
+  };
+}
+
+export type CacheOptions = {
+  /** Where cached reads live. Defaults to REFIT_WATCH_CACHE_DIR, then ~/.cache/refit/watch. */
+  dir?: string;
+  ttlMs?: number;
+  now?: () => number;
+};
+
+export const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+/** A disk cache for public reads. A cache that cannot be read or written is only a slower fetch. */
+function diskCache<T>(options: CacheOptions) {
+  const dir =
+    options.dir ?? process.env.REFIT_WATCH_CACHE_DIR ?? join(homedir(), '.cache', 'refit', 'watch');
+  const ttl = options.ttlMs ?? ONE_DAY_MS;
+  const now = options.now ?? Date.now;
+  const fileFor = (key: string) =>
+    join(dir, `${createHash('sha256').update(key).digest('hex')}.json`);
+  return {
+    get(key: string): T | undefined {
+      try {
+        const file = fileFor(key);
+        if (now() - statSync(file).mtimeMs >= ttl) return undefined;
+        return JSON.parse(readFileSync(file, 'utf8')) as T;
+      } catch {
+        return undefined;
+      }
+    },
+    set(key: string, value: T): void {
+      try {
+        mkdirSync(dir, { recursive: true, mode: 0o700 });
+        // Scans run in parallel, so a reader must never see a half-written file.
+        const temp = `${fileFor(key)}.${process.pid}.tmp`;
+        writeFileSync(temp, JSON.stringify(value));
+        renameSync(temp, fileFor(key));
+      } catch {
+        // Next read fetches again.
+      }
+    },
+  };
+}
+
+/** Keeps each page that loaded for a day (by default), so a scan of many repos reads a page once. Failures are never kept. */
+export function cachingFetcher(inner: Fetcher, options: CacheOptions = {}): Fetcher {
+  const cache = diskCache<FetchedPage>(options);
+  return {
+    async fetch(url, format) {
+      const key = `page ${format ?? ''} ${url}`;
+      const kept = cache.get(key);
+      if (kept) return kept;
+      const page = await inner.fetch(url, format);
+      if (page.ok) cache.set(key, page);
+      return page;
+    },
+  };
+}
+
+/** The same for JSON documents, such as registry metadata and advisory queries. */
+export function cachingJsonFetcher(inner: JsonFetcher, options: CacheOptions = {}): JsonFetcher {
+  const cache = diskCache<JsonResult>(options);
+  return {
+    async json(url, body) {
+      const key = `json ${url} ${body === undefined ? '' : JSON.stringify(body)}`;
+      const kept = cache.get(key);
+      if (kept) return kept;
+      const result = await inner.json(url, body);
+      if (result.ok) cache.set(key, result);
+      return result;
     },
   };
 }

@@ -1,0 +1,261 @@
+Use Case: actions - GitHub Changelog
+
+https://github.blog/changelog/label/actions/
+Updates, ideas, and inspiration from GitHub to help developers build and design software.
+
+Tue, 03 Nov 2026 00:46:35 +0000
+en-US
+
+hourly
+
+1
+https://wordpress.org/?v=7.1.4
+
+https://github.blog/wp-content/uploads/2019/01/cropped-github-favicon-512.png?fit=32%2C32
+Use Case: actions - GitHub Changelog
+
+https://github.blog/changelog/label/actions/
+32
+32
+
+153214340
+pull_request_target blocked by default December 2
+
+https://github.blog/changelog/2026-11-02-pull_request_target-blocked-by-default-december-2
+
+Allison
+Mon, 02 Nov 2026 15:14:46 +0000
+
+https://github.blog/changelog/2026-11-02-pull_request_target-blocked-by-default-december-2
+
+Starting December 2, 2026, GitHub Actions will block pull_request_target events by default in all public repositories, unless an applicable Actions event policy explicitly allows them. Enforcement was previously scheduled for…
+
+The post pull_request_target blocked by default December 2 appeared first on The GitHub Blog.
+
+Starting December 2, 2026, GitHub Actions will block pull_request_target events by default in all public repositories, unless an applicable Actions event policy explicitly allows them. Enforcement was previously scheduled for November 2, 2026.
+
+GitHub introduced this default rule through workflow execution protections. The rule initially runs in evaluate mode, so you can see which workflow runs it would block before enforcement begins.
+
+Private and internal repositories aren’t affected.
+
+## Why we’re making this change
+
+pull_request_target runs in the context of the base repository and can access its secrets. If a workflow executes untrusted code from a fork, that code could compromise your pipeline or steal secrets. The default rule helps reduce this risk while letting you explicitly allow workflows that depend on the trigger.
+
+## Brownout schedule
+
+Before permanent enforcement begins on December 2, 2026, we’ll temporarily enforce the default protection during two scheduled brownouts. These windows will help you identify affected workflows and update your policies before enforcement becomes permanent.
+
+Date
+Time (UTC)
+
+November 9, 2026
+16:00–18:00
+
+November 16, 2026
+16:00–18:00
+
+During each window, pull_request_target workflow attempts blocked by the default rule in affected public repositories will create failed runs with an error annotation; the workflows won’t execute. After each window, the default rule will return to evaluate mode, allowing workflows to run with warnings. Private and internal repositories aren’t affected.
+
+## Prepare your workflows
+
+Before the first brownout on November 9, use Insights to see which workflow runs the rule would block. From there, you have two options:
+
+- Keep the default rule in place to block pull_request_target.
+
+- Explicitly allow pull_request_target in an applicable Actions event policy if your workflows depend on it. Use workflow file targeting to allow specific workflows.
+
+See how to control workflow execution to configure your policies.
+
+This change applies to public repositories on GitHub Free, GitHub Team, and GitHub Enterprise Cloud, not GitHub Enterprise Server.
+
+The post pull_request_target blocked by default December 2 appeared first on The GitHub Blog.
+
+Retired
+actions
+application security
+99939
+
+GitHub Agentic Workflows generally available
+
+https://github.blog/changelog/2026-10-28-github-agentic-workflows-generally-available
+
+Allison
+Wed, 28 Oct 2026 15:30:15 +0000
+
+https://github.blog/changelog/2026-10-27-github-agentic-workflows-generally-available
+
+GitHub Agentic Workflows, an open source project from GitHub Next, is now generally available. With agentic workflows, you can automate reasoning-based tasks like issue triage, CI failure analysis, documentation updates,…
+
+The post GitHub Agentic Workflows generally available appeared first on The GitHub Blog.
+
+GitHub Agentic Workflows, an open source project from GitHub Next, is now generally available. With agentic workflows, you can automate reasoning-based tasks like issue triage, CI failure analysis, documentation updates, and test writing by using coding agents inside GitHub Actions.
+
+Define your automation in natural language Markdown files, and GitHub Agentic Workflows compiles them into standard Actions YAML. Because these are GitHub Actions, they reuse your existing runner groups and policy constraints. You can use GitHub Copilot or bring your own coding agent to power each workflow.
+
+We’ve been rolling out our agentic developer workflows, and the results are measurable. One of our leads saved an estimated 29 hours a week on his development work alone. Across his team, measured velocity has more than doubled on average, and AI now authors 91% of the team’s commits. With these workflows, the team cut production errors from about 11,000 a day to under 1,000 and drove a technology migration end to end.
+
+One workflow takes a feature from requirements to implementation with validation evidence. Others keep our frameworks current and steadily raise code quality and test coverage. Because AI drives the process to completion, our engineers can run four or five efforts in parallel and stay focused on the bigger goals.
+
+Ben Alton – Senior manager, Strategy, Architecture & Innovation team at Accenture
+
+### Built-in safeguards
+
+GitHub Agentic Workflows incorporates layered safeguards for your automation. Agents access GitHub content respecting the integrity filter rules, run with read-only permissions by default, and execute inside a sandboxed container behind the Agent Workflow Firewall. The outputs are validated through the safe outputs process, and a dedicated threat detection job scans all proposed changes before they are applied.
+
+### Additional capabilities for general availability
+
+Highlights since the public preview include:
+
+- Actions Runner Controller (ARC) and Docker-in-Docker support: Run agentic workflows on self-hosted ARC runners with Docker-in-Docker.
+
+- Improved budget forecasting: gh aw forecast is no longer experimental. It now includes both threat detection credits and monthly ranges for a fuller picture of your AI credit spend.
+
+- New models, engine choices, and workflows: The model inventory has been refreshed, model providers can be picked per workflow, and there are new workflow templates that can be added with gh aw add-wizard.
+
+- Model routing: Workflows can use a model router that optimizes for task type and difficulty.
+
+- Improved agent isolation: Agents can run in a Cloud Hypervisor or NVX micro-VM and prevent data leaks in cross-repository workflows with enclaves.
+
+See the GitHub Agentic Workflows release notes for the full list of changes.
+
+### Get started
+
+Follow the quickstart guide to install the CLI extension and trigger your first workflow in minutes. Explore prebuilt workflows in GitHub Next’s agentics repository for ready-to-use examples covering triage, dependency management, code review, and reporting.
+
+GitHub Agentic Workflows is now generally available on github.com for GitHub Free, Team, and Enterprise. Using the default GitHub Copilot CLI engine to power a workflow requires a Copilot license.
+
+Learn more in the GitHub Agentic Workflows documentation, and join the conversation in the community discussion.
+
+The post GitHub Agentic Workflows generally available appeared first on The GitHub Blog.
+
+Release
+actions
+copilot
+universe26
+99751
+
+GitHub Actions adds multi-cloud compute to improve reliability
+
+https://github.blog/changelog/2026-10-28-github-actions-adds-multi-cloud-compute-to-improve-reliability
+
+Allison
+Wed, 28 Oct 2026 15:30:00 +0000
+
+https://github.blog/changelog/2026-11-26-github-actions-adds-multi-cloud-compute-to-improve-reliability
+
+We’re expanding the infrastructure behind GitHub-hosted runners so your workflows start faster and run more reliably, even during periods of peak demand. GitHub Actions now schedules eligible jobs across a…
+
+The post GitHub Actions adds multi-cloud compute to improve reliability appeared first on The GitHub Blog.
+
+We’re expanding the infrastructure behind GitHub-hosted runners so your workflows start faster and run more reliably, even during periods of peak demand. GitHub Actions now schedules eligible jobs across a broader, multi-cloud compute pool. This adds capacity, reduces capacity-related queue times, and improves service resilience. As part of this, eligible Linux jobs may run on Amazon Web Services (AWS) in addition to Microsoft Azure.
+
+Multi-cloud compute will be used for standard 2-core and 4-core Linux runners and compatible 2-core and 4-core larger runners without specialized configurations. This change does not apply to Windows runners or runners with private networking or other specialized configurations.
+
+For customers on GitHub Free, GitHub Pro, and GitHub Team, eligible runners will automatically use multi-cloud compute. Customers on GitHub Enterprise Cloud can opt in by going to Enterprise Settings > Policies > Actions > General > Hosted compute cloud providers and enabling AWS compute.
+
+Editor’s note (November 2, 2026): Corrected the path for opting in.
+
+GitHub Actions automatically schedules eligible jobs across available cloud providers. Your existing runner labels and workflow syntax remain unchanged.
+
+## Recommended action: Keep your network allowlists up to date
+
+To get the full benefit of expanded capacity, make sure any IP allowlists or network-based access policies your workflows rely on include all published GitHub Actions IP ranges. Runners in the expanded compute pool use additional outbound IP addresses, so policies that allow only Azure or Microsoft-owned ranges, including Microsoft Entra Conditional Access policies, can block connections or authentication from these runners.
+
+This is a rolling change, so we recommend updating your allowlists now, before your workflows begin running in the expanded compute pool.
+
+All GitHub Actions runner IP ranges, including the new ones, are published in the actions array returned by GET https://api.github.com/meta. We recommend keeping your allowlists in sync with this endpoint rather than relying on cloud-provider-specific ranges. See GitHub-hosted runner IP addresses for details.
+
+The post GitHub Actions adds multi-cloud compute to improve reliability appeared first on The GitHub Blog.
+
+Improvement
+actions
+universe26
+99823
+
+GitHub Actions workflow lockfiles are generally available
+
+https://github.blog/changelog/2026-10-28-github-actions-workflow-lockfiles-are-generally-available
+
+Allison
+Wed, 28 Oct 2026 15:30:00 +0000
+
+https://github.blog/changelog/2026-11-26-github-actions-workflow-lockfiles-are-generally-available
+
+You can now use GitHub Actions workflow dependency lockfiles in general availability on GitHub Enterprise Cloud, GitHub Enterprise Cloud with data residency, Team, and Free plans. Lockfiles let you keep…
+
+The post GitHub Actions workflow lockfiles are generally available appeared first on The GitHub Blog.
+
+You can now use GitHub Actions workflow dependency lockfiles in general availability on GitHub Enterprise Cloud, GitHub Enterprise Cloud with data residency, Team, and Free plans. Lockfiles let you keep readable tag and branch references in your workflows while running the exact commits you locked, even if those references move.
+
+This release brings the capabilities introduced in the public preview to general availability:
+
+- Lock your dependencies: Use the gh actions-lock extension for the GitHub CLI to generate .github/workflows/actions.lock for actions and their transitive dependencies.
+
+- Adopt locking gradually: Onboard workflows individually. GitHub Actions requires each dependency of an onboarded workflow to be in the lockfile and runs its recorded commit.
+
+- Keep updates in sync: When Dependabot opens a version update for an action in an onboarded workflow, it also regenerates the matching lockfile entry in the same pull request, without additional configuration.
+
+- Require lockfile: Enterprise, organization, and repository administrators can use the Require lockfile policy to enforce adoption.
+
+- Check for stale lockfiles: Verify that your lockfile is up to date without modifying files, including in a CI check.
+
+Lockfiles help protect against unexpected dependency changes, but they don’t determine whether a dependency is safe. Review dependencies before locking them.
+
+## Get started
+
+Install the extension from the gh-actions-lock repository, then review and commit the generated lockfile and workflow changes. See workflow dependency lockfiles in GitHub Docs for details and setup instructions.
+
+Share feedback in the community discussion or report an issue with the extension.
+
+The post GitHub Actions workflow lockfiles are generally available appeared first on The GitHub Blog.
+
+Release
+actions
+universe26
+99870
+
+Meta API endpoints updated for Actions blob storage
+
+https://github.blog/changelog/2026-10-22-meta-api-endpoints-updated-for-actions-blob-storage
+
+Allison
+Thu, 22 Oct 2026 18:14:16 +0000
+
+https://github.blog/changelog/2026-10-22-meta-api-endpoints-updated-for-actions-blob-storage
+
+We’re adding blob storage endpoints for GitHub Actions on github.com as part of our ongoing work to improve capacity and reliability. The meta API now includes these new endpoints. If…
+
+The post Meta API endpoints updated for Actions blob storage appeared first on The GitHub Blog.
+
+We’re adding blob storage endpoints for GitHub Actions on github.com as part of our ongoing work to improve capacity and reliability. The meta API now includes these new endpoints.
+
+If your organization uses a network allowlist to access GitHub Actions blob storage, review your network access settings and ensure you allow the following new hosts (both ranges are inclusive):
+
+- productionresultssa30.blob.core.windows.net through productionresultssa49.blob.core.windows.net
+
+- productionresultssa100.blob.core.windows.net through productionresultssa199.blob.core.windows.net
+
+If you already allow productionresultssa*.blob.core.windows.net, no changes are needed for these additions. If you allow individual hosts, add the new hosts to avoid interruptions to job summaries and logs.
+
+For guidance on allowlisting GitHub traffic, see GitHub’s IP addresses. You can retrieve the current endpoint list using the REST API endpoints for meta data.
+
+The post Meta API endpoints updated for Actions blob storage appeared first on The GitHub Blog.
+
+Improvement
+actions
+99664
+
+Xcode 27 runner image generally available
+
+https://github.blog/changelog/2026-10-15-xcode-27-runner-image-generally-available
+
+Allison
+Fri, 16 Oct 2026 04:36:30 +0000
+
+https://github.blog/changelog/2026-10-15-xcode-27-runner-image-generally-available
+
+You can now use the generally available Xcode 27 runner image to build and test your Apple applications in GitHub Actions. Previously in public preview, this GitHub-hosted image runs on…
+
+The post Xcode 27 runner image generally available appeared first on Th
+[... 10529 characters not shown ...]

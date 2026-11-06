@@ -1,0 +1,17 @@
+{
+  "provider": "openai",
+  "fetchedAt": "2026-11-06T05:21:36.995Z",
+  "note": "Every page one run read, cut to what the agent was shown (at most 120000 characters). Test input only.",
+  "sources": [
+    {
+      "id": "developers-openai-com-api-docs-deprecations-md",
+      "url": "https://developers.openai.com/api/docs/deprecations.md",
+      "status": 200,
+      "ok": true,
+      "file": "developers-openai-com-api-docs-deprecations-md.txt",
+      "chars": 17090,
+      "truncated": true,
+      "sha256": "dd8451b336d139350c38fa1e0ab6d51d03d7e35acc1c5efc585162d548475f50"
+    }
+  ]
+}
