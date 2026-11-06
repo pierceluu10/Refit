@@ -1,0 +1,304 @@
+{
+  "name": "next",
+  "description": "The React Framework",
+  "dist-tags": {
+    "latest": "16.4.5"
+  },
+  "repository": {
+    "url": "git+https://github.com/vercel/next.js.git",
+    "type": "git"
+  },
+  "homepage": "https://nextjs.org",
+  "time": {
+    "14.2.0": "2024-04-11T19:45:58.774Z",
+    "14.2.10": "2024-09-11T23:04:51.812Z",
+    "15.0.0": "2024-10-21T18:22:34.996Z",
+    "14.2.20": "2024-12-04T21:12:49.154Z",
+    "14.2.30": "2025-06-12T09:38:43.682Z",
+    "15.5.0": "2025-08-20T00:28:17.698Z",
+    "15.5.1": "2025-08-26T18:03:17.666Z",
+    "15.5.2": "2025-08-26T22:30:58.940Z",
+    "15.5.3": "2025-09-10T21:31:40.557Z",
+    "15.5.4": "2025-09-23T16:32:59.229Z",
+    "15.5.5": "2025-10-13T16:08:37.635Z",
+    "15.5.6": "2025-10-17T02:25:46.825Z",
+    "16.0.0": "2025-10-22T00:12:16.323Z",
+    "15.5.7": "2025-12-03T15:26:07.201Z",
+    "15.5.8": "2025-12-11T20:08:56.261Z",
+    "15.5.9": "2025-12-11T22:56:05.023Z",
+    "16.1.0": "2025-12-18T18:30:30.419Z",
+    "15.5.10": "2026-01-26T18:32:43.213Z",
+    "15.5.11": "2026-01-28T23:17:02.064Z",
+    "15.5.12": "2026-02-04T17:52:08.274Z",
+    "15.5.13": "2026-03-16T23:01:34.262Z",
+    "16.2.0": "2026-03-18T17:17:23.927Z",
+    "15.5.14": "2026-03-19T18:03:02.695Z",
+    "15.5.15": "2026-04-08T19:04:55.170Z",
+    "15.5.16": "2026-05-06T18:35:46.082Z",
+    "15.5.18": "2026-05-07T19:30:28.216Z",
+    "15.5.19": "2026-06-01T18:27:11.743Z",
+    "15.5.20": "2026-07-01T21:07:16.115Z",
+    "15.5.21": "2026-07-21T15:59:32.231Z",
+    "15.5.22": "2026-07-25T20:45:27.084Z",
+    "16.3.0": "2026-08-03T20:34:17.082Z",
+    "15.5.23": "2026-08-06T19:30:10.134Z",
+    "15.5.24": "2026-08-25T16:14:06.715Z",
+    "15.5.25": "2026-08-31T19:59:49.906Z",
+    "15.5.26": "2026-09-22T17:03:27.353Z",
+    "15.5.27": "2026-09-30T16:19:50.862Z",
+    "16.4.0": "2026-10-06T18:35:31.699Z",
+    "15.5.28": "2026-10-14T17:36:08.917Z",
+    "15.5.29": "2026-11-03T18:36:52.834Z"
+  },
+  "versions": {
+    "14.2.0": {
+      "version": "14.2.0",
+      "engines": {
+        "node": ">=18.17.0"
+      },
+      "deprecated": "This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/security-update-2025-12-11 for more details."
+    },
+    "14.2.10": {
+      "version": "14.2.10",
+      "engines": {
+        "node": ">=18.17.0"
+      },
+      "deprecated": "This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/security-update-2025-12-11 for more details."
+    },
+    "15.0.0": {
+      "version": "15.0.0",
+      "engines": {
+        "node": ">=18.18.0"
+      },
+      "deprecated": "This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/CVE-2025-66478 for more details."
+    },
+    "14.2.20": {
+      "version": "14.2.20",
+      "engines": {
+        "node": ">=18.17.0"
+      },
+      "deprecated": "This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/security-update-2025-12-11 for more details."
+    },
+    "14.2.30": {
+      "version": "14.2.30",
+      "engines": {
+        "node": ">=18.17.0"
+      },
+      "deprecated": "This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/security-update-2025-12-11 for more details."
+    },
+    "15.5.0": {
+      "version": "15.5.0",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      },
+      "deprecated": "This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/CVE-2025-66478 for more details."
+    },
+    "15.5.1": {
+      "version": "15.5.1",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      },
+      "deprecated": "This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/CVE-2025-66478 for more details."
+    },
+    "15.5.2": {
+      "version": "15.5.2",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      },
+      "deprecated": "This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/CVE-2025-66478 for more details."
+    },
+    "15.5.3": {
+      "version": "15.5.3",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      },
+      "deprecated": "This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/CVE-2025-66478 for more details."
+    },
+    "15.5.4": {
+      "version": "15.5.4",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      },
+      "deprecated": "This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/CVE-2025-66478 for more details."
+    },
+    "15.5.5": {
+      "version": "15.5.5",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      },
+      "deprecated": "This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/CVE-2025-66478 for more details."
+    },
+    "15.5.6": {
+      "version": "15.5.6",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      },
+      "deprecated": "This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/CVE-2025-66478 for more details."
+    },
+    "16.0.0": {
+      "version": "16.0.0",
+      "engines": {
+        "node": ">=20.9.0"
+      },
+      "deprecated": "This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/CVE-2025-66478 for more details."
+    },
+    "15.5.7": {
+      "version": "15.5.7",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      },
+      "deprecated": "This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/security-update-2025-12-11 for more details."
+    },
+    "15.5.8": {
+      "version": "15.5.8",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      },
+      "deprecated": "This version has a security vulnerability. Please upgrade to a patched version. See https://nextjs.org/blog/security-update-2025-12-11 for more details."
+    },
+    "15.5.9": {
+      "version": "15.5.9",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "16.1.0": {
+      "version": "16.1.0",
+      "engines": {
+        "node": ">=20.9.0"
+      }
+    },
+    "15.5.10": {
+      "version": "15.5.10",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "15.5.11": {
+      "version": "15.5.11",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "15.5.12": {
+      "version": "15.5.12",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "15.5.13": {
+      "version": "15.5.13",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "16.2.0": {
+      "version": "16.2.0",
+      "engines": {
+        "node": ">=20.9.0"
+      }
+    },
+    "15.5.14": {
+      "version": "15.5.14",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "15.5.15": {
+      "version": "15.5.15",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "15.5.16": {
+      "version": "15.5.16",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "15.5.18": {
+      "version": "15.5.18",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "15.5.19": {
+      "version": "15.5.19",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "15.5.20": {
+      "version": "15.5.20",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "15.5.21": {
+      "version": "15.5.21",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "15.5.22": {
+      "version": "15.5.22",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "16.3.0": {
+      "version": "16.3.0",
+      "engines": {
+        "node": ">=20.9.0"
+      }
+    },
+    "15.5.23": {
+      "version": "15.5.23",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "15.5.24": {
+      "version": "15.5.24",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "15.5.25": {
+      "version": "15.5.25",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "15.5.26": {
+      "version": "15.5.26",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "15.5.27": {
+      "version": "15.5.27",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "16.4.0": {
+      "version": "16.4.0",
+      "engines": {
+        "node": ">=20.9.0"
+      }
+    },
+    "15.5.28": {
+      "version": "15.5.28",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    },
+    "15.5.29": {
+      "version": "15.5.29",
+      "engines": {
+        "node": "^18.18.0 || ^19.8.0 || >= 20.0.0"
+      }
+    }
+  }
+}
