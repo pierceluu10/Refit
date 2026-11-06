@@ -136,3 +136,49 @@ Results:
 - Fan-out is guidance in the prompt, and the agent ignored it on the largest repository.
 - Provider hints (`ApiUsage.hints`, prompt `inventory-v3`) were added after these runs and have not
   been measured on any real repository. Only the fake-model unit tests cover them.
+
+## Dependency inventory (2026-11-06)
+
+`inventoryDependencies` on the three private Refit demo repos, which are deliberately outdated, and
+one invented monorepo fixture with planted pins. These prove it works on small repos and nothing
+more: there is no ground truth, no real customer repo and no large repo here. The table is the final
+code; every real run for this prompt, including earlier versions, came to $1.29 of the $5 cap.
+
+| Repo                     | Cost   | Turns | Entries | With hints | Call sites |
+| ------------------------ | ------ | ----- | ------- | ---------- | ---------- |
+| `demo-node-api`          | $0.080 | 17    | 7       | 3          | 1          |
+| `demo-python-app`        | $0.043 | 11    | 6       | 5          | 1          |
+| `demo-next-web`          | $0.076 | 22    | 12      | 11         | 4          |
+| monorepo fixture, 3 runs | ~$0.10 | 24    | 23–25   | 12–13      | 3          |
+
+**What the agent found that the scanners did not.** Every call site is the agent's: no scanner links
+a model or SDK to the line that sends the request.
+
+- `demo-next-web`: Stripe's API pin `2020-08-27`, held in a constant. It also said production's Node
+  version is unspecified, because only CI names one.
+- `demo-node-api`: that `FROM node:18` declares the runtime as well as the image, and that Lambda's
+  Node 16 disagrees with Node 18 everywhere else. The Kubernetes `extensions/v1beta1` manifest too,
+  which is P5's area.
+- `demo-python-app`: nothing at the level of a declaration line. Its manifests are simple enough for
+  the scanners to see every version.
+- Monorepo: `gpt-3.5-turbo`, assembled from parts. The scanner flags the `model:` line but can't name
+  the model. Also that the Dockerfile's `ARG NODE_VERSION=20` declares a runtime, and that a local CI
+  action is referenced but missing from the repo.
+
+`inventory/evaluation/scanner-gap.ts` measures this per declaration line, so it under-counts: a line
+a scanner flagged for another reason, such as `model:`, counts as the scanner's.
+
+**Repeatability on the monorepo.** Nine planted checks (Node 16, Python 3.8, the three models, both
+Next versions, a retired runner, nginx) were found in 3 of 3 final runs, as was `hadolint`, a tool
+pinned in a curl URL. An earlier version missed the Makefile's pins in 1 of 3 runs because the repo
+map shows no root files and the agent skipped its review. That prompted `find_setup_files` and a
+firmer prompt, so those pins are now scanner leads rather than the agent's alone.
+
+**Problems still open.**
+
+- The agent can be wrong in its notes. On `demo-next-web` it said `node --test` needs Node 18+, but
+  that flag also shipped in Node 16.17. Notes are leads, not facts.
+- Some hints come from the model's own knowledge, despite the "only hosts you actually saw" rule:
+  `api.openai.com` isn't in `demo-node-api`'s code.
+- Hint coverage is uneven, especially on runtimes and images. The watchers have to cope without them.
+- Entry names vary between runs for things outside this prompt's focus, such as the Kubernetes entry.

@@ -5,6 +5,7 @@ import { appendFile, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 import { query } from '@anthropic-ai/claude-agent-sdk';
 import type { Options, SDKMessage, SDKResultMessage } from '@anthropic-ai/claude-agent-sdk';
+import { redactSecrets } from '../harness/secrets.ts';
 import type { ApiUsage, InventoryRepo } from '../shared/types.ts';
 import { BudgetLedger } from './budget.ts';
 import { UsageCollector } from './collector.ts';
@@ -60,13 +61,32 @@ export type InventoryReport = {
 
 const sdkRunner: AgentRunner = ({ prompt, options }) => query({ prompt, options });
 
-export function agentOptions(repoDir: string, tools: InventoryTool[], budgetUsd: number): Options {
+export type AgentPrompts = {
+  system: string;
+  areaReader: string;
+  areaReaderDescription: string;
+  task: (repo: string) => string;
+};
+
+const API_PROMPTS: AgentPrompts = {
+  system: SYSTEM_PROMPT,
+  areaReader: AREA_READER_PROMPT,
+  areaReaderDescription: AREA_READER_DESCRIPTION,
+  task: taskPrompt,
+};
+
+export function agentOptions(
+  repoDir: string,
+  tools: InventoryTool[],
+  budgetUsd: number,
+  prompts: AgentPrompts = API_PROMPTS,
+): Options {
   const toolNames = tools.map((inventoryTool) => mcpToolName(inventoryTool.name));
   return {
     cwd: repoDir,
     model: MAIN_MODEL,
     effort: 'medium',
-    systemPrompt: SYSTEM_PROMPT,
+    systemPrompt: prompts.system,
     tools: [SUBAGENT_TOOL],
     allowedTools: [...SUBAGENT_TOOL_NAMES, ...toolNames],
     permissionMode: 'dontAsk',
@@ -75,11 +95,11 @@ export function agentOptions(repoDir: string, tools: InventoryTool[], budgetUsd:
     mcpServers: { [SERVER_NAME]: buildServer(tools) },
     agents: {
       [AREA_READER]: {
-        description: AREA_READER_DESCRIPTION,
-        prompt: AREA_READER_PROMPT,
+        description: prompts.areaReaderDescription,
+        prompt: prompts.areaReader,
         model: AREA_MODEL,
         effort: 'low',
-        tools: toolNames.filter((name) => !name.endsWith('__remove_usage')),
+        tools: toolNames.filter((name) => !name.includes('__remove_')),
       },
     },
     maxTurns: MAX_TURNS,
@@ -90,25 +110,25 @@ export function agentOptions(repoDir: string, tools: InventoryTool[], budgetUsd:
   };
 }
 
-export async function runInventory(
+// Runs one agent to its result under the ledger. What it found lives in the collectors behind `tools`.
+export async function runAgent(
   repoDir: string,
   repo: string,
-  options: InventoryOptions = {},
-): Promise<InventoryReport> {
+  tools: InventoryTool[],
+  prompts: AgentPrompts,
+  options: InventoryOptions & { defaultCapUsd: number },
+): Promise<SDKResultMessage> {
   const ledger = options.ledger ?? (await BudgetLedger.fromEnv());
-  const runCapUsd = Math.min(options.runCapUsd ?? DEFAULT_RUN_CAP_USD, ledger.remainingUsd);
+  const runCapUsd = Math.min(options.runCapUsd ?? options.defaultCapUsd, ledger.remainingUsd);
   ledger.assertCanSpend(CALL_RESERVE_USD);
   const budgetUsd = Math.max(runCapUsd - CALL_RESERVE_USD, 0);
 
-  const collector = new UsageCollector(repoDir, repo);
-  const tools = [...readTools(repoDir), ...recordTools(collector)];
   const runner = options.runner ?? sdkRunner;
-  const started = Date.now();
   let result: SDKResultMessage | undefined;
   try {
     for await (const message of runner({
-      prompt: taskPrompt(repo),
-      options: agentOptions(repoDir, tools, budgetUsd),
+      prompt: prompts.task(repo),
+      options: agentOptions(repoDir, tools, budgetUsd, prompts),
       tools,
     })) {
       if (options.transcriptPath) await appendTranscript(options.transcriptPath, message);
@@ -121,6 +141,21 @@ export async function runInventory(
     if (result) await recordSpend(ledger, repo, result);
   }
   if (!result) throw new InventoryRunError(`The agent run for ${repo} ended without a result`);
+  return result;
+}
+
+export async function runInventory(
+  repoDir: string,
+  repo: string,
+  options: InventoryOptions = {},
+): Promise<InventoryReport> {
+  const collector = new UsageCollector(repoDir, repo);
+  const tools = [...readTools(repoDir), ...recordTools(collector)];
+  const started = Date.now();
+  const result = await runAgent(repoDir, repo, tools, API_PROMPTS, {
+    ...options,
+    defaultCapUsd: DEFAULT_RUN_CAP_USD,
+  });
 
   const recorded = collector.list().map(({ usage }) => usage);
   const usages = collector.usagesForOutput();
@@ -152,7 +187,7 @@ export class InventoryRunError extends Error {
   }
 }
 
-function purposesOf(usages: RecordedUsage[]): Record<string, string> {
+export function purposesOf(usages: RecordedUsage[]): Record<string, string> {
   return Object.fromEntries(
     usages
       .filter((usage) => usage.purpose)
@@ -173,5 +208,5 @@ async function recordSpend(ledger: BudgetLedger, repo: string, result: SDKResult
 
 async function appendTranscript(transcriptPath: string, message: SDKMessage) {
   await mkdir(path.dirname(transcriptPath), { recursive: true });
-  await appendFile(transcriptPath, `${JSON.stringify(message)}\n`);
+  await appendFile(transcriptPath, `${redactSecrets(JSON.stringify(message))}\n`);
 }
