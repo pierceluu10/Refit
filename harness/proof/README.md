@@ -41,9 +41,11 @@ and the date they were recorded. They are tools for the agent, not gates: inputs
 `targetVersion`, `deprecated`, `requiredTargetSdk` and `requirePkce` let the agent apply what it
 confirmed at the source, and the evidence says when a table may be out of date.
 
-**Grading.** The harness grades ToolPack output by its words (`harness/validators.ts`). The text
-form (`formatProofResult`) starts with `<check>: passed`, `<check>: failed`, or an unknown line
-that says it counts as failed, so an unknown result is never taken as proof.
+**Grading.** `runHarness` registers `buildProofTools` with its sandbox and the untouched checkout, and
+records each call as `proof_check__proof_<check>`. The text form (`formatProofResult`) starts with
+`<check>: passed`, `<check>: failed`, or an unknown line that says it counts as failed. Only
+`<check>: passed` grades as a pass (`proofOutputPassed`), so a failed or unknown proof keeps the run
+in needs-review even when the agent leaves it out of `finish` (`failingCheckers`).
 
 Tests use the fixtures in `fixtures/` (illustrative, not real projects) and a scripted sandbox. The
 real headless-browser test runs when Playwright is installed globally, and skips itself when axe-core

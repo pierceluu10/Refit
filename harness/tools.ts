@@ -9,9 +9,12 @@ import {
   packageManagerBinary,
   packageManagerVersion,
   runChecks,
+  runChecksOnRuntime,
   type PackageManager,
 } from './checks.ts';
 import { renderRecipes } from './prompt.ts';
+import { proofOutputPassed } from './proof/index.ts';
+import { parseRuntime, runHost, runtimeImage } from './sandbox.ts';
 import { redactSecrets } from './secrets.ts';
 import { runPassed } from './validators.ts';
 import type {
@@ -142,10 +145,63 @@ function matchesGlob(relative: string, glob: string): boolean {
 // Single-quotes a value for sh.
 export const shellQuote = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
 
-// shortcut: a local runtime switch until O3's sandbox and checks land. Node is the official
-// nodejs.org build for that version, fetched once into /tmp from inside the sandbox; Python is a
-// pythonX.Y binary the sandbox image already has. Both run only inside the sandbox, and the probe
-// reports honestly when the runtime is not there (no network, no such binary).
+const RUNTIME_VERSION_COMMANDS: Record<string, string> = {
+  node: 'node --version',
+  python: 'python3 --version',
+};
+const RUNTIME_PROBE_TIMEOUT_MS = 5 * 60_000;
+
+function probeResult(runtime: Runtime, result: ExecResult) {
+  const out = `${result.stdout}\n${result.stderr}`.trim();
+  const wanted = new RegExp(
+    `(?:^v|Python )${runtime.version.replace(/\./g, '\\.')}(?:\\.|\\s|$)`,
+    'm',
+  );
+  const ok = result.code === 0 && wanted.test(out);
+  const shown = out.split('\n').slice(-3).join(' | ').slice(0, 300);
+  return {
+    ok,
+    detail: ok
+      ? `${runtime.name} ${runtime.version} available: ${shown}`
+      : `${runtime.name} ${runtime.version} not available: ${shown || `exit ${result.code}`}`,
+  };
+}
+
+// O3's runtime switch. Each runtime is its own official image and a command inside the run's container
+// cannot change that container's image, so the checks run in a fresh container over a copy of the
+// working copy, with a clean install on that runtime.
+export const dockerRuntimes: RuntimeRunner = {
+  async probe(_sandbox, runtime) {
+    const parsed = parseRuntime(`${runtime.name} ${runtime.version}`);
+    if (!parsed) return { ok: false, detail: `no official image for ${runtimeLabel(runtime)}` };
+    const version = RUNTIME_VERSION_COMMANDS[parsed.name];
+    const args = ['run', '--rm', runtimeImage(parsed), 'sh', '-c', version];
+    return probeResult(
+      parsed,
+      await runHost('docker', args, { timeoutMs: RUNTIME_PROBE_TIMEOUT_MS }),
+    );
+  },
+  async runChecks(sandbox, runtime, checks) {
+    try {
+      const parsed = parseRuntime(`${runtime.name} ${runtime.version}`);
+      if (!parsed) throw new Error(`no official image for ${runtimeLabel(runtime)}`);
+      return (await runChecksOnRuntime(sandbox.dir, parsed, { checks, mode: 'docker' })).runs;
+    } catch (error) {
+      const message = redactSecrets(error instanceof Error ? error.message : String(error));
+      return checks.map(({ name, command }) => ({
+        name,
+        command,
+        ok: false,
+        output: message,
+        failures: [`could not run on ${runtimeLabel(runtime)}: ${message}`],
+      }));
+    }
+  },
+};
+
+// Without Docker there are no images to switch to, so the switch happens inside the local sandbox.
+// Node is the official nodejs.org build for that version, fetched once into /tmp; Python is a pythonX.Y
+// binary the host already has. The probe reports honestly when the runtime is not there.
 export function nodeRuntimeCommand(version: string, command: string): string {
   const v = version.replace(/^v/, '');
   if (!/^\d+(\.\d+){0,2}$/.test(v)) return command;
@@ -161,45 +217,41 @@ export function nodeRuntimeCommand(version: string, command: string): string {
   return `refit_node=/tmp/refit-node-${v}; if [ ! -x "$refit_node/bin/node" ]; then ${fetchNode}; fi; PATH="$refit_node/bin:$PATH" sh -c ${shellQuote(command)}`;
 }
 
+export function localRuntimeCommand(runtime: Runtime, command: string): string {
+  if (runtime.name === 'node') return nodeRuntimeCommand(runtime.version, command);
+  if (runtime.name === 'python') {
+    const minor = runtime.version.split('.').slice(0, 2).join('.');
+    return [
+      `refit_py=$(command -v python${minor})`,
+      'refit_bin=$(mktemp -d)',
+      '[ -n "$refit_py" ] && ln -s "$refit_py" "$refit_bin/python3" && ln -s "$refit_py" "$refit_bin/python"',
+      `PATH="$refit_bin:$PATH" sh -c ${shellQuote(command)}`,
+    ].join('; ');
+  }
+  return command;
+}
+
 export const localRuntimes: RuntimeRunner = {
-  wrap(runtime, command) {
-    if (runtime.name === 'node') return nodeRuntimeCommand(runtime.version, command);
-    if (runtime.name === 'python') {
-      const minor = runtime.version.split('.').slice(0, 2).join('.');
-      return [
-        `refit_py=$(command -v python${minor})`,
-        'refit_bin=$(mktemp -d)',
-        '[ -n "$refit_py" ] && ln -s "$refit_py" "$refit_bin/python3" && ln -s "$refit_py" "$refit_bin/python"',
-        `PATH="$refit_bin:$PATH" sh -c ${shellQuote(command)}`,
-      ].join('; ');
-    }
-    return command;
-  },
   async probe(sandbox, runtime) {
-    const version =
-      runtime.name === 'node'
-        ? 'node --version'
-        : runtime.name === 'python'
-          ? 'python3 --version'
-          : '';
+    const version = RUNTIME_VERSION_COMMANDS[runtime.name];
     if (!version)
       return { ok: false, detail: `no way to switch to ${runtime.name} in this sandbox` };
-    const result = await sandbox.exec(this.wrap(runtime, version), { timeoutMs: 5 * 60_000 });
-    const out = `${result.stdout}\n${result.stderr}`.trim();
-    const wanted = new RegExp(
-      `(?:^v|Python )${runtime.version.replace(/\./g, '\\.')}(?:\\.|\\s|$)`,
-      'm',
+    return probeResult(
+      runtime,
+      await sandbox.exec(localRuntimeCommand(runtime, version), {
+        timeoutMs: RUNTIME_PROBE_TIMEOUT_MS,
+      }),
     );
-    const ok = result.code === 0 && wanted.test(out);
-    const shown = out.split('\n').slice(-3).join(' | ').slice(0, 300);
-    return {
-      ok,
-      detail: ok
-        ? `${runtime.name} ${runtime.version} available: ${shown}`
-        : `${runtime.name} ${runtime.version} not available: ${shown || `exit ${result.code}`}`,
-    };
   },
+  runChecks: (sandbox, runtime, checks) =>
+    runChecks(
+      sandbox,
+      checks.map(({ name, command }) => ({ name, command: localRuntimeCommand(runtime, command) })),
+    ),
 };
+
+export const runtimesFor = (sandbox: Sandbox): RuntimeRunner =>
+  sandbox.mode === 'docker' ? dockerRuntimes : localRuntimes;
 
 export const runtimeLabel = (runtime: Runtime) => `${runtime.name} ${runtime.version}`;
 
@@ -392,18 +444,6 @@ export function upgradeCommand(
     case 'none':
       return undefined;
   }
-}
-
-export async function runOnRuntime(
-  sandbox: Sandbox,
-  runtimes: RuntimeRunner,
-  runtime: Runtime,
-  checks: { name: string; command: string }[],
-) {
-  return runChecks(
-    sandbox,
-    checks.map((check) => ({ name: check.name, command: runtimes.wrap(runtime, check.command) })),
-  );
 }
 
 export function buildTools(ctx: ToolContext): AgentTool[] {
@@ -641,7 +681,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
         }
         let runs;
         if (runtime) {
-          const runtimes = ctx.runtimes ?? localRuntimes;
+          const runtimes = ctx.runtimes ?? runtimesFor(sandbox);
           const probe = await runtimes.probe(sandbox, runtime);
           if (!probe.ok) {
             return [
@@ -651,7 +691,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
           }
           notes.push(`ran on ${probe.detail}`);
           ctx.onRuntime?.(runtime);
-          runs = await runOnRuntime(sandbox, runtimes, runtime, selected);
+          runs = await runtimes.runChecks(sandbox, runtime, selected);
         } else {
           runs = await runChecks(sandbox, selected);
         }
@@ -828,38 +868,10 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
         return `package manager: ${pm}\ncommand: ${command}\n${formatExec(result)}${pipNote}`;
       },
     ),
-    tool(
-      'run_proof',
-      'Run a proof check beyond the tests, e.g. an accessibility scan, the scripts on a payment page, a Kubernetes manifest against a cluster version, or a workflow lint. Returns passed, failed or unknown with evidence. A failed or unknown proof keeps the run in needs-review.',
-      {
-        check: { type: 'string', description: 'The proof check to run' },
-        input: { type: 'object', description: 'Input the check needs, e.g. files or a URL path' },
-      },
-      ['check'],
-      async (args) => {
-        const check = str(args, 'check');
-        if (!ctx.runProof) {
-          return 'proof tools are not available in this run yet. Say in the PR which proof you would have run.';
-        }
-        const result = await ctx.runProof(check, args.input ?? {}, { repoDir: sandbox.dir });
-        const verdict =
-          result.passed === true ? 'passed' : result.passed === false ? 'failed' : 'unknown';
-        const output = truncate(
-          redactSecrets(
-            [`proof ${result.check}: ${verdict}`, ...result.evidence.map((e) => `- ${e}`)].join(
-              '\n',
-            ),
-          ),
-        );
-        const name = `proof_check__${check}`.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
-        ctx.onToolPackCall?.({ tool: name, output, passed: result.passed === true });
-        return output;
-      },
-    ),
   );
 
   // ToolPack and upgrade tools: every call is recorded, since a check or validate tool's result is proof.
-  const recorded = (prefix: string, packTool: AgentTool): AgentTool => {
+  const recorded = (prefix: string, packTool: AgentTool, passed = runPassed): AgentTool => {
     const name = `${prefix}__${packTool.name}`.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 64);
     return {
       name,
@@ -873,7 +885,7 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
           out = `error: ${error instanceof Error ? error.message : String(error)}`;
         }
         const output = truncate(redactSecrets(out));
-        ctx.onToolPackCall?.({ tool: name, output, passed: runPassed(out) });
+        ctx.onToolPackCall?.({ tool: name, output, passed: passed(out) });
         return output;
       },
     };
@@ -885,6 +897,11 @@ export function buildTools(ctx: ToolContext): AgentTool[] {
     if (taken.has(wrapped.name)) continue;
     taken.add(wrapped.name);
     tools.push(wrapped);
+  }
+  // "check" in the prefix makes failingCheckers count a failed or unknown proof even when the agent
+  // leaves it out of finish, so it can't grade a run verified.
+  for (const proofTool of ctx.proofTools ?? []) {
+    tools.push(recorded('proof_check', proofTool, proofOutputPassed));
   }
 
   tools.push(

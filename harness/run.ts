@@ -4,13 +4,12 @@ import { appendFileSync } from 'node:fs';
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { createUpgradeTools, upgradePlaybook } from '../providers/upgrades/index.ts';
 import type {
-  AgentTool,
   ExternalTask,
   MigrationTask,
   Recipe,
   RunExternalTask,
-  RunProof,
   RunTask,
   ToolPack,
 } from '../shared/types.ts';
@@ -25,6 +24,7 @@ import {
 } from './checks.ts';
 import { BudgetLedger, budgetFromEnv } from './ledger.ts';
 import { filesFromDiff, prTitle, writePrBody } from './pr.ts';
+import { buildProofTools } from './proof/index.ts';
 import {
   PROMPT_VERSION,
   isExternalTask,
@@ -35,9 +35,9 @@ import {
   packageManagerNote,
 } from './prompt.ts';
 import { createSandbox, sandboxEnvNote } from './sandbox.ts';
-import { redactSecrets } from './secrets.ts';
+import { redactOutbound, redactSecrets } from './secrets.ts';
 import { summarizeRun, type IterationSummary, type Step } from './summary.ts';
-import { buildTools, localRuntimes, runOnRuntime, runtimeLabel } from './tools.ts';
+import { buildTools, runtimeLabel, runtimesFor } from './tools.ts';
 import type {
   CheckCommand,
   CheckComparison,
@@ -60,7 +60,7 @@ export const ESCALATION_MODEL = 'claude-opus-5-5';
 // 2026-11-01's dev run, so a query is given the remainder minus this and none starts below it.
 export const TURN_RESERVE_USD = 1;
 
-// shortcut: stubs until providers/ (F2) and memory/ (O3) land; the orchestrator passes the real ones.
+// Callers without a ToolPack or memory (the CLI, tests) get neither; the orchestrator passes the real ones.
 const emptyToolPack = async (provider: string): Promise<ToolPack> => ({
   provider,
   tools: [],
@@ -68,84 +68,16 @@ const emptyToolPack = async (provider: string): Promise<ToolPack> => ({
 });
 const noRecipes = async (): Promise<Recipe[]> => [];
 
-const isAgentTool = (value: unknown): value is AgentTool =>
-  !!value &&
-  typeof value === 'object' &&
-  typeof (value as AgentTool).name === 'string' &&
-  typeof (value as AgentTool).description === 'string' &&
-  typeof (value as AgentTool).run === 'function' &&
-  !!(value as AgentTool).inputSchema &&
-  typeof (value as AgentTool).inputSchema === 'object';
-
-const isStringRecord = (value: unknown): value is Record<string, string> =>
-  !!value &&
-  typeof value === 'object' &&
-  !Array.isArray(value) &&
-  Object.values(value).every((item) => typeof item === 'string');
-
-// shortcut: F2's providers/upgrades/index.ts lands on another branch tonight and its export names
-// are not fixed yet, so this collects whatever it exports that looks like tools or playbooks: an
-// AgentTool, an array of them, a ToolPack-like object, a *playbooks record, or a factory below.
-const KIT_FACTORIES = [
-  'loadUpgradeToolPack',
-  'upgradeToolPack',
-  'createUpgradeToolPack',
-  'createUpgradeTools',
-];
-export async function upgradeKitFrom(
-  mod: Record<string, unknown>,
-  task: ExternalTask,
-): Promise<UpgradeKit> {
-  const tools: AgentTool[] = [];
-  const playbooks: Record<string, string> = {};
-  const take = (key: string, value: unknown) => {
-    if (isAgentTool(value)) tools.push(value);
-    else if (Array.isArray(value) && value.length && value.every(isAgentTool)) tools.push(...value);
-    else if (value && typeof value === 'object' && Array.isArray((value as ToolPack).tools)) {
-      tools.push(...(value as ToolPack).tools.filter(isAgentTool));
-      const books = (value as ToolPack).playbooks;
-      if (isStringRecord(books)) Object.assign(playbooks, books);
-    } else if (/playbooks$/i.test(key) && isStringRecord(value)) Object.assign(playbooks, value);
-  };
-  for (const [key, value] of Object.entries(mod)) {
-    if (typeof value === 'function' && KIT_FACTORIES.includes(key)) {
-      const made = await Promise.resolve()
-        .then(() => (value as (task: ExternalTask) => unknown)(task))
-        .catch(() => undefined);
-      take(key, made);
-    } else take(key, value);
-  }
-  const seen = new Set<string>();
-  return {
-    tools: tools.filter((tool) => !seen.has(tool.name) && seen.add(tool.name)),
-    playbooks,
-  };
-}
-
-const UPGRADES_MODULE = new URL('../providers/upgrades/index.ts', import.meta.url).href;
-const PROOF_MODULE = new URL('./proof/index.ts', import.meta.url).href;
-
-async function importOptional(specifier: string): Promise<Record<string, unknown> | undefined> {
-  try {
-    return (await import(/* @vite-ignore */ specifier)) as Record<string, unknown>;
-  } catch {
-    return undefined;
-  }
-}
-
-// F2's upgrade tools, or none until they land.
+// F2's upgrade tools, and its playbook for the task's kind and dependency.
 export async function loadUpgradeKit(
   task: ExternalTask,
-  specifier = UPGRADES_MODULE,
+  fetch?: typeof globalThis.fetch,
 ): Promise<UpgradeKit> {
-  const mod = await importOptional(specifier);
-  return mod ? upgradeKitFrom(mod, task) : { tools: [], playbooks: {} };
-}
-
-// O6's runProof from harness/proof/, or undefined until it lands.
-export async function loadRunProof(specifier = PROOF_MODULE): Promise<RunProof | undefined> {
-  const mod = await importOptional(specifier);
-  return typeof mod?.runProof === 'function' ? (mod.runProof as RunProof) : undefined;
+  const { kind, dependency } = task.change;
+  return {
+    tools: createUpgradeTools({ fetch }),
+    playbooks: { [kind]: upgradePlaybook(kind, dependency) },
+  };
 }
 
 const newFailureCount = (comparisons: CheckComparison[]) =>
@@ -247,13 +179,11 @@ async function runHarness(
     ) as (task: HarnessTask) => Promise<Recipe[]>;
     const recipes = await retrieveRecipes(task).catch(() => []);
     const kit: UpgradeKit = external
-      ? await (deps.loadUpgradeKit ?? loadUpgradeKit)(external).catch(() => ({
-          tools: [],
-          playbooks: {},
-        }))
+      ? await (deps.loadUpgradeKit?.(external) ?? loadUpgradeKit(external, deps.fetch)).catch(
+          () => ({ tools: [], playbooks: {} }),
+        )
       : { tools: [], playbooks: {} };
-    const runProof = deps.runProof ?? (await loadRunProof());
-    const runtimes = deps.runtimes ?? localRuntimes;
+    const runtimes = deps.runtimes ?? runtimesFor(sandbox);
 
     const pm = await detectPackageManager(sandbox.dir);
     const pmVersion = await packageManagerVersion(sandbox.dir, pm);
@@ -284,17 +214,16 @@ async function runHarness(
       }
     }
     const afterChecks = (list: CheckCommand[]) =>
-      checksRuntime
-        ? runOnRuntime(sandbox, runtimes, checksRuntime, list)
-        : runChecks(sandbox, list);
+      checksRuntime ? runtimes.runChecks(sandbox, checksRuntime, list) : runChecks(sandbox, list);
 
-    // Agent-named checks get their baseline from a second, untouched copy of the repo.
+    // Agent-named checks and proof checks get their baseline from a second, untouched, installed copy.
+    const installedSandbox = async (dir: string) => {
+      const box = await (deps.createSandbox ?? createSandbox)(dir);
+      if (pm !== 'none') await box.exec(installCommand(pm, pmVersion));
+      return box;
+    };
     const addCheck = async (check: CheckCommand): Promise<CheckRun> => {
-      baselineSandbox ??= (async () => {
-        const box = await (deps.createSandbox ?? createSandbox)(repoDir);
-        if (pm !== 'none') await box.exec(installCommand(pm, pmVersion));
-        return box;
-      })();
+      baselineSandbox ??= installedSandbox(repoDir);
       const [run] = await runChecks(await baselineSandbox, [check]);
       checks.push(check);
       agentChecks.push(check);
@@ -316,7 +245,11 @@ async function runHarness(
       retrieveRecipes,
       checks,
       upgradeTools: kit.tools,
-      runProof,
+      proofTools: buildProofTools({
+        sandbox,
+        baselineDir: repoDir,
+        createSandbox: installedSandbox,
+      }),
       runtimes,
       onRuntime: (runtime) => {
         // The agent found a working runtime; the final checks use it if it is the one that moves.
@@ -363,7 +296,7 @@ async function runHarness(
       kickoffNotes,
     );
     let sessionId: string | undefined;
-    let after = before;
+    let after: CheckRun[] = before;
     let comparisons = compareChecks(before, after);
     let previousNewFailures = Infinity;
     let silentErrors = 0;
@@ -424,7 +357,7 @@ async function runHarness(
       });
     }
 
-    const diff = redactSecrets(await sandbox.diff());
+    const { text: diff, note: diffSecretsNote } = redactOutbound('diff', await sandbox.diff());
     const finalReport = report as FinishReport | undefined;
     const harnessUnproven = runtimeProblem ? [runtimeProblem] : [];
     const outcome = decideOutcome({
@@ -437,6 +370,7 @@ async function runHarness(
     });
     const notes = [
       ...harnessUnproven,
+      ...(diffSecretsNote ? [diffSecretsNote] : []),
       ...(ledger.remainingUsd <= reserveUsd
         ? [`The run hit its AI budget of $${ledger.capUsd.toFixed(2)} before the agent finished.`]
         : []),

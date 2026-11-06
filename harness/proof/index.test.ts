@@ -3,6 +3,7 @@ import {
   PROOF_CHECK_NAMES,
   buildProofTools,
   formatProofResult,
+  proofOutputPassed,
   proofTools,
   runProof,
 } from './index.ts';
@@ -78,6 +79,15 @@ describe('proof tools', () => {
     const out = await tool.run({ targetVersion: '1.32' }, { repoDir: '/somewhere/else' });
     expect(out.split('\n')[0]).toBe('kubernetes: passed');
     expect(sandbox.commands[0]).toBe("command -v 'pluto'");
+  });
+
+  it('grade a pass from the verdict line alone, whatever the evidence quotes', () => {
+    const format = (passed: boolean | 'unknown', evidence: string[]) =>
+      formatProofResult({ check: 'serverless', passed, evidence });
+    expect(proofOutputPassed(format(true, ['log tail: 12 passed, 0 failed']))).toBe(true);
+    expect(proofOutputPassed(format(false, ['passed: one', 'failed: two']))).toBe(false);
+    expect(proofOutputPassed(format('unknown', ['serverless: passed']))).toBe(false);
+    expect(proofOutputPassed('error: the tool threw')).toBe(false);
   });
 
   it('formats unknown results', () => {

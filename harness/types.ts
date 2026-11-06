@@ -6,7 +6,6 @@ import type {
   Recipe,
   RetrieveExternalRecipes,
   RetrieveRecipes,
-  RunProof,
   RunRecord,
   ToolPack,
 } from '../shared/types.ts';
@@ -18,13 +17,13 @@ export type HarnessTask = MigrationTask | ExternalTask;
 // A language runtime the checks can run on, e.g. { name: 'node', version: '22' }.
 export type Runtime = { name: string; version: string };
 
-// Runs commands on a chosen runtime version inside the sandbox. shortcut: a local stub (tools.ts)
-// until O3's sandbox and checks land; it must never run anything outside the sandbox.
+// Runs checks on a chosen runtime version (tools.ts). It must never run repo code outside a sandbox.
 export type RuntimeRunner = {
-  // Tries the runtime in the sandbox; `ok` only when the reported version matches.
+  // Tries the runtime; `ok` only when the reported version matches.
   probe(sandbox: Sandbox, runtime: Runtime): Promise<{ ok: boolean; detail: string }>;
-  // The command wrapped so it runs on that runtime.
-  wrap(runtime: Runtime, command: string): string;
+  // Runs the checks on a runtime the probe accepted, on the sandbox's working copy. Never throws:
+  // what could not run comes back as failed checks.
+  runChecks(sandbox: Sandbox, runtime: Runtime, checks: CheckCommand[]): Promise<CheckRun[]>;
 };
 
 // F2's upgrade tools and playbooks (providers/upgrades/), loaded per task.
@@ -81,7 +80,8 @@ export type ToolContext = {
   checks: CheckCommand[];
   // Upgrade tools from F2; recorded like ToolPack calls.
   upgradeTools?: AgentTool[];
-  runProof?: RunProof;
+  // O6's proof checks; recorded and graded from their verdict line.
+  proofTools?: AgentTool[];
   runtimes?: RuntimeRunner;
   // Called when checks ran on a runtime the probe confirmed, so the harness re-checks on it too.
   onRuntime?: (runtime: Runtime) => void;
@@ -122,7 +122,6 @@ export type HarnessDeps = {
   retrieveRecipes?: RetrieveRecipes;
   retrieveExternalRecipes?: RetrieveExternalRecipes;
   loadUpgradeKit?: (task: ExternalTask) => Promise<UpgradeKit>;
-  runProof?: RunProof;
   runtimes?: RuntimeRunner;
   createSandbox?: (repoDir: string) => Promise<Sandbox>;
   budgetUsd?: number; // defaults to REFIT_AI_BUDGET_USD

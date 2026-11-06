@@ -7,7 +7,7 @@ import { redactSecrets } from './secrets.ts';
 import type { CheckComparison, CheckRun, HarnessTask, Runtime } from './types.ts';
 
 // Bump whenever any prompt or message text below changes, so runs can be compared by version.
-export const PROMPT_VERSION = 'harness-prompt/2026-11-06.1';
+export const PROMPT_VERSION = 'harness-prompt/2026-11-06.2';
 
 export type TaskWithNotes = HarnessTask;
 
@@ -43,44 +43,6 @@ export function targetRuntime(task: HarnessTask): Runtime | undefined {
   const version = /\d+(?:\.\d+)*/.exec(toVersion)?.[0];
   return name && version ? { name, version } : undefined;
 }
-
-// What a good upgrade of each kind usually involves. Guidance the agent weighs, never rules.
-export const UPGRADE_PLAYBOOKS: Record<string, string> = {
-  'runtime-eol': [
-    '- Move every place the runtime version is set together: package.json `engines`, `.nvmrc`, `.node-version`, `.python-version`, `.tool-versions`, `pyproject.toml` `requires-python`, Dockerfile `FROM`, CI `node-version` / `python-version`, serverless `runtime`. `bump_version` finds them.',
-    '- Pick the newest supported LTS unless the change names a target. Read the runtime release notes for removals that touch this code (for Node: removed APIs, OpenSSL, ESM/CJS changes, `fetch`; for Python: removed stdlib modules, `distutils`, typing changes).',
-    '- Run the checks on the new runtime (`run_checks` with `runtime`). Passing on the old runtime proves nothing about the new one.',
-    '- If `@types/node` or similar typings are pinned, move them to the new major too, with the package manager.',
-  ].join('\n'),
-  'framework-major': [
-    "- Read the framework's official migration guide for every major you cross, one major at a time, and its codemods (`codemod` when available).",
-    '- Move peer dependencies that must move with it (for example react with next, or the matching eslint config), and nothing else.',
-    '- Build and test after the bump; framework majors break at build time more often than at runtime.',
-  ].join('\n'),
-  'dependency-major': [
-    "- Read the library's changelog or migration guide from the old major to the new (`migrationGuide`, `registryDiff`).",
-    '- Change the dependency with the package manager, then fix each call site the breaking changes touch.',
-  ].join('\n'),
-  'security-fix': [
-    '- Move to the first fixed version the advisory names, or the nearest one on the same major if that works. Quote the advisory in the PR.',
-    '- If the fix needs a major bump, treat it as a dependency-major upgrade and fix the call sites.',
-    '- If the vulnerable code path is not reachable from this repo, still bump it and say so; a reviewer decides.',
-  ].join('\n'),
-  'container-image-eol': [
-    '- Move the base image to a supported tag of the same image and variant (for example `node:18-bookworm` to `node:22-bookworm`), in every Dockerfile and compose file.',
-    '- If the image carries a language runtime, move the runtime everywhere else it is set too, and run the checks on it.',
-    "- Packages installed with apt or apk may have changed names in the newer OS release; check the Dockerfile's install lines.",
-  ].join('\n'),
-  'ci-deprecation': [
-    '- Move each deprecated action to its current major (`actionVersions`), and deprecated runner images to supported ones.',
-    "- Read the action's release notes for renamed or removed inputs and update the `with:` blocks.",
-    "- Checks here cannot run the workflow itself; say in the PR that the workflow's next run is the proof.",
-  ].join('\n'),
-  'model-retirement': [
-    '- Replace the retired model with the replacement the provider names (`modelReplacement`), in code, config and env templates.',
-    '- Check the request parameters the new model accepts (some drop temperature, max_tokens or tools); list output differences as behaviour changes.',
-  ].join('\n'),
-};
 
 // shortcut: memory's recipes carry more than shared/types.ts Recipe (its MemoryRecipe); read those
 // fields here until the contract grows them.
@@ -288,9 +250,6 @@ function guidance(
   if (isExternalTask(task)) {
     const upgrade = upgradePlaybooks[kind];
     if (upgrade) parts.push(`### Upgrade playbook: ${kind}`, upgrade.trim());
-    const builtIn = UPGRADE_PLAYBOOKS[kind];
-    if (builtIn)
-      parts.push(`### What a ${kind} change usually involves (guidance, not rules)`, builtIn);
   }
   if (recipes.length) {
     parts.push(

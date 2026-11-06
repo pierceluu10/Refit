@@ -3,11 +3,10 @@ import { cpSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import type { MigrationTask, ToolPack } from '../../shared/types.ts';
+import type { MigrationTask } from '../../shared/types.ts';
 import { scriptedSession, type ScriptedTurn } from '../fake-session.ts';
 import { runTask } from '../run.ts';
 import { createSandbox } from '../sandbox.ts';
-import { proofTools } from './index.ts';
 import { fixture } from './test-helpers.ts';
 
 // Illustrative task: the fixture repo and change are made up for this test.
@@ -29,11 +28,9 @@ const task: MigrationTask = {
   priority: 1,
 };
 
-const toolPack: ToolPack = { provider: 'proof', tools: proofTools, playbooks: {} };
-
-function repo(): string {
+function repo(from = 'k8s-old'): string {
   const dir = mkdtempSync(join(tmpdir(), 'refit-proof-harness-'));
-  cpSync(fixture('k8s-old'), dir, { recursive: true });
+  cpSync(fixture(from), dir, { recursive: true });
   writeFileSync(
     join(dir, 'package.json'),
     JSON.stringify({
@@ -45,11 +42,30 @@ function repo(): string {
   return dir;
 }
 
+const run = (turn: ScriptedTurn, from?: string) =>
+  runTask(task, repo(from), {
+    session: scriptedSession([turn]),
+    createSandbox: (dir: string) => createSandbox(dir, { mode: 'local' }),
+    budgetUsd: 1,
+    turnReserveUsd: 0,
+    outDir: mkdtempSync(join(tmpdir(), 'refit-proof-harness-out-')),
+  });
+
+const finish = (call: Parameters<ScriptedTurn>[0], validators: unknown[] = []) =>
+  call('finish', {
+    verdict: 'migrated',
+    summary: 'Illustrative summary',
+    why: 'Illustrative reason',
+    validators,
+    unproven: [],
+    behaviourChanges: [],
+  });
+
 describe('proof tools in the harness', () => {
   it('lets the fake agent prove its Kubernetes fix, and the harness grades the validator', async () => {
     const outputs: string[] = [];
     const migrate: ScriptedTurn = async (call) => {
-      outputs.push(await call('proof__proof_kubernetes', { targetVersion: '1.29' }));
+      outputs.push(await call('proof_check__proof_kubernetes', { targetVersion: '1.29' }));
       const file = 'deploy/app.yaml';
       const text = await call('read_file', { path: file });
       expect(text).toContain('extensions/v1beta1');
@@ -63,31 +79,37 @@ describe('proof tools in the harness', () => {
         old: 'apiVersion: batch/v1beta1',
         new: 'apiVersion: batch/v1',
       });
-      outputs.push(await call('proof__proof_kubernetes', { targetVersion: '1.29' }));
-      await call('finish', {
-        verdict: 'migrated',
-        summary: 'Moved the Deployment to apps/v1 and the CronJob to batch/v1',
-        why: 'Kubernetes 1.29 no longer serves extensions/v1beta1 or batch/v1beta1',
-        validators: [
-          { name: 'proof__proof_kubernetes', passed: true, detail: 'no removed APIs for 1.29' },
-        ],
-        unproven: [],
-        behaviourChanges: [],
-      });
+      outputs.push(await call('proof_check__proof_kubernetes', { targetVersion: '1.29' }));
+      await finish(call, [
+        { name: 'proof_kubernetes', passed: true, detail: 'no removed APIs for 1.29' },
+      ]);
     };
-    const record = await runTask(task, repo(), {
-      session: scriptedSession([migrate]),
-      createSandbox: (dir: string) => createSandbox(dir, { mode: 'local' }),
-      loadToolPack: async () => toolPack,
-      budgetUsd: 1,
-      turnReserveUsd: 0,
-      outDir: mkdtempSync(join(tmpdir(), 'refit-proof-harness-out-')),
-    });
+    const record = await run(migrate);
     expect(outputs[0].split('\n')[0]).toBe('kubernetes: failed');
     expect(outputs[1].split('\n')[0]).toBe('kubernetes: passed');
     expect(record.diff).toContain('+apiVersion: apps/v1');
     expect(record.outcome).toBe('verified');
-    expect(record.prBody).toContain('proof__proof_kubernetes');
-    expect(readFileSync(record.transcriptPath, 'utf8')).toContain('proof__proof_kubernetes');
+    expect(record.prBody).toContain('proof_check__proof_kubernetes');
+    expect(readFileSync(record.transcriptPath, 'utf8')).toContain('proof_check__proof_kubernetes');
+  });
+
+  it("compares a before/after proof with the untouched checkout, not the agent's copy", async () => {
+    const outputs: string[] = [];
+    const addScript: ScriptedTurn = async (call) => {
+      outputs.push(await call('proof_check__proof_payment_scripts', {}));
+      await call('edit_file', {
+        path: 'checkout/index.html',
+        old: '</body>',
+        new: '<script src="https://cdn.example.test/analytics.js"></script></body>',
+      });
+      outputs.push(await call('proof_check__proof_payment_scripts', {}));
+      await finish(call);
+    };
+    const record = await run(addScript, 'web');
+    expect(outputs[0]).toContain('compared with the untouched copy of the repo');
+    expect(outputs[0].split('\n')[0]).toBe('payment-scripts: passed');
+    expect(outputs[1].split('\n')[0]).toBe('payment-scripts: failed');
+    expect(outputs[1]).toContain('new script on a payment page');
+    expect(record.outcome).toBe('needs-review');
   });
 });
