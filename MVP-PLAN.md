@@ -1,6 +1,6 @@
-# Refit MVP: one night, ten prompts
+# Refit MVP: one night, fifteen prompts
 
-Drafted 2026-11-06. Refit is moving from "API migrations" to **"software that never falls behind"**: when anything outside a team's control changes, Refit finds the affected code, fixes it, proves the fix and opens a PR. This plan builds the MVP in one night: three laptops running ten prompts in parallel while the founders sleep.
+Drafted 2026-11-06. Refit is moving from "API migrations" to **"software that never falls behind"**: when anything outside a team's control changes, Refit finds the affected code, fixes it, proves the fix and opens a PR. This plan builds the MVP in one night: three laptops running fifteen prompts in parallel while the founders sleep.
 
 `REFIT-PLAN.md` and `AGENTS.md` still apply, above all the AI-first rule and the four hard limits. This plan adds to them; where they conflict, `AGENTS.md` wins.
 
@@ -35,6 +35,7 @@ Drafted 2026-11-06. Refit is moving from "API migrations" to **"software that ne
 4. The **What's behind** page lists every finding by deadline.
 5. Refit opens draft PRs with checks run before and after. At least three: a runtime end-of-life upgrade, an AI model retirement and one more (a CI action version, a library major or an API change).
 6. Merging one PR shows up on the dashboard, and memory records the verdict.
+7. The **Platforms and rules** view shows at least one platform finding (for example a Kubernetes API or serverless runtime being retired) and one rule obligation (for example accessibility or payment security) with the evidence Refit checked and an audit-trail entry.
 
 **Definition of done for the MVP:**
 
@@ -48,39 +49,55 @@ Drafted 2026-11-06. Refit is moving from "API migrations" to **"software that ne
 
 **In scope tonight**
 
-| Category            | Examples                                                   | Change kinds                  |
-| ------------------- | ---------------------------------------------------------- | ----------------------------- |
-| Language runtimes   | Node.js, Python                                            | `runtime-eol`                 |
-| Frameworks          | Next.js, React, Express, Flask, Django                     | `framework-major`             |
-| Libraries           | Any npm or PyPI package with a breaking major              | `dependency-major`            |
-| Security advisories | OSV and GitHub advisories whose fix needs code changes     | `security-fix`                |
-| AI models           | OpenAI, Anthropic and Google model retirements             | `model-retirement` (existing) |
-| Third-party APIs    | The existing API path (Stripe, OpenAI, Shopify and others) | existing kinds                |
-| Container images    | Dockerfile base images and OS versions                     | `container-image-eol`         |
-| CI                  | Deprecated GitHub Actions and runner versions              | `ci-deprecation`              |
+| Category              | Examples                                                                                            | Change kinds                       |
+| --------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Language runtimes     | Node.js, Python                                                                                     | `runtime-eol`                      |
+| Frameworks            | Next.js, React, Express, Flask, Django                                                              | `framework-major`                  |
+| Libraries             | Any npm or PyPI package with a breaking major                                                       | `dependency-major`                 |
+| Security advisories   | OSV and GitHub advisories whose fix needs code changes                                              | `security-fix`                     |
+| AI models             | OpenAI, Anthropic and Google model retirements                                                      | `model-retirement` (existing)      |
+| Third-party APIs      | The existing API path (Stripe, OpenAI, Shopify and others)                                          | existing kinds                     |
+| Container images      | Dockerfile base images and OS versions                                                              | `container-image-eol`              |
+| CI                    | Deprecated GitHub Actions and runner versions                                                       | `ci-deprecation`                   |
+| Kubernetes and cloud  | Kubernetes API removals and version end-of-life, managed cluster calendars, cloud service shutdowns | `k8s-version`, `cloud-deprecation` |
+| Serverless runtimes   | AWS Lambda, Google Cloud Functions and Azure Functions runtime deprecations                         | `serverless-runtime`               |
+| App stores and mobile | Apple and Google Play requirements, iOS and Android behaviour changes                               | `platform-policy`, `mobile-os`     |
+| Browsers              | Chrome, Safari and Firefox removals, extension Manifest V3                                          | `browser-change`                   |
+| Encryption and login  | TLS and certificate changes, OAuth and password-login retirements                                   | `tls-crypto`, `auth-standard`      |
+| Payment rules         | Strong Customer Authentication (Europe), PCI DSS requirements for payment pages                     | `payment-rule`                     |
+| Laws and regulations  | Accessibility (European Accessibility Act), privacy (GDPR, CCPA), AI laws (EU AI Act)               | `regulation`                       |
 
-**Out of scope tonight:** Kubernetes and cloud platform upgrades, app store and browser policies, government rules, vendor switching, self-hosted models, billing, SSO, private sandboxes.
+**Out of scope tonight:** vendor switching, self-hosted models, billing, SSO, private sandboxes.
+
+**Rules and regulations are different.** Refit never claims a codebase is "compliant" and never gives legal advice. For a rule, Refit finds the code it likely touches, makes the change the rule's text points to, checks what a tool can check (for example accessibility scans or a payment page's scripts), and opens a **needs-review** PR that lists what a person or lawyer must confirm. Every step is written to an audit trail.
+
+**Core first.** Prompts O1–O4, P1–P4 and F1–F2 are the core demo. The extended prompts (O5, O6, P5, P6, F3) add platforms and rules on top; if they fall short, the core demo still works.
 
 **Languages tonight:** JavaScript/TypeScript and Python. Others are found and reported but not migrated if the agent can't prove the fix; it still opens a needs-review PR with notes, never a silent stop.
 
 ## 3. How the work is split
 
-Ten prompts, split by the founders' Claude plans: **Otabek 40% (4 prompts), Pierce 40% (4 prompts), Furqan 20% (2 prompts)**. Every prompt owns its files; no two prompts edit the same file.
+Fifteen prompts, split by the founders' Claude plans: **Otabek 40% (6 prompts), Pierce 40% (6 prompts), Furqan 20% (3 prompts)**. Every prompt owns its files; no two prompts edit the same file.
 
-| Owner  | Prompt                                            | Owns                                                                                                                    | Proposed AI cap |
-| ------ | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- | --------------- |
-| Otabek | **O1** Orchestrator: any external change          | `orchestrator/`, `README.md`, `AGENTS.md`, `.env.example`, root config lines                                            | $3              |
-| Otabek | **O2** Harness agent: upgrades                    | `harness/agent.ts`, `prompt.ts`, `tools.ts`, `pr.ts`, `summary.ts`, `run.ts`, `types.ts`, `index.ts` and their tests    | $6              |
-| Otabek | **O3** Sandbox, checks, ledger and model layer    | `harness/sandbox.ts`, `checks.ts`, `secrets.ts`, `ledger.ts`, `validators.ts` and their tests; `shared/models.ts` (new) | $2              |
-| Otabek | **O4** Memory and evals                           | `memory/`, `evals/`                                                                                                     | $4              |
-| Pierce | **P1** App: install → scan → PRs                  | `app/` except `app/api/`                                                                                                | $4              |
-| Pierce | **P2** Inventory: every dependency                | `inventory/`                                                                                                            | $5              |
-| Pierce | **P3** Report API, PR lifecycle and notifications | `app/api/` (new), `app/lifecycle/` (new), `app/notify/` (new)                                                           | $1              |
-| Pierce | **P4** Website, onboarding and dashboard          | `src/`, `public/`, `index.html`                                                                                         | $0              |
-| Furqan | **F1** Watchers for every change source           | `providers/` except `providers/toolkit/` and `providers/*/tools.ts`, `providers/*/playbooks/`                           | $4              |
-| Furqan | **F2** Tools and playbooks for upgrades           | `providers/toolkit/`, `providers/*/tools.ts`, `providers/*/playbooks/`, `providers/upgrades/` (new)                     | $3              |
+| Owner  | Prompt                                            | Owns                                                                                                                                      | Proposed AI cap |
+| ------ | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| Otabek | **O1** Orchestrator: any external change          | `orchestrator/`, `README.md`, `AGENTS.md`, `.env.example`, root config lines                                                              | $3              |
+| Otabek | **O2** Harness agent: upgrades                    | `harness/agent.ts`, `prompt.ts`, `tools.ts`, `pr.ts`, `summary.ts`, `run.ts`, `types.ts`, `index.ts` and their tests                      | $6              |
+| Otabek | **O3** Sandbox, checks, ledger and model layer    | `harness/sandbox.ts`, `checks.ts`, `secrets.ts`, `ledger.ts`, `validators.ts` and their tests; `shared/models.ts` (new)                   | $2              |
+| Otabek | **O4** Memory and evals                           | `memory/`, `evals/`                                                                                                                       | $4              |
+| Otabek | **O5** Rules and regulations agent, audit trail   | `compliance/` (new workspace)                                                                                                             | $4              |
+| Otabek | **O6** Proof for platform and rule changes        | `harness/proof/` (new)                                                                                                                    | $2              |
+| Pierce | **P1** App: install → scan → PRs                  | `app/` except `app/api/`, `app/lifecycle/`, `app/notify/`, `app/audit/`                                                                   | $4              |
+| Pierce | **P2** Inventory: every dependency                | `inventory/` except `inventory/surfaces/`                                                                                                 | $5              |
+| Pierce | **P3** Report API, PR lifecycle and notifications | `app/api/` (new), `app/lifecycle/` (new), `app/notify/` (new)                                                                             | $1              |
+| Pierce | **P4** Website, onboarding and dashboard          | `src/`, `public/`, `index.html` except `src/compliance/`                                                                                  | $0              |
+| Pierce | **P5** Inventory: platform and regulated surfaces | `inventory/surfaces/` (new)                                                                                                               | $3              |
+| Pierce | **P6** Platforms and rules view, audit export     | `src/compliance/` (new), `app/audit/` (new)                                                                                               | $0              |
+| Furqan | **F1** Watchers for every change source           | `providers/` except `providers/toolkit/`, `providers/upgrades/`, `providers/platforms/`, `providers/*/tools.ts`, `providers/*/playbooks/` | $4              |
+| Furqan | **F2** Tools and playbooks for upgrades           | `providers/toolkit/`, `providers/*/tools.ts`, `providers/*/playbooks/`, `providers/upgrades/` (new)                                       | $3              |
+| Furqan | **F3** Platform and infrastructure watchers       | `providers/platforms/` (new)                                                                                                              | $3              |
 
-**Proposed total: $32** (Otabek $15, Pierce $10, Furqan $7). The founders approve these caps before launch.
+**Proposed total: $44** (Otabek $21, Pierce $13, Furqan $10). Core prompts are $32 of it. The founders approve these caps before launch.
 
 **Before launch:** Otabek writes the shared contract (section 6). Pierce sets up the test org, the sample repos and the GitHub App settings (section 5).
 
@@ -90,10 +107,13 @@ Ten prompts, split by the founders' Claude plans: **Otabek 40% (4 prompts), Pier
 GitHub App install / push / weekly schedule            (P1)
   → checkout in a fresh directory                      (P1)
   → inventory: ApiUsage[] + DependencyUsage[]          (P2)
-  → watchers: ProviderChange[] + ExternalChange[]      (F1)
+  → surfaces: platforms, payments, data, UI, AI       (P5)
+  → watchers: ProviderChange[] + ExternalChange[]      (F1, F3)
+  → rules: Obligation[] → ExternalChange[]             (O5)
   → match agent: ranked ExternalTask[]                 (O1)
   → scan report: what's behind, by deadline            (O1 → P3 → P4)
-  → harness: edit in the sandbox, prove, PR body       (O2, O3, tools from F2)
+  → harness: edit in the sandbox, prove, PR body       (O2, O3, tools from F2, proof from O6)
+  → audit trail: every step, with evidence             (O5 → P6)
   → PR opener + lifecycle (open, update, supersede)    (P1, P3)
   → memory: run record, recipe, human verdict          (O4)
   → dashboard: What's behind, Runs, PRs                (P4)
@@ -115,7 +135,8 @@ Model calls go through one model layer (O3), so every part draws on the same run
 2. Create three sample repos, labelled in their README as Refit demo repos:
    - **`demo-node-api`**: an Express service on Node 18 (`engines`, `.nvmrc`, Dockerfile `FROM node:18`), calling OpenAI with a retired model, with a few passing tests.
    - **`demo-python-app`**: a Flask app on Python 3.9 (`.python-version`, `pyproject.toml`), using the Stripe SDK at an old major, with pytest tests.
-   - **`demo-next-web`**: a Next.js app on an older major, with a GitHub Actions workflow on deprecated action versions (for example an old `actions/checkout`).
+   - **`demo-next-web`**: a Next.js app on an older major, with a GitHub Actions workflow on deprecated action versions (for example an old `actions/checkout`), a Stripe checkout page, a cookie banner and a signup form with a few accessibility problems.
+   - In `demo-node-api`, also add a Kubernetes manifest using a removed API version (for example `extensions/v1beta1` Ingress) and a `serverless.yml` on a retired Lambda runtime (for example `nodejs16.x`).
 3. In the Refit Agent App's settings (ID 5275879): turn on webhooks, add the permissions and events from `app/SETUP.md`, point the webhook at the smee or tunnel URL from `app/SETUP.md`.
 4. Put the app's credentials in each laptop's local `.env` (never committed).
 
@@ -138,10 +159,31 @@ export type MigrationKindMvp =
   | 'dependency-major' // a library's major version with breaking changes
   | 'security-fix' // an advisory whose fix needs code changes
   | 'container-image-eol' // a base image or OS version reaches end of life
-  | 'ci-deprecation'; // a CI action, image or runner version is retired
+  | 'ci-deprecation' // a CI action, image or runner version is retired
+  | 'k8s-version' // a Kubernetes API or version is removed or reaches end of life
+  | 'serverless-runtime' // a Lambda, Cloud Functions or Azure Functions runtime is retired
+  | 'cloud-deprecation' // a cloud service or feature is shut down
+  | 'platform-policy' // an app store or platform requirement, e.g. target SDK, privacy manifest
+  | 'mobile-os' // an iOS or Android behaviour change
+  | 'browser-change' // a browser removes a feature, or extension manifest rules change
+  | 'tls-crypto' // TLS versions, ciphers or certificate rules change
+  | 'auth-standard' // OAuth or login changes, e.g. password logins switched off
+  | 'payment-rule' // payment security rules, e.g. SCA, PCI DSS
+  | 'regulation'; // a law, e.g. accessibility, privacy or AI rules
 
 export type DependencyKind =
-  'api' | 'sdk' | 'library' | 'framework' | 'runtime' | 'ai-model' | 'container-image' | 'ci';
+  | 'api'
+  | 'sdk'
+  | 'library'
+  | 'framework'
+  | 'runtime'
+  | 'ai-model'
+  | 'container-image'
+  | 'ci'
+  | 'platform' // app stores, mobile OS, browsers
+  | 'infrastructure' // Kubernetes, serverless, cloud services
+  | 'security-standard' // TLS, certificates, login standards
+  | 'regulated-surface'; // code a rule applies to: payments, personal data, UI, AI features
 
 export type DependencyUsage = {
   repo: string;
@@ -196,18 +238,70 @@ export type RunExternalTask = (task: ExternalTask, repoDir: string) => Promise<R
 export type RetrieveExternalRecipes = (task: ExternalTask) => Promise<Recipe[]>; // O4
 ```
 
+**Extended scope types,** added with the platforms-and-rules prompts. Additive only.
+
+```ts
+// Extended scope (2026-11-06): platforms and rules. Additive only.
+
+export type Obligation = {
+  id: string;
+  rule: { name: string; jurisdiction?: string; url: string; quote: string }; // e.g. 'European Accessibility Act'
+  requirement: string; // what the rule asks for, in plain words
+  appliesTo: string; // which code it likely touches, e.g. 'checkout pages', 'forms', 'AI features making decisions about people'
+  inCode: string; // what the rule's text points to in code, written by the agent
+  effectiveDate?: string;
+  checkable: string[]; // what a tool can check, e.g. 'axe accessibility scan', 'scripts on the payment page'
+  needsHuman: string[]; // what a person or lawyer must confirm
+};
+
+export type AuditEntry = {
+  at: string;
+  repo: string;
+  changeId: string;
+  obligationId?: string;
+  action:
+    'detected' | 'matched' | 'not-affected' | 'pr-opened' | 'pr-updated' | 'merged' | 'closed';
+  pr?: string;
+  evidence: string[]; // check names and results, source links
+  actor: 'refit' | string; // a GitHub login when a person acted
+};
+
+export type ProofResult = { check: string; passed: boolean | 'unknown'; evidence: string[] };
+
+// Entry points.
+export type InventorySurfaces = (repoDir: string, repo: string) => Promise<DependencyUsage[]>; // P5
+export type WatchPlatforms = (dep: DependencyUsage, since?: string) => Promise<ExternalChange[]>; // F3
+export type WatchRegulations = (since?: string) => Promise<Obligation[]>; // O5
+export type ObligationsToChanges = (
+  repo: string,
+  surfaces: DependencyUsage[],
+  obligations: Obligation[],
+) => Promise<ExternalChange[]>; // O5
+export type RunProof = (
+  check: string,
+  input: unknown,
+  ctx: { repoDir: string },
+) => Promise<ProofResult>; // O6
+export type RecordAudit = (entry: AuditEntry) => Promise<void>; // O5
+```
+
 **Where each entry point lives**
 
-| Entry point                                                                | Module                        | Owner |
-| -------------------------------------------------------------------------- | ----------------------------- | ----- |
-| `inventoryDependencies`                                                    | `inventory/index.ts`          | P2    |
-| `watchDependency`                                                          | `providers/index.ts`          | F1    |
-| `scanRepo`, `runRepoJob`                                                   | `orchestrator/index.ts`       | O1    |
-| `runExternalTask`                                                          | `harness/index.ts`            | O2    |
-| `createModel`, `MODEL_PRICES`                                              | `shared/models.ts`            | O3    |
-| `retrieveExternalRecipes`, `learnFromRun`, `recordVerdict`, `listRunViews` | `memory/index.ts`             | O4    |
-| upgrade tools (`endOfLife`, `migrationGuide`, …)                           | `providers/upgrades/index.ts` | F2    |
-| `GET /api/report`, `GET /api/runs`                                         | `app/api/`                    | P3    |
+| Entry point                                                                | Module                         | Owner |
+| -------------------------------------------------------------------------- | ------------------------------ | ----- |
+| `inventoryDependencies`                                                    | `inventory/index.ts`           | P2    |
+| `watchDependency`                                                          | `providers/index.ts`           | F1    |
+| `scanRepo`, `runRepoJob`                                                   | `orchestrator/index.ts`        | O1    |
+| `runExternalTask`                                                          | `harness/index.ts`             | O2    |
+| `createModel`, `MODEL_PRICES`                                              | `shared/models.ts`             | O3    |
+| `retrieveExternalRecipes`, `learnFromRun`, `recordVerdict`, `listRunViews` | `memory/index.ts`              | O4    |
+| upgrade tools (`endOfLife`, `migrationGuide`, …)                           | `providers/upgrades/index.ts`  | F2    |
+| `GET /api/report`, `GET /api/runs`                                         | `app/api/`                     | P3    |
+| `inventorySurfaces`                                                        | `inventory/surfaces/index.ts`  | P5    |
+| `watchPlatforms`                                                           | `providers/platforms/index.ts` | F3    |
+| `watchRegulations`, `obligationsToChanges`, `recordAudit`, `listAudit`     | `compliance/index.ts`          | O5    |
+| `runProof` and proof tools                                                 | `harness/proof/index.ts`       | O6    |
+| `GET /api/audit`, `GET /api/audit.csv`                                     | `app/audit/`                   | P6    |
 
 ## 7. Rules for every prompt
 
@@ -237,6 +331,7 @@ Deliver:
 - runRepoJob runs ExternalTasks as well as API tasks, and returns RunRecords for both. Keep the existing API path working.
 - CLI: `refit scan --repo <path> [--out report.json]` prints a "what's behind" table and writes the ScanReport; `refit run` includes upgrade tasks; `--dry-run` still stops before PRs.
 - Every part draws on one run budget through O3's model layer (shared/models.ts); stub it until it lands.
+- Feed O5's rule changes into the same match and task flow: obligationsToChanges results become ExternalTasks like any other (import from compliance/index.ts, stub until it lands), and call O5's recordAudit at each step (detected, matched, not-affected, pr-opened).
 - Docs: update README.md and AGENTS.md for "software that never falls behind"; refresh .env.example (ANTHROPIC_API_KEY, REFIT_AI_BUDGET_USD, the GitHub App variables, REFIT_SLACK_WEBHOOK_URL), with no secrets.
 Tests: end to end with stubs on the three sample repos' fixtures; one real match run on fixtures, capped at $3.
 Use subagents for the match agent, the scan report and CLI, and the docs. Branch `mvp/orchestrator`, draft PR into `mvp`. Edit only orchestrator/, README.md, AGENTS.md, .env.example and the root config lines that register workspaces. AI spend cap: $3.
@@ -251,7 +346,7 @@ Goal: runExternalTask(task, repoDir) → RunRecord, for every kind in section 2:
 
 Deliver:
 - The system prompt (harness/prompt.ts, versioned): the change with its source quote and deadline; every place the dependency is declared; the call sites; retrieved recipes; the provider or upgrade playbook; the definition of done (verified: checks pass before and after on the new version, plus validators; needs-review: exactly what's unproven and any behaviour change); the smallest correct change.
-- Tools the agent may call (harness/tools.ts), all returning information and never blocking: read, search and edit files; bump a version in each place it's declared (package.json engines and dependencies, lockfiles via the package manager, .nvmrc, .python-version, pyproject.toml, requirements*.txt, Dockerfile FROM, workflow files); run the package manager's install and upgrade in the sandbox; run checks on a chosen runtime version (from O3); F2's upgrade tools (endOfLife, migrationGuide, registryDiff, modelReplacement, actionVersions, codemod); memory retrieval; web and docs fetch.
+- Tools the agent may call (harness/tools.ts), all returning information and never blocking: read, search and edit files; bump a version in each place it's declared (package.json engines and dependencies, lockfiles via the package manager, .nvmrc, .python-version, pyproject.toml, requirements*.txt, Dockerfile FROM, workflow files); run the package manager's install and upgrade in the sandbox; run checks on a chosen runtime version (from O3); F2's upgrade tools (endOfLife, migrationGuide, registryDiff, modelReplacement, actionVersions, codemod); O6's proof tools from harness/proof/index.ts (stub until it lands); memory retrieval; web and docs fetch.
 - The agent iterates on failures itself and escalates from Sonnet to Opus when stuck, as today. Outcome is verified or needs-review, never stopped.
 - PR bodies (harness/pr.ts) for upgrades: title "Upgrade <dependency> <from> → <to>"; what changed and why; the deadline and source link; checks before and after; what's unproven; behaviour changes; files touched.
 Tests: the fake-model session for every kind; then ONE real run on demo-node-api (Node 18 → a supported LTS), capped at $5. Report the diff and whether you'd merge it.
@@ -295,6 +390,41 @@ No real benchmark tonight. Real AI calls only for 2 recipe extractions and 2 rev
 Use subagents for recipes and retrieval, verdicts and views, the eval set, and scoring and the smoke test. Branch `mvp/memory-evals`, draft PR into `mvp`. Edit only memory/ and evals/. AI spend cap: $4.
 ```
 
+### O5: the rules and regulations agent, and the audit trail
+
+```text
+Build Refit's rules and regulations agent in the compliance/ workspace (already registered on mvp). Read MVP-PLAN.md (sections 1–7, especially "Rules and regulations are different"), REFIT-PLAN.md, AGENTS.md and shared/types.ts on origin/mvp, especially "AI-first".
+
+Deliver:
+- watchRegulations(since) → Obligation[]: an AI agent reads official texts and official guidance (not blogs) for: the European Accessibility Act and WCAG 2.2; GDPR and CCPA rules that touch code (consent before tracking, data access and deletion requests); Strong Customer Authentication under PSD2; PCI DSS 4.0 requirements for payment pages (for example inventory and integrity of scripts on the payment page); the EU AI Act's transparency duties (for example telling users they're talking to an AI). Each Obligation has the rule, a source URL and exact quote, the effective date, what it means in code, what a tool can check, and what a person or lawyer must confirm.
+- obligationsToChanges(repo, surfaces, obligations) → ExternalChange[]: an AI agent decides which obligations apply to the repo's surfaces (from P5) and why, with kind 'regulation' or 'payment-rule'. Ones that don't apply become "not affected" with the reason.
+- The audit trail: recordAudit(entry) and listAudit(repo) store every step (detected, matched, not-affected, pr-opened, pr-updated, merged, closed) with evidence, as local JSON behind an interface that can move to Postgres.
+- Guidance for the harness on rule tasks: a playbook per obligation family (accessibility, privacy, payments, AI transparency). Rule PRs are always needs-review unless every item is proven by a check; the PR body lists what was changed, what each check showed, what a person or lawyer must confirm, and says "Refit doesn't give legal advice."
+- Refit never writes "compliant" or "meets <law>" anywhere.
+Tests with fixtures of the official texts; one live read per rule family, capped at $4 total.
+Use subagents per rule family, for the matching agent, and for the audit trail. Branch `mvp/compliance`, draft PR into `mvp`. Edit only compliance/. AI spend cap: $4.
+```
+
+### O6: proof for platform and rule changes
+
+```text
+Build the checks that prove platform and rule changes, in harness/proof/. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md, AGENTS.md and shared/types.ts on origin/mvp, especially "AI-first".
+
+Goal: runProof(check, input, ctx) → ProofResult, and each check exported as an AgentTool from harness/proof/index.ts, so the harness agent can call them. They return evidence and never block. All run in the sandbox.
+Checks:
+- Kubernetes: manifests and Helm output use no removed API versions for the target Kubernetes version (use an open-source tool such as pluto or kubeconform as a helper), and still validate.
+- Serverless: the runtime in serverless.yml, SAM templates or Terraform is supported, and the function's tests pass on that runtime.
+- Mobile: Android targetSdk and minSdk meet Google Play's current requirement; an iOS app has a valid privacy manifest when it uses required-reason APIs.
+- Browsers: an extension's manifest is valid Manifest V3.
+- TLS and login: configs and client code don't force retired TLS versions; OAuth flows use PKCE where the provider requires it; no password logins to providers that switched them off.
+- Accessibility: an axe-core scan of the app's pages in a headless browser, before and after, counting only new violations.
+- Payment pages: list every script loaded on checkout pages, before and after.
+- Container images: the Dockerfile builds on the new base image.
+Each result records the command, what passed, what didn't, and a short log tail, for the audit trail.
+Tests with fixtures for every check; checks that need Docker or a browser skip cleanly without them. AI spend only to check two results with the harness, capped at $2.
+Use subagents per check group. Branch `mvp/proof`, draft PR into `mvp`. Edit only harness/proof/. AI spend cap: $2.
+```
+
 ---
 
 ## 9. Pierce's prompts (40%)
@@ -312,10 +442,10 @@ Deliver:
 - pull_request closed or merged → O4's recordVerdict.
 - Per-repo settings the customer controls (pause Refit, ignore a dependency) in an optional .refit.yml. These are the customer's choices, never a hard-coded rule about what Refit supports.
 - Replace the CLI's stub PR link with the real opener when app credentials are present; keep the stub when they're not.
-- Wire in P3's parts with local stubs until they land: mount the routes from app/api/index.ts in the server, call app/lifecycle/index.ts before opening each PR, and call app/notify/index.ts after each run.
+- Wire in P3's and P6's parts with local stubs until they land: mount the routes from app/api/index.ts and app/audit/index.ts in the server, call app/lifecycle/index.ts before opening each PR, and call app/notify/index.ts after each run.
 - app/SETUP.md: a morning runbook to install on the test org, trigger a scan, and watch PRs appear.
 Secrets only from env; never commit or print them. Tests with recorded webhook payloads. One real end-to-end run on the test org's demo-node-api, capped at $4.
-Use subagents for install and scan, triggers and the queue, and settings and the runbook. Branch `mvp/app`, draft PR into `mvp`. Edit only app/ except app/api/, app/lifecycle/ and app/notify/, which P3 owns. AI spend cap: $4.
+Use subagents for install and scan, triggers and the queue, and settings and the runbook. Branch `mvp/app`, draft PR into `mvp`. Edit only app/ except app/api/, app/lifecycle/ and app/notify/ (P3) and app/audit/ (P6). AI spend cap: $4.
 ```
 
 ### P2: the inventory finds every dependency
@@ -332,9 +462,9 @@ The agent reads the repo like a new engineer and finds, with every place each ve
 - base container images and OS versions;
 - GitHub Actions versions and runner images.
 Fast scanners (manifests, lockfiles, Dockerfiles, workflow files) point the agent at likely files; the agent's reading is the source of truth and can find what no scanner knows. Monorepos: one entry per package that declares its own version.
-Also fill ProviderHints so F1's watchers know where to look.
+Also fill ProviderHints so F1's watchers know where to look. inventoryDependencies also returns P5's inventorySurfaces results (import from inventory/surfaces/index.ts, stub until it lands).
 Tests: fixtures for the three sample repos plus a monorepo; one real run per sample repo, capped at $5 total. Report what it found that the scanners missed.
-Use subagents for runtimes and images and CI, libraries and frameworks, and models and APIs. Branch `mvp/inventory`, draft PR into `mvp`. Edit only inventory/. AI spend cap: $5.
+Use subagents for runtimes and images and CI, libraries and frameworks, and models and APIs. Branch `mvp/inventory`, draft PR into `mvp`. Edit only inventory/ except inventory/surfaces/, which P5 owns. AI spend cap: $5.
 ```
 
 ### P3: report API, PR lifecycle and notifications
@@ -366,7 +496,40 @@ Deliver:
 - Data from P3's /api endpoints; until they land, fixture data visibly labelled "Example data."
 - Docs page: what Refit watches, what a PR contains, the hard limits, and how to pause or ignore something with .refit.yml.
 Tests for every new page. No AI spend.
-Use subagents for the landing and pricing, onboarding and docs, and the dashboard. Branch `mvp/site`, draft PR into `mvp`. Edit only src/, public/ and index.html.
+Use subagents for the landing and pricing, onboarding and docs, and the dashboard. Branch `mvp/site`, draft PR into `mvp`. Edit only src/, public/ and index.html, except src/compliance/, which P6 owns. Link to P6's Platforms and rules page from the dashboard navigation.
+```
+
+### P5: inventory of platform and regulated surfaces
+
+```text
+Extend Refit's inventory to find the parts of a codebase that platforms and rules apply to, in inventory/surfaces/. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md, AGENTS.md and shared/types.ts on origin/mvp, especially "AI-first".
+
+Goal: inventorySurfaces(repoDir, repo) → DependencyUsage[] with kinds platform, infrastructure, security-standard and regulated-surface, each with every file and line it was found in and a note on why it matters. P2's inventoryDependencies merges these results.
+The agent reads the repo and finds:
+- Platforms: iOS and Android apps (Info.plist, privacy manifests, build.gradle targetSdk and minSdk), browser extensions (manifest.json), web apps' browser targets.
+- Infrastructure: Kubernetes manifests, Helm charts and Kustomize with their apiVersions; serverless.yml, SAM templates, Terraform and Pulumi with runtimes; cloud services used.
+- Security standards: TLS settings, certificate handling, OAuth flows, password or basic-auth logins to providers.
+- Regulated surfaces: payment and checkout flows; personal data (sign-up forms, profiles, analytics, cookies, data export and deletion); user interfaces and forms (for accessibility); AI features (chatbots, AI decisions about people).
+Scanners point the agent at likely files; the agent's reading is the source of truth.
+Tests: fixtures for the three sample repos (including demo-node-api's Kubernetes manifest and serverless.yml, and demo-next-web's checkout, cookie banner and signup form); one real run per sample repo, capped at $3 total.
+Use subagents for platforms and infrastructure, security standards, and regulated surfaces. Branch `mvp/surfaces`, draft PR into `mvp`. Edit only inventory/surfaces/. AI spend cap: $3.
+```
+
+### P6: the Platforms and rules view, and audit export
+
+```text
+Build the Platforms and rules view and the audit export. Read MVP-PLAN.md (sections 1–7, especially "Rules and regulations are different"), DESIGN.md and AGENTS.md on origin/mvp. Keep DESIGN.md's design system.
+
+Deliver:
+- app/audit/: GET /api/audit?repo= (O5's listAudit, with the same auth as P3's API) and GET /api/audit.csv for an export a compliance team can hand to an auditor. Exported from app/audit/index.ts; P1 mounts it.
+- src/compliance/: a Platforms and rules page:
+  - Platforms: Kubernetes, serverless, app store, browser, TLS and login findings per repo, with deadlines, sources and PR status.
+  - Rules: each obligation, whether it applies and why, what Refit changed, what each check showed, what a person or lawyer must confirm, and the PR.
+  - The audit trail per repo, with an "Export CSV" button.
+  - A visible note: "Refit doesn't give legal advice. Have counsel confirm the items marked for review."
+- Data from the API; until it lands, fixture data visibly labelled "Example data."
+Tests for the page and the export. No AI spend.
+Use subagents for the API and export, and the page. Branch `mvp/rules-view`, draft PR into `mvp`. Edit only src/compliance/ and app/audit/.
 ```
 
 ---
@@ -385,9 +548,10 @@ Sources (structured feeds are inputs the agent may use; the agent decides what m
 - Security: advisories from OSV and the GitHub Advisory Database, kept only when the fix needs more than a version bump or the bump crosses a major.
 - AI models: retirements and replacements from OpenAI's, Anthropic's and Google's deprecation pages.
 - CI: deprecated GitHub Actions and runner versions, from the actions' releases and GitHub's changelog.
+For platform, infrastructure and security-standard dependencies, watchDependency calls F3's watchPlatforms (import from providers/platforms/index.ts, stub until it lands).
 Every ExternalChange carries its kind, dependency, affected versions, recommended target, effective date when there is one, severity, and an exact source quote with its URL. Cache fetched pages for a day; record what couldn't be read instead of failing silently.
 Tests: saved fixtures per source, plus one live read per source, capped at $4 total.
-Use one subagent per source group. Branch `mvp/watchers`, draft PR into `mvp`. Edit only providers/, not providers/toolkit/, providers/upgrades/, providers/*/tools.ts or providers/*/playbooks/, which F2 owns. AI spend cap: $4.
+Use one subagent per source group. Branch `mvp/watchers`, draft PR into `mvp`. Edit only providers/, not providers/toolkit/, providers/upgrades/, providers/*/tools.ts or providers/*/playbooks/ (F2), or providers/platforms/ (F3). AI spend cap: $4.
 ```
 
 ### F2: tools and playbooks for upgrades
@@ -409,6 +573,24 @@ Tests: every tool with fixtures; live calls capped at $3 total.
 Use subagents for the tools and the playbooks. Branch `mvp/toolpacks`, draft PR into `mvp`. Edit only providers/toolkit/, providers/upgrades/, providers/*/tools.ts and providers/*/playbooks/. AI spend cap: $3.
 ```
 
+### F3: platform and infrastructure watchers
+
+```text
+Build Refit's watchers for platforms and infrastructure in providers/platforms/. Read MVP-PLAN.md (sections 1–7), REFIT-PLAN.md, AGENTS.md and shared/types.ts on origin/mvp, especially "AI-first".
+
+Goal: watchPlatforms(dep, since) → ExternalChange[], exported from providers/platforms/index.ts; F1's watchDependency calls it.
+Sources, official pages first (structured feeds are inputs; the agent decides what matters):
+- Kubernetes: the release calendar and the deprecated API migration guide; EKS, GKE and AKS version calendars.
+- Serverless: AWS Lambda, Google Cloud Functions and Azure Functions runtime deprecation schedules.
+- Cloud services: AWS, Google Cloud and Azure deprecation and shutdown announcements.
+- App stores and mobile: Apple's developer news and App Store requirements (SDK minimums, privacy manifests); Google Play's target API level requirements; iOS and Android behaviour changes in new releases.
+- Browsers: Chrome Platform Status and release notes, Safari and Firefox release notes, extension Manifest V3 timelines.
+- Encryption and login: TLS and certificate rule changes (for example certificate lifetime reductions), and providers switching off password or basic-auth logins.
+Every ExternalChange carries its kind, dependency, affected versions, recommended target, effective date when there is one, severity and an exact source quote with its URL. Cache pages for a day; record what couldn't be read.
+Tests: saved fixtures per source, plus one live read per source group, capped at $3 total.
+Use one subagent per source group. Branch `mvp/platforms`, draft PR into `mvp`. Edit only providers/platforms/. AI spend cap: $3.
+```
+
 ---
 
 ## 11. Morning: integration and demo
@@ -426,6 +608,14 @@ Use subagents for the tools and the playbooks. Branch `mvp/toolpacks`, draft PR 
 9. P3 report API, lifecycle and notifications
 10. P4 website and dashboard
 
+Then the extended prompts:
+
+11. F3 platform watchers
+12. P5 surfaces inventory
+13. O6 proof checks
+14. O5 rules agent and audit trail
+15. P6 Platforms and rules view
+
 For each PR: review it against the AI-first rule (reject any new rule that stops or skips a task), read its status note, then merge into `mvp`. Regenerate `package-lock.json` with `npm install` if it conflicts.
 
 ### Integration prompt (one session, after the merges)
@@ -442,32 +632,39 @@ Replace every remaining local stub with the real module from section 6's table. 
 - [ ] At least three draft PRs open, each with checks before and after and an honest "unproven" section.
 - [ ] Read every PR by hand. Record whether you'd merge it in `evals/reviews.json`.
 - [ ] Merge one; the dashboard and memory show the verdict.
+- [ ] Platforms and rules shows the Kubernetes or serverless finding in demo-node-api, and one obligation for demo-next-web (accessibility or payment page) with evidence, open items for a person, and audit entries.
+- [ ] Export the audit CSV.
 - [ ] Record a two-minute screen capture for the PearX follow-up.
 
 ## 12. Risks and fallbacks
 
-| Risk                                         | Fallback                                                                                                           |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| A prompt runs out of plan usage or budget    | Its status note says what's done; the integration prompt fills the gap with the stub, and the demo skips that part |
-| The real PR step fails on the test org       | Demo with `refit run --dry-run` and show the diff and checks; fix P1 first in the morning                          |
-| Docker isn't available on a laptop           | O3's temp-copy sandbox with install scripts disabled; never run repo code on the host with scripts enabled         |
-| Watchers return noisy or wrong changes       | The match agent marks them not affected with reasons; F1 tightens prompts, not rules                               |
-| The upgrade breaks tests the agent can't fix | The PR is needs-review with exactly what's unproven, never a silent stop                                           |
-| Merge conflicts in shared files              | Section 3 gives every file one owner; shared/types.ts is additive only                                             |
-| Spend runs past a cap                        | The ledgers refuse to spend past `REFIT_AI_BUDGET_USD`; check `evals` cost reports                                 |
+| Risk                                                    | Fallback                                                                                                                              |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| A prompt runs out of plan usage or budget               | Its status note says what's done; the integration prompt fills the gap with the stub, and the demo skips that part                    |
+| The real PR step fails on the test org                  | Demo with `refit run --dry-run` and show the diff and checks; fix P1 first in the morning                                             |
+| Docker isn't available on a laptop                      | O3's temp-copy sandbox with install scripts disabled; never run repo code on the host with scripts enabled                            |
+| Watchers return noisy or wrong changes                  | The match agent marks them not affected with reasons; F1 tightens prompts, not rules                                                  |
+| The upgrade breaks tests the agent can't fix            | The PR is needs-review with exactly what's unproven, never a silent stop                                                              |
+| Merge conflicts in shared files                         | Section 3 gives every file one owner; shared/types.ts is additive only                                                                |
+| Spend runs past a cap                                   | The ledgers refuse to spend past `REFIT_AI_BUDGET_USD`; check `evals` cost reports                                                    |
+| A rule PR reads like legal advice                       | O5's playbooks and PR bodies never say "compliant"; every rule PR is needs-review with items for a person or lawyer                   |
+| Fifteen sessions use up the Claude plans before morning | Start the core prompts first; start the extended ones once the core sessions are well under way. The core demo doesn't depend on them |
+| A rule or platform source can't be fetched              | The watcher records it in the report's errors; nothing is invented                                                                    |
 
 ## 13. After the MVP
 
 1. First real upgrade benchmark on upgrade-dev-20, with a founder-approved budget.
 2. Hand-check every verified PR before quoting any number.
 3. Pilots with the LOI customers in January: let them pick which forced change hurts most.
-4. Next triggers: Kubernetes and cloud runtimes, app store and browser policies.
+4. Harden the extended scope: more rule families, more proof checks, and a lawyer's review of the rule playbooks.
 5. Security questionnaire answers: data flow, Anthropic as subprocessor, retention, and running in the customer's cloud (Bedrock or Vertex) for Enterprise.
 6. Update the LOIs' goals and the PearX pitch to the new positioning.
 
 ## 14. Open decisions
 
-- [ ] Approve the per-prompt caps (about $32, plus $3 for integration).
+- [ ] Approve the per-prompt caps (about $44, plus $3 for integration).
+- [ ] Whether to start all fifteen at once or the ten core prompts first.
+- [ ] Who reviews the rule playbooks before any customer sees a rule PR.
 - [ ] Test org name and who owns it.
 - [ ] Whether `ApiUsage` folds into `DependencyUsage` after the MVP (a breaking change; decide together).
 - [ ] Which trigger the pitch leads with after APIs: runtimes, frameworks or AI models.

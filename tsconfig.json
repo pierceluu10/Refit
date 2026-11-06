@@ -25,6 +25,7 @@
     "providers",
     "evals",
     "shared",
-    "orchestrator"
+    "orchestrator",
+    "compliance"
   ]
 }
