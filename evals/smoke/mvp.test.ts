@@ -56,9 +56,10 @@ describe('MVP smoke test', () => {
     expect(item?.dependency.notes).toContain('flask is at 2.0.3');
   });
 
-  it('falls back to the stand-ins, and says so, until the orchestrator exports scanRepo', async () => {
-    const chosen = await realOrchestrator();
-    if (chosen.source === 'orchestrator/index.ts') return; // O1 has landed; nothing to fall back from.
-    expect(chosen.note).toContain('does not export scanRepo yet');
+  it('runs on the real orchestrator with its offline parts, spending nothing', async () => {
+    const outcome = await runMvpSmoke({ orchestrator: await realOrchestrator() });
+    expect(outcome.problems).toEqual([]);
+    expect(outcome.orchestrator).toBe('orchestrator/index.ts');
+    expect(outcome.score.costUsd ?? 0).toBe(0);
   });
 });

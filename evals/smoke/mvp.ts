@@ -4,9 +4,9 @@
 //   npm run smoke -w evals                      (runs this after the API smoke test)
 //   node evals/smoke/mvp.ts [--orchestrator real]
 //
-// It spends $0, needs no network and runs nothing from the fixtures. Until O1 lands scanRepo on
-// mvp, local stand-ins (mvp-fake.ts) play the orchestrator; `--orchestrator real` uses
-// orchestrator/index.ts's scanRepo and runRepoJob when it exports them, and says when it doesn't.
+// It spends $0, needs no network and runs nothing from the fixtures. By default local stand-ins
+// (mvp-fake.ts) play the orchestrator; `--orchestrator real` uses orchestrator/index.ts with its
+// offline parts.
 import { cpSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -66,22 +66,12 @@ export function fakeOrchestrator(): Orchestrator {
   return { scanRepo, runRepoJob: createFakeRunRepoJob(scanRepo), source: 'local stand-ins' };
 }
 
-/** orchestrator/index.ts's scanRepo and runRepoJob once O1 exports them; the stand-ins until then. */
-export async function realOrchestrator(): Promise<Orchestrator & { note?: string }> {
+/** orchestrator/index.ts's scanRepo and runRepoJob. */
+export async function realOrchestrator(): Promise<Orchestrator> {
   // This test spends $0: with no key the orchestrator's offline stand-ins play every AI part.
   delete process.env.ANTHROPIC_API_KEY;
-  const module = (await import('../../orchestrator/index.ts')) as Record<string, unknown>;
-  if (typeof module.scanRepo === 'function' && typeof module.runRepoJob === 'function') {
-    return {
-      scanRepo: module.scanRepo as ScanRepo,
-      runRepoJob: module.runRepoJob as RunRepoJob,
-      source: 'orchestrator/index.ts',
-    };
-  }
-  return {
-    ...fakeOrchestrator(),
-    note: 'orchestrator/index.ts does not export scanRepo yet (O1), so the local stand-ins ran.',
-  };
+  const { scanRepo, runRepoJob } = await import('../../orchestrator/index.ts');
+  return { scanRepo, runRepoJob, source: 'orchestrator/index.ts' };
 }
 
 // The fake memory model: one recipe per run, merged into an existing one for the same dependency.
@@ -125,7 +115,7 @@ function fakeReviewerReply(request: { prompt: string }): string {
 }
 
 export async function runMvpSmoke(
-  options: { orchestrator?: Orchestrator; dryRun?: boolean; note?: string } = {},
+  options: { orchestrator?: Orchestrator; dryRun?: boolean } = {},
 ): Promise<MvpSmokeOutcome> {
   const orchestrator = options.orchestrator ?? fakeOrchestrator();
   const fixturesDir = join(import.meta.dirname, 'fixtures');
@@ -270,7 +260,7 @@ export async function runMvpSmoke(
     .map((task) => `- ${task.record?.outcome} ${task.kind}: ${task.record?.pr}`)
     .join('\n');
   const report = `${formatReport(score, 'Refit MVP smoke test (fake model, $0 real spend)')}
-Orchestrator: ${orchestrator.source}${options.note ? ` (${options.note})` : ''}
+Orchestrator: ${orchestrator.source}
 What's behind:
 ${summary}
 PRs (fake URLs, nothing opened on GitHub):
@@ -295,10 +285,7 @@ if (process.argv[1] && resolve(process.argv[1]) === resolve(import.meta.filename
   const which = args[args.indexOf('--orchestrator') + 1];
   const chosen =
     args.includes('--orchestrator') && which === 'real' ? await realOrchestrator() : undefined;
-  const outcome = await runMvpSmoke({
-    orchestrator: chosen,
-    note: chosen && 'note' in chosen ? chosen.note : undefined,
-  });
+  const outcome = await runMvpSmoke({ orchestrator: chosen });
   console.log(outcome.report);
   process.exitCode = outcome.problems.length === 0 ? 0 : 1;
 }

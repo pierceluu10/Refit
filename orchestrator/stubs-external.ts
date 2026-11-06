@@ -232,9 +232,8 @@ const API_KINDS: MigrationKind[] = [
   'other',
 ];
 
-// An external task in the API task's shape, for parts that only take MigrationTask: today's harness
-// runTask (until O2's runExternalTask lands) and memory. The whole external change and every place the
-// dependency is declared go into the notes, so the harness has everything the match agent saw.
+// An external task in the API task's shape, for the PR opener, which only takes MigrationTask. The
+// whole external change and every place the dependency is declared go into the notes.
 export function asMigrationTask(task: ExternalTask): MigrationTask {
   const { change, dependencies, ...rest } = task;
   const kind = (API_KINDS as string[]).includes(change.kind)
