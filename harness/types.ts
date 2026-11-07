@@ -147,6 +147,8 @@ export type HarnessRunRecord = RunRecord & {
   prTitle?: string;
   // The runtime the final checks ran on, when the change moves one; undefined means the sandbox default.
   checksRuntime?: string;
+  // The runtime the baseline checks ran on, when the change moves one; undefined means the sandbox default.
+  baselineRuntime?: string;
 };
 
 export type { Recipe };

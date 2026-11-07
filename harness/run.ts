@@ -28,6 +28,7 @@ import { buildProofTools } from './proof/index.ts';
 import {
   PROMPT_VERSION,
   isExternalTask,
+  baselineRuntime,
   targetRuntime,
   buildKickoffMessage,
   buildRetryMessage,
@@ -189,11 +190,16 @@ async function runHarness(
     const pmVersion = await packageManagerVersion(sandbox.dir, pm);
     const install = pm === 'none' ? undefined : await sandbox.exec(installCommand(pm, pmVersion));
     const checks = await detectChecks(sandbox.dir, pm, pmVersion);
-    const before = await runChecks(sandbox, checks);
-    log({ type: 'harness', phase: 'baseline', pm, pmVersion, install, checks, before });
-
     // When the change moves a runtime, the checks after the change run on the new one: before on the
-    // old version, after on the new. If the sandbox cannot provide it, the PR says so.
+    // old version, after on the new. If the sandbox cannot provide one, the PR says so.
+    const old = baselineRuntime(task);
+    const oldProbe = old && (await runtimes.probe(sandbox, old));
+    const baselineOn = oldProbe && oldProbe.ok ? old : undefined;
+    const baselineChecks = (box: Sandbox, list: CheckCommand[]) =>
+      baselineOn ? runtimes.runChecks(box, baselineOn, list) : runChecks(box, list);
+    const before = await baselineChecks(sandbox, checks);
+    log({ type: 'harness', phase: 'baseline', pm, pmVersion, install, checks, before, oldProbe });
+
     const target = targetRuntime(task);
     let checksRuntime: Runtime | undefined;
     const kickoffNotes: string[] = [];
@@ -204,7 +210,7 @@ async function runHarness(
       if (probe.ok) {
         checksRuntime = target;
         kickoffNotes.push(
-          `The baseline checks ran on the sandbox's default runtime, on the original code. After your change the harness runs them on ${runtimeLabel(target)} (${probe.detail}).`,
+          `The baseline checks ran on ${baselineOn ? runtimeLabel(baselineOn) : "the sandbox's default runtime"}, on the original code. After your change the harness runs them on ${runtimeLabel(target)} (${probe.detail}).`,
         );
       } else {
         runtimeProblem = `The checks could not run on ${runtimeLabel(target)} in this sandbox (${probe.detail}); they ran on its default runtime.`;
@@ -224,7 +230,7 @@ async function runHarness(
     };
     const addCheck = async (check: CheckCommand): Promise<CheckRun> => {
       baselineSandbox ??= installedSandbox(repoDir);
-      const [run] = await runChecks(await baselineSandbox, [check]);
+      const [run] = await baselineChecks(await baselineSandbox, [check]);
       checks.push(check);
       agentChecks.push(check);
       before.push(run);
@@ -389,6 +395,7 @@ async function runHarness(
       sandboxNote,
       notes,
       checksRuntime: checksRuntime && runtimeLabel(checksRuntime),
+      baselineRuntime: baselineOn && runtimeLabel(baselineOn),
     });
     const summary = summarizeRun({
       task,
@@ -422,6 +429,7 @@ async function runHarness(
       summary,
       prTitle: prTitle(task),
       checksRuntime: checksRuntime && runtimeLabel(checksRuntime),
+      baselineRuntime: baselineOn && runtimeLabel(baselineOn),
     };
     log({ type: 'harness', phase: 'done', outcome, ledger: ledger.entries });
     await writeFile(join(outDir, 'diff.patch'), diff);

@@ -707,6 +707,48 @@ describe('runExternalTask with a fake model, for every upgrade kind', () => {
     expect(record.prBody).toContain('The checks could not run on node 22 in this sandbox');
   });
 
+  it('runs the baseline on the version the change leaves and the final checks on the new one', async () => {
+    const c = kindCases['runtime-eol'];
+    const ran: string[] = [];
+    const fake = fakeRuntimes();
+    const runtimes: RuntimeRunner = {
+      ...fake,
+      runChecks: (sandbox, runtime, checks) => {
+        ran.push(runtime.version);
+        return fake.runChecks(sandbox, runtime, checks);
+      },
+    };
+    const record = await runExternalTask(
+      c.task,
+      upgradeRepo(),
+      upgradeDeps([c.turn], { runtimes }),
+    );
+    expect(ran[0]).toBe('18');
+    expect(ran.at(-1)).toBe('22');
+    expect(record.baselineRuntime).toBe('node 18');
+    expect(record.prBody).toContain('before on node 18 with the original code, after on node 22');
+  });
+
+  it('says the baseline stayed on the sandbox default when the old runtime is not available', async () => {
+    const c = kindCases['runtime-eol'];
+    const fake = fakeRuntimes();
+    const runtimes: RuntimeRunner = {
+      ...fake,
+      probe: (sandbox, runtime) =>
+        runtime.version === '18'
+          ? Promise.resolve({ ok: false, detail: 'node 18 not available (fake)' })
+          : fake.probe(sandbox, runtime),
+    };
+    const record = await runExternalTask(
+      c.task,
+      upgradeRepo(),
+      upgradeDeps([c.turn], { runtimes }),
+    );
+    expect(record.outcome).toBe('verified');
+    expect(record.baselineRuntime).toBeUndefined();
+    expect(record.prBody).toContain('before on the sandbox default with the original code');
+  });
+
   it('ends a change the code does not depend on as not-affected', async () => {
     const notAffected: ScriptedTurn = async (call) => {
       await call('finish', {

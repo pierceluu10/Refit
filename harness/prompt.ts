@@ -29,19 +29,28 @@ const UPGRADE_KINDS = new Set([
 export const isUpgrade = (task: HarnessTask) =>
   isExternalTask(task) && UPGRADE_KINDS.has(task.change.kind);
 
-// The language runtime the checks should run on after the change, when the change moves one.
-// A hint for the harness and the agent; the agent can run checks on any runtime it names.
-export function targetRuntime(task: HarnessTask): Runtime | undefined {
-  if (!isExternalTask(task) || !task.change.toVersion) return undefined;
-  const { dependency, dependencyKind, toVersion } = task.change;
+function runtimeAt(task: ExternalTask, versionText: string | undefined): Runtime | undefined {
+  const { dependency, dependencyKind } = task.change;
   if (!['runtime', 'container-image', 'infrastructure'].includes(dependencyKind)) return undefined;
   const name = /^(?:node|nodejs)\b/i.test(dependency)
     ? 'node'
     : /^python\b/i.test(dependency)
       ? 'python'
       : undefined;
-  const version = /\d+(?:\.\d+)*/.exec(toVersion)?.[0];
+  const version = versionText && /\d+(?:\.\d+)*/.exec(versionText)?.[0];
   return name && version ? { name, version } : undefined;
+}
+
+// The language runtime the checks should run on after the change, when the change moves one.
+// A hint for the harness and the agent; the agent can run checks on any runtime it names.
+export function targetRuntime(task: HarnessTask): Runtime | undefined {
+  return isExternalTask(task) ? runtimeAt(task, task.change.toVersion) : undefined;
+}
+
+// The runtime the change moves away from, for the baseline checks.
+// shortcut: a change listing several old versions gets its first; a per-repo baseline would read the inventory.
+export function baselineRuntime(task: HarnessTask): Runtime | undefined {
+  return isExternalTask(task) ? runtimeAt(task, task.change.fromVersions?.[0]) : undefined;
 }
 
 // shortcut: memory's recipes carry more than shared/types.ts Recipe (its MemoryRecipe); read those
