@@ -156,3 +156,16 @@ describe('claudeAgentSession charging', () => {
     expect(ledger.spentUsd).toBeCloseTo(CALL_USD);
   });
 });
+
+describe('claudeAgentSession tools', () => {
+  it("gives the agent only Refit's tools, never the host's claude.ai connectors", async () => {
+    const { run } = session([result(0)]);
+    await run;
+    const options = vi.mocked(query).mock.calls.at(-1)![0].options!;
+    expect(Object.keys(options.mcpServers!)).toEqual(['refit']);
+    expect(options.strictMcpConfig).toBe(true);
+    expect(options.env?.ENABLE_CLAUDEAI_MCP_SERVERS).toBe('false');
+    // The env replaces the subprocess environment, so it must still carry what the CLI needs.
+    expect(options.env?.PATH).toBe(process.env.PATH);
+  });
+});
