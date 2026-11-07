@@ -6,7 +6,7 @@ import type { Obligation, WatchRegulations } from '../shared/types.ts';
 import { RULE_FAMILIES, type RuleFamily } from './families.ts';
 import { containsQuote, httpFetcher, normalize, type Fetcher, type Page } from './fetch.ts';
 import { errorText, runLoop, type LoopTool, type Submit } from './loop.ts';
-import { createComplianceModel, type ModelClient } from './model.ts';
+import { Budget, createComplianceModel, metered, type ModelClient } from './model.ts';
 import { findClaims, scrubClaims } from './wording.ts';
 
 export const WATCH_PROMPT_VERSION = 'compliance-watch/1';
@@ -373,7 +373,7 @@ export async function readRegulations(
   const errors: string[] = [];
   if (!model) {
     try {
-      model = createComplianceModel();
+      model = createComplianceModel(process.env, undefined, 'rules');
     } catch (error) {
       return {
         obligations: [],
@@ -383,15 +383,21 @@ export async function readRegulations(
       };
     }
   }
-  const budget = (model as { budget?: { spentUsd: number } }).budget;
+  const budget = (model as { budget?: Budget }).budget;
   const before = budget?.spentUsd ?? 0;
   const fetcher = options.fetcher ?? httpFetcher();
   const today = (options.now?.() ?? new Date()).toISOString().slice(0, 10);
   const families: FamilyRead[] = [];
-  // One family at a time, so the run budget is spent in order and a cap hit is reported per family.
-  for (const family of options.families ?? RULE_FAMILIES) {
+  const toRead = options.families ?? RULE_FAMILIES;
+  // One family at a time, each with an even share of what is left, so one long read can't starve
+  // the families after it, and what a family leaves unspent goes to the rest.
+  for (const [index, family] of toRead.entries()) {
+    const share =
+      budget && budget.leftUsd > 0
+        ? metered(model, new Budget(budget.leftUsd / (toRead.length - index)))
+        : model;
     try {
-      families.push(await readFamily(family, { model, fetcher, since, today }));
+      families.push(await readFamily(family, { model: share, fetcher, since, today }));
     } catch (error) {
       families.push({ family: family.id, obligations: [], unread: [], errors: [errorText(error)] });
     }

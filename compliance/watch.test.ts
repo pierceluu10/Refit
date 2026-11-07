@@ -4,7 +4,15 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { RULE_FAMILIES, type RuleFamilyId } from './families.ts';
 import { fixtureFetcher, httpFetcher, officialFixtures } from './fetch.ts';
-import { fakeModel, scriptedModel, type FakeTurn } from './model.ts';
+import {
+  Budget,
+  fakeModel,
+  metered,
+  scriptedModel,
+  type FakeTurn,
+  type ModelClient,
+  type ModelRequest,
+} from './model.ts';
 import { readRegulations } from './watch.ts';
 import { findClaims } from './wording.ts';
 
@@ -273,6 +281,77 @@ describe('watchRegulations on the saved official texts', () => {
     // The bad date is fed back twice, then the malformed obligation is reported, not kept silently.
     expect(JSON.stringify(model.requests[1].messages)).toContain('is not YYYY-MM-DD');
     expect(read.errors.join('\n')).toMatch(/dropped malformed|no obligations were written/);
+  });
+
+  // A reader that pages through its family's first source until it is told this is its last turn.
+  const toldToFinish = (request: ModelRequest) =>
+    JSON.stringify(request.messages.at(-1)).includes('This is your last turn');
+  const readsUntilTold = (request: ModelRequest): FakeTurn => {
+    const id = (Object.keys(CASES) as RuleFamilyId[]).find((f) =>
+      JSON.stringify(request.messages[0]).includes(`Rule family: ${family(f).name}`),
+    )!;
+    if (toldToFinish(request)) {
+      return {
+        tools: [
+          {
+            name: 'submit_obligations',
+            input: { obligations: CASES[id].map((c) => obligation(c)) },
+          },
+        ],
+      };
+    }
+    const offset = request.messages.length * 10_000;
+    return { tools: [{ name: 'read_page', input: { url: CASES[id][0].url, offset } }] };
+  };
+
+  it('tells the model to submit on its last allowed turn, and keeps what it submits', async () => {
+    const model = fakeModel(readsUntilTold);
+    const read = await readRegulations(undefined, {
+      model,
+      fetcher,
+      families: [family('accessibility')],
+      now,
+    });
+    console.log('turns', model.requests.length, 'errors', read.errors);
+    expect(model.requests).toHaveLength(24);
+    expect(JSON.stringify(model.requests.at(-1)!.messages)).toContain('turn limit is reached');
+    expect(read.obligations.map((o) => o.id)).toEqual(
+      CASES.accessibility.map((c) => `accessibility:${c.slug}`),
+    );
+  });
+
+  it('gives each family a share of the budget, so a long read cannot starve the next', async () => {
+    const fake = fakeModel(readsUntilTold, 'claude-haiku-5-5');
+    // Each call costs $0.005, so the families run out of budget long before the turn limit.
+    const pricey: ModelClient = {
+      model: fake.model,
+      complete: async (request) => ({
+        ...(await fake.complete(request)),
+        usage: { inputTokens: 50_000, outputTokens: 0 },
+      }),
+    };
+    const budget = new Budget(0.06);
+    const read = await readRegulations(undefined, {
+      model: metered(pricey, budget),
+      fetcher,
+      families: [family('accessibility'), family('ai-transparency')],
+      now,
+    });
+    const warned = fake.requests.filter(toldToFinish);
+    console.log('calls', fake.requests.length, 'spent', budget.spentUsd, 'errors', read.errors);
+    // One warning per family, each because of the budget.
+    expect(warned).toHaveLength(2);
+    for (const request of warned) {
+      expect(JSON.stringify(request.messages.at(-1))).toContain(
+        'budget for this read is nearly used',
+      );
+    }
+    expect(read.obligations.map((o) => o.id)).toEqual([
+      ...CASES.accessibility.map((c) => `accessibility:${c.slug}`),
+      ...CASES['ai-transparency'].map((c) => `ai-transparency:${c.slug}`),
+    ]);
+    expect(read.errors.join('\n')).not.toContain('no obligations were written');
+    expect(budget.spentUsd).toBeLessThanOrEqual(0.06);
   });
 
   // Skipped where a key is set, so the test suite never spends.

@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import {
   Budget as ComplianceBudget,
+  complianceModelId,
   createComplianceModel,
   matchObligations,
   obligationsToChanges,
@@ -503,7 +504,7 @@ export function createDeps({
         const day = new Date().toISOString().slice(0, 10);
         const { obligations, errors } = await cachedChanges(
           watchCache,
-          `regulations-${since ?? 'latest'}-${watchModelId()}-${day}`,
+          `regulations-${since ?? 'latest'}-${complianceModelId(process.env, 'rules')}-${day}`,
           () =>
             heldRead(
               budget,
@@ -511,7 +512,7 @@ export function createDeps({
               (capUsd) => new ComplianceBudget(capUsd),
               async (ledger) => {
                 const read = await readRegulations(since, {
-                  model: createComplianceModel(process.env, ledger),
+                  model: createComplianceModel(process.env, ledger, 'rules'),
                 });
                 // Not cached: nothing was read, so the next run should try again.
                 if (read.obligations.length === 0 && read.errors.length > 0)

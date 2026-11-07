@@ -1,6 +1,6 @@
 // The model seam for compliance/. Every agent here talks to a ModelClient, so tests run on a fake
 // and real runs on Claude, and every real call is charged to a run-level dollar cap (a hard limit).
-import { createModel, MODEL_PRICES } from '../shared/models.ts';
+import { createModel, MODEL_PRICES, type ModelStep } from '../shared/models.ts';
 
 export type TextBlock = { type: 'text'; text: string };
 export type ToolUseBlock = { type: 'tool_use'; id: string; name: string; input: unknown };
@@ -145,18 +145,26 @@ export function anthropicClient(options: {
   };
 }
 
+// Reading the rules is its own step ('rules'); matching them to code runs on the watch model.
+export function complianceModelId(
+  env: NodeJS.ProcessEnv = process.env,
+  step: ModelStep = 'watch',
+): string {
+  return env.REFIT_COMPLIANCE_MODEL ?? createModel(step, { env }).id;
+}
+
 // The real model for a compliance run, metered against the budget given (the run's share of the cap)
 // or REFIT_AI_BUDGET_USD. Throws, with a plain reason, when the key or the cap is missing: a run
 // without a cap refuses to spend.
 export function createComplianceModel(
   env: NodeJS.ProcessEnv = process.env,
   given?: Budget,
+  step: ModelStep = 'watch',
 ): ModelClient & { budget: Budget } {
   const apiKey = env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not set, so no model is available.');
   const budget = given ?? Budget.fromEnv(env);
-  const model = env.REFIT_COMPLIANCE_MODEL ?? createModel('watch', { env }).id;
-  return metered(anthropicClient({ apiKey, model }), budget);
+  return metered(anthropicClient({ apiKey, model: complianceModelId(env, step) }), budget);
 }
 
 // A fake model for tests: each turn calls the handler with the request and the turn number.
