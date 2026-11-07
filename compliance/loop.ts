@@ -1,7 +1,15 @@
 // A small tool-use loop. The model reads with tools and ends by calling the submit tool. Submit
 // validators return feedback the model can act on; they never end the run themselves.
 
-import type { ContentBlock, Message, ModelClient, ToolSpec, ToolUseBlock } from './model.ts';
+import {
+  worstCaseUsd,
+  type Budget,
+  type ContentBlock,
+  type Message,
+  type ModelClient,
+  type ToolSpec,
+  type ToolUseBlock,
+} from './model.ts';
 
 export type LoopTool = ToolSpec & { run: (input: Record<string, unknown>) => Promise<string> };
 
@@ -38,18 +46,32 @@ export async function runLoop<T>(options: {
     ({ name, description, input_schema }) => ({ name, description, input_schema }),
   );
   const byName = new Map(options.tools.map((tool) => [tool.name, tool]));
+  const budget = (options.model as { budget?: Budget }).budget;
   let lastSubmitted: Record<string, unknown> | undefined;
   let nudged = false;
+  let warned = false;
 
   for (let turn = 1; turn <= maxTurns; turn++) {
+    const request = {
+      system: options.system,
+      messages,
+      tools: specs,
+      maxTokens: options.maxTokens ?? 8_000,
+    };
+    // On the last turn the turn limit or the budget allows, the model is told to submit what it has,
+    // so a long read ends in a result instead of a refused call with nothing kept.
+    const lastByBudget =
+      budget !== undefined && 2 * worstCaseUsd(options.model.model, request) > budget.leftUsd;
+    if (!warned && (turn === maxTurns || lastByBudget)) {
+      warned = true;
+      messages.at(-1)!.content.push({
+        type: 'text',
+        text: `This is your last turn: the ${lastByBudget ? 'budget for this read is nearly used' : 'turn limit is reached'}. Call ${options.submit.name} now with what you have so far, and say what you did not get to.`,
+      });
+    }
     let response;
     try {
-      response = await options.model.complete({
-        system: options.system,
-        messages,
-        tools: specs,
-        maxTokens: options.maxTokens ?? 8_000,
-      });
+      response = await options.model.complete(request);
     } catch (error) {
       return { lastSubmitted, error: errorText(error), turns: turn, transcript: messages };
     }

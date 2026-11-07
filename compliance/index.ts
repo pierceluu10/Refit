@@ -36,6 +36,7 @@ export {
 export {
   Budget,
   BudgetExceededError,
+  complianceModelId,
   createComplianceModel,
   fakeModel,
   scriptedModel,

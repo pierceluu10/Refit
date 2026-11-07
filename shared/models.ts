@@ -3,11 +3,12 @@
 // charges what it spends to one run budget, so the cap holds across the whole run. Claude is the
 // default everywhere; a step's model can be swapped with REFIT_MODEL_<STEP> (a priced model only).
 
-export type ModelStep = 'inventory' | 'watch' | 'match' | 'harness' | 'reviewer';
+export type ModelStep = 'inventory' | 'watch' | 'rules' | 'match' | 'harness' | 'reviewer';
 
 export const MODEL_STEPS: readonly ModelStep[] = [
   'inventory',
   'watch',
+  'rules',
   'match',
   'harness',
   'reviewer',
@@ -56,6 +57,9 @@ export type StepModel = { model: string; escalation?: string };
 export const MODEL_TABLE: Readonly<Record<ModelStep, StepModel>> = {
   inventory: { model: 'claude-sonnet-5-5' },
   watch: { model: 'claude-sonnet-5-5' },
+  // Reading the rules means paging through texts of up to 600,000 characters; on Sonnet one family
+  // used most of the read's budget without finishing. Quotes are still checked word for word.
+  rules: { model: 'claude-haiku-5-5' },
   match: { model: 'claude-opus-5-5' },
   harness: { model: 'claude-sonnet-5-5', escalation: 'claude-opus-5-5' },
   reviewer: { model: 'claude-opus-5-5' },
