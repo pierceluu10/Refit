@@ -6,7 +6,7 @@ import { REPO_PATTERN } from './types.ts';
 import type { HumanVerdict } from './types.ts';
 
 const EXTENSION = '.json';
-const PR_REPO = /^https:\/\/github\.com\/([^/]+\/[^/]+)\/pull\/\d+/;
+export const PR_REPO = /^https:\/\/github\.com\/([^/]+\/[^/]+)\/pull\/\d+/;
 
 type StoredReport = ScanReport & { installationId: number };
 
@@ -16,6 +16,7 @@ export type ReportStore = {
   list: () => Promise<ScanReport[]>;
   remove: (repo: string) => Promise<void>;
   removeInstallation: (installationId: number) => Promise<void>;
+  reposOf: (installationId: number) => Promise<string[]>;
   markPullRequest: (
     repo: string,
     task: { id: string; change: { id: string } },
@@ -110,6 +111,10 @@ export function createReportStore(dir: string): ReportStore {
             .map((report) => rm(fileFor(report.repo), { force: true })),
         );
       }),
+    reposOf: async (installationId) =>
+      (await readAll())
+        .filter((report) => report.installationId === installationId)
+        .map((report) => report.repo),
     markPullRequest: (repo, task, url) =>
       updateItems(repo, (item) => {
         // Changes a task also resolves have their own rows, which carry that task's id.

@@ -1,9 +1,12 @@
 import { createHmac } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { request as httpRequest } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createDeliveryLog } from './deliveries.ts';
 import { createWebhookServer } from './server.ts';
 import type { WebhookServerDeps } from './server.ts';
 import type { RunView } from '../shared/types.ts';
@@ -24,12 +27,27 @@ const sign = (body: Buffer | string, secret = SECRET) =>
   `sha256=${createHmac('sha256', secret).update(body).digest('hex')}`;
 
 let server: Server | undefined;
+let stateDir: string;
+// Removed at the end, since a handler still saving after its 202 outlives its test.
+const stateRoot = mkdtempSync(join(tmpdir(), 'refit-server-test-'));
+
+beforeEach(() => {
+  stateDir = mkdtempSync(join(stateRoot, 'test-'));
+});
+
+afterAll(() => rmSync(stateRoot, { recursive: true, force: true }));
+
+const closeServer = () =>
+  new Promise<void>((resolve, reject) =>
+    server ? server.close((error) => (error ? reject(error) : resolve())) : resolve(),
+  );
 
 async function start(overrides: Partial<WebhookServerDeps> = {}) {
   const jobs: AppJob[] = [];
   const verdicts: [string, HumanVerdict][] = [];
   server = createWebhookServer({
     webhookSecret: SECRET,
+    deliveries: await createDeliveryLog(join(stateDir, 'deliveries.json')),
     queue: { enqueue: async (job) => void jobs.push(job) },
     recordVerdict: async (pr, verdict) => void verdicts.push([pr, verdict]),
     tokens: { token: async () => 'ghs_test_installation_token' },
@@ -57,10 +75,89 @@ function post(base: string, event: string, body: Buffer<ArrayBuffer> | string, s
 }
 
 afterEach(async () => {
-  await new Promise<void>((resolve, reject) =>
-    server ? server.close((error) => (error ? reject(error) : resolve())) : resolve(),
-  );
+  await closeServer();
   server = undefined;
+});
+
+describe('duplicate deliveries', () => {
+  const body = raw('push.default-branch');
+  const send = (base: string) => post(base, 'push', body, sign(body));
+
+  it('does the work of a repeated delivery once', async () => {
+    const { base, jobs } = await start();
+    expect((await send(base)).status).toBe(202);
+    await vi.waitFor(() => expect(jobs).toHaveLength(1));
+    expect((await send(base)).status).toBe(202);
+    // Let the second delivery's handler run, if it was going to.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(jobs).toHaveLength(1);
+  });
+
+  it('does the work once when both copies arrive together', async () => {
+    let enqueued = 0;
+    const { base } = await start({
+      queue: { enqueue: async () => void enqueued++ },
+    });
+    await Promise.all([send(base), send(base), send(base)]);
+    await vi.waitFor(() => expect(enqueued).toBeGreaterThan(0));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(enqueued).toBe(1);
+  });
+
+  it('remembers a delivery across a restart', async () => {
+    const first = await start();
+    await send(first.base);
+    await vi.waitFor(() => expect(first.jobs).toHaveLength(1));
+    await vi.waitFor(() =>
+      expect(readFileSync(join(stateDir, 'deliveries.json'), 'utf8')).toContain(DELIVERY),
+    );
+    await closeServer();
+
+    const second = await start();
+    expect((await send(second.base)).status).toBe(202);
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(second.jobs).toEqual([]);
+  });
+
+  it('runs a redelivery of a delivery that failed', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    let attempts = 0;
+    const jobs: AppJob[] = [];
+    const { base } = await start({
+      queue: {
+        enqueue: async (job) => {
+          if (++attempts === 1) throw new Error('queue unavailable');
+          jobs.push(job);
+        },
+      },
+    });
+    await send(base);
+    await vi.waitFor(() => expect(attempts).toBe(1));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await send(base);
+    await vi.waitFor(() => expect(jobs).toHaveLength(1));
+  });
+
+  it('does not let an unsigned request use up a delivery id', async () => {
+    const { base, jobs } = await start();
+    expect((await post(base, 'push', body)).status).toBe(401);
+    await send(base);
+    await vi.waitFor(() => expect(jobs).toHaveLength(1));
+  });
+
+  it('forgets ids older than GitHub can redeliver', async () => {
+    const file = join(stateDir, 'old.json');
+    let now = 0;
+    const log = await createDeliveryLog(file, () => now);
+    log.claim('old');
+    await log.finish('old');
+    now = 8 * 24 * 60 * 60 * 1000;
+    log.claim('new');
+    await log.finish('new');
+    const reopened = await createDeliveryLog(file, () => now);
+    expect(reopened.claim('old')).toBe(true);
+    expect(reopened.claim('new')).toBe(false);
+  });
 });
 
 describe('webhook server', () => {

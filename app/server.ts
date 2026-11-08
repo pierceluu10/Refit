@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
+import type { DeliveryLog } from './deliveries.ts';
 import type { Route } from './parts.ts';
 import { runsFor } from './runs.ts';
 import type { RunsDeps } from './runs.ts';
@@ -22,6 +23,7 @@ const SERVER_ERROR = 500;
 export type WebhookServerDeps = WebhookDeps &
   RunsDeps & {
     webhookSecret: string;
+    deliveries: DeliveryLog;
     maxBodyBytes?: number;
     routes?: Route[]; // the report and audit APIs
   };
@@ -59,13 +61,17 @@ async function receiveWebhook(
     return response.writeHead(BAD_REQUEST).end();
   }
   const event = header(request, 'x-github-event') ?? '';
+  const delivery = header(request, 'x-github-delivery');
+  const first = deps.deliveries.claim(delivery);
   // GitHub gives a delivery 10 seconds, so answer first; jobs and verdicts can take minutes.
   response.writeHead(ACCEPTED).end();
+  if (!first) return;
   try {
     await handleWebhook(event, payload, deps);
+    await deps.deliveries.finish(delivery);
   } catch (error) {
+    deps.deliveries.release(delivery);
     // Already answered, so log the delivery id: it can be redelivered from the App's Advanced page.
-    const delivery = header(request, 'x-github-delivery');
     const message = error instanceof Error ? error.message : String(error);
     console.error(`webhook ${event} ${delivery} failed: ${message}`);
   }

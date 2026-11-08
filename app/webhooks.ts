@@ -26,7 +26,7 @@ type Repository = { full_name: string };
 // Only the fields Refit reads; GitHub sends many more.
 type InstallationEvent = {
   action: string;
-  installation: { id: number };
+  installation: { id: number; account?: { login: string } };
 };
 type InstallationRepositoriesEvent = {
   action: string;
@@ -79,7 +79,11 @@ async function jobsFor(event: string, payload: unknown, deps: WebhookDeps): Prom
       return scan(installation.id, repos, 'install');
     }
     // The payload's list can be truncated and the API no longer answers, so forget by installation.
-    if (action === 'deleted') return [{ kind: 'forget', installationId: installation.id }];
+    if (action === 'deleted') {
+      return [
+        { kind: 'forget', installationId: installation.id, account: installation.account?.login },
+      ];
+    }
   }
   if (event === 'installation_repositories') {
     const body = payload as InstallationRepositoriesEvent;

@@ -1,5 +1,6 @@
 import type { BehindItem, RunRecord, ScanReport } from '../../shared/types.ts';
 import { digestMessages, dueItems, finishedMessage, scanMessage } from './messages.ts';
+import { PR_REPO } from '../reports.ts';
 import { describeFailure, postToSlack } from './slack.ts';
 import { readSent, writeSent } from './state.ts';
 
@@ -89,6 +90,27 @@ export function createNotifier(options: NotifierOptions = {}): Notifier {
         }
       }),
   };
+}
+
+// A key is a PR URL or an itemKey, so either names the repo it belongs to.
+const keyRepo = (key: string) =>
+  key.startsWith('[') ? (JSON.parse(key) as string[])[0] : PR_REPO.exec(key)?.[1];
+
+// Takes its turn like a send, but a failure reaches the caller: the uninstall it serves has to retry.
+export function forgetNotified(
+  isForgotten: (repo: string) => boolean,
+  stateFile = process.env.REFIT_NOTIFY_STATE_FILE || DEFAULT_STATE_FILE,
+): Promise<void> {
+  const work = turn.then(async () => {
+    const sent = await readSent(stateFile);
+    const kept = [...sent].filter((key) => {
+      const repo = keyRepo(key);
+      return repo === undefined || !isForgotten(repo);
+    });
+    if (kept.length < sent.size) await writeSent(stateFile, kept);
+  });
+  turn = work.catch(() => undefined);
+  return work;
 }
 
 export const notifyRun = (input: NotifyRunInput) => createNotifier().notifyRun(input);

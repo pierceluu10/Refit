@@ -1,6 +1,6 @@
 // The whole app loop with recorded webhook payloads: only GitHub's API and the orchestrator are fake.
 import { execFileSync } from 'node:child_process';
-import { createHmac } from 'node:crypto';
+import { createHmac, randomUUID } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -15,6 +15,7 @@ import type {
   RunRecord,
   ScanRepo,
 } from '../shared/types.ts';
+import { createDeliveryLog } from './deliveries.ts';
 import { createJobRunner } from './jobs.ts';
 import { createOpenPullRequest, findPullRequestFor } from './pr.ts';
 import { createFileQueue } from './queue.ts';
@@ -192,6 +193,7 @@ async function startApp({ settings }: { settings?: string } = {}) {
   );
   server = createWebhookServer({
     webhookSecret: SECRET,
+    deliveries: await createDeliveryLog(join(dir, 'deliveries.json')),
     tokens,
     listRepos: async () => [REPO],
     compareCommits: async () => [],
@@ -214,7 +216,7 @@ async function startApp({ settings }: { settings?: string } = {}) {
       headers: {
         'Content-Type': 'application/json',
         'X-GitHub-Event': event,
-        'X-GitHub-Delivery': '00000000-0000-4000-8000-000000000001',
+        'X-GitHub-Delivery': randomUUID(),
         'X-Hub-Signature-256': sign(body),
       },
       body,

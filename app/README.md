@@ -20,7 +20,9 @@ runs to the dashboard. Founder setup, local development and the morning runbook 
 Every request's signature is checked against `GITHUB_WEBHOOK_SECRET` before it is handled. The app
 answers `202` as soon as the signature and JSON check out, then does the work, since GitHub gives a
 delivery 10 seconds. A failure after that is logged with the delivery id; redeliver it from the App's
-**Advanced** page.
+**Advanced** page. Each delivery's work is done once: the ids of finished ones are kept in
+`.refit/deliveries.json` beside the queue file, across restarts, and GitHub repeats the id on a
+redelivery.
 
 A `synchronize` counts as a person's edit when the sender isn't a bot and `before...after` holds a
 non-merge commit not authored by a bot (memory/README.md, Verdicts). Refit's own pushes, other bots
@@ -47,7 +49,8 @@ task.
   opens.
 - **`forget`:** when repos are removed or the App is uninstalled, their waiting jobs are dropped,
   their running jobs are aborted, their checkouts are deleted and their reports go. A cancelled job
-  can't open a PR. It leaves memory's run records in place (memory has no forget yet).
+  can't open a PR. An uninstall also erases the org from memory, the audit trail, the orchestrator's
+  run log and report copies and the Slack record (`forget.ts`). The schedule holds only a time.
 
 Every clone is deleted when its job ends. The app only reads a checkout; the harness runs repo code
 in its Docker sandbox.
@@ -93,6 +96,10 @@ The server also mounts the routes from `app/api/` and `app/audit/`.
 | `pr.ts`         | `openPullRequest` (Git Data API, draft PR) and the shared `createOpenPullRequest` |
 | `webhooks.ts`   | Signature verification and the handlers above                                     |
 | `server.ts`     | `POST /webhooks`, `GET /api/runs`, `GET /healthz`, and the mounted routes         |
+| `deliveries.ts` | Which webhook deliveries are finished, so a repeat does nothing                   |
+| `progress.ts`   | What's running now, and a report for a scan that failed                           |
+| `forget.ts`     | Erases an uninstalled org from every store                                        |
+| `api/scans.ts`  | `GET /api/scans`: each installed repo's scan state, for onboarding                |
 | `runs.ts`       | `/api/runs` validation, the service token and per-viewer scoping                  |
 | `queue.ts`      | File-backed job queue with retries and concurrency                                |
 | `jobs.ts`       | The `scan` and `run` jobs: checkout, the loop, cleanup                            |
