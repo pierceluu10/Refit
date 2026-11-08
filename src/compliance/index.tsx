@@ -13,6 +13,8 @@ import type { ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { auditCsv } from '../../app/audit/csv.ts';
 import type { AuditEntry, BehindItem } from '../../shared/types.ts';
+import { waitingChanges } from '../api';
+import { formatCost, ScanErrors, Status } from '../components/WorkspaceUI';
 import {
   ApiSignedOutError,
   ApiUnavailableError,
@@ -128,7 +130,7 @@ function Declared({ item }: { item: BehindItem }) {
   );
 }
 
-function Finding({ item }: { item: BehindItem }) {
+function Finding({ item, waiting }: { item: BehindItem; waiting: boolean }) {
   const { label, className, Icon } = statusStyles[item.status];
   const deadline = deadlineOf(item);
   const { change, dependency } = item;
@@ -158,10 +160,14 @@ function Finding({ item }: { item: BehindItem }) {
         <SourceQuote url={change.source.url} quote={change.source.quote} title={change.title} />
       </div>
       <div className="rules-finding-side">
-        <span className={`resource-status ${className}`}>
-          <Icon aria-hidden="true" />
-          {label}
-        </span>
+        {waiting ? (
+          <Status outcome="waiting-budget" />
+        ) : (
+          <span className={`resource-status ${className}`}>
+            <Icon aria-hidden="true" />
+            {label}
+          </span>
+        )}
         {item.pr && <PullRequest item={{ ...item, id: change.id }} />}
       </div>
     </li>
@@ -170,6 +176,7 @@ function Finding({ item }: { item: BehindItem }) {
 
 function Platforms({ data, repo }: { data: RepoData; repo: string }) {
   const groups = platformGroups(data.report?.items ?? []);
+  const waiting = waitingChanges(data.runs);
   return (
     <Section title="Platforms" description="Platform changes this repository depends on.">
       {groups.length === 0 ? (
@@ -180,7 +187,11 @@ function Platforms({ data, repo }: { data: RepoData; repo: string }) {
             <h3>{group.name}</h3>
             <ul aria-label={group.name}>
               {group.items.map((item) => (
-                <Finding item={item} key={item.change.id} />
+                <Finding
+                  item={item}
+                  waiting={item.status === 'open' && waiting.has(item.change.id)}
+                  key={item.change.id}
+                />
               ))}
             </ul>
           </div>
@@ -248,13 +259,15 @@ function Rule({ rule }: { rule: RuleView }) {
             )}
           </p>
         </div>
+        {rule.waiting && <Status outcome="waiting-budget" />}
         {rule.needsReview ? (
           <span className="resource-status status-attention">
             <WarningCircle aria-hidden="true" />
             Needs review
           </span>
         ) : (
-          applies && (
+          applies &&
+          !rule.waiting && (
             <span className="resource-status status-positive">
               <CheckCircle aria-hidden="true" />
               Nothing marked for review
@@ -278,7 +291,13 @@ function Rule({ rule }: { rule: RuleView }) {
           )}
         </Fact>
         <Fact term="What Refit changed">
-          {rule.changed ?? <span className="rules-missing">No change recorded yet.</span>}
+          {rule.changed ?? (
+            <span className="rules-missing">
+              {rule.waiting
+                ? 'Nothing yet. This is waiting on budget and hasn’t started.'
+                : 'No change recorded yet.'}
+            </span>
+          )}
         </Fact>
         <Fact term="What each check showed">
           <Lines lines={rule.checks} missing="No check results recorded." />
@@ -486,18 +505,14 @@ function Section({
 function ScanFacts({ data }: { data: RepoData }) {
   if (!data.report)
     return <p className="rules-scanned">This repository hasn’t been scanned yet.</p>;
-  const { scannedAt, errors } = data.report;
+  const { scannedAt, costUsd, errors } = data.report;
   return (
     <>
       <p className="rules-scanned">
-        Last scanned <time dateTime={scannedAt}>{formatted(scannedAt, timeFormat)}</time>
+        Last scanned <time dateTime={scannedAt}>{formatted(scannedAt, timeFormat)}</time>, at a cost
+        of {formatCost(costUsd)}
       </p>
-      {errors.length > 0 && (
-        <div className="rules-unread">
-          <h2>What Refit couldn’t read</h2>
-          <Lines lines={errors} missing="" />
-        </div>
-      )}
+      {errors.length > 0 && <ScanErrors repo={data.report.repo} errors={errors} />}
     </>
   );
 }

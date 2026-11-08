@@ -67,17 +67,9 @@
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
-.rules-unread {
+.rules-toolbar .scan-note {
   flex-basis: 100%;
-  padding: 14px 16px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-}
-.rules-unread h2 {
-  font-size: 13px;
-  font-weight: 550;
-  letter-spacing: normal;
-  margin-bottom: 6px;
+  margin-bottom: 0;
 }
 .rules-section {
   margin-top: 48px;

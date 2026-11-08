@@ -390,6 +390,20 @@
 .scan-note > svg {
   flex-shrink: 0;
 }
+.detail-actions + .scan-note {
+  margin-top: 22px;
+}
+.scan-note details {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.scan-note summary {
+  cursor: pointer;
+}
+.scan-note small {
+  margin-left: 4px;
+  font-variant-numeric: tabular-nums;
+}
 .scan-note ul {
   margin: 4px 0 0;
   padding-left: 16px;

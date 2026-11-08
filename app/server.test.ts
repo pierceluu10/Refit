@@ -291,6 +291,28 @@ describe('GET /api/runs', () => {
       expect((await read(base, '?limit=0')).status).toBe(400);
     });
 
+    it('serves a task the cap stopped as waiting, and leaves a real failure failed', async () => {
+      const stopped = {
+        ...run(MINE, 'stopped'),
+        outcome: 'failed' as const,
+        costUsd: 0,
+        summary: 'not attempted: $1.70 of the run cap left, below the $2 a task needs',
+      };
+      const tried = {
+        ...run(MINE, 'tried'),
+        outcome: 'failed' as const,
+        costUsd: 0.13,
+        summary: 'harness outcome was needs-review; opening the PR failed: 403',
+      };
+      const { base } = await start({
+        listRunViews: async () => [stopped, tried],
+        viewerRepos: async () => [],
+        isServiceToken: (authorization) => authorization === `Bearer ${SERVICE}`,
+      });
+      const runs = (await (await read(base)).json()) as RunView[];
+      expect(runs.map((item) => item.outcome)).toEqual(['waiting-budget', 'failed']);
+    });
+
     it('does not widen a GitHub user token', async () => {
       const { get } = await startRuns();
       const runs = (await (await get()).json()) as RunView[];

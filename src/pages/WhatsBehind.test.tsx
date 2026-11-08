@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import type { BehindItem, ScanReport } from '../../shared/types.ts';
+import type { BehindItem, RunView, ScanReport } from '../../shared/types.ts';
 import { App } from '../App';
 import { exampleReports } from '../fixtures';
 
@@ -46,10 +46,19 @@ const FIRST = 'test-owner/first';
 const SECOND = 'test-owner/second';
 
 // Dispatches by address so concurrent loads can't take each other's response.
-function api(reports: Record<string, ScanReport | null>, repos = Object.keys(reports)) {
+function api(
+  reports: Record<string, ScanReport | null>,
+  repos = Object.keys(reports),
+  runs: RunView[] = [],
+) {
   return vi.fn(async (path: string) => {
     if (path === '/api/repos') return new Response(JSON.stringify(repos), { headers: json });
     const repo = new URL(path, 'http://site.test').searchParams.get('repo') ?? '';
+    if (path.startsWith('/api/runs')) {
+      return new Response(JSON.stringify(runs.filter((run) => run.repo === repo)), {
+        headers: json,
+      });
+    }
     const found = reports[repo];
     return found
       ? new Response(JSON.stringify(found), { headers: json })
@@ -298,6 +307,59 @@ describe('what’s behind', () => {
       await screen.findByRole('heading', { name: /Nothing matches/ });
       expect(screen.getByRole('combobox', { name: 'Repository' })).toHaveValue('test-owner/gone');
     });
+  });
+
+  describe('work held for budget', () => {
+    const run = (name: string, outcome: RunView['outcome'], id = name): RunView => ({
+      id,
+      repo: FIRST,
+      taskId: id,
+      provider: 'test-provider',
+      changeId: `${name}-change`,
+      outcome,
+      costUsd: 0,
+      summary: 'Test summary.',
+      finishedAt: '2026-11-01T00:00:00Z',
+    });
+    const statusOf = (name: string) =>
+      (screen.getByText(name).closest('tr') as HTMLElement).querySelector('[data-label="Status"]');
+
+    it('shows a held finding as waiting, and lets you filter to it', async () => {
+      const reports = {
+        [FIRST]: report(FIRST, [item(FIRST, 'held'), item(FIRST, 'plain')]),
+      };
+      renderBehind(api(reports, [FIRST], [run('held', 'waiting-budget')]));
+      await screen.findByRole('table');
+      expect(statusOf('held')).toHaveTextContent('Waiting on budget');
+      expect(statusOf('plain')).toHaveTextContent('Open');
+      fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), {
+        target: { value: 'waiting-budget' },
+      });
+      expect(dependencyColumn()).toEqual(['held']);
+    });
+
+    it('stops waiting once a newer run has tried it', async () => {
+      const reports = { [FIRST]: report(FIRST, [item(FIRST, 'tried')]) };
+      const runs = [run('tried', 'needs-review', 'new'), run('tried', 'waiting-budget', 'old')];
+      renderBehind(api(reports, [FIRST], runs));
+      await screen.findByRole('table');
+      expect(statusOf('tried')).toHaveTextContent('Open');
+    });
+
+    it('keeps a finding with a PR as PR open, whatever its run says', async () => {
+      const reports = { [FIRST]: report(FIRST, [item(FIRST, 'pr', { status: 'pr-open' })]) };
+      renderBehind(api(reports, [FIRST], [run('pr', 'waiting-budget')]));
+      await screen.findByRole('table');
+      expect(statusOf('pr')).toHaveTextContent('PR open');
+    });
+  });
+
+  it('collapses a long list of scan errors, and counts them', async () => {
+    const errors = ['one', 'two', 'three', 'four'].map((name) => `Couldn’t read ${name}.`);
+    renderBehind(api({ [FIRST]: report(FIRST, [item(FIRST, 'node')], errors) }));
+    await screen.findByRole('table');
+    expect(screen.getByText('4 problems')).toBeVisible();
+    expect(screen.getByText('Couldn’t read one.')).not.toBeVisible();
   });
 
   it('says honestly what a scan couldn’t read', async () => {

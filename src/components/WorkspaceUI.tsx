@@ -31,11 +31,14 @@ export function Status({ outcome }: { outcome: RunRecord['outcome'] }) {
   );
 }
 
-export const behindStatusLabels: Record<BehindItem['status'], string> = {
+export type FindingStatus = BehindItem['status'] | 'waiting-budget';
+
+export const behindStatusLabels: Record<FindingStatus, string> = {
   open: 'Open',
   'pr-open': 'PR open',
   merged: 'Merged',
   'not-affected': 'Not affected',
+  'waiting-budget': outcomeLabels['waiting-budget'],
 };
 
 const behindStatusStyles = {
@@ -43,9 +46,10 @@ const behindStatusStyles = {
   'pr-open': { className: 'status-progress', Icon: GitPullRequest },
   merged: { className: 'status-positive', Icon: GitMerge },
   'not-affected': { className: 'status-positive', Icon: CheckCircle },
-} satisfies Record<BehindItem['status'], object>;
+  'waiting-budget': outcomeStyles['waiting-budget'],
+} satisfies Record<FindingStatus, object>;
 
-export function BehindStatus({ status }: { status: BehindItem['status'] }) {
+export function BehindStatus({ status }: { status: FindingStatus }) {
   const { className, Icon } = behindStatusStyles[status];
   return (
     <span className={`resource-status ${className}`}>
@@ -69,6 +73,12 @@ const dayFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', time
 export function formatDay(value: string) {
   const time = Date.parse(value);
   return Number.isNaN(time) ? value : dayFormat.format(time);
+}
+
+const costFormat = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+export function formatCost(usd: number) {
+  return costFormat.format(usd);
 }
 
 export function ExternalLink({
@@ -98,18 +108,26 @@ export function DataCell({ label, children }: { label: string; children: ReactNo
   );
 }
 
+// A long list would push the findings off the first screen.
+const SCAN_ERRORS_SHOWN_OPEN = 3;
+
 export function ScanErrors({ repo, errors }: { repo: string; errors: string[] }) {
   return (
     <div className="detail-explanation scan-note">
       <WarningCircle />
-      <div>
-        <p>Refit couldn’t read everything in {repo}.</p>
+      <details open={errors.length <= SCAN_ERRORS_SHOWN_OPEN}>
+        <summary>
+          Refit couldn’t read everything in {repo}.{' '}
+          <small>
+            {errors.length} {errors.length === 1 ? 'problem' : 'problems'}
+          </small>
+        </summary>
         <ul>
-          {errors.map((error) => (
-            <li key={error}>{error}</li>
+          {errors.map((error, index) => (
+            <li key={`${index}-${error}`}>{error}</li>
           ))}
         </ul>
-      </div>
+      </details>
     </div>
   );
 }

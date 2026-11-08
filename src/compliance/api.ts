@@ -130,6 +130,7 @@ export type RuleView = {
   checks: string[];
   sources: string[];
   needsReview: boolean;
+  waiting: boolean;
 };
 
 const unique = (values: string[]) => [...new Set(values)];
@@ -147,6 +148,7 @@ export function ruleViews({ report, runs, audit, obligations }: RepoData): RuleV
     );
     const textOf = (evidence: string[]) => evidence.filter((line) => !safeHref(line));
     const applies = item.status !== 'not-affected';
+    const waiting = item.status === 'open' && run?.outcome === 'waiting-budget';
     const why = textOf(decision?.evidence ?? []);
     const nothingToConfirm = obligation?.needsHuman.length === 0;
     return {
@@ -154,14 +156,15 @@ export function ruleViews({ report, runs, audit, obligations }: RepoData): RuleV
       obligation,
       applies,
       why: why.length > 0 ? why : item.dependency.notes ? [item.dependency.notes] : [],
-      changed: run?.summary,
+      changed: waiting ? undefined : run?.summary,
       checks: unique(
         entries
           .filter(({ action }) => action === 'pr-opened' || action === 'pr-updated')
           .flatMap(({ evidence }) => textOf(evidence)),
       ),
       sources: unique(entries.flatMap(({ evidence }) => evidence.filter(safeHref))),
-      needsReview: applies && !(run?.outcome === 'verified' && nothingToConfirm),
+      needsReview: applies && !waiting && !(run?.outcome === 'verified' && nothingToConfirm),
+      waiting,
     };
   });
   return views.sort((a, b) => Number(b.applies) - Number(a.applies) || byDeadline(a.item, b.item));
