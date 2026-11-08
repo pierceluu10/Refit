@@ -194,6 +194,18 @@ describe('webhook server', () => {
     expect((await fetch(`${base}/nope`)).status).toBe(404);
     expect((await fetch(`${base}/webhooks`)).status).toBe(404);
   });
+
+  it('answers /healthz from the real check: 200 when healthy, 503 naming what is down', async () => {
+    let health = { ok: true, store: true, sandbox: true };
+    const { base } = await start({ checkHealth: async () => health });
+    const healthy = await fetch(`${base}/healthz`);
+    expect(healthy.status).toBe(200);
+    expect(await healthy.json()).toEqual(health);
+    health = { ok: false, store: true, sandbox: false };
+    const down = await fetch(`${base}/healthz`);
+    expect(down.status).toBe(503);
+    expect(await down.json()).toEqual(health);
+  });
 });
 
 const run = (repo: string, id: string): RunView => ({

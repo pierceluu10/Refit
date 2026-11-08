@@ -12,7 +12,9 @@ import {
   listViewerRepos,
   pullDiff,
 } from './github.ts';
+import { createHealthCheck } from './health.ts';
 import { createJobRunner } from './jobs.ts';
+import { redactLogs } from './logs.ts';
 import { loadParts } from './parts.ts';
 import { createOpenPullRequest, findPullRequestFor } from './pr.ts';
 import { createFileQueue } from './queue.ts';
@@ -25,6 +27,8 @@ import type { RecordVerdict } from './types.ts';
 const DEFAULT_HOST = '127.0.0.1';
 // memory/README.md: a verdict can trigger a model call, so each gets its own cap instead of sharing one.
 const VERDICT_BUDGET_USD = 1;
+
+redactLogs();
 
 const config = readConfig();
 const host = process.env.HOST ?? DEFAULT_HOST;
@@ -91,6 +95,10 @@ const server = createWebhookServer({
   viewerRepos: (userToken) => listViewerRepos(userToken, config.appId),
   isServiceToken: parts.isServiceToken,
   routes: parts.routes,
+  checkHealth: createHealthCheck({
+    stateDir,
+    sandboxRequired: process.env.REFIT_SANDBOX === 'docker',
+  }),
 });
 
 const weekly = createWeeklyScan({
