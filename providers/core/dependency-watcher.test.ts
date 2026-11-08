@@ -283,6 +283,41 @@ describe('watchDependency', () => {
     );
     expect(report.errors.join()).toMatch(/api\.osv\.dev.*HTTP 503/);
   });
+  it("does not call a guessed endoflife.date product that doesn't exist a gap, but keeps other 404s", async () => {
+    const missing = new Set([
+      'https://endoflife.date/api/flask.json',
+      'https://endoflife.date/api/all.json',
+    ]);
+    const model = scriptedModel([
+      [{ type: 'tool_use', id: 'a', name: 'read_page', input: { source_id: 'eol-flask' } }],
+      [{ type: 'tool_use', id: 'b', name: 'read_page', input: { source_id: 'eol-products' } }],
+      [{ type: 'tool_use', id: 's', name: 'submit_changes', input: { changes: [] } }],
+      [{ type: 'text', text: 'Done.' }],
+    ]);
+    const report = await runDependencyWatch(
+      dep({ kind: 'framework', name: 'flask', ecosystem: 'pypi', version: '2.2.5' }),
+      undefined,
+      {
+        ...offline,
+        model,
+        fetcher: {
+          async fetch(url) {
+            return missing.has(url)
+              ? {
+                  url,
+                  status: 404,
+                  ok: false,
+                  fetchedAt: '2026-11-08T00:00:00.000Z',
+                  error: 'HTTP 404',
+                }
+              : await fetcher.fetch(url);
+          },
+        } as Fetcher,
+      },
+    );
+    expect(report.errors.join()).not.toMatch(/flask\.json/);
+    expect(report.errors.join()).toMatch(/all\.json: HTTP 404/);
+  });
 });
 
 describe('normaliseExternal', () => {

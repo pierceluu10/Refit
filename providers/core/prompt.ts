@@ -217,8 +217,9 @@ export const SOURCE_GUIDES = {
 - A package marked deprecated or inactive is a change too, with its replacement in the title.`,
   advisories: `Security advisories:
 - The OSV feed lists advisories for this package and version with the first fixed versions, and https://api.osv.dev/v1/vulns/<id> gives one in full. The GitHub Advisory Database page lists them with more detail. Read https://osv.dev/vulnerability/<id> style links as they appear; cite those.
+- Advisories that one move fixes (the same target version, or the same next major) are one underlying change: report them as one change, list every advisory id in its title and notes, and quote the most severe. Seven rows for one upgrade bury the rest of the report.
 - Keep an advisory only when the fix needs more than a version bump (code has to change, or a fix needs configuration) or when the bump crosses a major version from this repository's version. Plain bumps within a major belong to a dependency bot: leave them out and say how many in the notes.
-- Kind security-fix, severity "security", fromVersions the affected range, toVersion the first fixed version, one change per advisory.`,
+- Kind security-fix, severity "security", fromVersions the affected range, toVersion the first fixed version, one change per move that fixes them.`,
   models: `AI model retirements:
 - The deprecation pages of OpenAI, Anthropic and Google list models with shutdown dates and recommended replacements. Read the one for this model's provider, and find this model id, its dated snapshots and its aliases.
 - Kind model-retirement, severity "deadline", effectiveDate the shutdown date, fromVersions the model ids that go away, toVersion the replacement the provider recommends.

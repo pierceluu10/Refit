@@ -42,6 +42,7 @@ function eolSources(dep: DependencyUsage): ProviderSource[] {
       url: `https://endoflife.date/api/${encodeURIComponent(product)}.json`,
       format: 'json',
       note: `endoflife.date's release cycles for "${product}" (a guess from the name)`,
+      guess: true,
     },
     {
       id: 'eol-products',
