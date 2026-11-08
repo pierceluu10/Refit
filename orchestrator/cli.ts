@@ -56,10 +56,16 @@ export function formatSummary(
 ): string {
   const { counts } = summary;
   // Attempted work first; the not-affected verdicts, each with the match agent's reasoning, last.
-  const order: RunRecord['outcome'][] = ['verified', 'needs-review', 'failed', 'not-affected'];
+  const order: RunRecord['outcome'][] = [
+    'verified',
+    'needs-review',
+    'failed',
+    'waiting-budget',
+    'not-affected',
+  ];
   return [
     `Refit run on ${repo}${dryRun ? ' (dry run: no PRs opened)' : ''}`,
-    `  outcomes: ${counts.verified} verified, ${counts['needs-review']} needs-review, ${counts['not-affected']} not-affected, ${counts.failed} failed`,
+    `  outcomes: ${counts.verified} verified, ${counts['needs-review']} needs-review, ${counts['not-affected']} not-affected, ${counts.failed} failed, ${counts['waiting-budget']} waiting on budget`,
     ...order.flatMap((outcome) =>
       summary.records
         .filter((r) => r.outcome === outcome)

@@ -194,7 +194,9 @@ export function scoreResults(results: RepoResult[]): Score {
           reason: task.noAttemptReason ?? 'not attempted',
         });
       }
-      const outcome = task.record?.outcome ?? 'failed';
+      // A task the cap never reached scores like one with no record.
+      const outcome: Outcome =
+        !task.record || task.record.outcome === 'waiting-budget' ? 'failed' : task.record.outcome;
       counts[outcome] += 1;
       slice.counts[outcome] += 1;
       outcomes.push(outcome);

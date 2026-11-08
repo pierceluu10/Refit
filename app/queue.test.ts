@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ExternalTask } from '../shared/types.ts';
-import { createFileQueue } from './queue.ts';
+import { createFileQueue, HoldJobError } from './queue.ts';
 import type { FileQueueOptions } from './queue.ts';
 import type { QueuedJob, RunJob, ScanJob } from './types.ts';
 
@@ -179,6 +179,35 @@ describe('createFileQueue', () => {
     expect(tries).toContain('org/good');
     expect(console.error).toHaveBeenCalledWith('job scan org/bad failed: inventory failed');
     expect(await stored()).toEqual([]);
+  });
+
+  it('keeps a held job in the file without rerunning it, and runs it on the next start', async () => {
+    const tries: string[] = [];
+    const holdFirst = async (job: QueuedJob) => {
+      tries.push(job.repo);
+      if (job.repo === 'org/held') throw new HoldJobError('no budget');
+    };
+    const queue = await createFileQueue(file, holdFirst, { concurrency: 1, backoffMs: 1 });
+    await queue.enqueue(runJob('org/held', 't1'));
+    await queue.enqueue(runJob('org/next', 't2'));
+    // idle resolves though a held job is still in the file, and the job behind it got its slot.
+    await queue.idle();
+    expect(tries).toEqual(['org/held', 'org/next']);
+    expect((await stored()).map((job) => job.repo)).toEqual(['org/held']);
+    // Enqueuing the same task again neither duplicates nor wakes it.
+    await queue.enqueue(runJob('org/held', 't1'));
+    await queue.idle();
+    expect(tries).toEqual(['org/held', 'org/next']);
+    queue.close();
+
+    const started: string[] = [];
+    const next = await createFileQueue(file, async (job) => void started.push(job.repo), {
+      concurrency: 1,
+    });
+    await next.idle();
+    expect(started).toEqual(['org/held']);
+    expect(await stored()).toEqual([]);
+    next.close();
   });
 
   it('does not retry when shouldRetry says no', async () => {

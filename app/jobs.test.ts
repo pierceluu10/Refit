@@ -12,6 +12,7 @@ import type {
 } from '../shared/types.ts';
 import { createJobRunner, JobCancelledError } from './jobs.ts';
 import type { JobRunnerDeps } from './jobs.ts';
+import { HoldJobError } from './queue.ts';
 import type { ExistingPullRequest } from './pr.ts';
 import { createReportStore } from './reports.ts';
 import type { RepoSettings } from './settings.ts';
@@ -356,6 +357,14 @@ describe('run job', () => {
     const fake = fakes({ runTasks: async () => [failed as RunRecord] });
     await fake.run(RUN, live());
     expect(errors).toHaveBeenCalledWith(`${REPO} ${RUN.task.id} failed: run budget reached`);
+  });
+
+  it('holds the job in the queue when its task is waiting on budget, with no notification', async () => {
+    const notifyRun = vi.fn(async () => {});
+    const waiting = { ...RECORD, outcome: 'waiting-budget', note: 'not attempted: $0.50 left' };
+    const fake = fakes({ runTasks: async () => [waiting as RunRecord], notifyRun });
+    await expect(fake.run(RUN, live())).rejects.toBeInstanceOf(HoldJobError);
+    expect(notifyRun).not.toHaveBeenCalled();
   });
 
   it('fails the job when the run throws, and still deletes the checkout', async () => {

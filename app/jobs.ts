@@ -9,6 +9,7 @@ import type {
   ScanRepo,
 } from '../shared/types.ts';
 import type { ExistingPullRequest } from './pr.ts';
+import { HoldJobError } from './queue.ts';
 import type { ReportStore } from './reports.ts';
 import type { RepoSettings } from './settings.ts';
 import type {
@@ -165,6 +166,8 @@ export function createJobRunner(deps: JobRunnerDeps) {
     });
     stopIfCancelled(job.repo, signal);
     for (const record of records) logRecord(job.repo, record);
+    if (records.some((record) => record.outcome === 'waiting-budget'))
+      throw new HoldJobError(`${job.task.id} is waiting on budget`);
     for (const { pr } of records) {
       if (!pr) continue;
       await logged(`recording ${pr} on the report of ${job.repo}`, () =>

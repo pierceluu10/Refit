@@ -57,6 +57,7 @@ const BADGE: Record<RunRecord['outcome'], string> = {
   'needs-review': 'Needs review',
   'not-affected': 'Not affected',
   failed: 'Failed',
+  'waiting-budget': 'Waiting on budget',
 };
 
 export function filesFromDiff(diff: string): string[] {

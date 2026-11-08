@@ -51,7 +51,7 @@ describe('example data', () => {
     }
   });
 
-  it('shows all four outcomes, on known repos and known changes', () => {
+  it('shows every outcome, on known repos and known changes', () => {
     expect(new Set(runs.map((run) => run.outcome))).toEqual(new Set(Object.keys(outcomeLabels)));
     const changeIds = items.map((item) => item.change.id);
     for (const run of runs) {

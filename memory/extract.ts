@@ -65,7 +65,8 @@ export async function extractRecipe(
   deps: { store: MemoryStore; model: Model; now?: () => Date },
 ): Promise<MemoryRecipe | undefined> {
   const success = succeeded(run.record);
-  if (!success && run.record.outcome === 'not-affected') return undefined;
+  // Neither outcome has an attempt to learn from, and a lesson costs a model call.
+  if (!success && ['not-affected', 'waiting-budget'].includes(run.record.outcome)) return undefined;
   const { provider, kind } = run.task.change;
   const key = upgradeKey(run.task);
   // Candidates for the model to merge into: the same provider, or the same dependency for an upgrade.

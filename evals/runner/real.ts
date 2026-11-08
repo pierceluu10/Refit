@@ -99,12 +99,7 @@ type NotedRecord = RunRecord & { note?: unknown };
 /** The record orchestrator/deps.ts returns when the run can't hold MIN_TASK_USD for a task. */
 export function unaffordableNote(record: NotedRecord): string | undefined {
   const note = typeof record.note === 'string' ? record.note : '';
-  const nothingRan =
-    record.outcome === 'failed' &&
-    record.diff.trim() === '' &&
-    record.costUsd === 0 &&
-    !record.transcriptPath;
-  return nothingRan && note.startsWith('not attempted:') ? note : undefined;
+  return record.outcome === 'waiting-budget' ? note : undefined;
 }
 
 export async function loadRealPipeline(

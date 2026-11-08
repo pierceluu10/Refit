@@ -6,6 +6,14 @@ const DEFAULT_CONCURRENCY = 2;
 const DEFAULT_RETRIES = 2;
 const DEFAULT_BACKOFF_MS = 30_000;
 
+// Thrown by a job that cannot run until the process restarts with a new budget. It stays in the file.
+export class HoldJobError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'HoldJobError';
+  }
+}
+
 export type FileQueue = JobQueue & {
   pending: () => QueuedJob[];
   idle: () => Promise<void>;
@@ -22,7 +30,7 @@ export type FileQueueOptions = {
 
 type Entry = {
   job: QueuedJob;
-  state: 'waiting' | 'running' | 'retrying';
+  state: 'waiting' | 'running' | 'retrying' | 'held';
   attempts: number;
   controller?: AbortController;
   timer?: NodeJS.Timeout;
@@ -83,7 +91,9 @@ export async function createFileQueue(
       console.error(`saving the job queue failed: ${messageOf(error)}`);
     });
 
-  const busy = () => running.size > 0 || (!closed && entries.length > 0);
+  // A held job waits for a restart, so nothing in this process is still working on it.
+  const busy = () =>
+    running.size > 0 || (!closed && entries.some((entry) => entry.state !== 'held'));
   const wakeIdle = () => {
     if (busy()) return;
     for (const resolve of idleWaiters) resolve();
@@ -120,6 +130,11 @@ export async function createFileQueue(
       if (controller.signal.aborted) {
         console.log(`job ${entry.job.kind} ${entry.job.repo} stopped`);
         drop(entry);
+      } else if (error instanceof HoldJobError) {
+        console.log(
+          `job ${entry.job.kind} ${entry.job.repo} held until the next start: ${error.message}`,
+        );
+        entry.state = 'held';
       } else if (entry.attempts > retries || !shouldRetry(error)) {
         console.error(`job ${entry.job.kind} ${entry.job.repo} failed: ${messageOf(error)}`);
         drop(entry);

@@ -198,7 +198,7 @@ describe('loadRealPipeline', () => {
     parts.runTask = async () =>
       ({
         taskId: 't',
-        outcome: 'failed',
+        outcome: 'waiting-budget',
         diff: '',
         checks: [],
         costUsd: 0,
@@ -276,11 +276,11 @@ describe('real pipeline helpers', () => {
     });
   });
 
-  it('only reads a failed, empty, unspent record with the orchestrator’s note as unaffordable', () => {
+  it('reads only a record waiting on budget as unaffordable', () => {
     const record = (overrides: Partial<RunRecord & { note: string }>) =>
       ({
         taskId: 't',
-        outcome: 'failed',
+        outcome: 'waiting-budget',
         diff: '',
         checks: [],
         costUsd: 0,
@@ -289,8 +289,9 @@ describe('real pipeline helpers', () => {
         ...overrides,
       }) as RunRecord;
     expect(unaffordableNote(record({}))).toMatch(/not attempted/);
-    expect(unaffordableNote(record({ costUsd: 0.5 }))).toBeUndefined();
-    expect(unaffordableNote(record({ note: 'runTask failed: boom' }))).toBeUndefined();
+    expect(
+      unaffordableNote(record({ outcome: 'failed', note: 'runTask failed: boom' })),
+    ).toBeUndefined();
     expect(unaffordableNote(record({ outcome: 'needs-review', diff: '+x' }))).toBeUndefined();
   });
 });

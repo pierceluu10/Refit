@@ -27,6 +27,7 @@ export const outcomeLabels: Record<RunRecord['outcome'], string> = {
   'needs-review': 'Needs review',
   'not-affected': 'Not affected',
   failed: 'Failed',
+  'waiting-budget': 'Waiting on budget',
 };
 
 const providerNames: Record<string, string> = {
@@ -517,6 +518,17 @@ export const runs: RunView[] = [
     costUsd: 2.38,
     summary: 'Tried Next.js 16. The build still failed on async params in three pages.',
     finishedAt: '2026-10-30T10:12:00Z',
+  },
+  {
+    id: 'run-next-web-cache',
+    repo: NEXT_WEB,
+    taskId: 'task-next-web-cache',
+    provider: 'github-actions',
+    changeId: 'actions-cache-v2',
+    outcome: 'waiting-budget',
+    costUsd: 0,
+    summary: 'Not attempted: $0.80 of the run cap left, below the $2 a task needs.',
+    finishedAt: '2026-10-29T16:05:00Z',
   },
   {
     id: 'run-node-api-artifact',

@@ -78,11 +78,18 @@ describe('formatSummary', () => {
       run('acme/shop:meta:v19', 'not-affected', 'The repo never calls the Graph API.'),
       run('acme/shop:stripe:source', 'verified'),
       run('acme/shop:openai:gpt-4o', 'failed', 'not attempted: match failed after retries'),
+      run('acme/shop:stripe:charges', 'waiting-budget', 'not attempted: $0.50 of the run cap left'),
     ];
     const text = formatSummary(
       'acme/shop',
       {
-        counts: { verified: 1, 'needs-review': 0, 'not-affected': 1, failed: 1 },
+        counts: {
+          verified: 1,
+          'needs-review': 0,
+          'not-affected': 1,
+          failed: 1,
+          'waiting-budget': 1,
+        },
         prs: [],
         costUsd: 0,
         records,
@@ -93,7 +100,9 @@ describe('formatSummary', () => {
     const lines = text.split('\n');
     const at = (id: string) => lines.findIndex((l) => l.includes(id));
     expect(at('stripe:source')).toBeLessThan(at('openai:gpt-4o'));
-    expect(at('openai:gpt-4o')).toBeLessThan(at('meta:v19'));
+    expect(at('openai:gpt-4o')).toBeLessThan(at('stripe:charges'));
+    expect(at('stripe:charges')).toBeLessThan(at('meta:v19'));
+    expect(lines[1]).toContain('1 waiting on budget');
     expect(lines[at('meta:v19') + 1].trim()).toBe('The repo never calls the Graph API.');
   });
 });
