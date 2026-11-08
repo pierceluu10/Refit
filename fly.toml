@@ -1,0 +1,31 @@
+# One Refit app server. Secrets are set with `fly secrets`; app/SETUP.md lists their names.
+app = "refit-hosted"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[mounts]
+  source = "refit_data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  # The queue and the weekly scan run between webhooks, so the machine must not idle-stop.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "60s"
+    interval = "30s"
+    method = "GET"
+    path = "/healthz"
+    # /healthz runs `docker info`, which is given 20 seconds.
+    timeout = "25s"
+
+# shortcut: shared CPUs get throttled under long builds; move to performance-2x if runs crawl.
+[[vm]]
+  size = "shared-cpu-4x"
+  memory = "8gb"

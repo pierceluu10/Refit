@@ -240,6 +240,73 @@ Install on a test org first, never a real customer org. Check that:
 - [ ] a `.refit.yml` with `paused: true` stops new scans and PRs for that repo, and `ignore` leaves
       out those dependencies.
 
+## Deploy
+
+One app server on Fly (`refit-hosted`, `iad`): [`Dockerfile`](../Dockerfile),
+[`docker-entrypoint.sh`](../docker-entrypoint.sh) and [`fly.toml`](../fly.toml). Fly boots the image as
+a VM, so the entrypoint starts its own Docker daemon there for the sandbox, then runs the app as the
+unprivileged `node` user.
+
+Everything that must survive a restart is on the `refit_data` volume at `/data`: the queue, reports,
+schedule, memory, audit, notification state and caches in `/data/state`, Docker's images in
+`/data/docker`. `/data/tmp` holds checkouts and is emptied on every boot. The volume must exist before
+the first deploy, or the deploy fails.
+
+`GET /healthz` answers `200` only when a real write to the store succeeds and the Docker daemon
+responds; otherwise `503` with JSON naming which failed. All console output and uncaught errors pass
+through `redactSecrets`.
+
+### Secrets
+
+Set these with `fly secrets`, never in `fly.toml`, the image or a file on the volume.
+
+| Name                      | Needed                                                                   |
+| ------------------------- | ------------------------------------------------------------------------ |
+| `GITHUB_APP_ID`           | Yes                                                                      |
+| `GITHUB_APP_PRIVATE_KEY`  | Yes; the PEM contents                                                    |
+| `GITHUB_WEBHOOK_SECRET`   | Yes                                                                      |
+| `REFIT_SERVICE_TOKEN`     | Yes, for the dashboard API                                               |
+| `ANTHROPIC_API_KEY`       | For real model runs; without it the loop uses offline stubs              |
+| `REFIT_AI_BUDGET_USD`     | Required once `ANTHROPIC_API_KEY` is set; not secret, but set per deploy |
+| `REFIT_SLACK_WEBHOOK_URL` | Optional                                                                 |
+| `GITHUB_TOKEN`            | Optional, for release-API rate limits                                    |
+
+The `refit-hosted` app still holds secrets from the old worker. These are unused and should go:
+`REFIT_WEBHOOK_SECRET`, `OPENAI_API_KEY`, `OPENAI_MODEL`, `REFIT_DATABASE_URL`, `REFIT_HOSTED_OWNER`,
+`REFIT_HOSTED_ACCOUNTS` and `REFIT_HOSTED_AI_BUDGET_USD`.
+
+### First deploy
+
+A founder runs these; each costs money from the volume step on.
+
+```sh
+fly volumes create refit_data --size 40 --region iad -a refit-hosted
+fly secrets unset --stage -a refit-hosted REFIT_WEBHOOK_SECRET OPENAI_API_KEY OPENAI_MODEL \
+  REFIT_DATABASE_URL REFIT_HOSTED_OWNER REFIT_HOSTED_ACCOUNTS REFIT_HOSTED_AI_BUDGET_USD
+set -a; . ~/.config/refit/app.env; set +a
+fly secrets set --stage -a refit-hosted GITHUB_APP_ID="$GITHUB_APP_ID" \
+  GITHUB_WEBHOOK_SECRET="$GITHUB_WEBHOOK_SECRET" REFIT_SERVICE_TOKEN="$REFIT_SERVICE_TOKEN"
+fly secrets set --stage -a refit-hosted GITHUB_APP_PRIVATE_KEY=- < ~/.config/refit/refit.pem
+fly deploy --ha=false -a refit-hosted
+```
+
+Leave `ANTHROPIC_API_KEY` unset until the sandbox is proven below. To send real deliveries here, a
+founder sets the App's Webhook URL to `https://refit-hosted.fly.dev/webhooks`.
+
+### Prove the sandbox on the host
+
+Fly documents no support for a Docker daemon inside a Machine, so check this before relying on it:
+
+```sh
+curl -i https://refit-hosted.fly.dev/healthz
+fly ssh console -a refit-hosted -C "docker info --format '{{.Driver}} {{.ServerVersion}}'"
+fly ssh console -a refit-hosted -C "docker run --rm node:22-bookworm node -v"
+fly ssh console -a refit-hosted -C "docker run --rm node:22-bookworm npm view left-pad version"
+```
+
+The last command proves a sandbox can reach the network to install dependencies. If it hangs or
+fails while the others pass, the bridge network is the problem: read `fly logs` for `dockerd` errors.
+
 ## What runs
 
 `main.ts` wires the queue to two jobs: `scan` (the orchestrator's `scanRepo`) and `run` (the
