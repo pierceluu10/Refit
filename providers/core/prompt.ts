@@ -4,10 +4,10 @@
 import type { DependencyUsage, MigrationKind, MigrationKindMvp } from '../../shared/types.ts';
 import type { LoadedProvider } from './types.ts';
 
-export const WATCH_PROMPT_VERSION = 'watch-v1';
-export const ANY_WATCH_PROMPT_VERSION = 'any-watch-v3';
+export const WATCH_PROMPT_VERSION = 'watch-v2';
+export const ANY_WATCH_PROMPT_VERSION = 'any-watch-v4';
 export const KNOWLEDGE_PROMPT_VERSION = 'knowledge-v1';
-export const DEPENDENCY_WATCH_PROMPT_VERSION = 'dependency-watch-v2';
+export const DEPENDENCY_WATCH_PROMPT_VERSION = 'dependency-watch-v3';
 
 export const MIGRATION_KINDS: MigrationKind[] = [
   'api-version',
@@ -53,7 +53,7 @@ Each change:
 - id: a short stable slug, lowercase with dashes, e.g. "2025-03-31-basil-remove-total-count".
 - kind: one of the MigrationKinds below.
 - title: one plain sentence saying what changed and for whom.
-- effectiveDate: YYYY-MM-DD (or YYYY-MM) when it takes effect or the deadline; omit if the source gives none. Do not guess.
+- effectiveDate: YYYY-MM-DD (or YYYY-MM), the deadline: the date the version this change hits stops working, stops being served or stops getting support (end of life, shutdown, removal, enforcement). Reports are sorted by it, so the top of the list is what hurts first. A release date is never a deadline: a new major coming out does not stop the old one working. Omit it when the source gives no such date. Do not guess.
 - source: { url, quote }.
 - affects: operations (endpoint paths, SDK methods, GraphQL operations, model ids), fields, versions (API or SDK versions involved) and sdk (package name) - whatever the source supports. Leave a list out rather than invent entries.
 
@@ -110,7 +110,7 @@ const EACH_CHANGE = `Each change:
 - id: a short stable slug, lowercase with dashes, e.g. "2026-03-31-remove-total-count".
 - kind: one of the MigrationKinds below.
 - title: one plain sentence saying what changed and for whom.
-- effectiveDate: YYYY-MM-DD (or YYYY-MM) when it takes effect or the deadline; omit if the source gives none. Do not guess.
+- effectiveDate: YYYY-MM-DD (or YYYY-MM), the deadline: the date the version this change hits stops working, stops being served or stops getting support (end of life, shutdown, removal, enforcement). Reports are sorted by it, so the top of the list is what hurts first. A release date is never a deadline: a new major coming out does not stop the old one working. Omit it when the source gives no such date. Do not guess.
 - source: { url, quote }.
 - affects: operations (endpoint paths, SDK methods, GraphQL operations, model ids), fields, versions (API or SDK versions involved) and sdk (package name) - whatever the source supports. Leave a list out rather than invent entries.`;
 
@@ -212,13 +212,13 @@ export const SOURCE_GUIDES = {
 - A container image carries two clocks: the runtime in its name (node:18) and the OS in its tag (bookworm, alpine3.18). Check both.
 - When the repository's version is not known, report every cycle past or near its end of life.`,
   packages: `New major versions and migration guides:
-- The package summaries list the majors and the release notes of each. Report each major above this repository's version with breaking changes: kind framework-major for a framework, dependency-major for a library (sdk-major for an API's SDK). fromVersions is the range it breaks, such as ["<14.0.0"], toVersion the latest release of that major, severity "breaking". Majors at or below the repository's version are not changes for it.
+- The package summaries list the majors and the release notes of each. Report each major above this repository's version with breaking changes: kind framework-major for a framework, dependency-major for a library (sdk-major for an API's SDK). fromVersions is the range it breaks, such as ["<14.0.0"], toVersion the latest release of that major, severity "breaking". Majors at or below the repository's version are not changes for it. A new major has no deadline of its own: leave effectiveDate out, unless the project publishes when the repository's major stops getting fixes, and then that end-of-support date is the effectiveDate (quote it).
 - Read the migration or upgrade guide for each major you report: the changelog, the release notes or the project's docs usually link it, and web_search or list_links find it otherwise. Make it the change's source, quoting where it says what breaks; if there is none, say so in the notes.
 - A package marked deprecated or inactive is a change too, with its replacement in the title.`,
   advisories: `Security advisories:
 - The OSV feed lists advisories for this package and version with the first fixed versions, and https://api.osv.dev/v1/vulns/<id> gives one in full. The GitHub Advisory Database page lists them with more detail. Read https://osv.dev/vulnerability/<id> style links as they appear; cite those.
 - Keep an advisory only when the fix needs more than a version bump (code has to change, or a fix needs configuration) or when the bump crosses a major version from this repository's version. Plain bumps within a major belong to a dependency bot: leave them out and say how many in the notes.
-- Kind security-fix, severity "security", fromVersions the affected range, toVersion the first fixed version, one change per advisory.`,
+- Kind security-fix, severity "security", fromVersions the affected range, toVersion the first fixed version, one change per advisory. An advisory's publication date is not a deadline: leave effectiveDate out unless the version stops being supported on a published date.`,
   models: `AI model retirements:
 - The deprecation pages of OpenAI, Anthropic and Google list models with shutdown dates and recommended replacements. Read the one for this model's provider, and find this model id, its dated snapshots and its aliases.
 - Kind model-retirement, severity "deadline", effectiveDate the shutdown date, fromVersions the model ids that go away, toVersion the replacement the provider recommends.
@@ -272,7 +272,7 @@ Each change:
 - id: a short stable slug, lowercase with dashes, e.g. "node-18-end-of-life".
 - kind: one from the list below, or "other".
 - title: one plain sentence saying what changed and for whom.
-- effectiveDate: YYYY-MM-DD (or YYYY-MM) when it takes effect or the deadline; omit if the source gives none. Do not guess.
+- effectiveDate: YYYY-MM-DD (or YYYY-MM), the deadline: the date the version this change hits stops working, stops being served or stops getting support (end of life, shutdown, removal, enforcement). Reports are sorted by it, so the top of the list is what hurts first. A release date is never a deadline: a new major coming out does not stop the old one working. Omit it when the source gives no such date. Do not guess.
 - source: { url, quote }.
 - affects: operations (functions, CLI commands, config keys), fields, versions and sdk (package name), whatever the source supports; {} if none.
 
