@@ -259,5 +259,24 @@
       "notes": "A correct two-line bump: Flask and Werkzeug have to move together. The PR's own check failed before and after because the sandbox used Python 3.12 while the repo requires >=3.9,<3.10, so stripe 2.76.0 could not import. I ran the 7 repo tests in Docker on python:3.9 with flask 3.1.3, werkzeug 3.1.9 and the real stripe 2.76.0: 7 passed. That is by hand; the PR doesn't prove it, so needs-review stays right. The harness should pick the Python the repo declares (for lane O4). The 'deadline 2023-09-30' in the body is a release date (lane F4). Best candidate for the merge test."
     },
     "firstSeen": "2026-11-08T07:40:00.000Z"
+  },
+  {
+    "key": "refit-dev-demo/refit-dev/demo-next-web/refit-dev/demo-next-web:next:ghsa-2464-fhr4-w9xw",
+    "set": "refit-dev-demo",
+    "repo": "refit-dev/demo-next-web",
+    "commit": "36f8a55dd2b5d1ff404a4da900fc81958cd35c02",
+    "taskId": "refit-dev/demo-next-web:next:ghsa-2464-fhr4-w9xw",
+    "changeId": "next:ghsa-2464-fhr4-w9xw",
+    "pr": "https://github.com/refit-dev/demo-next-web/pull/1",
+    "grade": "needs-review",
+    "files": ["package-lock.json", "package.json", "pages/index.js"],
+    "handCheck": {
+      "status": "agree",
+      "reviewer": "P1 reliability session, for Pierce",
+      "checkedAt": "2026-11-08",
+      "wouldMerge": "with-edits",
+      "notes": "The code change is right: next 15.5.28 fixes the named RCE, and removing the nested <a> is the needed Link migration. I ran the PR branch in Docker with install scripts off: on node 22, npm test passes and next build succeeds. It can't merge as opened, because the CI Node bump (16 to 22) was left out for lack of the Workflows permission and is only listed in the body: on node 16 next build refuses to run, so CI would break until that edit is applied. Other points: the versions became caret ranges in a repo that pinned exactly; the 'Deadline 2022-11-21' is Next 12's end of life, not a date for this advisory (lane F4); npm audit still reports a postcss advisory that only next 16 clears, which the PR says. Needs-review is right."
+    },
+    "firstSeen": "2026-11-08T16:45:00.000Z"
   }
 ]
