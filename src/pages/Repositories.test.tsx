@@ -308,7 +308,7 @@ describe('repository detail', () => {
         async () => new Response(JSON.stringify({ error: 'no' }), { status: 401, headers: json }),
       ),
     );
-    expect(await screen.findByText(/need a GitHub sign-in/)).toBeVisible();
+    expect(await screen.findByText(/to see your/)).toBeVisible();
     expect(screen.getByText('Example data')).toBeVisible();
   });
 

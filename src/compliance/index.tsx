@@ -564,7 +564,7 @@ export function PlatformsAndRules() {
           <Info aria-hidden="true" />
           <span>
             {example === 'signed-out'
-              ? 'This view needs a sign-in, which isn’t available yet. Everything below is example data.'
+              ? 'Sign in with GitHub to see your own data. Everything below is example data.'
               : 'No Refit API is reachable from this site. Everything below is example data.'}
           </span>
         </p>

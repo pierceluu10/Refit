@@ -3,7 +3,10 @@ import type { AnyTask, StoredRun } from '../memory/types.ts';
 import { runRepoJob, scanRepo } from '../orchestrator/index.ts';
 import { apiAsExternalTask } from '../orchestrator/scan.ts';
 import type { ExternalTask, ScanReport, ScanRepo } from '../shared/types.ts';
-import { createApiRoutes, isServiceToken } from './api/index.ts';
+import type { SessionRepos } from './api/auth.ts';
+import { createApiRoutes, isServiceToken, resolveAccess } from './api/index.ts';
+import { createSessions } from './api/session.ts';
+import type { ViewerRepos } from './api/session.ts';
 import { AUDIT_PATHS, serveAudit } from './audit/index.ts';
 import {
   createBeforeOpenPullRequest,
@@ -13,6 +16,7 @@ import {
 } from './lifecycle/index.ts';
 import type { FindOpenPullRequest } from './lifecycle/index.ts';
 import { notifyRun, sendWeeklyDigest } from './notify/index.ts';
+import type { LoginConfig } from './config.ts';
 import type { ReportStore } from './reports.ts';
 import type { BeforeOpenPullRequest, InstallationTokens, NotifyRun, RunTasks } from './types.ts';
 
@@ -24,6 +28,8 @@ export type Parts = {
   scanRepo: ScanRepo;
   runTasks: RunTasks;
   isServiceToken: IsServiceToken;
+  viewerRepos: ViewerRepos;
+  userToken: (request: IncomingMessage) => string | undefined;
   routes: Route[];
   beforeOpenPullRequest: BeforeOpenPullRequest;
   notifyRun: NotifyRun;
@@ -42,29 +48,42 @@ export type PartsDeps = {
   reports: ReportStore;
   tokens: InstallationTokens;
   listRuns: () => Promise<StoredRun[]>;
+  viewerRepos: ViewerRepos;
+  login?: LoginConfig;
+  fetchImpl?: typeof fetch;
 };
 
 // The queue carries ExternalTasks, and an older stored run may hold a plain MigrationTask.
 const asExternalTask = (task: AnyTask): ExternalTask =>
   'dependencies' in task ? task : apiAsExternalTask(task);
 
-function auditRoute({ reports }: PartsDeps): Route {
+function auditRoute({ reports }: PartsDeps, sessionRepos: SessionRepos): Route {
   const listRepos = async () => (await reports.list()).map((report) => report.repo);
   return async (request, response) => {
     const path = new URL(request.url ?? '/', 'http://localhost').pathname;
     if (request.method !== 'GET' || !AUDIT_PATHS.includes(path)) return false;
-    await serveAudit(request, response, { isAuthorized: isServiceToken, listRepos });
+    await serveAudit(request, response, {
+      access: (incoming) => resolveAccess(incoming, sessionRepos),
+      listRepos,
+    });
     return true;
   };
 }
 
 export function loadParts(deps: PartsDeps): Parts {
-  const { tokens, listRuns } = deps;
+  const { tokens, listRuns, login, viewerRepos, fetchImpl } = deps;
+  const sessions = createSessions(login, { viewerRepos, fetchImpl });
   return {
     scanRepo,
     runTasks: runRepoJob,
     isServiceToken,
-    routes: [createApiRoutes(deps), auditRoute(deps)],
+    viewerRepos: sessions.viewerRepos,
+    userToken: sessions.userToken,
+    routes: [
+      sessions.route,
+      createApiRoutes({ ...deps, sessionRepos: sessions.repos }),
+      auditRoute(deps, sessions.repos),
+    ],
     beforeOpenPullRequest: createBeforeOpenPullRequest({ tokens }),
     notifyRun,
     findOpenPullRequest: createFindOpenPullRequest({ tokens }),

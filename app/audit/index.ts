@@ -5,6 +5,8 @@ import {
 } from '../../compliance/index.ts';
 import { redactSecrets } from '../../harness/secrets.ts';
 import type { AuditEntry, Obligation } from '../../shared/types.ts';
+import { canRead } from '../api/auth.ts';
+import type { Access } from '../api/auth.ts';
 import { REPO_PATTERN } from '../types.ts';
 import { auditCsv, chronological } from './csv.ts';
 
@@ -21,7 +23,7 @@ const UNAUTHORIZED = 401;
 const ALL_REPOSITORIES = 'all-repositories';
 
 export type AuditDeps = {
-  isAuthorized: (authorization: string | undefined) => boolean;
+  access: (request: IncomingMessage) => Promise<Access | undefined>;
   listRepos: () => Promise<string[]>;
   listAudit?: (repo: string) => Promise<AuditEntry[]>;
   listObligations?: () => Promise<Obligation[]>;
@@ -36,9 +38,14 @@ const redacted = (entry: AuditEntry): AuditEntry => ({
   actor: redactSecrets(entry.actor),
 });
 
-async function entriesFor(repo: string | undefined, deps: AuditDeps): Promise<AuditEntry[]> {
+async function entriesFor(
+  repo: string | undefined,
+  access: Access,
+  deps: AuditDeps,
+): Promise<AuditEntry[]> {
   const list = deps.listAudit ?? listStoredAudit;
-  const repos = repo === undefined ? await deps.listRepos() : [repo];
+  const wanted = repo === undefined ? await deps.listRepos() : [repo];
+  const repos = wanted.filter((name) => canRead(access, name));
   const entries = (await Promise.all(repos.map((name) => list(name)))).flat();
   return chronological(entries).map(redacted);
 }
@@ -48,11 +55,13 @@ export async function serveAudit(
   response: ServerResponse,
   deps: AuditDeps,
 ): Promise<void> {
-  if (!deps.isAuthorized(request.headers.authorization)) {
+  const access = await deps.access(request);
+  if (!access) {
     response.writeHead(UNAUTHORIZED).end();
     return;
   }
   const url = new URL(request.url ?? '/', 'http://localhost');
+  // Obligations are the rules' own text, shared by every org: they hold no customer data.
   if (url.pathname === OBLIGATIONS_PATH) {
     sendJson(response, OK, await (deps.listObligations ?? listStoredObligations)());
     return;
@@ -62,7 +71,7 @@ export async function serveAudit(
     sendJson(response, BAD_REQUEST, { error: 'repo must be owner/name' });
     return;
   }
-  const entries = await entriesFor(repo, deps);
+  const entries = await entriesFor(repo, access, deps);
   if (url.pathname !== CSV_PATH) {
     sendJson(response, OK, entries);
     return;

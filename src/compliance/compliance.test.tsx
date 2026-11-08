@@ -303,10 +303,18 @@ describe('example fallback', () => {
       { ...live, '/api/repos': { body: 'Not found', status: 404, type: 'text/plain' } },
       /No Refit API/,
     ],
-    ['the API needs a sign-in', { ...live, '/api/repos': json({}, 401) }, /needs a sign-in/],
+    [
+      'the API needs a sign-in',
+      { ...live, '/api/repos': json({}, 401) },
+      /Sign in with GitHub to see/,
+    ],
     ['one route is not mounted yet', { ...live, '/api/audit': json({}, 404) }, /No Refit API/],
     ['one route falls back to html', { ...live, '/api/obligations': html }, /No Refit API/],
-    ['one route needs a sign-in', { ...live, '/api/runs': json({}, 401) }, /needs a sign-in/],
+    [
+      'one route needs a sign-in',
+      { ...live, '/api/runs': json({}, 401) },
+      /Sign in with GitHub to see/,
+    ],
   ])('labels the whole page as an example when %s', async (_, routes, reason) => {
     renderPage(routes);
     await loaded();

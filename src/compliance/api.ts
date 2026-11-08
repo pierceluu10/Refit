@@ -13,7 +13,7 @@ const NOT_FOUND = 404;
 
 // No API is served here: a static deploy answers 404 or falls back to index.html.
 export class ApiUnavailableError extends Error {}
-// The API needs a sign-in the site can't do yet.
+// The API needs a sign-in.
 export class ApiSignedOutError extends Error {}
 
 export type RepoData = {

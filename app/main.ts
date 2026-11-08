@@ -35,6 +35,8 @@ const parts = loadParts({
   reports,
   tokens,
   listRuns: () => defaultMemory().store.listRuns(),
+  viewerRepos: (userToken) => listViewerRepos(userToken, config.appId),
+  login: config.login,
 });
 
 const queue = await createFileQueue(
@@ -88,9 +90,10 @@ const server = createWebhookServer({
   queue,
   recordVerdict: verdict,
   listRunViews,
-  viewerRepos: (userToken) => listViewerRepos(userToken, config.appId),
+  viewerRepos: parts.viewerRepos,
   isServiceToken: parts.isServiceToken,
   routes: parts.routes,
+  userToken: parts.userToken,
 });
 
 const weekly = createWeeklyScan({

@@ -13,6 +13,7 @@ import {
 } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, matchPath, NavLink, Route, Routes, useLocation } from 'react-router-dom';
+import { Account } from '../components/Account';
 import { Brand } from '../components/Brand';
 import { WorkspaceMissing } from '../components/WorkspaceUI';
 import { PlatformsAndRules } from '../compliance';
@@ -132,6 +133,7 @@ export function Workspace() {
           <span>
             Dashboard <CaretRight /> <strong>{current?.name ?? 'Not found'}</strong>
           </span>
+          <Account />
         </header>
         <main id="main-content" className="app-content">
           <Routes>

@@ -596,18 +596,39 @@ describe('failures', () => {
     expect(logged(errors), 'secret in log').not.toContain(SECRET);
   });
 
-  it('answers 502 when GitHub refuses an installation token', async () => {
+  it("leaves out a suspended installation's PRs and keeps the rest of the list", async () => {
+    const errors = silenceErrors();
+    const github = fakeGitHub({ [pullsPath(STOREFRONT)]: { body: [] } });
+    const { get } = await start({
+      reports: fakeReports([BILLING_REPORT, STOREFRONT_REPORT]),
+      fetchImpl: github.fetchImpl,
+      tokens: {
+        token: async (id) => {
+          if (id !== BILLING_INSTALLATION) return `installation-token-${id}`;
+          throw new GitHubApiError('POST', '/app/installations/11/access_tokens', 403, 'suspended');
+        },
+      },
+    });
+    const response = await get('/api/prs');
+    const text = await response.text();
+    expect(response.status, text).toBe(200);
+    expect(JSON.parse(text)).toEqual([]);
+    expect(github.calls.map((call) => call.path)).toEqual([pullsPath(STOREFRONT)]);
+    expect(logged(errors)).toContain(BILLING);
+  });
+
+  it('still answers 502 when GitHub is down rather than refusing one installation', async () => {
     silenceErrors();
     const { get } = await start({
       reports: fakeReports([BILLING_REPORT]),
       tokens: {
         token: async () => {
-          throw new GitHubApiError('POST', '/app/installations/11/access_tokens', 403, 'suspended');
+          throw new GitHubApiError('POST', '/app/installations/11/access_tokens', 503, 'down');
         },
       },
     });
     const text = await exactly(await get('/api/prs'), 502, { error: 'GitHub request failed' });
-    expect(text).not.toContain('suspended');
+    expect(text).not.toContain('down');
   });
 
   it('answers a generic 500 for anything else, with the store error kept in the log only', async () => {

@@ -4,7 +4,7 @@ import type { ScanReport } from '../shared/types.ts';
 
 // No API is served here (a static deploy answers 404 or falls back to index.html).
 export class ApiUnavailableError extends Error {}
-// The API needs a sign-in the site can't do yet.
+// The API needs a sign-in.
 export class ApiSignedOutError extends Error {}
 // The API is there and says this one thing doesn't exist, e.g. a repo with no scan yet.
 export class ApiNotFoundError extends Error {}
@@ -23,6 +23,24 @@ export async function fetchApi<T>(
   const body: unknown = await response.json();
   if (!isExpected(body)) throw new Error('The API returned something unexpected.');
   return body;
+}
+
+export const LOGIN_PATH = '/api/auth/login';
+const LOGOUT_PATH = '/api/auth/logout';
+
+export type Session =
+  { signedIn: true; login: string; orgs: string[] } | { signedIn: false; canSignIn: boolean };
+
+function isSession(body: unknown): body is Session {
+  return typeof body === 'object' && body !== null && 'signedIn' in body;
+}
+
+export function fetchSession(signal: AbortSignal) {
+  return fetchApi('/api/session', isSession, signal);
+}
+
+export function logOut() {
+  return fetch(LOGOUT_PATH, { method: 'POST' });
 }
 
 export function isList<T>(body: unknown): body is T[] {
@@ -89,9 +107,13 @@ export function ExampleNote({ signedOut, what }: { signedOut: boolean; what: str
     <div className="detail-explanation example-note">
       <Info />
       <span>
-        {signedOut
-          ? `Your ${what} need a GitHub sign-in, which isn’t available yet. These are examples.`
-          : `No Refit API is reachable from this site. These ${what} are examples.`}
+        {signedOut ? (
+          <>
+            <a href={LOGIN_PATH}>Sign in with GitHub</a> to see your {what}. These are examples.
+          </>
+        ) : (
+          `No Refit API is reachable from this site. These ${what} are examples.`
+        )}
       </span>
     </div>
   );

@@ -2,6 +2,9 @@ import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
 
+// Page tests queue fetch replies in order, and the account badge would take the first one.
+vi.mock('../components/Account', () => ({ Account: () => null }));
+
 afterEach(cleanup);
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

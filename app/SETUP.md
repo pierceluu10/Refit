@@ -187,24 +187,42 @@ apply there, so Refit can't push branches or open PRs on those installations.
 
 Put these in `app/.env` (gitignored; `npm run dev` loads it). Never commit or print them.
 
-| Variable                      | Value                                                                         |
-| ----------------------------- | ----------------------------------------------------------------------------- |
-| `GITHUB_APP_ID`               | `5275879`                                                                     |
-| `GITHUB_APP_PRIVATE_KEY_FILE` | Path to the `.pem`                                                            |
-| `GITHUB_APP_PRIVATE_KEY`      | PEM contents instead of a file, for hosts that only take env vars             |
-| `GITHUB_WEBHOOK_SECRET`       | The webhook secret from step 1                                                |
-| `PORT`                        | Default `3000`                                                                |
-| `HOST`                        | Default `127.0.0.1`                                                           |
-| `SMEE_URL`                    | Dev tunnel only                                                               |
-| `REFIT_QUEUE_FILE`            | Job queue file; default `.refit/queue.json` (a persistent path in production) |
-| `REFIT_QUEUE_CONCURRENCY`     | Jobs that run at once; default `2`                                            |
-| `REFIT_SERVICE_TOKEN`         | The dashboard's token: reads every run on `GET /api/runs`; server side only   |
-| `REFIT_SLACK_WEBHOOK_URL`     | Optional; `app/notify` posts to it                                            |
-| `REFIT_MEMORY_DIR`            | memory/'s store; absolute path on a persistent volume in production           |
-| `REFIT_AI_BUDGET_USD`         | Run cap for the loop; required once `ANTHROPIC_API_KEY` is set                |
-| `ANTHROPIC_API_KEY`           | Real model runs; without it the loop and memory use offline stubs             |
+| Variable                      | Value                                                                          |
+| ----------------------------- | ------------------------------------------------------------------------------ |
+| `GITHUB_APP_ID`               | `5275879`                                                                      |
+| `GITHUB_APP_PRIVATE_KEY_FILE` | Path to the `.pem`                                                             |
+| `GITHUB_APP_PRIVATE_KEY`      | PEM contents instead of a file, for hosts that only take env vars              |
+| `GITHUB_WEBHOOK_SECRET`       | The webhook secret from step 1                                                 |
+| `PORT`                        | Default `3000`                                                                 |
+| `HOST`                        | Default `127.0.0.1`                                                            |
+| `SMEE_URL`                    | Dev tunnel only                                                                |
+| `REFIT_QUEUE_FILE`            | Job queue file; default `.refit/queue.json` (a persistent path in production)  |
+| `REFIT_QUEUE_CONCURRENCY`     | Jobs that run at once; default `2`                                             |
+| `REFIT_SERVICE_TOKEN`         | Internal calls only: reads every org's data on `/api`; never sent to a browser |
+| `GITHUB_CLIENT_ID`            | The App's Client ID, for the dashboard login (section "Dashboard login")       |
+| `GITHUB_CLIENT_SECRET`        | A client secret generated on the App's settings page                           |
+| `REFIT_SESSION_SECRET`        | At least 32 random characters; seals session cookies                           |
+| `REFIT_SLACK_WEBHOOK_URL`     | Optional; `app/notify` posts to it                                             |
+| `REFIT_MEMORY_DIR`            | memory/'s store; absolute path on a persistent volume in production            |
+| `REFIT_AI_BUDGET_USD`         | Run cap for the loop; required once `ANTHROPIC_API_KEY` is set                 |
+| `ANTHROPIC_API_KEY`           | Real model runs; without it the loop and memory use offline stubs              |
 
 Jobs run the harness in Docker, so the host needs Docker running.
+
+## Dashboard login
+
+The dashboard signs people in through the App's user authorization. A founder sets these once on the
+App's settings page:
+
+1. **Callback URL**: add `https://<dashboard host>/api/auth/callback`. For local work add
+   `http://localhost:5173/api/auth/callback` too. **Request user authorization (OAuth) during
+   installation** stays off.
+2. **Client secrets** → **Generate a new client secret**. Copy it and the **Client ID** into the
+   host's secret store as `GITHUB_CLIENT_SECRET` and `GITHUB_CLIENT_ID`.
+3. Set `REFIT_SESSION_SECRET` to at least 32 random characters, for example `openssl rand -base64 48`.
+
+A signed-in person sees the repos GitHub says they can reach through this App's installations. Without
+these variables the app runs as before and the login route answers `503`.
 
 ## Local development
 

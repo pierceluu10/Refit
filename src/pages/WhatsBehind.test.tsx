@@ -357,7 +357,7 @@ describe('what’s behind', () => {
     );
     await screen.findByRole('table');
     expect(screen.getByText('Example data')).toBeVisible();
-    expect(screen.getByText(/need a GitHub sign-in/)).toBeVisible();
+    expect(screen.getByText(/to see your/)).toBeVisible();
   });
 
   it('shows an error with a working retry, and no examples', async () => {
