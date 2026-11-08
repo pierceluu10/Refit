@@ -8,6 +8,7 @@ import { createReportStore } from './reports.ts';
 
 const REPO = 'refit-example-org/billing-api';
 const PR = `https://github.com/${REPO}/pull/41`;
+const taskFor = (changeId: string, id = `task-${changeId}`) => ({ id, change: { id: changeId } });
 
 const item = (changeId: string, pr?: string): BehindItem => ({
   repo: REPO,
@@ -89,11 +90,32 @@ describe('createReportStore', () => {
   it('marks every item of a change as pr-open, and leaves other changes alone', async () => {
     const store = createReportStore(dir);
     await store.save(1, report(REPO, [item('node-18'), item('node-18'), item('flask-3')]));
-    await store.markPullRequest(REPO, 'node-18', PR);
+    await store.markPullRequest(REPO, taskFor('node-18'), PR);
     const items = (await store.latest(REPO))!.items;
     expect(items.map(({ status, pr }) => [status, pr])).toEqual([
       ['pr-open', PR],
       ['pr-open', PR],
+      ['open', undefined],
+    ]);
+  });
+
+  it('marks the rows of changes the task also resolves, and no other task', async () => {
+    const store = createReportStore(dir);
+    await store.save(
+      1,
+      report(REPO, [
+        { ...item('art-50'), taskId: 'shared' },
+        { ...item('art-113'), taskId: 'shared' },
+        { ...item('gdpr'), taskId: 'another' },
+        item('flask-3'),
+      ]),
+    );
+    await store.markPullRequest(REPO, taskFor('art-50', 'shared'), PR);
+    const items = (await store.latest(REPO))!.items;
+    expect(items.map(({ status, pr }) => [status, pr])).toEqual([
+      ['pr-open', PR],
+      ['pr-open', PR],
+      ['open', undefined],
       ['open', undefined],
     ]);
   });
@@ -138,7 +160,7 @@ describe('createReportStore', () => {
 
   it('ignores a PR mark for a repo with no report', async () => {
     const store = createReportStore(dir);
-    await store.markPullRequest(REPO, 'node-18', PR);
+    await store.markPullRequest(REPO, taskFor('node-18'), PR);
     expect(await store.latest(REPO)).toBeUndefined();
   });
 
@@ -172,7 +194,7 @@ describe('createReportStore', () => {
         changes.map((id) => item(id)),
       ),
     );
-    await Promise.all(changes.map((id) => store.markPullRequest(REPO, id, `${PR}${id}`)));
+    await Promise.all(changes.map((id) => store.markPullRequest(REPO, taskFor(id), `${PR}${id}`)));
     const items = (await store.latest(REPO))!.items;
     expect(items.map((saved) => saved.pr)).toEqual(changes.map((id) => `${PR}${id}`));
   });

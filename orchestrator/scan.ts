@@ -50,7 +50,6 @@ export type ExternalDeps = {
 
 // One report row. BehindItem plus what the dashboard and CLI need to explain it.
 export type ScanItem = BehindItem & {
-  taskId?: string;
   // Why the change is open, merged into a task, or not affected: the match agent's words.
   reason?: string;
 };

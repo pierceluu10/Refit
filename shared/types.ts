@@ -190,6 +190,7 @@ export type BehindItem = {
   deadline?: string;
   status: 'open' | 'pr-open' | 'merged' | 'not-affected';
   pr?: string;
+  taskId?: string; // the task covering this row; every change a task resolves shares its id
 };
 
 export type ScanReport = {

@@ -308,7 +308,11 @@ describe('what’s behind', () => {
       }),
     );
     await screen.findByRole('table');
-    expect(screen.getByText(`Refit couldn’t read everything in ${FIRST}.`)).toBeVisible();
+    const note = screen.getByText(`Refit couldn’t read everything in ${FIRST}.`);
+    expect(note).toBeVisible();
+    expect(screen.getByText('1 note')).toBeVisible();
+    expect(screen.getByText('Couldn’t read deploy/values.yaml.')).not.toBeVisible();
+    fireEvent.click(note);
     expect(screen.getByText('Couldn’t read deploy/values.yaml.')).toBeVisible();
     expect(screen.queryByText(`Refit couldn’t read everything in ${SECOND}.`)).toBeNull();
   });
