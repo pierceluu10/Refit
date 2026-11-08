@@ -1,6 +1,6 @@
 import type { ExternalTask, RunRecord } from '../shared/types.ts';
 import { filesFromDiff } from './git.ts';
-import { githubRequest } from './github.ts';
+import { GitHubApiError, githubRequest } from './github.ts';
 import { BRANCH_PREFIX } from './types.ts';
 import type {
   FileChange,
@@ -13,6 +13,9 @@ import type {
 const FILE_MODE = '100644';
 const BLOB = 'blob';
 const MAX_SLUG_CHARS = 80;
+const WORKFLOWS_DIR = '.github/workflows/';
+const FORBIDDEN = 403;
+const MAX_WORKFLOW_DIFF_CHARS = 8000;
 
 export class UnsafeBranchError extends Error {
   constructor(branch: string, reason: string) {
@@ -25,6 +28,15 @@ export class EmptyChangeError extends Error {
   constructor(repo: string) {
     super(`Refusing to open a pull request on ${repo} with no file changes`);
     this.name = 'EmptyChangeError';
+  }
+}
+
+export class WorkflowPermissionError extends Error {
+  constructor(repo: string) {
+    super(
+      `GitHub refused changes to ${WORKFLOWS_DIR} on ${repo}, and the change has nothing else. Approve the Workflows permission for this install.`,
+    );
+    this.name = 'WorkflowPermissionError';
   }
 }
 
@@ -97,6 +109,32 @@ export const branchFor = (taskId: string) =>
 // The harness writes prBody beside RunRecord's own fields (HarnessRunRecord), and may write a prTitle.
 type WrittenRecord = RunRecord & { prBody?: string; prTitle?: string };
 
+// GitHub answers 403 to the whole tree when the install hasn't approved Workflows, which older installs
+// may not have. The rest of the change is still worth a PR, so the workflow edits go in its body.
+const isWorkflowRefusal = (error: unknown) =>
+  error instanceof GitHubApiError &&
+  error.status === FORBIDDEN &&
+  error.path.endsWith('/git/trees');
+
+function workflowNote(diff: string) {
+  const sections = diff
+    .split(/^(?=diff --git )/m)
+    .filter((section) => section.startsWith(`diff --git a/${WORKFLOWS_DIR}`));
+  return [
+    `> **Not in this PR:** edits to \`${WORKFLOWS_DIR}\`. This install hasn't approved Refit's Workflows permission, so GitHub refused them. The checks below ran with these edits applied, so apply them by hand or approve the permission and re-run.`,
+    '',
+    '<details><summary>Workflow edits to apply</summary>',
+    '',
+    '```diff',
+    sections.join('').slice(0, MAX_WORKFLOW_DIFF_CHARS),
+    '```',
+    '',
+    '</details>',
+    '',
+    '',
+  ].join('\n');
+}
+
 type Pull = { html_url: string; state: string; merged_at: string | null };
 
 async function pullsOnBranch(
@@ -127,20 +165,29 @@ export function createOpenPullRequest(
     const open = await pullsOnBranch(tokens, installationId, task, 'open', fetchImpl);
     if (open.length > 0) return open[0].html_url;
     const title = record.prTitle ?? task.change.title;
-    const pull = await openPullRequest(
-      tokens,
-      installationId,
-      {
-        repo: task.repo,
-        branch: branchFor(task.id),
-        title,
-        body: record.prBody ?? `${title}\n\nSource: ${task.change.source.url}`,
-        commitMessage: `chore(${task.change.provider}): ${title}`,
-        files: await filesFromDiff(repoDir, record.diff),
-        draft: true,
-      },
-      fetchImpl,
-    );
+    const body = record.prBody ?? `${title}\n\nSource: ${task.change.source.url}`;
+    const files = await filesFromDiff(repoDir, record.diff);
+    const pullRequest = (changed: FileChange[], text: string) =>
+      openPullRequest(
+        tokens,
+        installationId,
+        {
+          repo: task.repo,
+          branch: branchFor(task.id),
+          title,
+          body: text,
+          commitMessage: `chore(${task.change.provider}): ${title}`,
+          files: changed,
+          draft: true,
+        },
+        fetchImpl,
+      );
+    const pull = await pullRequest(files, body).catch((error: unknown) => {
+      const kept = files.filter((file) => !file.path.startsWith(WORKFLOWS_DIR));
+      if (!isWorkflowRefusal(error) || kept.length === files.length) throw error;
+      if (kept.length === 0) throw new WorkflowPermissionError(task.repo);
+      return pullRequest(kept, `${workflowNote(record.diff)}${body}`);
+    });
     return pull.url;
   };
 }
