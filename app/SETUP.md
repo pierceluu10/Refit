@@ -235,7 +235,8 @@ the repo root with `-w @refit/app`, or from inside `app/`.
    without watching.
 5. `curl http://127.0.0.1:3000/healthz` should answer.
 6. Terminal 3, from the repo root: `npm run dev` serves the site on `http://127.0.0.1:5173`. It adds
-   `REFIT_SERVICE_TOKEN` from `app/.env` to `/api` calls, so set that first.
+   `REFIT_SERVICE_TOKEN` from `app/.env` to `/api` calls, so set that first
+   (`openssl rand -hex 32` makes one; without it the page answers as signed out).
 7. Send yourself a signed delivery. There's no script for this; the fixtures in `app/fixtures/` work
    with `openssl` and `curl`. Each needs a new delivery id, or the app ignores it as a repeat:
 
