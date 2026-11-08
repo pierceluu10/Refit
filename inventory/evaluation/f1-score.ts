@@ -30,6 +30,8 @@ export type Labels = { repos: LabelRepo[] };
 export type ScanResult = {
   repo: string;
   costUsd: number;
+  // An inventory-only run (inventory/cli.ts --dependencies) has no findings to score.
+  inventoryOnly?: boolean;
   dependencies: DependencyUsage[];
   report: { items: (BehindItem & { reason?: string })[]; errors: string[] };
 };
@@ -140,8 +142,9 @@ export function scoreRun(labels: Labels, results: ScanResult[]) {
       repo: result.repo,
       costUsd: result.costUsd,
       errors: result.report.errors.length,
+      inventoryOnly: result.inventoryOnly === true,
       inventory: scoreInventory(label, result.dependencies),
-      findings: scoreFindings(label, result.report.items),
+      findings: scoreFindings(label, result.inventoryOnly ? [] : result.report.items),
       depNames: new Set(result.dependencies.map((d) => norm(d.name))),
     };
   });
@@ -149,6 +152,8 @@ export function scoreRun(labels: Labels, results: ScanResult[]) {
 
 function totals(scores: ReturnType<typeof scoreRun>) {
   const sum = (f: (s: (typeof scores)[number]) => number) => scores.reduce((a, s) => a + f(s), 0);
+  const scanned = scores.filter((s) => !s.inventoryOnly);
+  const fsum = (f: (s: (typeof scores)[number]) => number) => scanned.reduce((a, s) => a + f(s), 0);
   const invJudged = sum((s) => s.inventory.reported - s.inventory.transitive);
   const invCorrect = sum(
     (s) => s.inventory.reported - s.inventory.transitive - s.inventory.extra.length,
@@ -158,18 +163,23 @@ function totals(scores: ReturnType<typeof scoreRun>) {
     errors: sum((s) => s.errors),
     invRecall: sum((s) => s.inventory.found) / sum((s) => s.inventory.required),
     invPrecision: invJudged ? invCorrect / invJudged : 1,
-    findRecall: sum((s) => s.findings.found) / sum((s) => s.findings.required),
-    findPrecision:
-      sum((s) => s.findings.open - s.findings.extra.length) /
+    findRecall:
+      fsum((s) => s.findings.found) /
       Math.max(
-        sum((s) => s.findings.open),
+        fsum((s) => s.findings.required),
         1,
       ),
-    open: sum((s) => s.findings.open),
-    duplicates: sum((s) => s.findings.duplicates),
-    deadlinesRight: sum((s) => s.findings.deadlinesRight),
-    found: sum((s) => s.findings.found),
-    required: sum((s) => s.findings.required),
+    findPrecision:
+      fsum((s) => s.findings.open - s.findings.extra.length) /
+      Math.max(
+        fsum((s) => s.findings.open),
+        1,
+      ),
+    open: fsum((s) => s.findings.open),
+    duplicates: fsum((s) => s.findings.duplicates),
+    deadlinesRight: fsum((s) => s.findings.deadlinesRight),
+    found: fsum((s) => s.findings.found),
+    required: fsum((s) => s.findings.required),
   };
 }
 
@@ -178,9 +188,10 @@ export function formatScores(scores: ReturnType<typeof scoreRun>): string {
   return [
     '| repo | cost | inventory recall | inventory precision | finding recall | finding precision | open rows | duplicates | deadlines right | errors |',
     '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
-    ...scores.map(
-      (s) =>
-        `| ${s.repo} | $${s.costUsd.toFixed(2)} | ${s.inventory.found}/${s.inventory.required} | ${pct(s.inventory.precision)} | ${s.findings.found}/${s.findings.required} | ${pct(s.findings.precision)} | ${s.findings.open} | ${s.findings.duplicates} | ${s.findings.deadlinesRight}/${s.findings.found} | ${s.errors} |`,
+    ...scores.map((s) =>
+      s.inventoryOnly
+        ? `| ${s.repo} (inventory only) | $${s.costUsd.toFixed(2)} | ${s.inventory.found}/${s.inventory.required} | ${pct(s.inventory.precision)} | - | - | - | - | - | ${s.errors} |`
+        : `| ${s.repo} | $${s.costUsd.toFixed(2)} | ${s.inventory.found}/${s.inventory.required} | ${pct(s.inventory.precision)} | ${s.findings.found}/${s.findings.required} | ${pct(s.findings.precision)} | ${s.findings.open} | ${s.findings.duplicates} | ${s.findings.deadlinesRight}/${s.findings.found} | ${s.errors} |`,
     ),
     `| **all** | $${t.costUsd.toFixed(2)} | ${pct(t.invRecall)} | ${pct(t.invPrecision)} | ${t.found}/${t.required} = ${pct(t.findRecall)} | ${pct(t.findPrecision)} | ${t.open} | ${t.duplicates} | ${t.deadlinesRight}/${t.found} | ${t.errors} |`,
   ].join('\n');
