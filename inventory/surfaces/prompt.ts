@@ -1,5 +1,5 @@
 // Prompts for the surfaces agent and its specialist readers. Guidance lives here, not in code.
-export const PROMPT_VERSION = 'surfaces-v1';
+export const PROMPT_VERSION = 'surfaces-v2';
 
 export const SPECIALISTS = {
   'platforms-infra-reader': {
@@ -36,7 +36,7 @@ const WHAT_COUNTS = `What counts as a surface: a part of this codebase that a pl
 - infrastructure: Kubernetes, serverless runtimes, infrastructure-as-code and the cloud services it provisions.
 - security-standard: TLS, certificates, OAuth and login standards, password or basic-auth logins to providers.
 - regulated-surface: payment and checkout flows, personal data, user interfaces and forms (accessibility), AI features.
-Ordinary library and runtime versions are recorded by another agent; record them here only when they are part of a surface (for example the Lambda runtime in serverless.yml, or the Node version of a Cloud Function).`;
+Ordinary library and runtime versions are recorded by another agent; record them here only when they are part of a surface (for example the Lambda runtime in serverless.yml, or the Node version of a Cloud Function). Container images and Dockerfile base images, CI actions and runners, libraries and AI models are that agent's too: never record one as a surface. Each Kubernetes object, serverless function runtime or cloud service is one surface, recorded once under one name: two entries for the same thing are read twice by the watchers and reported twice.`;
 
 const HOW_TO_FIND = `How to find surfaces, the way a careful new engineer would:
 - find_surface_leads gives fast pointers grouped by area. They are noisy and incomplete; read each file before you record it, and look past them: a surface can live in a file no pointer knows (a custom deploy script, a template partial, a config loaded at runtime).
