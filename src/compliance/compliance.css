@@ -249,9 +249,29 @@
 }
 .rules-table-scroll table {
   width: 100%;
-  min-width: 860px;
+  min-width: 1040px;
   border-collapse: collapse;
+  /* Fixed, because long ids that may break anywhere otherwise shrink their column to a sliver. */
+  table-layout: fixed;
   font-size: 12px;
+}
+.rules-column-time {
+  width: 150px;
+}
+.rules-column-action {
+  width: 96px;
+}
+.rules-column-change {
+  width: 180px;
+}
+.rules-column-obligation {
+  width: 160px;
+}
+.rules-column-actor {
+  width: 60px;
+}
+.rules-column-pr {
+  width: 104px;
 }
 .rules-table-scroll th {
   padding: 10px 14px 10px 0;
@@ -267,7 +287,6 @@
   overflow-wrap: anywhere;
 }
 .rules-time {
-  min-width: 118px;
   font-variant-numeric: tabular-nums;
 }
 .rules-footnote {

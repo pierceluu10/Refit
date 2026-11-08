@@ -1,5 +1,6 @@
 import {
   ArrowUpRight,
+  CaretDown,
   CheckCircle,
   ClockCountdown,
   FolderSimple,
@@ -108,27 +109,23 @@ export function DataCell({ label, children }: { label: string; children: ReactNo
   );
 }
 
-// A long list would push the findings off the first screen.
-const SCAN_ERRORS_SHOWN_OPEN = 3;
-
 export function ScanErrors({ repo, errors }: { repo: string; errors: string[] }) {
   return (
-    <div className="detail-explanation scan-note">
-      <WarningCircle />
-      <details open={errors.length <= SCAN_ERRORS_SHOWN_OPEN}>
-        <summary>
-          Refit couldn’t read everything in {repo}.{' '}
-          <small>
-            {errors.length} {errors.length === 1 ? 'problem' : 'problems'}
-          </small>
-        </summary>
-        <ul>
-          {errors.map((error, index) => (
-            <li key={`${index}-${error}`}>{error}</li>
-          ))}
-        </ul>
-      </details>
-    </div>
+    <details className="detail-explanation scan-note">
+      <summary>
+        <WarningCircle />
+        <span>Refit couldn’t read everything in {repo}.</span>
+        <span className="scan-note-count">
+          {errors.length} {errors.length === 1 ? 'note' : 'notes'}
+          <CaretDown />
+        </span>
+      </summary>
+      <ul>
+        {errors.map((error, index) => (
+          <li key={`${index}-${error}`}>{error}</li>
+        ))}
+      </ul>
+    </details>
   );
 }
 

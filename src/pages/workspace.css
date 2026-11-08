@@ -385,27 +385,53 @@
   font-variant-numeric: tabular-nums;
 }
 .scan-note {
-  margin-bottom: 22px;
+  display: block;
+  margin-bottom: 10px;
+  padding: 12px 16px;
 }
-.scan-note > svg {
+.scan-note summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  list-style: none;
+  transition: color var(--fast) var(--ease-out);
+}
+.scan-note summary::-webkit-details-marker {
+  display: none;
+}
+.scan-note summary > svg {
   flex-shrink: 0;
 }
 .detail-actions + .scan-note {
   margin-top: 22px;
 }
-.scan-note details {
-  min-width: 0;
+.scan-note {
   overflow-wrap: anywhere;
 }
-.scan-note summary {
-  cursor: pointer;
-}
-.scan-note small {
-  margin-left: 4px;
+.scan-note-count {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
   font-variant-numeric: tabular-nums;
 }
+.scan-note-count svg {
+  width: 12px;
+  height: 12px;
+  transition: transform var(--fast) var(--ease-out);
+}
+.scan-note[open] .scan-note-count svg {
+  transform: rotate(180deg);
+}
+@media (hover: hover) {
+  .scan-note summary:hover {
+    color: var(--ink);
+  }
+}
 .scan-note ul {
-  margin: 4px 0 0;
+  margin: 10px 0 0 28px;
   padding-left: 16px;
 }
 .data-table-frame {

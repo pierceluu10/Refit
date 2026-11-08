@@ -201,6 +201,8 @@ describe('live data', () => {
       baseRoutes({ '/api/report': json(report([], { errors: ['Could not read go.mod'] })) }),
     );
     await loaded();
+    expect(screen.getByText('Could not read go.mod')).not.toBeVisible();
+    fireEvent.click(screen.getByText(`Refit couldn’t read everything in ${REPO}.`));
     expect(screen.getByText('Could not read go.mod')).toBeVisible();
     expect(screen.getByText(/at a cost of \$/)).toBeVisible();
     expect(screen.getByText(/Last scanned/).querySelector('time')).toHaveAttribute(
@@ -654,6 +656,24 @@ describe('rules', () => {
     expect(list.queryByText('Needs review')).not.toBeInTheDocument();
     expect(document.body.textContent).not.toMatch(/verified/i);
     expect(list.getByText('Nothing is marked for review.')).toBeVisible();
+  });
+
+  it("shows the run and PR of the task that also resolves a rule, never another task's", async () => {
+    renderPage(
+      lawRoutes({
+        '/api/report': json(
+          report([item('law', 'regulation', { taskId: 'task-main', status: 'pr-open', pr: PR })]),
+        ),
+        '/api/runs': json([
+          run('other', 'failed', 'Another task failed.'),
+          run('main', 'needs-review', 'Marked the output.'),
+        ]),
+      }),
+    );
+    const list = await rulesList();
+    expect(list.getByText('Marked the output.')).toBeVisible();
+    expect(list.queryByText('Another task failed.')).not.toBeInTheDocument();
+    expect(list.getByRole('link', { name: /^Pull request for law/ })).toHaveAttribute('href', PR);
   });
 
   it.each<[string, Routes]>([

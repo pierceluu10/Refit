@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import type { BehindItem, DependencyUsage, ScanReport } from '../../shared/types.ts';
@@ -342,7 +342,8 @@ describe('repository detail', () => {
 
   it('shows what the scan couldn’t read', async () => {
     renderPath(detailPath, api(report([], ['Couldn’t read a file.'])));
-    expect(await screen.findByText('Couldn’t read a file.')).toBeVisible();
+    fireEvent.click(await screen.findByText(/^Refit couldn’t read everything in/));
+    expect(screen.getByText('Couldn’t read a file.')).toBeVisible();
   });
 
   it('shows an unknown repo as missing in example mode', async () => {

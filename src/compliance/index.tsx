@@ -457,7 +457,7 @@ function AuditTrail({ data, repo, example }: { data: RepoData; repo: string; exa
               <tr>
                 {['Time', 'Action', 'Change', 'Obligation', 'Evidence', 'Actor', 'PR'].map(
                   (column) => (
-                    <th scope="col" key={column}>
+                    <th scope="col" key={column} className={`rules-column-${column.toLowerCase()}`}>
                       {column}
                     </th>
                   ),
@@ -505,14 +505,14 @@ function Section({
 function ScanFacts({ data }: { data: RepoData }) {
   if (!data.report)
     return <p className="rules-scanned">This repository hasn’t been scanned yet.</p>;
-  const { scannedAt, costUsd, errors } = data.report;
+  const { repo, scannedAt, costUsd, errors } = data.report;
   return (
     <>
       <p className="rules-scanned">
         Last scanned <time dateTime={scannedAt}>{formatted(scannedAt, timeFormat)}</time>, at a cost
         of {formatCost(costUsd)}
       </p>
-      {errors.length > 0 && <ScanErrors repo={data.report.repo} errors={errors} />}
+      {errors.length > 0 && <ScanErrors repo={repo} errors={errors} />}
     </>
   );
 }

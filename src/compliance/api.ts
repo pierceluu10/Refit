@@ -142,7 +142,10 @@ export function ruleViews({ report, runs, audit, obligations }: RepoData): RuleV
     const obligation = entries
       .map((entry) => obligations.find(({ id }) => id === entry.obligationId))
       .find((match) => match !== undefined);
-    const run = runs.find((candidate) => candidate.changeId === item.change.id);
+    // A rule another rule's task also resolves shares that task's id, so it shares the run.
+    const run = runs.find(
+      (candidate) => candidate.changeId === item.change.id || candidate.taskId === item.taskId,
+    );
     const decision = entries.find(
       ({ action }) => action === 'matched' || action === 'not-affected',
     );

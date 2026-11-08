@@ -16,7 +16,11 @@ export type ReportStore = {
   list: () => Promise<ScanReport[]>;
   remove: (repo: string) => Promise<void>;
   removeInstallation: (installationId: number) => Promise<void>;
-  markPullRequest: (repo: string, changeId: string, url: string) => Promise<void>;
+  markPullRequest: (
+    repo: string,
+    task: { id: string; change: { id: string } },
+    url: string,
+  ) => Promise<void>;
   markVerdict: (prUrl: string, verdict: HumanVerdict) => Promise<void>;
 };
 
@@ -106,9 +110,10 @@ export function createReportStore(dir: string): ReportStore {
             .map((report) => rm(fileFor(report.repo), { force: true })),
         );
       }),
-    markPullRequest: (repo, changeId, url) =>
+    markPullRequest: (repo, task, url) =>
       updateItems(repo, (item) => {
-        if (item.change.id !== changeId) return;
+        // Changes a task also resolves have their own rows, which carry that task's id.
+        if (item.change.id !== task.change.id && item.taskId !== task.id) return;
         item.status = 'pr-open';
         item.pr = url;
       }),
