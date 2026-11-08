@@ -7,6 +7,8 @@ export const DEFAULT_LIMIT = 50;
 export const MAX_LIMIT = 100;
 const BEARER = /^Bearer (\S+)$/;
 const GITHUB_UNAUTHORIZED = 401;
+// shortcut: reads the wording of records from before #509, which stored a task the cap stopped as failed; delete once those records are gone.
+const STOPPED_BY_CAP = /^not attempted: .*run cap left/;
 
 export type RunsDeps = {
   listRunViews: ListRunViews;
@@ -32,6 +34,11 @@ export function parseRunsQuery(
   return { repo, limit };
 }
 
+function withTrueOutcome(run: RunView): RunView {
+  const neverStarted = run.outcome === 'failed' && STOPPED_BY_CAP.test(run.summary);
+  return neverStarted ? { ...run, outcome: 'waiting-budget' } : run;
+}
+
 // The service token sees every run. Any other viewer sees runs only for repos their own GitHub token
 // reaches through this App, filtered before the limit.
 export async function runsFor(
@@ -43,8 +50,10 @@ export async function runsFor(
   if (!token) return { status: 401 };
   const parsed = parseRunsQuery(query);
   if ('error' in parsed) return { status: 400, error: parsed.error };
+  const list = async (filter: Parameters<ListRunViews>[0]) =>
+    (await deps.listRunViews(filter)).map(withTrueOutcome);
   if (deps.isServiceToken(authorization)) {
-    return { status: 200, runs: await deps.listRunViews(parsed) };
+    return { status: 200, runs: await list(parsed) };
   }
   let allowed: Set<string>;
   try {
@@ -57,9 +66,9 @@ export async function runsFor(
   }
   if (parsed.repo !== undefined) {
     if (!allowed.has(parsed.repo)) return { status: 200, runs: [] };
-    return { status: 200, runs: await deps.listRunViews(parsed) };
+    return { status: 200, runs: await list(parsed) };
   }
   // shortcut: reads every installation's runs then filters; pass the repo set to memory once it takes one.
-  const runs = (await deps.listRunViews({})).filter((run) => allowed.has(run.repo));
+  const runs = (await list({})).filter((run) => allowed.has(run.repo));
   return { status: 200, runs: runs.slice(0, parsed.limit) };
 }

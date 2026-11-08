@@ -1,38 +1,62 @@
 import { CheckCircle, Funnel, WarningCircle } from '@phosphor-icons/react';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { BehindItem, ExternalChange, ScanReport } from '../../shared/types.ts';
-import { ApiError, ApiLoading, ExampleNote, fetchReport, fetchRepos, useApi } from '../api';
+import {
+  ApiError,
+  ApiLoading,
+  ExampleNote,
+  fetchReport,
+  fetchRepos,
+  fetchRuns,
+  useApi,
+  waitingChanges,
+} from '../api';
 import {
   BehindStatus,
   behindStatusLabels,
   DataCell,
   ExternalLink,
+  type FindingStatus,
+  findingStatus,
   formatDay,
+  isNotAssessed,
   labelOf,
+  NOT_ASSESSED_WHY,
   NoRepositories,
   PageHeading,
   repoPath,
   ScanErrors,
 } from '../components/WorkspaceUI';
-import { exampleReports } from '../fixtures';
+import { exampleReports, runs as exampleRuns } from '../fixtures';
 
-export type RepoScan = { repo: string; report: ScanReport | null };
+// waiting: the changes whose newest run is held for budget.
+export type RepoScan = { repo: string; report: ScanReport | null; waiting: Set<string> };
 
 export async function fetchScans(signal: AbortSignal): Promise<RepoScan[]> {
   const repos = await fetchRepos(signal);
   return Promise.all(
-    repos.map(async (repo) => ({ repo, report: await fetchReport(repo, signal) })),
+    repos.map(async (repo) => {
+      const [report, runs] = await Promise.all([
+        fetchReport(repo, signal),
+        fetchRuns(repo, signal),
+      ]);
+      return { repo, report, waiting: waitingChanges(runs) };
+    }),
   );
 }
 
 export const exampleScans: RepoScan[] = exampleReports.map((report) => ({
   repo: report.repo,
   report,
+  waiting: waitingChanges(exampleRuns.filter((run) => run.repo === report.repo)),
 }));
 
+// A change Refit hasn't assessed may not touch this code, so it isn't counted as work or overdue.
 export function isUnresolved(item: BehindItem) {
-  return item.status === 'open' || item.status === 'pr-open';
+  return (item.status === 'open' && !isNotAssessed(item)) || item.status === 'pr-open';
 }
+
+type Finding = BehindItem & { shownStatus: FindingStatus };
 
 const kindLabels: Record<ExternalChange['kind'], string> = {
   'api-version': 'API version',
@@ -81,7 +105,7 @@ function isPastDue(item: BehindItem) {
   return isUnresolved(item) && deadlineTime(item) < startOfToday();
 }
 
-function sortByDeadline(items: BehindItem[]) {
+function sortByDeadline(items: Finding[]) {
   return [...items].sort(
     (first, second) =>
       Number(isPastDue(second)) - Number(isPastDue(first)) ||
@@ -92,12 +116,17 @@ function sortByDeadline(items: BehindItem[]) {
 const filters: {
   name: string;
   label: string;
-  value: (item: BehindItem) => string;
+  value: (item: Finding) => string;
   labels: Record<string, string>;
 }[] = [
   { name: 'repo', label: 'Repository', value: (item) => item.repo, labels: {} },
   { name: 'kind', label: 'Kind', value: (item) => item.change.kind, labels: kindLabels },
-  { name: 'status', label: 'Status', value: (item) => item.status, labels: behindStatusLabels },
+  {
+    name: 'status',
+    label: 'Status',
+    value: (item) => item.shownStatus,
+    labels: behindStatusLabels,
+  },
 ];
 
 export function WhatsBehind() {
@@ -131,7 +160,14 @@ function Findings({ scans }: { scans: RepoScan[] }) {
   const [parameters, setParameters] = useSearchParams();
   if (scans.length === 0) return <NoRepositories />;
 
-  const items = sortByDeadline(scans.flatMap((scan) => scan.report?.items ?? []));
+  const items = sortByDeadline(
+    scans.flatMap(({ report, waiting }) =>
+      (report?.items ?? []).map((item) => ({
+        ...item,
+        shownStatus: findingStatus(item, waiting),
+      })),
+    ),
+  );
   const shown = items.filter((item) =>
     filters.every((filter) => {
       const selected = parameters.get(filter.name);
@@ -221,7 +257,7 @@ function Findings({ scans }: { scans: RepoScan[] }) {
   );
 }
 
-function FindingsTable({ items }: { items: BehindItem[] }) {
+function FindingsTable({ items }: { items: Finding[] }) {
   return (
     <div className="data-table-frame">
       <table className="data-table">
@@ -267,7 +303,8 @@ function FindingsTable({ items }: { items: BehindItem[] }) {
                 </ExternalLink>
               </DataCell>
               <DataCell label="Status">
-                <BehindStatus status={item.status} />
+                <BehindStatus status={item.shownStatus} />
+                {item.shownStatus === 'not-assessed' && <small>{NOT_ASSESSED_WHY}</small>}
                 {item.pr && (
                   <ExternalLink
                     href={item.pr}

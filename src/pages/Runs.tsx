@@ -1,19 +1,9 @@
 import { ClockCounterClockwise } from '@phosphor-icons/react';
 import { Link, useSearchParams } from 'react-router-dom';
-import type { RunView } from '../../shared/types.ts';
-import { ApiError, ApiLoading, ExampleNote, fetchApi, isList, useApi } from '../api';
-import { ExternalLink, PageHeading, Status } from '../components/WorkspaceUI';
+import { ApiError, ApiLoading, ExampleNote, fetchRuns, RUNS_LIMIT, useApi } from '../api';
+import { ExternalLink, formatCost, PageHeading, Status } from '../components/WorkspaceUI';
 import { providerName, runs as exampleRuns } from '../fixtures';
 
-export const RUNS_LIMIT = 50;
-
-function fetchRuns(repo: string | null, signal: AbortSignal) {
-  const query = new URLSearchParams({ limit: String(RUNS_LIMIT) });
-  if (repo) query.set('repo', repo);
-  return fetchApi(`/api/runs?${query}`, isList<RunView>, signal);
-}
-
-const costFormat = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 const timeFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 
 export function Runs() {
@@ -28,6 +18,7 @@ export function Runs() {
       : example
         ? exampleRuns.filter((run) => !repo || run.repo === repo)
         : [];
+  const waiting = shown.filter((run) => run.outcome === 'waiting-budget').length;
 
   return (
     <>
@@ -48,6 +39,12 @@ export function Runs() {
       {state.status === 'example' && <ExampleNote signedOut={state.signedOut} what="runs" />}
       {state.status === 'loading' && <ApiLoading what="runs" />}
       {state.status === 'error' && <ApiError what="runs" message={state.message} retry={retry} />}
+      {waiting > 0 && (
+        <p className="detail-explanation scan-note">
+          {waiting} {waiting === 1 ? 'task is' : 'tasks are'} waiting on budget. Refit hasn’t tried
+          them, so they cost nothing and none of them failed.
+        </p>
+      )}
       {(state.status === 'live' || example) &&
         (shown.length === 0 ? (
           <div className="empty-state">
@@ -74,7 +71,7 @@ export function Runs() {
                         {run.repo} <span>·</span>{' '}
                       </>
                     )}
-                    {costFormat.format(run.costUsd)} <span>·</span>{' '}
+                    {formatCost(run.costUsd)} <span>·</span>{' '}
                     <time dateTime={run.finishedAt}>
                       {timeFormat.format(new Date(run.finishedAt))}
                     </time>
@@ -92,6 +89,9 @@ export function Runs() {
             ))}
           </ul>
         ))}
+      {state.status === 'live' && shown.length === RUNS_LIMIT && (
+        <p className="list-footnote">Showing the newest {RUNS_LIMIT} runs.</p>
+      )}
       {example && shown.length > 0 && (
         <p className="list-footnote">Example runs. Costs and times are illustrative.</p>
       )}

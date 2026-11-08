@@ -204,6 +204,7 @@ describe('live data', () => {
     expect(screen.getByText('Could not read go.mod')).not.toBeVisible();
     fireEvent.click(screen.getByText(`Refit couldn’t read everything in ${REPO}.`));
     expect(screen.getByText('Could not read go.mod')).toBeVisible();
+    expect(screen.getByText(/at a cost of \$/)).toBeVisible();
     expect(screen.getByText(/Last scanned/).querySelector('time')).toHaveAttribute(
       'dateTime',
       '2026-11-01T10:00:00Z',
@@ -550,6 +551,48 @@ describe('rules', () => {
       ]),
       ...overrides,
     });
+
+  it('shows a rule held for budget as waiting, with nothing changed and nothing to review', async () => {
+    renderPage(
+      lawRoutes({
+        '/api/report': json(report([item('law', 'regulation')])),
+        '/api/runs': json([
+          run('law', 'waiting-budget', 'not attempted: $1.70 of the run cap left'),
+        ]),
+      }),
+    );
+    const list = await rulesList();
+    expect(list.getByText('Waiting on budget')).toBeVisible();
+    expect(list.queryByText('Needs review')).toBeNull();
+    expect(list.queryByText('Failed')).toBeNull();
+    expect(list.getByText(/Nothing yet. This is waiting on budget/)).toBeVisible();
+    expect(list.queryByText(/not attempted/)).toBeNull();
+  });
+
+  it('never says a rule applies when the match never ran', async () => {
+    renderPage(
+      lawRoutes({
+        '/api/report': json(
+          report([
+            Object.assign(item('law', 'regulation'), {
+              reason:
+                'not attempted: external match failed after retries: Match agent hit max_tokens (16000); its JSON is incomplete.',
+            }),
+          ]),
+        ),
+        '/api/runs': json([]),
+        '/api/audit': json([]),
+      }),
+    );
+    const list = await rulesList();
+    expect(list.getAllByText('Not assessed yet').length).toBeGreaterThan(0);
+    expect(list.getByText(/doesn’t know yet whether this applies/)).toBeVisible();
+    expect(list.queryByText('Likely applies')).toBeNull();
+    expect(list.queryByText('Needs review')).toBeNull();
+    expect(list.queryByText(/Refit's read/)).toBeNull();
+    expect(list.queryByText('Refit recorded no reason for this.')).toBeNull();
+    expect(list.queryByText(/max_tokens/)).toBeNull();
+  });
 
   it('joins the report, audit, obligation and run into one rule', async () => {
     renderPage(lawRoutes());

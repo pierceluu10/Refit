@@ -1,10 +1,23 @@
 import { ArrowRight, CheckCircle, ClockCounterClockwise } from '@phosphor-icons/react';
 import { Link, useParams } from 'react-router-dom';
 import type { DependencyUsage, ScanReport } from '../../shared/types.ts';
-import { ApiError, ApiLoading, ExampleNote, fetchApi, fetchReport, isList, useApi } from '../api';
+import {
+  ApiError,
+  ApiLoading,
+  ApiSignedOutError,
+  ApiUnavailableError,
+  ExampleNote,
+  fetchApi,
+  fetchReport,
+  isList,
+  useApi,
+} from '../api';
 import {
   DataCell,
   ExternalLink,
+  type FindingStatus,
+  findingStatus,
+  formatCost,
   formatDay,
   labelOf,
   NoRepositories,
@@ -43,10 +56,12 @@ export function Repositories() {
                 <th scope="col">Repository</th>
                 <th scope="col">Open findings</th>
                 <th scope="col">Last scan</th>
+                <th scope="col">Scan cost</th>
+                <th scope="col">Scan errors</th>
               </tr>
             </thead>
             <tbody>
-              {scans.map(({ repo, report }) => (
+              {scans.map(({ repo, report, waiting }) => (
                 <tr key={repo}>
                   <DataCell label="Repository">
                     <Link className="table-link" to={repoPath(repo)}>
@@ -55,9 +70,16 @@ export function Repositories() {
                   </DataCell>
                   <DataCell label="Open findings">
                     {report ? report.items.filter(isUnresolved).length : 'None yet'}
+                    {report && <NotStartedCounts report={report} waiting={waiting} />}
                   </DataCell>
                   <DataCell label="Last scan">
                     {report ? formatDay(report.scannedAt) : 'No scan yet'}
+                  </DataCell>
+                  <DataCell label="Scan cost">
+                    {report ? formatCost(report.costUsd) : 'None yet'}
+                  </DataCell>
+                  <DataCell label="Scan errors">
+                    {report ? report.errors.length : 'None yet'}
                   </DataCell>
                 </tr>
               ))}
@@ -69,13 +91,35 @@ export function Repositories() {
   );
 }
 
-type RepoDetail = { report: ScanReport | null; pullRequests: RepoPullRequest[] };
+function NotStartedCounts({ report, waiting }: { report: ScanReport; waiting: Set<string> }) {
+  const count = (status: FindingStatus) =>
+    report.items.filter((item) => findingStatus(item, waiting) === status).length;
+  const [held, unassessed] = [count('waiting-budget'), count('not-assessed')];
+  return (
+    <>
+      {held > 0 && <small>{held} waiting on budget</small>}
+      {unassessed > 0 && <small>{unassessed} not assessed yet</small>}
+    </>
+  );
+}
+
+// pullRequests is null when GitHub couldn't be asked; the scan is stored here and still shows.
+type RepoDetail = { report: ScanReport | null; pullRequests: RepoPullRequest[] | null };
+
+async function fetchPullRequests(repo: string, signal: AbortSignal) {
+  const query = new URLSearchParams({ repo });
+  try {
+    return await fetchApi(`/api/prs?${query}`, isList<RepoPullRequest>, signal);
+  } catch (error) {
+    if (error instanceof ApiUnavailableError || error instanceof ApiSignedOutError) throw error;
+    return null;
+  }
+}
 
 async function fetchRepoDetail(repo: string, signal: AbortSignal): Promise<RepoDetail> {
-  const query = new URLSearchParams({ repo });
   const [report, pullRequests] = await Promise.all([
     fetchReport(repo, signal),
-    fetchApi(`/api/prs?${query}`, isList<RepoPullRequest>, signal),
+    fetchPullRequests(repo, signal),
   ]);
   return { report, pullRequests };
 }
@@ -144,7 +188,7 @@ export function RepositoryDetail() {
         title={repo}
         description={
           report
-            ? `Last scanned ${formatDay(report.scannedAt)}.`
+            ? `Last scanned ${formatDay(report.scannedAt)}, at a cost of ${formatCost(report.costUsd)}.`
             : detail
               ? 'No finished scan yet.'
               : ''
@@ -172,7 +216,7 @@ export function RepositoryDetail() {
           </div>
           {report && report.errors.length > 0 && <ScanErrors repo={repo} errors={report.errors} />}
           <Dependencies report={report ?? null} />
-          <PullRequests pullRequests={detail.pullRequests} />
+          <PullRequests pullRequests={detail.pullRequests} retry={retry} />
         </>
       )}
     </>
@@ -240,14 +284,36 @@ function Dependencies({ report }: { report: ScanReport | null }) {
   );
 }
 
-function PullRequests({ pullRequests }: { pullRequests: RepoPullRequest[] }) {
-  const open = pullRequests.filter((pullRequest) => pullRequest.state === 'open');
+const pullRequestStateLabels: Record<RepoPullRequest['state'], string> = {
+  open: 'Open',
+  merged: 'Merged',
+  closed: 'Closed',
+};
+
+function pullRequestState({ draft, state }: RepoPullRequest) {
+  return draft && state === 'open' ? 'Draft' : pullRequestStateLabels[state];
+}
+
+function PullRequests({
+  pullRequests,
+  retry,
+}: {
+  pullRequests: RepoPullRequest[] | null;
+  retry: () => void;
+}) {
   return (
     <section className="detail-section" aria-labelledby="pull-requests-heading">
-      <h2 id="pull-requests-heading">Open pull requests</h2>
-      {open.length === 0 ? (
-        <p>No open pull requests on this repository.</p>
-      ) : (
+      <h2 id="pull-requests-heading">Pull requests</h2>
+      {pullRequests === null && (
+        <div role="alert">
+          <p>Couldn’t get this repository’s pull requests from GitHub.</p>
+          <button className="button button-secondary button-small" onClick={retry}>
+            Try again
+          </button>
+        </div>
+      )}
+      {pullRequests?.length === 0 && <p>Refit hasn’t opened a pull request on this repository.</p>}
+      {pullRequests && pullRequests.length > 0 && (
         <div className="data-table-frame">
           <table className="data-table" aria-labelledby="pull-requests-heading">
             <thead>
@@ -260,7 +326,7 @@ function PullRequests({ pullRequests }: { pullRequests: RepoPullRequest[] }) {
               </tr>
             </thead>
             <tbody>
-              {open.map((pullRequest) => (
+              {pullRequests.map((pullRequest) => (
                 <tr key={pullRequest.url}>
                   <DataCell label="Pull request">
                     <ExternalLink
@@ -276,7 +342,7 @@ function PullRequests({ pullRequests }: { pullRequests: RepoPullRequest[] }) {
                   <DataCell label="Target">
                     {pullRequest.target ? <code>{pullRequest.target}</code> : 'Not given'}
                   </DataCell>
-                  <DataCell label="State">{pullRequest.draft ? 'Draft' : 'Open'}</DataCell>
+                  <DataCell label="State">{pullRequestState(pullRequest)}</DataCell>
                   <DataCell label="Updated">{formatDay(pullRequest.updatedAt)}</DataCell>
                 </tr>
               ))}

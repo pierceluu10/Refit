@@ -6,6 +6,7 @@ import type {
   RunView,
   ScanReport,
 } from '../../shared/types.ts';
+import { isNotAssessed, NOT_ASSESSED_WHY } from '../components/WorkspaceUI';
 
 const RUNS_LIMIT = 100;
 const UNAUTHORIZED = 401;
@@ -130,6 +131,8 @@ export type RuleView = {
   checks: string[];
   sources: string[];
   needsReview: boolean;
+  waiting: boolean;
+  notAssessed: boolean;
 };
 
 const unique = (values: string[]) => [...new Set(values)];
@@ -149,22 +152,32 @@ export function ruleViews({ report, runs, audit, obligations }: RepoData): RuleV
       ({ action }) => action === 'matched' || action === 'not-affected',
     );
     const textOf = (evidence: string[]) => evidence.filter((line) => !safeHref(line));
-    const applies = item.status !== 'not-affected';
+    const notAssessed = isNotAssessed(item);
+    const applies = item.status !== 'not-affected' && !notAssessed;
+    const waiting = item.status === 'open' && !notAssessed && run?.outcome === 'waiting-budget';
     const why = textOf(decision?.evidence ?? []);
     const nothingToConfirm = obligation?.needsHuman.length === 0;
     return {
       item,
       obligation,
       applies,
-      why: why.length > 0 ? why : item.dependency.notes ? [item.dependency.notes] : [],
-      changed: run?.summary,
+      why: notAssessed
+        ? [NOT_ASSESSED_WHY]
+        : why.length > 0
+          ? why
+          : item.dependency.notes
+            ? [item.dependency.notes]
+            : [],
+      changed: waiting ? undefined : run?.summary,
       checks: unique(
         entries
           .filter(({ action }) => action === 'pr-opened' || action === 'pr-updated')
           .flatMap(({ evidence }) => textOf(evidence)),
       ),
       sources: unique(entries.flatMap(({ evidence }) => evidence.filter(safeHref))),
-      needsReview: applies && !(run?.outcome === 'verified' && nothingToConfirm),
+      needsReview: applies && !waiting && !(run?.outcome === 'verified' && nothingToConfirm),
+      waiting,
+      notAssessed,
     };
   });
   return views.sort((a, b) => Number(b.applies) - Number(a.applies) || byDeadline(a.item, b.item));

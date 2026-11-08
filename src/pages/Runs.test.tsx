@@ -2,6 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import type { RunView } from '../../shared/types.ts';
+import { RUNS_LIMIT } from '../api';
 import { App } from '../App';
 import { runs as exampleRuns } from '../fixtures';
 
@@ -82,7 +83,7 @@ describe('runs', () => {
     renderRuns(fetcher);
     expect(screen.getByRole('status')).toHaveTextContent('Loading runs…');
     await screen.findByRole('list', { name: 'Runs' });
-    expect(fetcher).toHaveBeenCalledWith('/api/runs?limit=50', expect.anything());
+    expect(fetcher).toHaveBeenCalledWith('/api/runs?limit=100', expect.anything());
     expect(rows()).toHaveLength(liveRuns.length);
     expect(screen.queryByText('Example data')).not.toBeInTheDocument();
     const first = rows()[0];
@@ -92,6 +93,33 @@ describe('runs', () => {
     expect(within(first).getByText(/\$0\.50/)).toBeVisible();
     expect(within(first).getByText(/test-owner\/app/, { selector: '.run-meta' })).toBeVisible();
     expect(first.querySelector('time')).toHaveAttribute('dateTime', '2026-10-31T12:00:00Z');
+  });
+
+  it('shows work held for budget as waiting, never failed, and says none of it failed', async () => {
+    const held: RunView = { ...liveRuns[0], id: 'held', outcome: 'waiting-budget', costUsd: 0 };
+    renderRuns(respond([held, { ...held, id: 'held-too' }]));
+    await screen.findByRole('list', { name: 'Runs' });
+    expect(within(rows()[0]).getByText('Waiting on budget')).toBeVisible();
+    expect(screen.queryByText('Failed')).toBeNull();
+    expect(screen.getByText(/2 tasks are waiting on budget/)).toHaveTextContent(
+      'none of them failed',
+    );
+  });
+
+  it('says so when the list is cut off at the limit', async () => {
+    const many = Array.from({ length: RUNS_LIMIT }, (_, index) => ({
+      ...liveRuns[0],
+      id: `run-${index}`,
+    }));
+    renderRuns(respond(many));
+    await screen.findByRole('list', { name: 'Runs' });
+    expect(screen.getByText(`Showing the newest ${RUNS_LIMIT} runs.`)).toBeVisible();
+  });
+
+  it('shows an error, not examples, when the server fails with no JSON', async () => {
+    renderRuns(vi.fn(async () => new Response('', { status: 500 })));
+    expect(await screen.findByRole('alert')).toHaveTextContent('The API answered 500.');
+    expect(screen.queryByText('Example data')).not.toBeInTheDocument();
   });
 
   it('labels every outcome in text, not colour alone', async () => {
@@ -133,7 +161,7 @@ describe('runs', () => {
     renderRuns(fetcher, '/app/runs?repo=test-owner%2Fapp');
     await screen.findByRole('list', { name: 'Runs' });
     expect(fetcher).toHaveBeenCalledWith(
-      '/api/runs?limit=50&repo=test-owner%2Fapp',
+      '/api/runs?limit=100&repo=test-owner%2Fapp',
       expect.anything(),
     );
     expect(screen.getByRole('link', { name: 'All repositories' })).toHaveAttribute(

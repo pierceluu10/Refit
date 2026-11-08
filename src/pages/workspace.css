@@ -403,6 +403,12 @@
 .scan-note summary > svg {
   flex-shrink: 0;
 }
+.detail-actions + .scan-note {
+  margin-top: 22px;
+}
+.scan-note {
+  overflow-wrap: anywhere;
+}
 .scan-note-count {
   display: inline-flex;
   flex-shrink: 0;
@@ -553,6 +559,9 @@
     gap: 12px;
     padding: 5px 0;
     border: 0;
+  }
+  .data-table td > div {
+    overflow-wrap: anywhere;
   }
   .data-table td::before {
     content: attr(data-label);

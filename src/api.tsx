@@ -1,6 +1,6 @@
 import { Info, WarningCircle } from '@phosphor-icons/react';
 import { useCallback, useEffect, useState } from 'react';
-import type { ScanReport } from '../shared/types.ts';
+import type { RunView, ScanReport } from '../shared/types.ts';
 
 // No API is served here (a static deploy answers 404 or falls back to index.html).
 export class ApiUnavailableError extends Error {}
@@ -17,9 +17,13 @@ export async function fetchApi<T>(
   const response = await fetch(path, { signal });
   if (response.status === 401) throw new ApiSignedOutError();
   const json = response.headers.get('content-type')?.includes('application/json');
-  if (!json) throw new ApiUnavailableError();
-  if (response.status === 404) throw new ApiNotFoundError(`${path} wasn’t found.`);
+  if (response.status === 404) {
+    if (json) throw new ApiNotFoundError(`${path} wasn’t found.`);
+    throw new ApiUnavailableError();
+  }
+  // Before the JSON test: a server that's down answers with no JSON, and that must not read as "no API here".
   if (!response.ok) throw new Error(`The API answered ${response.status}.`);
+  if (!json) throw new ApiUnavailableError();
   const body: unknown = await response.json();
   if (!isExpected(body)) throw new Error('The API returned something unexpected.');
   return body;
@@ -45,6 +49,25 @@ export async function fetchReport(repo: string, signal: AbortSignal): Promise<Sc
     if (error instanceof ApiNotFoundError) return null;
     throw error;
   }
+}
+
+export const RUNS_LIMIT = 100;
+
+export function fetchRuns(repo: string | null, signal: AbortSignal) {
+  const query = new URLSearchParams({ limit: String(RUNS_LIMIT) });
+  if (repo) query.set('repo', repo);
+  return fetchApi(`/api/runs?${query}`, isList<RunView>, signal);
+}
+
+// Runs arrive newest first, and only a change's newest run counts: once it runs, it stops waiting.
+export function waitingChanges(runs: RunView[]) {
+  const newest = new Map<string, RunView['outcome']>();
+  for (const { changeId, outcome } of runs) {
+    if (!newest.has(changeId)) newest.set(changeId, outcome);
+  }
+  return new Set(
+    [...newest].filter(([, outcome]) => outcome === 'waiting-budget').map(([id]) => id),
+  );
 }
 
 export type ApiState<T> =

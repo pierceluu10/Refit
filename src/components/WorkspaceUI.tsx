@@ -6,6 +6,7 @@ import {
   FolderSimple,
   GitMerge,
   GitPullRequest,
+  Question,
   WarningCircle,
   XCircle,
 } from '@phosphor-icons/react';
@@ -32,11 +33,32 @@ export function Status({ outcome }: { outcome: RunRecord['outcome'] }) {
   );
 }
 
-export const behindStatusLabels: Record<BehindItem['status'], string> = {
+export type FindingStatus = BehindItem['status'] | 'waiting-budget' | 'not-assessed';
+
+// shortcut: reads the scan's free-text reason; use a structured field once the report has one.
+const NOT_ATTEMPTED = /^not attempted/i;
+
+export const NOT_ASSESSED_WHY =
+  'Refit’s check of this change didn’t finish, so it doesn’t know yet whether this applies to your code.';
+
+// The scan stores why a change is open beside each item, outside the shared BehindItem type.
+export function isNotAssessed(item: BehindItem & { reason?: string }) {
+  return item.status === 'open' && NOT_ATTEMPTED.test(item.reason ?? '');
+}
+
+// waiting: the changes whose newest run is held for budget.
+export function findingStatus(item: BehindItem, waiting: Set<string>): FindingStatus {
+  if (isNotAssessed(item)) return 'not-assessed';
+  return item.status === 'open' && waiting.has(item.change.id) ? 'waiting-budget' : item.status;
+}
+
+export const behindStatusLabels: Record<FindingStatus, string> = {
   open: 'Open',
   'pr-open': 'PR open',
   merged: 'Merged',
   'not-affected': 'Not affected',
+  'waiting-budget': outcomeLabels['waiting-budget'],
+  'not-assessed': 'Not assessed yet',
 };
 
 const behindStatusStyles = {
@@ -44,9 +66,11 @@ const behindStatusStyles = {
   'pr-open': { className: 'status-progress', Icon: GitPullRequest },
   merged: { className: 'status-positive', Icon: GitMerge },
   'not-affected': { className: 'status-positive', Icon: CheckCircle },
-} satisfies Record<BehindItem['status'], object>;
+  'waiting-budget': outcomeStyles['waiting-budget'],
+  'not-assessed': { className: 'status-attention', Icon: Question },
+} satisfies Record<FindingStatus, object>;
 
-export function BehindStatus({ status }: { status: BehindItem['status'] }) {
+export function BehindStatus({ status }: { status: FindingStatus }) {
   const { className, Icon } = behindStatusStyles[status];
   return (
     <span className={`resource-status ${className}`}>
@@ -70,6 +94,12 @@ const dayFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', time
 export function formatDay(value: string) {
   const time = Date.parse(value);
   return Number.isNaN(time) ? value : dayFormat.format(time);
+}
+
+const costFormat = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
+export function formatCost(usd: number) {
+  return costFormat.format(usd);
 }
 
 export function ExternalLink({
@@ -111,8 +141,8 @@ export function ScanErrors({ repo, errors }: { repo: string; errors: string[] })
         </span>
       </summary>
       <ul>
-        {errors.map((error) => (
-          <li key={error}>{error}</li>
+        {errors.map((error, index) => (
+          <li key={`${index}-${error}`}>{error}</li>
         ))}
       </ul>
     </details>

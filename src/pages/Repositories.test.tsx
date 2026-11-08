@@ -95,6 +95,7 @@ describe('repositories list', () => {
       if (path === '/api/repos') {
         return new Response(JSON.stringify([REPO, 'test-owner/fresh']), { headers: json });
       }
+      if (path.startsWith('/api/runs')) return new Response('[]', { headers: json });
       if (path.includes('fresh')) {
         return new Response(JSON.stringify({ error: 'no scan' }), { status: 404, headers: json });
       }
@@ -122,6 +123,61 @@ describe('repositories list', () => {
       .getByRole('link', { name: 'test-owner/fresh' })
       .closest('tr') as HTMLElement;
     expect(within(fresh).getByText('No scan yet')).toBeVisible();
+  });
+
+  it('shows what each scan cost, its errors and how much is waiting on budget', async () => {
+    const usage = dependency('lib', 'library');
+    const held = item(usage, 'one', 'open');
+    const heldRun = {
+      id: 'run',
+      repo: REPO,
+      taskId: 'task',
+      provider: 'test',
+      changeId: held.change.id,
+      outcome: 'waiting-budget',
+      costUsd: 0,
+      summary: 'Test summary.',
+      finishedAt: '2026-11-01T00:00:00Z',
+    };
+    const fetcher = vi.fn(async (path: string) => {
+      if (path === '/api/repos') return new Response(JSON.stringify([REPO]), { headers: json });
+      if (path.startsWith('/api/runs')) {
+        return new Response(JSON.stringify([heldRun]), { headers: json });
+      }
+      const body = {
+        ...report([held, item(usage, 'two', 'open')], ['first', 'second']),
+        costUsd: 1.46,
+      };
+      return new Response(JSON.stringify(body), { headers: json });
+    });
+    renderPath('/app/repos', fetcher);
+    const row = (await screen.findByRole('link', { name: REPO })).closest('tr') as HTMLElement;
+    expect(row.querySelector('[data-label="Open findings"]')).toHaveTextContent(
+      /^2\s*1 waiting on budget$/,
+    );
+    expect(row.querySelector('[data-label="Open findings"]')).not.toHaveTextContent('failed');
+    expect(row.querySelector('[data-label="Scan cost"]')).toHaveTextContent('$1.46');
+    expect(row.querySelector('[data-label="Scan errors"]')).toHaveTextContent(/^2$/);
+  });
+
+  it('leaves changes Refit hasn’t assessed out of the open count, and counts them apart', async () => {
+    const usage = dependency('lib', 'library');
+    const unread = Object.assign(item(usage, 'one', 'open'), {
+      reason:
+        'not attempted: external match failed after retries: Match agent hit max_tokens (16000); its JSON is incomplete.',
+    });
+    const fetcher = vi.fn(async (path: string) => {
+      if (path === '/api/repos') return new Response(JSON.stringify([REPO]), { headers: json });
+      if (path.startsWith('/api/runs')) return new Response('[]', { headers: json });
+      return new Response(JSON.stringify(report([unread, item(usage, 'two', 'open')])), {
+        headers: json,
+      });
+    });
+    renderPath('/app/repos', fetcher);
+    const row = (await screen.findByRole('link', { name: REPO })).closest('tr') as HTMLElement;
+    expect(row.querySelector('[data-label="Open findings"]')).toHaveTextContent(
+      /^1\s*1 not assessed yet$/,
+    );
   });
 
   it('points to onboarding when there are no repositories', async () => {
@@ -198,7 +254,7 @@ describe('repository detail', () => {
     expect(within(table).getByText('1.0.0')).toBeVisible();
   });
 
-  it('asks the API about this repo, and lists only its open PRs', async () => {
+  it('asks the API about this repo, and lists its PRs in every state', async () => {
     const fetcher = api(report([]), [
       pullRequest(1, { dependency: 'node', target: '24' }),
       pullRequest(2, { draft: true }),
@@ -206,7 +262,7 @@ describe('repository detail', () => {
       pullRequest(4, { state: 'closed' }),
     ]);
     renderPath(detailPath, fetcher);
-    const table = await screen.findByRole('table', { name: 'Open pull requests' });
+    const table = await screen.findByRole('table', { name: 'Pull requests' });
     expect(fetcher).toHaveBeenCalledWith('/api/report?repo=test-owner%2Fapp', expect.anything());
     expect(fetcher).toHaveBeenCalledWith('/api/prs?repo=test-owner%2Fapp', expect.anything());
     expect(screen.queryByText('Example data')).not.toBeInTheDocument();
@@ -215,7 +271,15 @@ describe('repository detail', () => {
     expect(links.map((link) => link.getAttribute('href'))).toEqual([
       'https://github.test/pull/1',
       'https://github.test/pull/2',
+      'https://github.test/pull/3',
+      'https://github.test/pull/4',
     ]);
+    expect(
+      within(table)
+        .getAllByRole('row')
+        .slice(1)
+        .map((row) => row.querySelector('[data-label="State"]')?.textContent),
+    ).toEqual(['Open', 'Draft', 'Merged', 'Closed']);
     expect(links[0]).toHaveAccessibleName('#1 Change 1 (opens in a new tab)');
     expect(links[0]).toHaveAttribute('target', '_blank');
     const [first, second] = within(table).getAllByRole('row').slice(1);
@@ -223,6 +287,24 @@ describe('repository detail', () => {
     expect(first.querySelector('[data-label="State"]')).toHaveTextContent('Open');
     expect(second.querySelector('[data-label="State"]')).toHaveTextContent('Draft');
     expect(second.querySelector('[data-label="Target"]')).toHaveTextContent('Not given');
+  });
+
+  it('keeps the scan on screen when GitHub won’t list pull requests', async () => {
+    const fetcher = vi.fn(async (path: string) =>
+      path.startsWith('/api/prs')
+        ? new Response(JSON.stringify({ error: 'GitHub request failed' }), {
+            status: 502,
+            headers: json,
+          })
+        : new Response(JSON.stringify({ ...report([]), costUsd: 1.46 }), { headers: json }),
+    );
+    renderPath(detailPath, fetcher);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Couldn’t get this repository’s pull requests from GitHub.',
+    );
+    expect(screen.getByText(/at a cost of \$1\.46/)).toBeVisible();
+    expect(screen.getByRole('heading', { name: 'No findings' })).toBeVisible();
+    expect(screen.queryByText('Example data')).not.toBeInTheDocument();
   });
 
   it('links to this repo’s runs and findings', async () => {
@@ -241,7 +323,9 @@ describe('repository detail', () => {
     const repo = 'odd owner/app#1';
     const fetcher = vi.fn(async (path: string) => {
       if (path === '/api/repos') return new Response(JSON.stringify([repo]), { headers: json });
-      if (path.startsWith('/api/prs')) return new Response('[]', { headers: json });
+      if (path.startsWith('/api/prs') || path.startsWith('/api/runs')) {
+        return new Response('[]', { headers: json });
+      }
       return new Response(JSON.stringify({ ...report([]), repo }), { headers: json });
     });
     const { unmount } = renderPath('/app/repos', fetcher);
@@ -264,7 +348,9 @@ describe('repository detail', () => {
     expect(await screen.findByRole('heading', { name: 'No scan yet' })).toBeVisible();
     expect(screen.getByText('No finished scan yet.')).toBeVisible();
     expect(screen.queryByRole('heading', { name: 'No findings' })).toBeNull();
-    expect(screen.getByText('No open pull requests on this repository.')).toBeVisible();
+    expect(
+      screen.getByText('Refit hasn’t opened a pull request on this repository.'),
+    ).toBeVisible();
     expect(screen.queryByText('Example data')).not.toBeInTheDocument();
   });
 
@@ -295,11 +381,9 @@ describe('repository detail', () => {
     expect(example.items.filter((item) => item.dependency.name === 'next')).toHaveLength(2);
     const frameworks = screen.getByRole('table', { name: 'Frameworks' });
     expect(within(frameworks).getAllByRole('row').slice(1)).toHaveLength(1);
-    const open = examplePullRequests.filter(
-      (candidate) => candidate.repo === example.repo && candidate.state === 'open',
-    );
-    const table = screen.getByRole('table', { name: 'Open pull requests' });
-    expect(within(table).getAllByRole('row').slice(1)).toHaveLength(open.length);
+    const shown = examplePullRequests.filter((candidate) => candidate.repo === example.repo);
+    const table = screen.getByRole('table', { name: 'Pull requests' });
+    expect(within(table).getAllByRole('row').slice(1)).toHaveLength(shown.length);
   });
 
   it('falls back to examples when signed out', async () => {
