@@ -4,7 +4,7 @@
 import type { DependencyUsage, MigrationKind, MigrationKindMvp } from '../../shared/types.ts';
 import { PLATFORM_SOURCES, SOURCE_GROUPS, type SourceGroup } from './sources.ts';
 
-export const PLATFORM_WATCH_PROMPT_VERSION = 'platform-watch-v3';
+export const PLATFORM_WATCH_PROMPT_VERSION = 'platform-watch-v4';
 
 export const PLATFORM_KINDS: (MigrationKindMvp | Extract<MigrationKind, 'other'>)[] = [
   'k8s-version',
@@ -24,7 +24,7 @@ const GROUP_GUIDES: Record<SourceGroup, string> = {
 - For an apiVersion, the deprecation guide names the release that removed it and its replacement: fromVersions the old apiVersion, toVersion the new one. Its effectiveDate is that release's date, when a page you read gives one; otherwise leave it out and name the release in the title.
 - For a cluster version, fromVersions the minors hit, toVersion a supported minor, effectiveDate the end-of-life date for the service this repository uses. When no service is known, report upstream's and say so.`,
   serverless: `Serverless runtimes (kind serverless-runtime):
-- Each platform's schedule lists a runtime's deprecation date and later dates when new functions, then updates, are blocked. Use the date that stops the repository deploying or running; put the other dates in the title.
+- Each platform's schedule lists a runtime's deprecation date and later dates when new functions, then updates, are blocked. The deprecation date, when the runtime stops getting security patches and support, is the effectiveDate: that is when it stops being supported. Put the later blocking dates in the title.
 - fromVersions the runtime identifier as the platform spells it (nodejs16.x), toVersion the newest supported runtime of that language, severity "deadline". A date in the past still counts: a repository on that runtime has to move.`,
   cloud: `Cloud services (kind cloud-deprecation):
 - A service or feature going into maintenance or shutting down, with the date and the named alternative. The lifecycle and deprecation pages are the lists; the feeds carry the announcements, so search_page them for the dependency's name and for "deprecat", "retire", "end of support", "sunset".
@@ -72,7 +72,7 @@ Each change:
 - id: a short stable slug, lowercase with dashes, e.g. "lambda-nodejs16-deprecated".
 - kind: ${PLATFORM_KINDS.join(', ')}.
 - title: one plain sentence saying what changed and for whom.
-- effectiveDate: YYYY-MM-DD (or YYYY-MM) when it takes effect or the deadline; omit if the source gives none. Do not guess.
+- effectiveDate: YYYY-MM-DD (or YYYY-MM), the deadline: the date this repository's version stops working, stops being served or stops being supported, or a rule starts being enforced. A release or announcement date is never a deadline. Omit it when the source gives no such date. Do not guess.
 - source: { url, quote }.
 - affects: operations (APIs, manifest keys, config keys), fields, versions and sdk, whatever the source supports; {} if none.
 - fromVersions: the versions or rules this change hits, as the source gives them, such as ["extensions/v1beta1"] or ["nodejs16.x"]. Leave out only if no source says.
