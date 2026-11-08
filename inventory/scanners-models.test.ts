@@ -114,6 +114,7 @@ describe('findAiModels settings', () => {
       Dockerfile: 'ENV MODEL_NAME=x\n',
     });
     expect(found.settings.map((s) => `${s.file}:${s.line}`).sort()).toEqual([
+      'Dockerfile:1',
       'cfg.ts:1',
       'cfg.ts:3',
       'cfg.ts:4',
@@ -127,5 +128,14 @@ describe('findAiModels limits', () => {
     const found = await scan({ 'a.ts': 'a("gpt-4o")\nb("gpt-4")\nc("gpt-3.5-turbo")\n' }, 2);
     expect(found.models.flatMap((m) => m.occurrences)).toHaveLength(2);
     expect(found.truncated).toBe(true);
+  });
+});
+
+describe('findAiModels in Dockerfiles', () => {
+  it('finds a model set in ENV or ARG', async () => {
+    const found = await scan({
+      Dockerfile: 'FROM node:18\nENV OPENAI_MODEL=text-davinci-003\n',
+    });
+    expect(lineOf(found, 'text-davinci-003')).toEqual(['Dockerfile:2']);
   });
 });
