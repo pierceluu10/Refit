@@ -15,6 +15,8 @@ import {
 import {
   DataCell,
   ExternalLink,
+  type FindingStatus,
+  findingStatus,
   formatCost,
   formatDay,
   labelOf,
@@ -25,7 +27,7 @@ import {
   WorkspaceMissing,
 } from '../components/WorkspaceUI';
 import { examplePullRequests, exampleReports, type RepoPullRequest } from '../fixtures';
-import { exampleScans, fetchScans, isUnresolved, isWaiting } from './WhatsBehind';
+import { exampleScans, fetchScans, isUnresolved } from './WhatsBehind';
 
 export function Repositories() {
   const { state, retry } = useApi(fetchScans, 'scans');
@@ -68,7 +70,7 @@ export function Repositories() {
                   </DataCell>
                   <DataCell label="Open findings">
                     {report ? report.items.filter(isUnresolved).length : 'None yet'}
-                    {report && <WaitingCount report={report} waiting={waiting} />}
+                    {report && <NotStartedCounts report={report} waiting={waiting} />}
                   </DataCell>
                   <DataCell label="Last scan">
                     {report ? formatDay(report.scannedAt) : 'No scan yet'}
@@ -89,9 +91,16 @@ export function Repositories() {
   );
 }
 
-function WaitingCount({ report, waiting }: { report: ScanReport; waiting: Set<string> }) {
-  const count = report.items.filter((item) => isWaiting(item, waiting)).length;
-  return count > 0 ? <small>{count} waiting on budget</small> : null;
+function NotStartedCounts({ report, waiting }: { report: ScanReport; waiting: Set<string> }) {
+  const count = (status: FindingStatus) =>
+    report.items.filter((item) => findingStatus(item, waiting) === status).length;
+  const [held, unassessed] = [count('waiting-budget'), count('not-assessed')];
+  return (
+    <>
+      {held > 0 && <small>{held} waiting on budget</small>}
+      {unassessed > 0 && <small>{unassessed} not assessed yet</small>}
+    </>
+  );
 }
 
 // pullRequests is null when GitHub couldn't be asked; the scan is stored here and still shows.

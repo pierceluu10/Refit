@@ -569,6 +569,31 @@ describe('rules', () => {
     expect(list.queryByText(/not attempted/)).toBeNull();
   });
 
+  it('never says a rule applies when the match never ran', async () => {
+    renderPage(
+      lawRoutes({
+        '/api/report': json(
+          report([
+            Object.assign(item('law', 'regulation'), {
+              reason:
+                'not attempted: external match failed after retries: Match agent hit max_tokens (16000); its JSON is incomplete.',
+            }),
+          ]),
+        ),
+        '/api/runs': json([]),
+        '/api/audit': json([]),
+      }),
+    );
+    const list = await rulesList();
+    expect(list.getAllByText('Not assessed yet').length).toBeGreaterThan(0);
+    expect(list.getByText(/doesn’t know yet whether this applies/)).toBeVisible();
+    expect(list.queryByText('Likely applies')).toBeNull();
+    expect(list.queryByText('Needs review')).toBeNull();
+    expect(list.queryByText(/Refit's read/)).toBeNull();
+    expect(list.queryByText('Refit recorded no reason for this.')).toBeNull();
+    expect(list.queryByText(/max_tokens/)).toBeNull();
+  });
+
   it('joins the report, audit, obligation and run into one rule', async () => {
     renderPage(lawRoutes());
     const list = await rulesList();

@@ -309,6 +309,45 @@ describe('what’s behind', () => {
     });
   });
 
+  describe('changes Refit hasn’t assessed', () => {
+    const unassessed = (base: BehindItem) =>
+      Object.assign(base, {
+        reason:
+          'not attempted: external match failed after retries: Match agent hit max_tokens (16000); its JSON is incomplete.',
+      });
+    const statusOf = (name: string) =>
+      (screen.getByText(name).closest('tr') as HTMLElement).querySelector('[data-label="Status"]');
+
+    it('says so and why, never open or past due, and lets you filter to them', async () => {
+      const reports = {
+        [FIRST]: report(FIRST, [
+          unassessed(item(FIRST, 'unread', { deadline: '2020-01-15' })),
+          item(FIRST, 'plain'),
+        ]),
+      };
+      renderBehind(api(reports));
+      await screen.findByRole('table');
+      expect(statusOf('unread')).toHaveTextContent('Not assessed yet');
+      expect(statusOf('unread')).toHaveTextContent('doesn’t know yet whether this applies');
+      expect(statusOf('unread')).not.toHaveTextContent('max_tokens');
+      expect(screen.queryByText('Past due')).toBeNull();
+      expect(statusOf('plain')).toHaveTextContent('Open');
+      fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), {
+        target: { value: 'not-assessed' },
+      });
+      expect(dependencyColumn()).toEqual(['unread']);
+    });
+
+    it('keeps a finding that already has a PR as PR open', async () => {
+      const reports = {
+        [FIRST]: report(FIRST, [unassessed(item(FIRST, 'pr', { status: 'pr-open' }))]),
+      };
+      renderBehind(api(reports));
+      await screen.findByRole('table');
+      expect(statusOf('pr')).toHaveTextContent('PR open');
+    });
+  });
+
   describe('work held for budget', () => {
     const run = (name: string, outcome: RunView['outcome'], id = name): RunView => ({
       id,

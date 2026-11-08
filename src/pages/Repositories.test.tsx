@@ -160,6 +160,26 @@ describe('repositories list', () => {
     expect(row.querySelector('[data-label="Scan errors"]')).toHaveTextContent(/^2$/);
   });
 
+  it('leaves changes Refit hasn’t assessed out of the open count, and counts them apart', async () => {
+    const usage = dependency('lib', 'library');
+    const unread = Object.assign(item(usage, 'one', 'open'), {
+      reason:
+        'not attempted: external match failed after retries: Match agent hit max_tokens (16000); its JSON is incomplete.',
+    });
+    const fetcher = vi.fn(async (path: string) => {
+      if (path === '/api/repos') return new Response(JSON.stringify([REPO]), { headers: json });
+      if (path.startsWith('/api/runs')) return new Response('[]', { headers: json });
+      return new Response(JSON.stringify(report([unread, item(usage, 'two', 'open')])), {
+        headers: json,
+      });
+    });
+    renderPath('/app/repos', fetcher);
+    const row = (await screen.findByRole('link', { name: REPO })).closest('tr') as HTMLElement;
+    expect(row.querySelector('[data-label="Open findings"]')).toHaveTextContent(
+      /^1\s*1 not assessed yet$/,
+    );
+  });
+
   it('points to onboarding when there are no repositories', async () => {
     renderPath(
       '/app/repos',

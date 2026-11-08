@@ -560,6 +560,9 @@
     padding: 5px 0;
     border: 0;
   }
+  .data-table td > div {
+    overflow-wrap: anywhere;
+  }
   .data-table td::before {
     content: attr(data-label);
     color: var(--muted);

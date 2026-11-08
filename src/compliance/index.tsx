@@ -14,7 +14,14 @@ import { useSearchParams } from 'react-router-dom';
 import { auditCsv } from '../../app/audit/csv.ts';
 import type { AuditEntry, BehindItem } from '../../shared/types.ts';
 import { waitingChanges } from '../api';
-import { formatCost, ScanErrors, Status } from '../components/WorkspaceUI';
+import {
+  BehindStatus,
+  findingStatus,
+  formatCost,
+  NOT_ASSESSED_WHY,
+  ScanErrors,
+  Status,
+} from '../components/WorkspaceUI';
 import {
   ApiSignedOutError,
   ApiUnavailableError,
@@ -130,7 +137,8 @@ function Declared({ item }: { item: BehindItem }) {
   );
 }
 
-function Finding({ item, waiting }: { item: BehindItem; waiting: boolean }) {
+function Finding({ item, waiting }: { item: BehindItem; waiting: Set<string> }) {
+  const shown = findingStatus(item, waiting);
   const { label, className, Icon } = statusStyles[item.status];
   const deadline = deadlineOf(item);
   const { change, dependency } = item;
@@ -158,10 +166,11 @@ function Finding({ item, waiting }: { item: BehindItem; waiting: boolean }) {
           )}
         </p>
         <SourceQuote url={change.source.url} quote={change.source.quote} title={change.title} />
+        {shown === 'not-assessed' && <p className="rules-hint">{NOT_ASSESSED_WHY}</p>}
       </div>
       <div className="rules-finding-side">
-        {waiting ? (
-          <Status outcome="waiting-budget" />
+        {shown === 'waiting-budget' || shown === 'not-assessed' ? (
+          <BehindStatus status={shown} />
         ) : (
           <span className={`resource-status ${className}`}>
             <Icon aria-hidden="true" />
@@ -187,11 +196,7 @@ function Platforms({ data, repo }: { data: RepoData; repo: string }) {
             <h3>{group.name}</h3>
             <ul aria-label={group.name}>
               {group.items.map((item) => (
-                <Finding
-                  item={item}
-                  waiting={item.status === 'open' && waiting.has(item.change.id)}
-                  key={item.change.id}
-                />
+                <Finding item={item} waiting={waiting} key={item.change.id} />
               ))}
             </ul>
           </div>
@@ -260,6 +265,7 @@ function Rule({ rule }: { rule: RuleView }) {
           </p>
         </div>
         {rule.waiting && <Status outcome="waiting-budget" />}
+        {rule.notAssessed && <BehindStatus status="not-assessed" />}
         {rule.needsReview ? (
           <span className="resource-status status-attention">
             <WarningCircle aria-hidden="true" />
@@ -279,8 +285,16 @@ function Rule({ rule }: { rule: RuleView }) {
       <SourceQuote url={source.url} quote={source.quote} title={title} />
       <dl className="rules-facts">
         <Fact term="Does it apply?">
-          <strong>{applies ? 'Likely applies' : "Likely doesn't apply"}</strong>
-          <span className="rules-hint"> Refit's read, not a legal finding.</span>
+          <strong>
+            {rule.notAssessed
+              ? 'Not assessed yet'
+              : applies
+                ? 'Likely applies'
+                : "Likely doesn't apply"}
+          </strong>
+          {!rule.notAssessed && (
+            <span className="rules-hint"> Refit's read, not a legal finding.</span>
+          )}
         </Fact>
         <Fact term="Why">
           <Lines lines={rule.why} missing="Refit recorded no reason for this." />

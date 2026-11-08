@@ -17,8 +17,11 @@ import {
   DataCell,
   ExternalLink,
   type FindingStatus,
+  findingStatus,
   formatDay,
+  isNotAssessed,
   labelOf,
+  NOT_ASSESSED_WHY,
   NoRepositories,
   PageHeading,
   repoPath,
@@ -48,13 +51,9 @@ export const exampleScans: RepoScan[] = exampleReports.map((report) => ({
   waiting: waitingChanges(exampleRuns.filter((run) => run.repo === report.repo)),
 }));
 
+// A change Refit hasn't assessed may not touch this code, so it isn't counted as work or overdue.
 export function isUnresolved(item: BehindItem) {
-  return item.status === 'open' || item.status === 'pr-open';
-}
-
-// Only an open finding can wait: one with a PR or a verdict has already been worked on.
-export function isWaiting(item: BehindItem, waiting: Set<string>) {
-  return item.status === 'open' && waiting.has(item.change.id);
+  return (item.status === 'open' && !isNotAssessed(item)) || item.status === 'pr-open';
 }
 
 type Finding = BehindItem & { shownStatus: FindingStatus };
@@ -165,7 +164,7 @@ function Findings({ scans }: { scans: RepoScan[] }) {
     scans.flatMap(({ report, waiting }) =>
       (report?.items ?? []).map((item) => ({
         ...item,
-        shownStatus: isWaiting(item, waiting) ? ('waiting-budget' as const) : item.status,
+        shownStatus: findingStatus(item, waiting),
       })),
     ),
   );
@@ -305,6 +304,7 @@ function FindingsTable({ items }: { items: Finding[] }) {
               </DataCell>
               <DataCell label="Status">
                 <BehindStatus status={item.shownStatus} />
+                {item.shownStatus === 'not-assessed' && <small>{NOT_ASSESSED_WHY}</small>}
                 {item.pr && (
                   <ExternalLink
                     href={item.pr}

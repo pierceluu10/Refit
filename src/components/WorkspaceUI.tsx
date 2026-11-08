@@ -6,6 +6,7 @@ import {
   FolderSimple,
   GitMerge,
   GitPullRequest,
+  Question,
   WarningCircle,
   XCircle,
 } from '@phosphor-icons/react';
@@ -32,7 +33,24 @@ export function Status({ outcome }: { outcome: RunRecord['outcome'] }) {
   );
 }
 
-export type FindingStatus = BehindItem['status'] | 'waiting-budget';
+export type FindingStatus = BehindItem['status'] | 'waiting-budget' | 'not-assessed';
+
+// shortcut: reads the scan's free-text reason; use a structured field once the report has one.
+const NOT_ATTEMPTED = /^not attempted/i;
+
+export const NOT_ASSESSED_WHY =
+  'Refit’s check of this change didn’t finish, so it doesn’t know yet whether this applies to your code.';
+
+// The scan stores why a change is open beside each item, outside the shared BehindItem type.
+export function isNotAssessed(item: BehindItem & { reason?: string }) {
+  return item.status === 'open' && NOT_ATTEMPTED.test(item.reason ?? '');
+}
+
+// waiting: the changes whose newest run is held for budget.
+export function findingStatus(item: BehindItem, waiting: Set<string>): FindingStatus {
+  if (isNotAssessed(item)) return 'not-assessed';
+  return item.status === 'open' && waiting.has(item.change.id) ? 'waiting-budget' : item.status;
+}
 
 export const behindStatusLabels: Record<FindingStatus, string> = {
   open: 'Open',
@@ -40,6 +58,7 @@ export const behindStatusLabels: Record<FindingStatus, string> = {
   merged: 'Merged',
   'not-affected': 'Not affected',
   'waiting-budget': outcomeLabels['waiting-budget'],
+  'not-assessed': 'Not assessed yet',
 };
 
 const behindStatusStyles = {
@@ -48,6 +67,7 @@ const behindStatusStyles = {
   merged: { className: 'status-positive', Icon: GitMerge },
   'not-affected': { className: 'status-positive', Icon: CheckCircle },
   'waiting-budget': outcomeStyles['waiting-budget'],
+  'not-assessed': { className: 'status-attention', Icon: Question },
 } satisfies Record<FindingStatus, object>;
 
 export function BehindStatus({ status }: { status: FindingStatus }) {
