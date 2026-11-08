@@ -51,7 +51,7 @@ describe('deadline guidance in every watcher prompt', () => {
 
   it('a new major and an advisory carry no deadline of their own', () => {
     expect(SOURCE_GUIDES.packages).toMatch(/A new major has no deadline of its own/);
-    expect(SOURCE_GUIDES.advisories).toMatch(/publication date is not a deadline/);
+    expect(prompts.dependency).toMatch(/advisory's publication date is not one either/);
   });
 
   it('a serverless runtime is due when it stops being supported, not when updates are blocked', () => {

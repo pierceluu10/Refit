@@ -53,7 +53,7 @@ Each change:
 - id: a short stable slug, lowercase with dashes, e.g. "2025-03-31-basil-remove-total-count".
 - kind: one of the MigrationKinds below.
 - title: one plain sentence saying what changed and for whom.
-- effectiveDate: YYYY-MM-DD (or YYYY-MM), the deadline: the date the version this change hits stops working, stops being served or stops getting support (end of life, shutdown, removal, enforcement). Reports are sorted by it, so the top of the list is what hurts first. A release date is never a deadline: a new major coming out does not stop the old one working. Omit it when the source gives no such date. Do not guess.
+- effectiveDate: YYYY-MM-DD (or YYYY-MM), the deadline: the date the version this change hits stops working, stops being served or stops getting support (end of life, shutdown, removal, enforcement). Reports are sorted by it, so the top of the list is what hurts first. A release date is never a deadline: a new major coming out does not stop the old one working, and an advisory's publication date is not one either. Omit it when the source gives no such date. Do not guess.
 - source: { url, quote }.
 - affects: operations (endpoint paths, SDK methods, GraphQL operations, model ids), fields, versions (API or SDK versions involved) and sdk (package name) - whatever the source supports. Leave a list out rather than invent entries.
 
@@ -110,7 +110,7 @@ const EACH_CHANGE = `Each change:
 - id: a short stable slug, lowercase with dashes, e.g. "2026-03-31-remove-total-count".
 - kind: one of the MigrationKinds below.
 - title: one plain sentence saying what changed and for whom.
-- effectiveDate: YYYY-MM-DD (or YYYY-MM), the deadline: the date the version this change hits stops working, stops being served or stops getting support (end of life, shutdown, removal, enforcement). Reports are sorted by it, so the top of the list is what hurts first. A release date is never a deadline: a new major coming out does not stop the old one working. Omit it when the source gives no such date. Do not guess.
+- effectiveDate: YYYY-MM-DD (or YYYY-MM), the deadline: the date the version this change hits stops working, stops being served or stops getting support (end of life, shutdown, removal, enforcement). Reports are sorted by it, so the top of the list is what hurts first. A release date is never a deadline: a new major coming out does not stop the old one working, and an advisory's publication date is not one either. Omit it when the source gives no such date. Do not guess.
 - source: { url, quote }.
 - affects: operations (endpoint paths, SDK methods, GraphQL operations, model ids), fields, versions (API or SDK versions involved) and sdk (package name) - whatever the source supports. Leave a list out rather than invent entries.`;
 
@@ -218,7 +218,7 @@ export const SOURCE_GUIDES = {
   advisories: `Security advisories:
 - The OSV feed lists advisories for this package and version with the first fixed versions, and https://api.osv.dev/v1/vulns/<id> gives one in full. The GitHub Advisory Database page lists them with more detail. Read https://osv.dev/vulnerability/<id> style links as they appear; cite those.
 - Keep an advisory only when the fix needs more than a version bump (code has to change, or a fix needs configuration) or when the bump crosses a major version from this repository's version. Plain bumps within a major belong to a dependency bot: leave them out and say how many in the notes.
-- Kind security-fix, severity "security", fromVersions the affected range, toVersion the first fixed version, one change per advisory. An advisory's publication date is not a deadline: leave effectiveDate out unless the version stops being supported on a published date.`,
+- Kind security-fix, severity "security", fromVersions the affected range, toVersion the first fixed version, one change per advisory.`,
   models: `AI model retirements:
 - The deprecation pages of OpenAI, Anthropic and Google list models with shutdown dates and recommended replacements. Read the one for this model's provider, and find this model id, its dated snapshots and its aliases.
 - Kind model-retirement, severity "deadline", effectiveDate the shutdown date, fromVersions the model ids that go away, toVersion the replacement the provider recommends.
@@ -272,7 +272,7 @@ Each change:
 - id: a short stable slug, lowercase with dashes, e.g. "node-18-end-of-life".
 - kind: one from the list below, or "other".
 - title: one plain sentence saying what changed and for whom.
-- effectiveDate: YYYY-MM-DD (or YYYY-MM), the deadline: the date the version this change hits stops working, stops being served or stops getting support (end of life, shutdown, removal, enforcement). Reports are sorted by it, so the top of the list is what hurts first. A release date is never a deadline: a new major coming out does not stop the old one working. Omit it when the source gives no such date. Do not guess.
+- effectiveDate: YYYY-MM-DD (or YYYY-MM), the deadline: the date the version this change hits stops working, stops being served or stops getting support (end of life, shutdown, removal, enforcement). Reports are sorted by it, so the top of the list is what hurts first. A release date is never a deadline: a new major coming out does not stop the old one working, and an advisory's publication date is not one either. Omit it when the source gives no such date. Do not guess.
 - source: { url, quote }.
 - affects: operations (functions, CLI commands, config keys), fields, versions and sdk (package name), whatever the source supports; {} if none.
 
