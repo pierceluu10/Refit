@@ -14,6 +14,15 @@ mkdir -p "$TMPDIR"
 chown -R node:node "$STATE_DIR" "$TMPDIR"
 rm -f /var/run/docker.pid # left by a killed container, it would stop dockerd starting
 
+# As in Docker's own dind script: under cgroup v2, runc can't create containers while processes
+# sit in the root cgroup. Best effort, because a host without cgroup v2 has nothing to move.
+if [ -f /sys/fs/cgroup/cgroup.controllers ]; then
+  mkdir -p /sys/fs/cgroup/init
+  xargs -rn1 </sys/fs/cgroup/cgroup.procs >/sys/fs/cgroup/init/cgroup.procs 2>/dev/null || true
+  sed -e 's/ / +/g' -e 's/^/+/' </sys/fs/cgroup/cgroup.controllers \
+    >/sys/fs/cgroup/cgroup.subtree_control 2>/dev/null || true
+fi
+
 # env -i keeps the app's secrets out of the daemon's environment.
 env -i PATH="$PATH" dockerd --data-root="$DATA_ROOT" --group=node --mtu="$DOCKER_MTU" --log-level=warn &
 
