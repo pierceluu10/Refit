@@ -280,6 +280,9 @@
   .app-topbar .app-menu {
     display: inline-flex;
   }
+  .app-account-provider {
+    display: none;
+  }
   .app-topbar {
     padding-inline: 15px;
     gap: 8px;

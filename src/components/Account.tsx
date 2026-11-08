@@ -33,8 +33,19 @@ export function Account() {
   return (
     <div className="app-account">
       {failed && <span role="alert">Sign-in didn’t finish.</span>}
-      <a className="button button-secondary button-small" href={LOGIN_PATH}>
-        <GithubLogo /> {failed ? 'Try again' : 'Sign in with GitHub'}
+      <a
+        className="button button-secondary button-small"
+        href={LOGIN_PATH}
+        aria-label={failed ? undefined : 'Sign in with GitHub'}
+      >
+        <GithubLogo />{' '}
+        {failed ? (
+          'Try again'
+        ) : (
+          <span>
+            Sign in<span className="app-account-provider"> with GitHub</span>
+          </span>
+        )}
       </a>
     </div>
   );
