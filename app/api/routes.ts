@@ -1,21 +1,27 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { redactSecrets } from '../../harness/secrets.ts';
 import type { DependencyUsage, ScanReport } from '../../shared/types.ts';
+import { AUDIT_PATHS } from '../audit/index.ts';
 import { GitHubApiError } from '../github.ts';
 import { parseMarker } from '../lifecycle/marker.ts';
+import { RUNS_PATH } from '../runs.ts';
 import { REPO_PATTERN } from '../types.ts';
 import type { InstallationTokens } from '../types.ts';
-import { isServiceToken } from './auth.ts';
+import { canRead, resolveAccess } from './auth.ts';
+import type { Access, SessionRepos } from './auth.ts';
 import { listRefitPullRequests } from './pulls.ts';
 import type { PullRequest } from './pulls.ts';
 
 const OK = 200;
 const BAD_REQUEST = 400;
 const UNAUTHORIZED = 401;
+const FORBIDDEN = 403;
 const NOT_FOUND = 404;
 const METHOD_NOT_ALLOWED = 405;
 const SERVER_ERROR = 500;
 const BAD_GATEWAY = 502;
+// GitHub refusing one installation or repo (suspended, removed); anything else is a real outage.
+const REFUSED_STATUSES = new Set([FORBIDDEN, NOT_FOUND]);
 
 const REPOS_PATH = '/api/repos';
 const REPORT_PATH = '/api/report';
@@ -36,6 +42,7 @@ export type ApiDeps = {
   reports: ReportReader;
   tokens: InstallationTokens;
   serviceToken?: string; // defaults to REFIT_SERVICE_TOKEN, read per request
+  sessionRepos?: SessionRepos;
   fetchImpl?: typeof fetch;
 };
 
@@ -105,52 +112,72 @@ function prView(repo: string, pull: PullRequest): PrView {
 }
 
 // shortcut: a repo appears after its first scan, since installs aren't listed here; P1 deletes a report on uninstall, so removed repos drop off.
-async function serveRepos(_query: URLSearchParams, deps: ApiDeps): Promise<Reply> {
+async function serveRepos(_query: URLSearchParams, deps: ApiDeps, access: Access): Promise<Reply> {
   const reports = await deps.reports.list();
-  const repos = reports.map((report) => report.repo).sort((a, b) => a.localeCompare(b));
+  const repos = reports
+    .map((report) => report.repo)
+    .filter((repo) => canRead(access, repo))
+    .sort((a, b) => a.localeCompare(b));
   return { status: OK, body: repos };
 }
 
-async function serveReport(query: URLSearchParams, deps: ApiDeps): Promise<Reply> {
+async function serveReport(query: URLSearchParams, deps: ApiDeps, access: Access): Promise<Reply> {
   const repo = query.get('repo');
   if (repo === null || !REPO_PATTERN.test(repo)) return failure(BAD_REQUEST, BAD_REPO);
-  const report = await deps.reports.latest(repo);
+  // Same answer as a repo that doesn't exist, so another org's repo names can't be probed.
+  const report = canRead(access, repo) ? await deps.reports.latest(repo) : undefined;
   return report
     ? { status: OK, body: publicReport(report) }
     : failure(NOT_FOUND, 'No report for this repo');
 }
 
-async function reportsFor(wanted: string | null, deps: ApiDeps): Promise<StoredReport[]> {
-  if (wanted === null) return deps.reports.list();
-  const report = await deps.reports.latest(wanted);
-  return report ? [report] : [];
+async function reportsFor(
+  wanted: string | null,
+  deps: ApiDeps,
+  access: Access,
+): Promise<StoredReport[]> {
+  const reports = wanted === null ? await deps.reports.list() : [await deps.reports.latest(wanted)];
+  return reports.filter(
+    (report): report is StoredReport => report !== undefined && canRead(access, report.repo),
+  );
 }
 
-// shortcut: one installation GitHub refuses a token (say, suspended) fails the whole list with a 502;
-// use Promise.allSettled and report the gap once several customers share this endpoint.
-async function servePrs(query: URLSearchParams, deps: ApiDeps): Promise<Reply> {
+// One suspended or removed installation leaves its PRs out instead of failing everyone else's list.
+async function prViews({ repo, installationId }: StoredReport, deps: ApiDeps): Promise<PrView[]> {
+  if (installationId === undefined) return [];
+  try {
+    const token = await deps.tokens.token(installationId);
+    const pulls = await listRefitPullRequests(token, repo, 'all', deps.fetchImpl);
+    return pulls.map((pull) => prView(repo, pull));
+  } catch (error) {
+    if (!(error instanceof GitHubApiError && REFUSED_STATUSES.has(error.status))) throw error;
+    console.error(`api /api/prs skipped ${repo}: ${redactSecrets(error.message)}`);
+    return [];
+  }
+}
+
+async function servePrs(query: URLSearchParams, deps: ApiDeps, access: Access): Promise<Reply> {
   const wanted = query.get('repo');
   if (wanted !== null && !REPO_PATTERN.test(wanted)) return failure(BAD_REQUEST, BAD_REPO);
-  const reports = await reportsFor(wanted, deps);
-  const views = await Promise.all(
-    reports.map(async ({ repo, installationId }) => {
-      if (installationId === undefined) return [];
-      const token = await deps.tokens.token(installationId);
-      const pulls = await listRefitPullRequests(token, repo, 'all', deps.fetchImpl);
-      return pulls.map((pull) => prView(repo, pull));
-    }),
-  );
+  const reports = await reportsFor(wanted, deps, access);
+  const views = await Promise.all(reports.map((report) => prViews(report, deps)));
   const newestFirst = (a: PrView, b: PrView) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
   return { status: OK, body: views.flat().sort(newestFirst) };
 }
 
-const ROUTES: Record<string, (query: URLSearchParams, deps: ApiDeps) => Promise<Reply>> = {
+const ROUTES: Record<
+  string,
+  (query: URLSearchParams, deps: ApiDeps, access: Access) => Promise<Reply>
+> = {
   [REPOS_PATH]: serveRepos,
   [REPORT_PATH]: serveReport,
   [PRS_PATH]: servePrs,
 };
 
-function sendJson(response: ServerResponse, status: number, body: unknown) {
+// Every /api path that returns customer data; the isolation test walks this list.
+export const DATA_PATHS = [...Object.keys(ROUTES), ...AUDIT_PATHS, RUNS_PATH];
+
+export function sendJson(response: ServerResponse, status: number, body: unknown) {
   const text = JSON.stringify(body);
   response.writeHead(status, JSON_HEADERS).end(text);
 }
@@ -168,11 +195,13 @@ export function createApiRoutes(
       if (request.method !== 'GET') {
         response.setHeader('Allow', 'GET');
         sendJson(response, METHOD_NOT_ALLOWED, { error: 'Method not allowed' });
-      } else if (!isServiceToken(request.headers.authorization, deps.serviceToken)) {
-        sendJson(response, UNAUTHORIZED, { error: 'Unauthorized' });
       } else {
-        const reply = await route(url.searchParams, deps);
-        sendJson(response, reply.status, reply.body);
+        const access = await resolveAccess(request, deps.sessionRepos, deps.serviceToken);
+        if (!access) sendJson(response, UNAUTHORIZED, { error: 'Unauthorized' });
+        else {
+          const reply = await route(url.searchParams, deps, access);
+          sendJson(response, reply.status, reply.body);
+        }
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

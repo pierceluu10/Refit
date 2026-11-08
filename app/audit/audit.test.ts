@@ -68,7 +68,8 @@ let server: Server | undefined;
 
 async function start(overrides: Partial<AuditDeps> = {}) {
   const deps: AuditDeps = {
-    isAuthorized: (authorization) => authorization === AUTHORIZATION,
+    access: async (request) =>
+      request.headers.authorization === AUTHORIZATION ? 'all' : undefined,
     listRepos: vi.fn(async () => [FIRST, SECOND]),
     listAudit: vi.fn(async () => []),
     ...overrides,

@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 const DEFAULT_PORT = 3000;
 const DEFAULT_QUEUE_FILE = '.refit/queue.json';
 const DEFAULT_QUEUE_CONCURRENCY = 2;
+const MIN_SESSION_SECRET_LENGTH = 32;
 
 export class MissingConfigError extends Error {
   constructor(variable: string) {
@@ -18,6 +19,9 @@ export class InvalidConfigError extends Error {
   }
 }
 
+// The dashboard's GitHub login: the App's client id and secret, and the key that seals session cookies.
+export type LoginConfig = { clientId: string; clientSecret: string; sessionSecret: string };
+
 export type AppCredentials = { appId: string; privateKey: string };
 
 export type AppConfig = AppCredentials & {
@@ -25,6 +29,7 @@ export type AppConfig = AppCredentials & {
   port: number;
   queueFile: string;
   queueConcurrency: number;
+  login?: LoginConfig; // absent until a founder configures it; the login route then answers 503
 };
 
 function required(env: NodeJS.ProcessEnv, variable: string): string {
@@ -48,6 +53,24 @@ function readConcurrency(env: NodeJS.ProcessEnv): number {
   return concurrency;
 }
 
+function readLogin(env: NodeJS.ProcessEnv): LoginConfig | undefined {
+  if (!env.GITHUB_CLIENT_ID && !env.GITHUB_CLIENT_SECRET && !env.REFIT_SESSION_SECRET) {
+    return undefined;
+  }
+  const sessionSecret = required(env, 'REFIT_SESSION_SECRET');
+  if (sessionSecret.length < MIN_SESSION_SECRET_LENGTH) {
+    throw new InvalidConfigError(
+      'REFIT_SESSION_SECRET',
+      `at least ${MIN_SESSION_SECRET_LENGTH} characters`,
+    );
+  }
+  return {
+    clientId: required(env, 'GITHUB_CLIENT_ID'),
+    clientSecret: required(env, 'GITHUB_CLIENT_SECRET'),
+    sessionSecret,
+  };
+}
+
 // The App's identity, for callers that open PRs without serving webhooks, like the CLI.
 export function readCredentials(env: NodeJS.ProcessEnv = process.env): AppCredentials | undefined {
   if (!env.GITHUB_APP_ID) return undefined;
@@ -63,5 +86,6 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     port: env.PORT ? Number(env.PORT) : DEFAULT_PORT,
     queueFile: env.REFIT_QUEUE_FILE || DEFAULT_QUEUE_FILE,
     queueConcurrency: readConcurrency(env),
+    login: readLogin(env),
   };
 }

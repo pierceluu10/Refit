@@ -3,6 +3,7 @@ import { GitHubApiError } from './github.ts';
 import { REPO_PATTERN } from './types.ts';
 import type { ListRunViews } from './types.ts';
 
+export const RUNS_PATH = '/api/runs';
 export const DEFAULT_LIMIT = 50;
 export const MAX_LIMIT = 100;
 const BEARER = /^Bearer (\S+)$/;

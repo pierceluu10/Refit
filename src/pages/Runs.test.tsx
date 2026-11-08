@@ -194,7 +194,7 @@ describe('runs', () => {
     renderRuns(respond({ error: 'unauthorized' }, 401));
     await screen.findByRole('list', { name: 'Runs' });
     expect(screen.getByText('Example data')).toBeVisible();
-    expect(screen.getByText(/need a GitHub sign-in/)).toBeVisible();
+    expect(screen.getByText(/to see your/)).toBeVisible();
   });
 
   it('filters example runs by repository', async () => {

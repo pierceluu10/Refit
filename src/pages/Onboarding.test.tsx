@@ -186,7 +186,7 @@ describe('choose repos step', () => {
     );
     await screen.findByRole('list', { name: 'Repos' });
     expect(screen.getByText('Example data')).toBeVisible();
-    expect(screen.getByText(/need a GitHub sign-in/)).toBeVisible();
+    expect(screen.getByText(/to see your/)).toBeVisible();
   });
 
   it('says so when the API can see no repos', async () => {

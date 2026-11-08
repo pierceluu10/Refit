@@ -6,7 +6,7 @@ import type { InstallationTokens } from './types.ts';
 export const GITHUB_API = 'https://api.github.com';
 
 const API_VERSION = '2022-11-28';
-const USER_AGENT = 'refit-app';
+export const USER_AGENT = 'refit-app';
 const JSON_TYPE = 'application/json';
 const JSON_ACCEPT = 'application/vnd.github+json';
 const DIFF_ACCEPT = 'application/vnd.github.v3.diff';
@@ -200,20 +200,23 @@ export async function listInstallationRepos(
 }
 
 // Every repo the signed-in user can reach through this App's installations. Needs a user-to-server
-// token; installations of other apps are dropped in case the token came from somewhere else.
+// token; installations of other apps are dropped in case the token came from somewhere else, and
+// suspended ones because GitHub refuses their repo list, which must not fail the viewer's other orgs.
 export async function listViewerRepos(
   userToken: string,
   appId: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<string[]> {
-  const installations = await listAll<{ id: number; app_id: number }>(
-    userToken,
-    '/user/installations',
-    'installations',
-    fetchImpl,
-  );
+  const installations = await listAll<{
+    id: number;
+    app_id: number;
+    suspended_at: string | null;
+  }>(userToken, '/user/installations', 'installations', fetchImpl);
   const repos: string[] = [];
-  for (const installation of installations.filter((item) => String(item.app_id) === appId)) {
+  const usable = installations.filter(
+    (item) => String(item.app_id) === appId && !item.suspended_at,
+  );
+  for (const installation of usable) {
     const page = await listAll<Repository>(
       userToken,
       `/user/installations/${installation.id}/repositories`,

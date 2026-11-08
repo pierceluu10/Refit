@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
 import type { Route } from './parts.ts';
-import { runsFor } from './runs.ts';
+import { RUNS_PATH, runsFor } from './runs.ts';
 import type { RunsDeps } from './runs.ts';
 import { handleWebhook, verifySignature } from './webhooks.ts';
 import type { WebhookDeps } from './webhooks.ts';
@@ -10,7 +10,6 @@ import type { WebhookDeps } from './webhooks.ts';
 export const MAX_BODY_BYTES = 25 * 1024 * 1024;
 const WEBHOOK_PATH = '/webhooks';
 const HEALTH_PATH = '/healthz';
-const RUNS_PATH = '/api/runs';
 const OK = 200;
 const ACCEPTED = 202;
 const BAD_REQUEST = 400;
@@ -24,6 +23,7 @@ export type WebhookServerDeps = WebhookDeps &
     webhookSecret: string;
     maxBodyBytes?: number;
     routes?: Route[]; // the report and audit APIs
+    userToken?: (request: IncomingMessage) => string | undefined; // the signed-in person's GitHub token
   };
 
 // Returns undefined when the body exceeds the cap; it keeps draining so the 413 can still be sent.
@@ -80,7 +80,9 @@ async function serveRuns(
   deps: WebhookServerDeps,
 ) {
   const query = new URL(request.url ?? '/', 'http://localhost').searchParams;
-  const result = await runsFor(query, header(request, 'authorization'), deps);
+  const token = deps.userToken?.(request);
+  const authorization = token ? `Bearer ${token}` : header(request, 'authorization');
+  const result = await runsFor(query, authorization, deps);
   if (result.status === UNAUTHORIZED) return response.writeHead(UNAUTHORIZED).end();
   if (result.status === BAD_REQUEST)
     return sendJson(response, BAD_REQUEST, { error: result.error });

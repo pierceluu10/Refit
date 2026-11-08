@@ -230,6 +230,30 @@ describe('listViewerRepos', () => {
   });
 });
 
+describe('listViewerRepos with a suspended installation', () => {
+  it('skips it instead of asking GitHub for repos it would refuse', async () => {
+    const fetchImpl = vi.fn(async (url: string) => {
+      const path = url.slice(GITHUB_API.length);
+      if (path.startsWith('/user/installations?')) {
+        return json({
+          total_count: 2,
+          installations: [
+            { id: 1, app_id: Number(APP_ID), suspended_at: '2026-11-01T00:00:00Z' },
+            { id: 2, app_id: Number(APP_ID), suspended_at: null },
+          ],
+        });
+      }
+      if (path.startsWith('/user/installations/2/repositories?')) {
+        return json({ total_count: 1, repositories: [{ full_name: 'org/active' }] });
+      }
+      return json({ message: 'This installation has been suspended' }, 403);
+    });
+    expect(await listViewerRepos('ghu_user', APP_ID, fetchImpl as typeof fetch)).toEqual([
+      'org/active',
+    ]);
+  });
+});
+
 describe('listInstallations', () => {
   it('pages the bare array until a short page and flags suspended installations', async () => {
     const full = Array.from({ length: 100 }, (_, index) => ({ id: index + 1, suspended_at: null }));
