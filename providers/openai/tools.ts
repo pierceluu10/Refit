@@ -237,6 +237,30 @@ function normalizeNow(raw: string | undefined): string {
 
 type ModelReport = { id: string; status: string; lines: string[] };
 
+// The replacement a row names may itself be retired by now (text-davinci-003 -> gpt-3.5-turbo-instruct,
+// shut down 2026-09-28): follow the table until a model that still runs, so nobody migrates onto a dead one.
+function replacementChain(
+  row: DeprecationRow,
+  index: ReturnType<typeof rowIndex>,
+  now: string,
+): string[] {
+  const lines: string[] = [];
+  const seen = new Set<string>();
+  let next = row.replacementIds?.[0]?.toLowerCase();
+  while (next && !seen.has(next)) {
+    seen.add(next);
+    const hits = index.get(next);
+    if (!hits?.length) break;
+    const { row: later } = pickRow(hits);
+    if (!later.shutdown || later.shutdown > now) break;
+    lines.push(
+      `${next} was itself shut down on ${later.shutdown}; its recommended replacement is ${later.replacement || 'not listed'}. Migrate to the end of this chain, not to ${next}.`,
+    );
+    next = later.replacementIds?.[0]?.toLowerCase();
+  }
+  return lines;
+}
+
 function describeModel(rawId: string, now: string): ModelReport {
   const { id, notes } = normalizeModelId(rawId);
   const lines: string[] = [...notes];
@@ -268,6 +292,8 @@ function describeModel(rawId: string, now: string): ModelReport {
     );
     lines.push(`Shutdown date: ${row.shutdown ?? row.shutdownText}`);
     lines.push(`Recommended replacement: ${row.replacement || 'none listed'}`);
+    const chain = replacementChain(row, index, now);
+    if (chain.length) lines.push(...chain);
     if (row.item && row.item.toLowerCase() !== id)
       lines.push(`Deprecations table row: ${row.item}`);
     lines.push(`Deprecations entry: ${section.link}`);

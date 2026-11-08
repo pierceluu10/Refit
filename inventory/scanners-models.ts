@@ -1,10 +1,20 @@
 // Scanner for AI model names and the lines that choose a model indirectly. Like the other scanners
 // it returns leads: provider names only annotate, and a model nobody listed here is the agent's to find.
-import { lineMatch, readLines, sourceAndConfigFiles } from './scanners.ts';
+import path from 'node:path';
+import { listFiles } from './repo-files.ts';
 import type { LineMatch } from './repo-files.ts';
+import { lineMatch, readLines, sourceAndConfigFiles } from './scanners.ts';
 
 const DEFAULT_MAX_RESULTS = 200;
-// shortcut: Dockerfiles (no extension) are not in sourceAndConfigFiles, so their ENV/ARG lines are not scanned, upgrade when the agent misses a model set there.
+// Dockerfiles have no extension, so sourceAndConfigFiles leaves them out; a model can be set in ENV or ARG.
+const DOCKERFILE_NAME = /^(?:dockerfile(?:\..+)?|.+\.dockerfile|containerfile(?:\..+)?)$/i;
+
+async function modelFiles(repoDir: string): Promise<string[]> {
+  const dockerfiles = (await listFiles(repoDir)).filter((file) =>
+    DOCKERFILE_NAME.test(path.posix.basename(file)),
+  );
+  return [...(await sourceAndConfigFiles(repoDir)), ...dockerfiles];
+}
 
 // A model token starts at a word edge and runs through name characters, so `gpt_helper` and
 // `claude-code` never match.
@@ -99,7 +109,7 @@ export async function findAiModels(
   const settings: LineMatch[] = [];
   let modelCount = 0;
   let truncated = false;
-  for (const file of await sourceAndConfigFiles(repoDir)) {
+  for (const file of await modelFiles(repoDir)) {
     const lines = await readLines(repoDir, file);
     if (!lines) continue;
     for (const [index, line] of lines.entries()) {

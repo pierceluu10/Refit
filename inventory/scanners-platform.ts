@@ -4,7 +4,7 @@
 import path from 'node:path';
 import { grepLines, listFiles } from './repo-files.ts';
 import type { LineMatch } from './repo-files.ts';
-import { lineMatch, readLines } from './scanners.ts';
+import { indentOf, lineMatch, readLines } from './scanners.ts';
 import type { VersionSignal } from './scanners.ts';
 
 type Groups = Record<string, string | undefined>;
@@ -210,19 +210,48 @@ function runtimeSignal(
   };
 }
 
-// shortcut: a one-line `"engines": { "node": "18" }` object is missed, switch to JSON.parse with
-// a line lookup if hand-minified package.json files matter.
 export async function findRuntimeVersions(repoDir: string): Promise<{ signals: VersionSignal[] }> {
   const signals = await scanFiles(
     repoDir,
     await listFiles(repoDir),
     (file) => rulesFor(RUNTIME_RULES, file).length > 0,
-    (file, lines) =>
-      matchRules(file, lines, rulesFor(RUNTIME_RULES, file)).map((hit) =>
+    (file, lines) => {
+      const found = matchRules(file, lines, rulesFor(RUNTIME_RULES, file)).map((hit) =>
         runtimeSignal(file, lines, hit),
-      ),
+      );
+      return path.posix.basename(file) === 'package.json'
+        ? [...found, ...packageJsonTools(file, lines, found)]
+        : found;
+    },
   );
   return { signals };
+}
+
+// engines and volta written on one line (`"engines": { "node": "18" }`) slip past the line rules, so
+// the parsed file fills in what they missed, at the line that names the tool.
+function packageJsonTools(file: string, lines: string[], found: VersionSignal[]): VersionSignal[] {
+  let manifest: Record<string, unknown>;
+  try {
+    manifest = JSON.parse(lines.join('\n')) as Record<string, unknown>;
+  } catch {
+    return [];
+  }
+  const signals: VersionSignal[] = [];
+  for (const section of ['engines', 'volta'] as const) {
+    const tools = manifest[section];
+    if (!tools || typeof tools !== 'object') continue;
+    for (const [name, version] of Object.entries(tools as Record<string, unknown>)) {
+      const source = `package.json ${section}`;
+      if (typeof version !== 'string' || !/^(?:node|npm|pnpm|yarn)$/.test(name)) continue;
+      if (found.some((s) => s.source === source && s.name === name)) continue;
+      const index = lines.findIndex(
+        (line) => line.includes(`"${section}"`) && line.includes(`"${name}"`),
+      );
+      if (index === -1) continue;
+      signals.push({ ...lineMatch(file, index, lines[index]), name, version, source });
+    }
+  }
+  return signals;
 }
 
 // ---- Container images ----
@@ -286,8 +315,42 @@ function dockerfileImages(file: string, lines: string[]): VersionSignal[] {
   return signals;
 }
 
-// shortcut: GitLab's `image:\n  name: x` form and bare `services:\n  - postgres:14` entries are
-// missed, add a rule for them if GitLab repos matter.
+// GitLab CI's block forms: `image:` with `name: x` below it, and `services:` lists of bare
+// references or `- name: x` entries. GitHub's services map keys have no dash, so they are left alone.
+const BLOCK_START = /^(?:-\s+)?(?<key>image|services):\s*(?:#.*)?$/;
+const BLOCK_NAME = /^name:\s*(?<reference>[\w"'$][^\s#]*)/;
+const SERVICE_ITEM = /^-\s+(?:name:\s*)?(?<reference>[\w"'$][^\s#]*)\s*(?:#.*)?$/;
+
+function yamlBlockImages(file: string, lines: string[]): VersionSignal[] {
+  const signals: VersionSignal[] = [];
+  lines.forEach((raw, start) => {
+    const key = BLOCK_START.exec(raw.trim())?.groups?.key;
+    if (!key) return;
+    const parent = indentOf(raw);
+    let child: number | undefined;
+    for (let index = start + 1; index < lines.length; index++) {
+      const line = lines[index];
+      if (line.trim() === '' || line.trim().startsWith('#')) continue;
+      if (
+        indentOf(line) <= parent &&
+        !(key === 'services' && indentOf(line) === parent && line.trim().startsWith('-'))
+      )
+        break;
+      child ??= indentOf(line);
+      if (indentOf(line) !== child) continue;
+      const match = (key === 'image' ? BLOCK_NAME : SERVICE_ITEM).exec(line.trim())?.groups;
+      if (match)
+        signals.push({
+          ...lineMatch(file, index, line),
+          ...splitImage(cleanValue(match.reference)),
+          source: `yaml ${key} block`,
+        });
+      if (key === 'image') break;
+    }
+  });
+  return signals;
+}
+
 export async function findContainerImages(repoDir: string): Promise<{ signals: VersionSignal[] }> {
   const signals = await scanFiles(
     repoDir,
@@ -295,6 +358,7 @@ export async function findContainerImages(repoDir: string): Promise<{ signals: V
     (file) => isDockerfile(file) || rulesFor(IMAGE_RULES, file).length > 0,
     (file, lines) => [
       ...(isDockerfile(file) ? dockerfileImages(file, lines) : []),
+      ...(/\.ya?ml$/.test(file) ? yamlBlockImages(file, lines) : []),
       ...matchRules(file, lines, rulesFor(IMAGE_RULES, file)).map(({ rule, groups, index }) => ({
         ...lineMatch(file, index, lines[index]),
         ...splitImage(cleanValue(groups.reference as string)),
@@ -395,9 +459,9 @@ export async function findCiVersions(
 
 const SETUP_FILE =
   /(?:^|\/)(?:GNUmakefile|Makefile|[Jj]ustfile|Taskfile\.ya?ml|Procfile|Brewfile|Vagrantfile|tox\.ini|noxfile\.py|\.?mise\.toml|(?:flake|shell)\.nix|README[^/]*|CONTRIBUTING[^/]*|[^/]+\.(?:sh|bash|tf|mk))$|(?:^|\/)(?:scripts|bin|\.devcontainer|infra|deploy)\/[^/]+$/;
-// shortcut: only common install commands and versioned URLs, widen when a real repo shows a miss.
+// shortcut: common install commands and versioned URLs only, widen when a real repo shows a miss.
 const INSTALLS_A_VERSION =
-  /\b(?:nvm (?:install|use)|pyenv (?:install|local|global)|asdf (?:install|local|global)|python\d\.\d+|pip\d\.\d+|node[-@ ]v?\d+|apt(?:-get)? install|apk add|brew install|(?:yum|dnf) install)\b|https?:\/\/\S*\d+\.\d+/i;
+  /\b(?:nvm (?:install|use)|fnm (?:install|use)|volta (?:install|pin)|pnpm env use|uv (?:python install|venv --python)|conda (?:create|install)\b.*python=|pyenv (?:install|local|global)|asdf (?:install|local|global)|python\d\.\d+|pip\d\.\d+|node[-@ ]v?\d+|apt(?:-get)? install|apk add|brew install|(?:yum|dnf) install)\b|https?:\/\/\S*\d+\.\d+/i;
 
 // Files that set versions in ways no parser reads, so the agent reads them itself.
 export async function findSetupFiles(

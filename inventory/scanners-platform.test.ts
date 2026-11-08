@@ -413,3 +413,56 @@ describe('findSetupFiles', () => {
     expect(versionLines.map(({ line }) => line)).toEqual([2, 3]);
   });
 });
+
+describe('scanner shortcuts real repos hit', () => {
+  it('reads engines written on one line', async () => {
+    const repoDir = await repoWith({
+      'package.json': '{\n  "name": "x",\n  "engines": { "node": "18.x", "npm": ">=9" }\n}\n',
+    });
+    expect(brief((await findRuntimeVersions(repoDir)).signals)).toEqual([
+      'package.json:3 node=18.x [package.json engines]',
+      'package.json:3 npm=>=9 [package.json engines]',
+    ]);
+  });
+
+  it("reads GitLab's image name block and services lists, and leaves GitHub's services map alone", async () => {
+    const repoDir = await repoWith({
+      '.gitlab-ci.yml': [
+        'test:',
+        '  image:',
+        '    name: python:3.8-slim',
+        '    entrypoint: [""]',
+        '  services:',
+        '    - postgres:12',
+        '    - name: redis:6',
+        '      alias: cache',
+        '  script: pytest',
+      ].join('\n'),
+      '.github/workflows/ci.yml': [
+        'jobs:',
+        '  t:',
+        '    services:',
+        '      postgres:',
+        '        image: postgres:12',
+        '        ports:',
+        '          - 5432:5432',
+      ].join('\n'),
+    });
+    expect(brief((await findContainerImages(repoDir)).signals).sort()).toEqual([
+      '.github/workflows/ci.yml:5 postgres=12 [yaml image]',
+      '.gitlab-ci.yml:3 python=3.8-slim [yaml image block]',
+      '.gitlab-ci.yml:6 postgres=12 [yaml services block]',
+      '.gitlab-ci.yml:7 redis=6 [yaml services block]',
+    ]);
+  });
+
+  it('points at version installs by fnm, volta, uv and conda', async () => {
+    const repoDir = await repoWith({
+      'scripts/setup.sh': 'fnm install 16\nuv python install 3.9\nconda create -n x python=3.8\n',
+    });
+    const found = await findSetupFiles(repoDir);
+    expect(JSON.stringify(found)).toContain('fnm install 16');
+    expect(JSON.stringify(found)).toContain('uv python install 3.9');
+    expect(JSON.stringify(found)).toContain('python=3.8');
+  });
+});
