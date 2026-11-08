@@ -202,7 +202,7 @@ describe('createDeps', () => {
     expect(budget.spentUsd()).toBe(1.5);
     // $1.50 left is below MIN_TASK_USD, so the third task never reaches the harness.
     expect(MIN_TASK_USD).toBeGreaterThan(1.5);
-    expect(skipped).toMatchObject({ outcome: 'failed', costUsd: 0 });
+    expect(skipped).toMatchObject({ outcome: 'waiting-budget', costUsd: 0 });
     expect((skipped as { note?: string }).note).toMatch(
       /not attempted: \$1\.50 of the run cap left/,
     );
@@ -237,7 +237,7 @@ describe('createDeps', () => {
     expect(budget.heldUsd()).toBe(0);
     // Every task ran or was recorded as not attempted; none was dropped.
     expect(records).toHaveLength(6);
-    expect(records.some((r) => r.outcome === 'failed')).toBe(true);
+    expect(records.some((r) => r.outcome === 'waiting-budget')).toBe(true);
   });
 
   it('records a harness that throws as failed, counting what it had spent once', async () => {

@@ -71,7 +71,8 @@ export type Recipe = {
 
 export type RunRecord = {
   taskId: string;
-  outcome: 'verified' | 'needs-review' | 'not-affected' | 'failed';
+  // 'waiting-budget': the run cap could not cover this task, so it never started and stays queued.
+  outcome: 'verified' | 'needs-review' | 'not-affected' | 'failed' | 'waiting-budget';
   diff: string;
   checks: { name: string; before: string; after: string }[];
   costUsd: number;

@@ -272,6 +272,11 @@ const failed = (taskId: string, costUsd: number, note: string): RunRecord & { no
   note,
 });
 
+const waitingOnBudget = (taskId: string, note: string): RunRecord & { note: string } => ({
+  ...failed(taskId, 0, note),
+  outcome: 'waiting-budget',
+});
+
 // The one place that picks real or stub modules for the loop.
 export function createDeps({
   out = defaultOut,
@@ -347,9 +352,8 @@ export function createDeps({
     } catch (error) {
       if (!(error instanceof BudgetExceededError)) throw error;
       const leftUsd = budget.capUsd - budget.spentUsd();
-      return failed(
+      return waitingOnBudget(
         task.id,
-        0,
         `not attempted: $${leftUsd.toFixed(2)} of the run cap left, below the $${MIN_TASK_USD} a task needs`,
       );
     }

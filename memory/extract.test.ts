@@ -30,7 +30,7 @@ async function setup(
   overrides: {
     transcript?: string;
     repo?: string;
-    outcome?: 'needs-review' | 'failed' | 'verified';
+    outcome?: 'needs-review' | 'failed' | 'verified' | 'waiting-budget';
     humanVerdict?: 'merged' | 'closed' | 'edited';
   } = {},
 ) {
@@ -146,6 +146,15 @@ describe('extractRecipe', () => {
     expect(prompt).toContain('TAIL-MARKER');
     expect(prompt).toContain(`${transcript.length - 600_000} characters elided`);
     expect(prompt.length).toBeLessThan(610_000);
+  });
+
+  it('calls no model for a task that never ran, even with a recipe to attach a lesson to', async () => {
+    const { store, run } = await setup({ outcome: 'waiting-budget' });
+    await store.saveRecipe(makeRecipe());
+    const { model } = fakeModel();
+
+    expect(await extractRecipe(run, { store, model })).toBeUndefined();
+    expect(model.json).not.toHaveBeenCalled();
   });
 
   it('retries once when the answer is degraded and marks the run done', async () => {

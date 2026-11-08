@@ -181,8 +181,9 @@ describe('an org run on the real wiring', () => {
     expect(summary.records).toHaveLength(18);
     expect(summary.counts['not-affected']).toBe(9);
     expect(summary.counts.verified).toBeGreaterThan(0);
-    expect(summary.counts.verified + summary.counts.failed).toBe(9);
-    for (const r of summary.records.filter((r) => r.outcome === 'failed'))
+    expect(summary.counts.verified + summary.counts['waiting-budget']).toBe(9);
+    expect(summary.counts.failed).toBe(0);
+    for (const r of summary.records.filter((r) => r.outcome === 'waiting-budget'))
       expect(r.note).toMatch(/not attempted: \$\d+\.\d\d of the run cap left/);
     expect(seen.learned).toBe(18);
     expect(seen.peak).toBeGreaterThan(1);

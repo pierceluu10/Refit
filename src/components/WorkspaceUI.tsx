@@ -1,6 +1,7 @@
 import {
   ArrowUpRight,
   CheckCircle,
+  ClockCountdown,
   FolderSimple,
   GitMerge,
   GitPullRequest,
@@ -17,6 +18,7 @@ const outcomeStyles = {
   'not-affected': { className: 'status-positive', Icon: CheckCircle },
   'needs-review': { className: 'status-attention', Icon: WarningCircle },
   failed: { className: 'status-negative', Icon: XCircle },
+  'waiting-budget': { className: 'status-attention', Icon: ClockCountdown },
 } satisfies Record<RunRecord['outcome'], object>;
 
 export function Status({ outcome }: { outcome: RunRecord['outcome'] }) {

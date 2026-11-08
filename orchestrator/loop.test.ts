@@ -82,6 +82,7 @@ describe('runOrg', () => {
       'needs-review': 1,
       'not-affected': 1,
       failed: 1,
+      'waiting-budget': 0,
     });
     expect(summary.costUsd).toBe(0.25);
 
@@ -109,15 +110,16 @@ describe('runOrg', () => {
     expect(verified?.pr).toBeUndefined();
   });
 
-  it('stops scheduling at the run cap and records each unscheduled task as failed', async () => {
+  it('stops scheduling at the run cap and records each unscheduled task as waiting on budget', async () => {
     const many = ['a', 'b', 'c'].map((id) => change(id));
     const { deps, recorded } = fakeDeps(many, async (task) => ok(task, 'verified', 'diff', 1));
     deps.queue = createMemoryQueue({ concurrency: 1, retries: 0 });
     const summary = await runOrg(org, deps, { capUsd: 1 });
 
     expect(deps.runTask).toHaveBeenCalledTimes(1);
-    expect(summary.counts).toMatchObject({ verified: 1, failed: 2 });
-    const unscheduled = recorded.filter((r) => r.outcome === 'failed');
+    expect(summary.counts).toMatchObject({ verified: 1, failed: 0, 'waiting-budget': 2 });
+    const unscheduled = recorded.filter((r) => r.outcome === 'waiting-budget');
+    expect(unscheduled).toHaveLength(2);
     for (const r of unscheduled) {
       expect(r).toMatchObject({
         note: expect.stringContaining('run budget reached before this task'),

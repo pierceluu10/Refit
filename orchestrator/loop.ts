@@ -194,7 +194,13 @@ export async function runOrg(org: Org, deps: LoopDeps, opts: RunOptions = {}): P
   );
   const records = perRepo.flat();
 
-  const counts = { verified: 0, 'needs-review': 0, 'not-affected': 0, failed: 0 };
+  const counts = {
+    verified: 0,
+    'needs-review': 0,
+    'not-affected': 0,
+    failed: 0,
+    'waiting-budget': 0,
+  };
   for (const r of records) counts[r.outcome]++;
   return {
     counts,
@@ -444,7 +450,7 @@ export async function runRepo(
         capReached()
           ? record(
               task.id,
-              'failed',
+              'waiting-budget',
               `run budget reached before this task: $${state.costUsd.toFixed(4)} spent of the $${opts.capUsd} cap`,
             )
           : // The harness runs repo code only in its sandbox, never on this host.

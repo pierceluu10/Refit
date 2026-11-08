@@ -41,7 +41,7 @@ export const storedRuns: StoredRun[] = [
     note: `The repo only reads charge objects from webhook payloads and never calls charges.create, so removing the endpoint changes nothing here. ${'It also pins an old API version, which is a separate change. '.repeat(3)}`,
   }),
   stored('budget', 4, {
-    outcome: 'failed',
+    outcome: 'waiting-budget',
     diff: '',
     costUsd: 0,
     note: 'not attempted: $1.20 of the run cap left, below the $2 a task needs',
