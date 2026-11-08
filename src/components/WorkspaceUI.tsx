@@ -1,5 +1,6 @@
 import {
   ArrowUpRight,
+  CaretDown,
   CheckCircle,
   FolderSimple,
   GitMerge,
@@ -98,17 +99,21 @@ export function DataCell({ label, children }: { label: string; children: ReactNo
 
 export function ScanErrors({ repo, errors }: { repo: string; errors: string[] }) {
   return (
-    <div className="detail-explanation scan-note">
-      <WarningCircle />
-      <div>
-        <p>Refit couldn’t read everything in {repo}.</p>
-        <ul>
-          {errors.map((error) => (
-            <li key={error}>{error}</li>
-          ))}
-        </ul>
-      </div>
-    </div>
+    <details className="detail-explanation scan-note">
+      <summary>
+        <WarningCircle />
+        <span>Refit couldn’t read everything in {repo}.</span>
+        <span className="scan-note-count">
+          {errors.length} {errors.length === 1 ? 'note' : 'notes'}
+          <CaretDown />
+        </span>
+      </summary>
+      <ul>
+        {errors.map((error) => (
+          <li key={error}>{error}</li>
+        ))}
+      </ul>
+    </details>
   );
 }
 

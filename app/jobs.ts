@@ -168,7 +168,7 @@ export function createJobRunner(deps: JobRunnerDeps) {
     for (const { pr } of records) {
       if (!pr) continue;
       await logged(`recording ${pr} on the report of ${job.repo}`, () =>
-        deps.reports.markPullRequest(job.repo, job.task.change.id, pr),
+        deps.reports.markPullRequest(job.repo, job.task, pr),
       );
     }
     await logged(`notifying about ${job.repo}`, async () =>

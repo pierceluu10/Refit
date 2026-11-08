@@ -13,6 +13,7 @@ import type { ReactNode } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { auditCsv } from '../../app/audit/csv.ts';
 import type { AuditEntry, BehindItem } from '../../shared/types.ts';
+import { ScanErrors } from '../components/WorkspaceUI';
 import {
   ApiSignedOutError,
   ApiUnavailableError,
@@ -438,7 +439,7 @@ function AuditTrail({ data, repo, example }: { data: RepoData; repo: string; exa
               <tr>
                 {['Time', 'Action', 'Change', 'Obligation', 'Evidence', 'Actor', 'PR'].map(
                   (column) => (
-                    <th scope="col" key={column}>
+                    <th scope="col" key={column} className={`rules-column-${column.toLowerCase()}`}>
                       {column}
                     </th>
                   ),
@@ -486,18 +487,13 @@ function Section({
 function ScanFacts({ data }: { data: RepoData }) {
   if (!data.report)
     return <p className="rules-scanned">This repository hasn’t been scanned yet.</p>;
-  const { scannedAt, errors } = data.report;
+  const { repo, scannedAt, errors } = data.report;
   return (
     <>
       <p className="rules-scanned">
         Last scanned <time dateTime={scannedAt}>{formatted(scannedAt, timeFormat)}</time>
       </p>
-      {errors.length > 0 && (
-        <div className="rules-unread">
-          <h2>What Refit couldn’t read</h2>
-          <Lines lines={errors} missing="" />
-        </div>
-      )}
+      {errors.length > 0 && <ScanErrors repo={repo} errors={errors} />}
     </>
   );
 }
