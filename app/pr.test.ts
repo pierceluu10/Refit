@@ -1,13 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { GITHUB_API, GitHubApiError } from './github.ts';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ExternalTask, MigrationTask, RunRecord } from '../shared/types.ts';
 import {
   EmptyChangeError,
   UnsafeBranchError,
+  WorkflowPermissionError,
   branchFor,
   createOpenPullRequest,
   findPullRequestFor,
@@ -20,9 +21,10 @@ const REPO = '/repos/acme/shop';
 
 type Call = { method: string; path: string; body: unknown; authorization: string };
 type Reply = { status?: number; body: unknown };
+type Route = Reply | ((body: { tree: { path: string }[] }) => Reply);
 
-function fakeGitHub(overrides: Record<string, Reply> = {}) {
-  const routes: Record<string, Reply> = {
+function fakeGitHub(overrides: Record<string, Route> = {}) {
+  const routes: Record<string, Route> = {
     [`GET ${REPO}`]: { body: { default_branch: 'main' } },
     [`GET ${REPO}/git/ref/heads/main`]: { body: { object: { sha: 'base-sha' } } },
     [`GET ${REPO}/git/ref/heads/release/v2`]: { body: { object: { sha: 'release-sha' } } },
@@ -48,7 +50,8 @@ function fakeGitHub(overrides: Record<string, Reply> = {}) {
       body: init?.body ? JSON.parse(String(init.body)) : undefined,
       authorization: headers.Authorization,
     });
-    const reply = routes[`${method} ${path}`];
+    const route = routes[`${method} ${path}`];
+    const reply = typeof route === 'function' ? route(JSON.parse(String(init?.body))) : route;
     if (!reply)
       throw new Error(`unrouted ${method} ${path}; calls so far: ${JSON.stringify(calls)}`);
     return new Response(JSON.stringify(reply.body), { status: reply.status ?? 200 });
@@ -219,6 +222,97 @@ describe('createOpenPullRequest', () => {
     git('checkout', '-q', '.');
     return { dir, diff };
   }
+
+  describe('when the install has not approved Workflows', () => {
+    const REFUSED = { status: 403, body: { message: 'Resource not accessible by integration' } };
+    const refuseWorkflows = (tree: { tree: { path: string }[] }) =>
+      tree.tree.some((entry) => entry.path.startsWith('.github/workflows/'))
+        ? REFUSED
+        : { status: 201, body: { sha: 'new-tree' } };
+
+    function checkoutWithWorkflow(changeCode: boolean) {
+      const dir = mkdtempSync(join(tmpdir(), 'refit-pr-'));
+      const git = (...args: string[]) => execFileSync('git', args, { cwd: dir, encoding: 'utf8' });
+      git('init', '-q');
+      git('config', 'user.name', 'Test');
+      git('config', 'user.email', 'test@localhost');
+      mkdirSync(join(dir, '.github/workflows'), { recursive: true });
+      writeFileSync(join(dir, '.github/workflows/ci.yml'), 'uses: actions/checkout@v2\n');
+      writeFileSync(join(dir, 'billing.ts'), 'old\n');
+      git('add', '-A');
+      git('commit', '-q', '-m', 'base');
+      writeFileSync(join(dir, '.github/workflows/ci.yml'), 'uses: actions/checkout@v6\n');
+      if (changeCode) writeFileSync(join(dir, 'billing.ts'), 'new\n');
+      const diff = git('diff');
+      git('checkout', '-q', '.');
+      return { dir, diff };
+    }
+
+    const recordFor = (diff: string): RunRecord & { prBody: string } => ({
+      taskId: 'task-1',
+      outcome: 'needs-review',
+      diff,
+      checks: [],
+      costUsd: 0,
+      transcriptPath: '',
+      prBody: 'Illustrative PR body from the harness.',
+    });
+
+    it('opens the PR without the workflow files and puts their diff in the body', async () => {
+      const { dir, diff } = checkoutWithWorkflow(true);
+      try {
+        const github = fakeGitHub({
+          [OPEN_PULLS]: { body: [] },
+          [`POST ${REPO}/git/trees`]: refuseWorkflows,
+        });
+        const open = createOpenPullRequest(tokens, INSTALLATION, github.fetchImpl);
+        expect(await open(TASK, recordFor(diff), dir)).toBe('https://github.com/acme/shop/pull/9');
+        const trees = github.calls.filter((call) => call.path === `${REPO}/git/trees`);
+        expect(trees).toHaveLength(2);
+        expect(trees[1].body).toMatchObject({ tree: [{ path: 'billing.ts', content: 'new\n' }] });
+        const pull = github.calls.find((call) => call.path === `${REPO}/pulls`)?.body as {
+          body: string;
+        };
+        expect(pull.body).toContain('Not in this PR');
+        expect(pull.body).toContain('+uses: actions/checkout@v6');
+        expect(pull.body).not.toContain('+new');
+        expect(pull.body).toContain('Illustrative PR body from the harness.');
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('says what to approve when the change is only workflow files', async () => {
+      const { dir, diff } = checkoutWithWorkflow(false);
+      try {
+        const github = fakeGitHub({
+          [OPEN_PULLS]: { body: [] },
+          [`POST ${REPO}/git/trees`]: refuseWorkflows,
+        });
+        const open = createOpenPullRequest(tokens, INSTALLATION, github.fetchImpl);
+        await expect(open(TASK, recordFor(diff), dir)).rejects.toBeInstanceOf(
+          WorkflowPermissionError,
+        );
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+
+    it('does not retry a 403 on a change with no workflow files', async () => {
+      const { dir, diff } = checkout();
+      try {
+        const github = fakeGitHub({
+          [OPEN_PULLS]: { body: [] },
+          [`POST ${REPO}/git/trees`]: REFUSED,
+        });
+        const open = createOpenPullRequest(tokens, INSTALLATION, github.fetchImpl);
+        await expect(open(TASK, recordFor(diff), dir)).rejects.toBeInstanceOf(GitHubApiError);
+        expect(github.calls.filter((call) => call.path === `${REPO}/git/trees`)).toHaveLength(1);
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+  });
 
   it("opens a draft on refit/<slug> with the record's diff and prBody", async () => {
     const { dir, diff } = checkout();

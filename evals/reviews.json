@@ -77,11 +77,11 @@
     ],
     "aiReview": {
       "opinion": "has-concerns",
-      "summary": "The diff covers the real DALL·E call site: the hard-coded `model: 'dall-e-3'` in src/services/textToImage.ts and the url-only mapping in the factory's textToImage. The other four named call sites (chat, models, embeddings, speech) are unaffected by this retirement, so leaving them alone is correct. However, typecheck, build and test failed both before and after, so the checks prove nothing. The new payload in textToImage.ts is no longer typed as OpenAIImagePayload, which hides type mismatches. Returning base64 data URLs is a real behaviour change downstream. The needs-review grade is appropriate; nothing here is verified.",
+      "summary": "The diff covers the real DALL\u00b7E call site: the hard-coded `model: 'dall-e-3'` in src/services/textToImage.ts and the url-only mapping in the factory's textToImage. The other four named call sites (chat, models, embeddings, speech) are unaffected by this retirement, so leaving them alone is correct. However, typecheck, build and test failed both before and after, so the checks prove nothing. The new payload in textToImage.ts is no longer typed as OpenAIImagePayload, which hides type mismatches. Returning base64 data URLs is a real behaviour change downstream. The needs-review grade is appropriate; nothing here is verified.",
       "checkFirst": [
         "Run typecheck scoped to src/services/textToImage.ts and src/types/openai/image.ts, and confirm the quality/size values fit the declared types.",
         "Grep the repo for 'dall-e' (tool manifest, DallE types, tests, Azure provider, default settings) for leftover references.",
-        "Trace where textToImage results are consumed (DALL·E plugin, image upload/persistence) and confirm data: URLs are handled and not stored or fetched as http URLs.",
+        "Trace where textToImage results are consumed (DALL\u00b7E plugin, image upload/persistence) and confirm data: URLs are handled and not stored or fetched as http URLs.",
         "Confirm whether params can include response_format, and strip it for gpt-image models.",
         "Make one live or recorded call to gpt-image-2 with the mapped payload to verify the accepted sizes, quality values and response shape."
       ]
@@ -183,5 +183,81 @@
       "notes": "The real migration. Bumps stripe ^14.13.0 to ^23.0.0 (package.json and package-lock.json), moves both current_period_end reads in src/app/api/webhooks/stripe/route.ts (lines 47 and 66) to subscription.items.data[0].current_period_end, and renames payment_method_types to allowed_payment_method_types in checkout.sessions.create, the replacement Stripe's Endive page names. The other Stripe calls (subscriptions.retrieve reading cancel_at_period_end in src/lib/stripe.ts, billingPortal.sessions.create, webhooks.constructEvent with the raw body and default tolerance) need no change I can see. Typecheck and build fail before and after on pre-existing errors: implicit any, and no Prisma client because postinstall (prisma generate) does not run with install scripts off. So nothing is proven, and needs-review is right. I would merge it after a test-mode checkout and webhook replay on Node 20 or later (v23 drops Node 18; the node-v23-drop-node18 task that would have checked this was unrun). The AI reviewer's three high concerns are wrong: allowed_payment_method_types is a real Endive param, src/lib/stripe.ts reads cancel_at_period_end rather than current_period_end, and the client pins no apiVersion. It saw only the diff, not those files. Checked by reading the diff, the PR body, the files at the pinned commit and Stripe's changelog page; nothing was run."
     },
     "firstSeen": "2026-11-03T05:10:08.239Z"
+  },
+  {
+    "key": "refit-dev-demo/refit-dev/demo-node-api/refit-dev/demo-node-api:node:18-schedule-end",
+    "set": "refit-dev-demo",
+    "repo": "refit-dev/demo-node-api",
+    "commit": "108d5e531bd89c009ca1bf9fabd48201e27200b1",
+    "taskId": "refit-dev/demo-node-api:node:18-schedule-end",
+    "changeId": "node:18-schedule-end",
+    "pr": "https://github.com/refit-dev/demo-node-api/pull/1",
+    "grade": "needs-review",
+    "files": [".nvmrc", "Dockerfile", "package-lock.json", "package.json", "serverless.yml"],
+    "handCheck": {
+      "status": "agree",
+      "reviewer": "P1 reliability session, for Pierce",
+      "checkedAt": "2026-11-08",
+      "wouldMerge": "with-edits",
+      "notes": "Merge blocker: engines is 26.x while serverless.yml moves Lambda to nodejs24.x, because AWS offers no nodejs26.x (the PR says so). The health handler ships on 24 in a package that declares 26, so engines should be 24.x until Lambda has 26 or the Lambda code should be split out. The PR body contradicts itself: 'pass on the old runtime' and 'before on the sandbox default'. Its table proves one test run, on 26 only after. I built the Dockerfile from the PR: node v26.13.0, src/app.js loads, so the 'image was not built' caveat is now checked by hand. The floating node:26 tag is a choice for a person. Needs-review is the right grade."
+    },
+    "firstSeen": "2026-11-08T07:40:00.000Z"
+  },
+  {
+    "key": "refit-dev-demo/refit-dev/demo-node-api/refit-dev/demo-node-api:rule:ai-transparency:aia-art50-2-machine-readable-marking",
+    "set": "refit-dev-demo",
+    "repo": "refit-dev/demo-node-api",
+    "commit": "108d5e531bd89c009ca1bf9fabd48201e27200b1",
+    "taskId": "refit-dev/demo-node-api:rule:ai-transparency:aia-art50-2-machine-readable-marking",
+    "changeId": "rule:ai-transparency:aia-art50-2-machine-readable-marking",
+    "pr": "https://github.com/refit-dev/demo-node-api/pull/2",
+    "grade": "needs-review",
+    "files": ["README.md", "src/app.js", "test/app.test.js"],
+    "handCheck": {
+      "status": "agree",
+      "reviewer": "P1 reliability session, for Pierce",
+      "checkedAt": "2026-11-08",
+      "wouldMerge": "with-edits",
+      "notes": "The code is a reasonable marking and the unproven section is honest. Two things to fix before merging. The test hard-codes ai_model: 'text-davinci-003' instead of using MODEL: I merged this PR with demo-node-api#3 and ran npm test in Docker on node 22, and it fails 1 of 5, so whichever lands second breaks. The title is the raw obligation sentence cut off mid-word. Whether the operator is a 'provider' and whether a header meets the robustness duty is for a person or lawyer; the PR says so and never claims compliance. Needs-review is right."
+    },
+    "firstSeen": "2026-11-08T07:40:00.000Z"
+  },
+  {
+    "key": "refit-dev-demo/refit-dev/demo-node-api/refit-dev/demo-node-api:openai:text-davinci-003-shutdown",
+    "set": "refit-dev-demo",
+    "repo": "refit-dev/demo-node-api",
+    "commit": "108d5e531bd89c009ca1bf9fabd48201e27200b1",
+    "taskId": "refit-dev/demo-node-api:openai:text-davinci-003-shutdown",
+    "changeId": "openai:text-davinci-003-shutdown",
+    "pr": "https://github.com/refit-dev/demo-node-api/pull/3",
+    "grade": "needs-review",
+    "files": ["src/summarize.js", "test/app.test.js"],
+    "handCheck": {
+      "status": "agree",
+      "reviewer": "P1 reliability session, for Pierce",
+      "checkedAt": "2026-11-08",
+      "wouldMerge": "with-edits",
+      "notes": "The migration to chat.completions is correct and gpt-5.6-luna is on OpenAI's models page. Blockers: the title names gpt-3.5-turbo-instruct, which the PR itself says is shut down and did not use. max_completion_tokens stays at 200 on a reasoning model, so a summary can come back empty, and message.content may be null, which would throw at .trim() and return 502. The PR flags the budget risk but left it. Not run against a live API; test only uses a mock. It collides with demo-node-api#2's test. Needs-review is right."
+    },
+    "firstSeen": "2026-11-08T07:40:00.000Z"
+  },
+  {
+    "key": "refit-dev-demo/refit-dev/demo-python-app/refit-dev/demo-python-app:werkzeug:3-major",
+    "set": "refit-dev-demo",
+    "repo": "refit-dev/demo-python-app",
+    "commit": "b38cbf814b5d362ebaef50d09e951af7acfe3de7",
+    "taskId": "refit-dev/demo-python-app:werkzeug:3-major",
+    "changeId": "werkzeug:3-major",
+    "pr": "https://github.com/refit-dev/demo-python-app/pull/1",
+    "grade": "needs-review",
+    "files": ["pyproject.toml"],
+    "handCheck": {
+      "status": "agree",
+      "reviewer": "P1 reliability session, for Pierce",
+      "checkedAt": "2026-11-08",
+      "wouldMerge": "yes",
+      "notes": "A correct two-line bump: Flask and Werkzeug have to move together. The PR's own check failed before and after because the sandbox used Python 3.12 while the repo requires >=3.9,<3.10, so stripe 2.76.0 could not import. I ran the 7 repo tests in Docker on python:3.9 with flask 3.1.3, werkzeug 3.1.9 and the real stripe 2.76.0: 7 passed. That is by hand; the PR doesn't prove it, so needs-review stays right. The harness should pick the Python the repo declares (for lane O4). The 'deadline 2023-09-30' in the body is a release date (lane F4). Best candidate for the merge test."
+    },
+    "firstSeen": "2026-11-08T07:40:00.000Z"
   }
 ]
