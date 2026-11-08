@@ -86,6 +86,10 @@ export const claudeAgentSession: AgentSession = async (input) => {
         // Built-in file and shell tools stay off: repo code runs only through the sandboxed tools.
         tools: ['WebSearch'],
         mcpServers: { refit: server },
+        // Without both, the SDK adds the host's claude.ai connectors (mail, deploys): a repo's text
+        // could steer the agent to them, and their ~250k tokens of definitions ride on every call.
+        strictMcpConfig: true,
+        env: { ...process.env, ENABLE_CLAUDEAI_MCP_SERVERS: 'false' },
         permissionMode: 'bypassPermissions',
         allowDangerouslySkipPermissions: true,
         settingSources: [],
