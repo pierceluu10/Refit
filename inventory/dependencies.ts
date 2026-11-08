@@ -11,6 +11,12 @@ import { DependencyCollector } from './dependency-collector.ts';
 import { mergeApiUsages } from './dependency-merge.ts';
 import type { DependencyFinding } from './dependency-merge.ts';
 import { dependencyRecordTools, dependencyScanTools } from './dependency-tools.ts';
+import {
+  cleanCommit,
+  defaultInventoryCache,
+  readCachedInventory,
+  writeCachedInventory,
+} from './cache.ts';
 import { mergeHints } from './hints.ts';
 import {
   DEPENDENCY_AREA_READER_DESCRIPTION,
@@ -21,6 +27,7 @@ import {
 } from './prompt.ts';
 import { summarizeDependencies } from './summary.ts';
 import { inventorySurfaces } from './surfaces/agent.ts';
+import { PROMPT_VERSION as SURFACES_PROMPT_VERSION } from './surfaces/prompt.ts';
 import { readTools, recordTools } from './tools.ts';
 
 export const DEFAULT_DEPENDENCY_RUN_CAP_USD = 1.2;
@@ -29,7 +36,14 @@ const GITHUB_ACTIONS_ECOSYSTEM = 'github-actions';
 // owner/repo at the start of an action or reusable workflow; local ./ paths and docker:// don't match.
 const GITHUB_ACTION_REPOSITORY = /^(\w[\w.-]*\/[\w.-]+)/;
 
-export type DependencyOptions = InventoryOptions & { surfaces?: InventorySurfaces };
+// cacheDir: where finished inventories are kept by commit; false turns the cache off.
+export type DependencyOptions = InventoryOptions & {
+  surfaces?: InventorySurfaces;
+  cacheDir?: string | false;
+};
+
+// A new dependency or surfaces prompt reads every repo again.
+export const INVENTORY_CACHE_VERSION = `${DEPENDENCY_PROMPT_VERSION}+${SURFACES_PROMPT_VERSION}`;
 
 export type DependencyReport = {
   repo: string;
@@ -74,10 +88,42 @@ function withDerivedHints(finding: DependencyFinding): DependencyFinding {
   return hints ? { ...finding, hints } : finding;
 }
 
+// A clean checkout at a commit already read costs $0: the code has not changed, so neither has what it
+// depends on. What changed outside it is the watchers' job, and they read every day.
 export async function runDependencyInventory(
   repoDir: string,
   repo: string,
   options: DependencyOptions = {},
+): Promise<DependencyReport> {
+  const cacheDir = options.cacheDir ?? defaultInventoryCache();
+  const commit = cacheDir === false ? undefined : await cleanCommit(repoDir);
+  if (cacheDir !== false && commit) {
+    const cached = await readCachedInventory<DependencyReport>(
+      cacheDir,
+      repo,
+      commit,
+      INVENTORY_CACHE_VERSION,
+    );
+    if (cached) return { ...cached.report, costUsd: 0, turns: 0, durationMs: 0 };
+  }
+  const report = await readDependencies(repoDir, repo, options);
+  // Only a finished, complete read is kept; anything partial is read again next time.
+  if (cacheDir !== false && commit && report.outcome === 'success' && report.errors.length === 0) {
+    await writeCachedInventory(cacheDir, {
+      version: INVENTORY_CACHE_VERSION,
+      repo,
+      commit,
+      cachedAt: new Date().toISOString(),
+      report,
+    }).catch(() => undefined); // a cache that can't be written costs the next scan, nothing else
+  }
+  return report;
+}
+
+async function readDependencies(
+  repoDir: string,
+  repo: string,
+  options: DependencyOptions,
 ): Promise<DependencyReport> {
   const dependencyCollector = new DependencyCollector(repoDir, repo);
   const usageCollector = new UsageCollector(repoDir, repo);

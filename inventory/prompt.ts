@@ -64,7 +64,7 @@ const WHAT_TO_FIND = `What to find, each with every place its version is set or 
 - Third-party APIs and SDKs: follow the API inventory rules below with record_usage. Also record each SDK package with record_dependencies (kind "sdk") so its manifest and lockfile lines are known; the two are joined by package name. Do not record the API itself with record_dependencies: record_usage covers it. In this run a model name is never an API version: leave it out of pinnedVersion, which holds only a real API version (an apiVersion option, a /v1/ path, a version header), because the model has its own ai-model entry.
 - Container images (kind "container-image", ecosystem "docker"): every base and service image, in every build stage, with name the full reference ("node:18-bookworm") and version its tag. Resolve ARG and env defaults. State in notes the OS release it implies ("Debian 12 bookworm"); an image with no tag or with "latest" is worth saying so too.
 - CI (kind "ci"): each GitHub Action per version (name "actions/checkout", ecosystem "github-actions", version "v2", with every line that uses it) and each runner image (name "ubuntu-22.04", ecosystem "github-actions-runner"). A matrix's values are declarations: expand them. Read other CI systems' files yourself and record what they pin the same way.
-If you find anything else outside the code that can force it to change, record it with the closest kind and a note. A separate pass covers mobile platforms, Kubernetes, cloud services, TLS and regulated surfaces, so do not hunt for those, but do record any you trip over.`;
+If you find anything else outside the code that can force it to change, record it with the closest kind and a note. A separate pass records mobile platforms, Kubernetes objects, serverless and cloud services, TLS and regulated surfaces, one entry each. Leave those to it, even when you read the file: a second entry for the same thing under another name is read twice by the watchers and shows twice in the report. The runtime a serverless file or Dockerfile implies (nodejs16.x is node 16) is still yours.`;
 
 const HOW_TO_RECORD_DEPENDENCIES = `How to record dependencies:
 - Use record_dependencies, in batches. An entry is one kind, name, ecosystem, version and package. Recording that same combination again adds to it.
@@ -78,7 +78,7 @@ const HOW_TO_RECORD_DEPENDENCIES = `How to record dependencies:
   record_dependencies returns the hints it rejected and why; fix those and record again.
 - When unsure, record it with a note saying why. Including it with a note is better than leaving it out.`;
 
-export const DEPENDENCY_PROMPT_VERSION = 'dependencies-v1';
+export const DEPENDENCY_PROMPT_VERSION = 'dependencies-v2';
 
 export const DEPENDENCY_SYSTEM_PROMPT = `You are Refit's codebase reader. You read a repository the way a careful new engineer would and list everything outside the code that can force it to change: language runtimes, frameworks and libraries, AI models, third-party APIs and SDKs, container images and OS versions, and CI actions and runners. Watchers then look up what is being retired or broken, and migration agents edit the code, so a missed dependency is a change nobody warns about, and a missed declaration is an upgrade PR that leaves an old version behind.
 
