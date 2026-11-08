@@ -1,0 +1,2242 @@
+{
+  "labeledAt": "2026-11-08",
+  "labeledBy": "Furqan Khan (reliability night, F1)",
+  "method": "Written by hand from each repo's files at the pinned commit, without looking at any Refit output. Every tracked manifest, lockfile, Dockerfile, CI file and source file of the demo repos was read; for the five upgrade-dev-20 repos every manifest, CI file and import list was read. Dates come from the pinned endoflife.date and nodejs/Release files, vendor pages or OSV, quoted in each finding. Only the transitive lists are generated, from each repo's own lockfile.",
+  "rules": {
+    "dependencies": "required: runtimes, frameworks, direct runtime dependencies, AI models, container images, GitHub Actions and runners, infrastructure files, and the regulated surfaces of demo-next-web. acceptable (neither credit nor penalty): dev and optional dependencies, other CI systems, cloud services named only through SDKs, and every transitive lockfile name.",
+    "findings": "required: a runtime, framework, Lambda runtime, Kubernetes API, AI model or CI action or runner past end of life or retired; an advisory on a direct runtime dependency whose fix is outside the declared range; the three planted rule flaws in demo-next-web. acceptable: other majors, in-range advisories, dev-only and CI-service items. A finding matches a label clause when its dependency name equals an alias, or starts with an alias followed by ':', '@' or '/', and its kind is listed (when kinds are given) and its title matches (when a title pattern is given). A second row matching the same label is a duplicate.",
+    "ci": "Each repo's own test CI at the pinned commit was checked with the GitHub API on 2026-11-08: no repo has a failing test run there. demo-next-web's 'test' check passed; records-mover's only failing run at that commit is GitHub code scanning (CodeQL default setup), and its last test runs (2026-09-30) passed; capone's failures are Dependabot update jobs; the rest have no runs at that commit, so their baseline is unknown, not failing."
+  },
+  "repos": [
+    {
+      "repo": "refit-dev/demo-node-api",
+      "commit": "108d5e531bd89c009ca1bf9fabd48201e27200b1",
+      "dependencies": [
+        {
+          "id": "node",
+          "kind": "runtime",
+          "names": ["node", "nodejs", "node.js"],
+          "class": "required",
+          "version": "18",
+          "declaredIn": [".nvmrc:1", "package.json:8", "Dockerfile:1"]
+        },
+        {
+          "id": "express",
+          "kind": "library",
+          "names": ["express"],
+          "class": "required",
+          "version": "4.18.2",
+          "declaredIn": ["package.json:15"]
+        },
+        {
+          "id": "openai",
+          "kind": "sdk",
+          "names": ["openai"],
+          "class": "required",
+          "version": "4.20.1",
+          "declaredIn": ["package.json:16", "src/server.js:6"]
+        },
+        {
+          "id": "text-davinci-003",
+          "kind": "ai-model",
+          "names": ["text-davinci-003"],
+          "class": "required",
+          "declaredIn": ["src/summarize.js:1"]
+        },
+        {
+          "id": "node-image",
+          "kind": "container-image",
+          "names": ["node:18", "docker.io/library/node:18", "library/node"],
+          "class": "required",
+          "version": "18",
+          "declaredIn": ["Dockerfile:1"]
+        },
+        {
+          "id": "k8s-ingress",
+          "kind": "infrastructure",
+          "names": ["kubernetes", "k8s", "ingress", "extensions/v1beta1", "kubernetes ingress"],
+          "class": "required",
+          "version": "extensions/v1beta1",
+          "declaredIn": ["k8s/ingress.yaml:1"],
+          "files": ["k8s/ingress.yaml"]
+        },
+        {
+          "id": "lambda-node16",
+          "kind": "infrastructure",
+          "names": ["nodejs16.x", "aws-lambda", "aws lambda", "lambda", "aws-lambda-nodejs"],
+          "class": "required",
+          "version": "nodejs16.x",
+          "declaredIn": ["serverless.yml:5"],
+          "files": ["serverless.yml"]
+        },
+        {
+          "id": "acceptable",
+          "kind": "any",
+          "names": ["serverless", "aws", "serverless framework", "regulated-surface"],
+          "class": "acceptable"
+        },
+        {
+          "id": "ai-text-surface",
+          "kind": "regulated-surface",
+          "names": [],
+          "class": "acceptable",
+          "files": ["src/summarize.js", "src/app.js", "src/server.js"]
+        }
+      ],
+      "transitive": [
+        "@types/node",
+        "@types/node-fetch",
+        "abort-controller",
+        "accepts",
+        "agentkeepalive",
+        "array-flatten",
+        "asynckit",
+        "base-64",
+        "body-parser",
+        "bytes",
+        "call-bind-apply-helpers",
+        "call-bound",
+        "charenc",
+        "combined-stream",
+        "content-disposition",
+        "content-type",
+        "cookie",
+        "cookie-signature",
+        "crypt",
+        "debug",
+        "delayed-stream",
+        "depd",
+        "destroy",
+        "digest-fetch",
+        "dunder-proto",
+        "ee-first",
+        "encodeurl",
+        "es-define-property",
+        "es-errors",
+        "es-object-atoms",
+        "es-set-tostringtag",
+        "escape-html",
+        "etag",
+        "event-target-shim",
+        "finalhandler",
+        "form-data",
+        "form-data-encoder",
+        "formdata-node",
+        "forwarded",
+        "fresh",
+        "function-bind",
+        "get-intrinsic",
+        "get-proto",
+        "gopd",
+        "has-symbols",
+        "has-tostringtag",
+        "hasown",
+        "http-errors",
+        "humanize-ms",
+        "iconv-lite",
+        "inherits",
+        "ipaddr.js",
+        "is-buffer",
+        "math-intrinsics",
+        "md5",
+        "media-typer",
+        "merge-descriptors",
+        "methods",
+        "mime",
+        "mime-db",
+        "mime-types",
+        "ms",
+        "negotiator",
+        "node-domexception",
+        "node-fetch",
+        "object-inspect",
+        "on-finished",
+        "parseurl",
+        "path-to-regexp",
+        "proxy-addr",
+        "qs",
+        "range-parser",
+        "raw-body",
+        "safe-buffer",
+        "safer-buffer",
+        "send",
+        "serve-static",
+        "setprototypeof",
+        "side-channel",
+        "side-channel-list",
+        "side-channel-map",
+        "side-channel-weakmap",
+        "statuses",
+        "toidentifier",
+        "tr46",
+        "type-is",
+        "undici-types",
+        "unpipe",
+        "utils-merge",
+        "vary",
+        "web-streams-polyfill",
+        "webidl-conversions",
+        "whatwg-url"
+      ],
+      "findings": [
+        {
+          "id": "lambda-nodejs16-deprecated",
+          "class": "required",
+          "match": [
+            {
+              "kinds": ["serverless-runtime"]
+            },
+            {
+              "deps": ["nodejs16.x", "aws-lambda", "aws lambda", "lambda"]
+            }
+          ],
+          "deadline": "2024-06-12",
+          "source": {
+            "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/d6d7dd1c2b2875798c76272c4c2e095f03c07b7d/products/aws-lambda.md",
+            "quote": "eoas: 2024-06-12"
+          },
+          "note": "serverless.yml runtime nodejs16.x. eoas is AWS's deprecation date; eol (2027-08-31) is when updates are blocked."
+        },
+        {
+          "id": "node-18-eol",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["node", "nodejs", "node.js", "node:18"]
+            }
+          ],
+          "deadline": "2025-04-30",
+          "source": {
+            "url": "https://raw.githubusercontent.com/nodejs/Release/6065a837c0c151577f449c666fec019069ffba77/schedule.json",
+            "quote": "\"end\": \"2025-04-30\""
+          },
+          "note": ".nvmrc, engines and FROM node:18 are one change; a second row for the image counts as a duplicate."
+        },
+        {
+          "id": "text-davinci-003-retired",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["text-davinci-003"]
+            },
+            {
+              "kinds": ["model-retirement"]
+            }
+          ],
+          "deadline": "2024-01-04",
+          "source": {
+            "url": "https://platform.openai.com/docs/deprecations",
+            "quote": "2024-01-04: text-davinci-003 shut down; replacement gpt-3.5-turbo-instruct"
+          },
+          "note": "Uses the legacy completions endpoint with a shut-down model."
+        },
+        {
+          "id": "ingress-extensions-v1beta1-removed",
+          "class": "required",
+          "match": [
+            {
+              "kinds": ["k8s-version"]
+            },
+            {
+              "deps": ["kubernetes", "k8s", "ingress", "extensions/v1beta1", "kubernetes ingress"]
+            }
+          ],
+          "deadline": "2021-08-04",
+          "source": {
+            "url": "https://kubernetes.io/docs/reference/using-api/deprecation-guide/#ingress-v122",
+            "quote": "The extensions/v1beta1 and networking.k8s.io/v1beta1 API versions of Ingress is no longer served as of v1.22."
+          },
+          "note": "Deadline is the Kubernetes 1.22 release date, when the API stopped being served."
+        },
+        {
+          "id": "express-advisories",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["express"]
+            }
+          ],
+          "deadline": null,
+          "source": {
+            "url": "https://osv.dev/vulnerability/GHSA-qw6h-vgh9-j6wx",
+            "quote": "express vulnerable to XSS via response.redirect(); fixed 4.20.0"
+          },
+          "note": "Pinned exactly to 4.18.2: GHSA-rv95-896h-c2vc (fixed 4.19.2) and GHSA-qw6h-vgh9-j6wx (fixed 4.20.0). Any express row (security or the 5.x major) matches."
+        },
+        {
+          "id": "openai-sdk-behind",
+          "class": "acceptable",
+          "match": [
+            {
+              "deps": ["openai"]
+            }
+          ],
+          "deadline": null,
+          "note": "openai 4.x has newer majors; no advisory on 4.20.1 in OSV."
+        },
+        {
+          "id": "ai-act-art-50",
+          "class": "acceptable",
+          "match": [
+            {
+              "kinds": ["regulation"]
+            }
+          ],
+          "deadline": null,
+          "note": "Generates text with a model for callers; Article 50 obligations are arguable for this use."
+        }
+      ]
+    },
+    {
+      "repo": "refit-dev/demo-python-app",
+      "commit": "b38cbf814b5d362ebaef50d09e951af7acfe3de7",
+      "dependencies": [
+        {
+          "id": "python",
+          "kind": "runtime",
+          "names": ["python", "cpython"],
+          "class": "required",
+          "version": "3.9",
+          "declaredIn": [".python-version:1", "pyproject.toml:9"]
+        },
+        {
+          "id": "flask",
+          "kind": "framework",
+          "names": ["flask"],
+          "class": "required",
+          "version": "2.2.5",
+          "declaredIn": ["pyproject.toml:11"]
+        },
+        {
+          "id": "werkzeug",
+          "kind": "library",
+          "names": ["werkzeug"],
+          "class": "required",
+          "version": "2.2.3",
+          "declaredIn": ["pyproject.toml:12"]
+        },
+        {
+          "id": "stripe",
+          "kind": "sdk",
+          "names": ["stripe", "stripe-python"],
+          "class": "required",
+          "version": "2.76.0",
+          "declaredIn": ["pyproject.toml:13", "app.py:27"]
+        },
+        {
+          "id": "acceptable",
+          "kind": "any",
+          "names": ["pytest", "setuptools", "stripe api"],
+          "class": "acceptable"
+        },
+        {
+          "id": "payment-surface",
+          "kind": "regulated-surface",
+          "names": [],
+          "class": "acceptable",
+          "files": ["app.py"]
+        }
+      ],
+      "transitive": [],
+      "findings": [
+        {
+          "id": "python-3.9-eol",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["python", "cpython"]
+            }
+          ],
+          "deadline": "2025-10-31",
+          "source": {
+            "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/d6d7dd1c2b2875798c76272c4c2e095f03c07b7d/products/python.md",
+            "quote": "eol: 2025-10-31"
+          }
+        },
+        {
+          "id": "werkzeug-advisories",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["werkzeug"]
+            }
+          ],
+          "deadline": null,
+          "source": {
+            "url": "https://osv.dev/vulnerability/GHSA-2g68-c3qc-8985",
+            "quote": "Werkzeug debugger vulnerable to remote execution when interacting with attacker controlled domain"
+          },
+          "note": "==2.2.3 has 8 GHSA advisories in OSV (e.g. CVE-2023-46136, CVE-2024-34069, CVE-2024-49766); fixes need 3.x. No end-of-life date is published, so no deadline: a release date is not one."
+        },
+        {
+          "id": "flask-advisory",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["flask"]
+            }
+          ],
+          "deadline": null,
+          "source": {
+            "url": "https://osv.dev/vulnerability/GHSA-68rp-wp8r-4726",
+            "quote": "Flask session does not add `Vary: Cookie` header; fixed 3.1.3"
+          },
+          "note": "==2.2.5; the fix needs Flask 3.1.3, which also moves Werkzeug."
+        },
+        {
+          "id": "stripe-behind",
+          "class": "acceptable",
+          "match": [
+            {
+              "deps": ["stripe", "stripe-python"]
+            }
+          ],
+          "deadline": null,
+          "note": "stripe 2.76.0 and the Charges API with tokens are old but not shut down."
+        },
+        {
+          "id": "rules",
+          "class": "acceptable",
+          "match": [
+            {
+              "kinds": ["regulation", "payment-rule"]
+            }
+          ],
+          "deadline": null
+        },
+        {
+          "id": "pytest-advisory",
+          "class": "acceptable",
+          "match": [
+            {
+              "deps": ["pytest"]
+            }
+          ],
+          "deadline": null,
+          "note": "dev-only."
+        }
+      ]
+    },
+    {
+      "repo": "refit-dev/demo-next-web",
+      "commit": "36f8a55dd2b5d1ff404a4da900fc81958cd35c02",
+      "dependencies": [
+        {
+          "id": "next",
+          "kind": "framework",
+          "names": ["next", "nextjs", "next.js"],
+          "class": "required",
+          "version": "12.3.4",
+          "declaredIn": ["package.json:14"]
+        },
+        {
+          "id": "react",
+          "kind": "library",
+          "names": ["react"],
+          "class": "required",
+          "version": "18.2.0",
+          "declaredIn": ["package.json:15"]
+        },
+        {
+          "id": "react-dom",
+          "kind": "library",
+          "names": ["react-dom"],
+          "class": "required",
+          "version": "18.2.0",
+          "declaredIn": ["package.json:16"]
+        },
+        {
+          "id": "stripe",
+          "kind": "sdk",
+          "names": ["stripe", "stripe-node"],
+          "class": "required",
+          "version": "8.222.0",
+          "declaredIn": ["package.json:17", "pages/api/checkout-session.js:4"]
+        },
+        {
+          "id": "stripe-js",
+          "kind": "sdk",
+          "names": ["@stripe/stripe-js"],
+          "class": "required",
+          "version": "1.54.2",
+          "declaredIn": ["package.json:13"]
+        },
+        {
+          "id": "node",
+          "kind": "runtime",
+          "names": ["node", "nodejs", "node.js"],
+          "class": "required",
+          "version": "16",
+          "declaredIn": [".github/workflows/ci.yml:15"]
+        },
+        {
+          "id": "actions-checkout",
+          "kind": "ci",
+          "names": ["actions/checkout"],
+          "class": "required",
+          "version": "v2",
+          "declaredIn": [".github/workflows/ci.yml:12"]
+        },
+        {
+          "id": "actions-setup-node",
+          "kind": "ci",
+          "names": ["actions/setup-node"],
+          "class": "required",
+          "version": "v2",
+          "declaredIn": [".github/workflows/ci.yml:13"]
+        },
+        {
+          "id": "payment-surface",
+          "kind": "regulated-surface",
+          "names": [],
+          "class": "required",
+          "files": ["pages/checkout.js", "pages/api/checkout-session.js"]
+        },
+        {
+          "id": "cookie-surface",
+          "kind": "regulated-surface",
+          "names": [],
+          "class": "required",
+          "files": ["components/CookieBanner.js", "pages/_app.js"]
+        },
+        {
+          "id": "ui-surface",
+          "kind": "regulated-surface",
+          "names": [],
+          "class": "required",
+          "files": ["pages/index.js", "styles/globals.css"],
+          "note": "signup form and page markup for accessibility"
+        },
+        {
+          "id": "acceptable",
+          "kind": "any",
+          "names": [
+            "stripe api",
+            "github-actions",
+            "ubuntu-latest",
+            "analytics.example.com",
+            "chat-widget.example.com"
+          ],
+          "class": "acceptable"
+        }
+      ],
+      "transitive": [
+        "@next/env",
+        "@next/swc-android-arm-eabi",
+        "@next/swc-android-arm64",
+        "@next/swc-darwin-arm64",
+        "@next/swc-darwin-x64",
+        "@next/swc-freebsd-x64",
+        "@next/swc-linux-arm-gnueabihf",
+        "@next/swc-linux-arm64-gnu",
+        "@next/swc-linux-arm64-musl",
+        "@next/swc-linux-x64-gnu",
+        "@next/swc-linux-x64-musl",
+        "@next/swc-win32-arm64-msvc",
+        "@next/swc-win32-ia32-msvc",
+        "@next/swc-win32-x64-msvc",
+        "@swc/helpers",
+        "@types/node",
+        "call-bind-apply-helpers",
+        "call-bound",
+        "caniuse-lite",
+        "dunder-proto",
+        "es-define-property",
+        "es-errors",
+        "es-object-atoms",
+        "function-bind",
+        "get-intrinsic",
+        "get-proto",
+        "gopd",
+        "has-symbols",
+        "hasown",
+        "js-tokens",
+        "loose-envify",
+        "math-intrinsics",
+        "nanoid",
+        "object-inspect",
+        "picocolors",
+        "postcss",
+        "qs",
+        "scheduler",
+        "side-channel",
+        "side-channel-list",
+        "side-channel-map",
+        "side-channel-weakmap",
+        "source-map-js",
+        "styled-jsx",
+        "tslib",
+        "undici-types",
+        "use-sync-external-store"
+      ],
+      "findings": [
+        {
+          "id": "next-12-eol",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["next", "nextjs", "next.js"]
+            }
+          ],
+          "deadline": "2022-11-21",
+          "source": {
+            "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/d6d7dd1c2b2875798c76272c4c2e095f03c07b7d/products/nextjs.md",
+            "quote": "eol: 2022-11-21"
+          },
+          "note": "Also 17 advisories on 12.3.4 in OSV, e.g. GHSA-f82v-jwr5-mffw (middleware authorization bypass)."
+        },
+        {
+          "id": "ci-actions-v2",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["actions/checkout", "actions/setup-node"]
+            },
+            {
+              "kinds": ["ci-deprecation"]
+            }
+          ],
+          "deadline": null,
+          "source": {
+            "url": "https://github.blog/changelog/2022-09-22-github-actions-all-actions-will-begin-running-on-node16-instead-of-node12/",
+            "quote": "all actions will begin running on Node16 instead of Node12"
+          },
+          "note": "checkout@v2 and setup-node@v2 are node12 actions; one change, the second action's row counts as a duplicate."
+        },
+        {
+          "id": "node-16-eol",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["node", "nodejs", "node.js"]
+            }
+          ],
+          "deadline": "2023-09-11",
+          "source": {
+            "url": "https://raw.githubusercontent.com/nodejs/Release/6065a837c0c151577f449c666fec019069ffba77/schedule.json",
+            "quote": "\"end\": \"2023-09-11\""
+          },
+          "note": "node-version: 16 in CI."
+        },
+        {
+          "id": "rule-cookie-consent",
+          "class": "required",
+          "match": [
+            {
+              "kinds": ["regulation"],
+              "title": "cookie|consent|eprivacy|e-privacy|gdpr|tracking"
+            }
+          ],
+          "deadline": null,
+          "note": "CookieBanner sets analytics_id before consent; planted flaw."
+        },
+        {
+          "id": "rule-accessibility",
+          "class": "required",
+          "match": [
+            {
+              "kinds": ["regulation"],
+              "title": "accessib|eaa|wcag|2019/882|ada"
+            }
+          ],
+          "deadline": "2025-06-28",
+          "source": {
+            "url": "https://eur-lex.europa.eu/eli/dir/2019/882/oj",
+            "quote": "Member States shall apply those measures from 28 June 2025."
+          },
+          "note": "img without alt, div used as a button, unlabeled input, low-contrast text; planted flaws."
+        },
+        {
+          "id": "rule-pci-scripts",
+          "class": "required",
+          "match": [
+            {
+              "kinds": ["regulation", "payment-rule"],
+              "title": "pci|6\\.4\\.3|payment page|script"
+            }
+          ],
+          "deadline": "2025-03-31",
+          "note": "Third-party chat script on the checkout page; PCI DSS 4.0 requirement 6.4.3, future-dated to 2025-03-31."
+        },
+        {
+          "id": "libs-behind",
+          "class": "acceptable",
+          "match": [
+            {
+              "deps": ["react", "react-dom", "stripe", "stripe-node", "@stripe/stripe-js"]
+            }
+          ],
+          "deadline": null,
+          "note": "React 18 to 19, stripe-node 8, Stripe API 2020-08-27, redirectToCheckout: behind, none shut down by a dated source found."
+        },
+        {
+          "id": "other-rules",
+          "class": "acceptable",
+          "match": [
+            {
+              "kinds": ["regulation", "payment-rule"]
+            }
+          ],
+          "deadline": null
+        }
+      ]
+    },
+    {
+      "repo": "psevensas/DjangoChannelsGraphqlWs",
+      "commit": "1ade107f61a1c39bdfd5896d186416fe642a5ec3",
+      "dependencies": [
+        {
+          "id": "python",
+          "kind": "runtime",
+          "names": ["python", "cpython"],
+          "class": "required",
+          "version": "3.8",
+          "declaredIn": ["pyproject.toml:48", ".python-version:1"],
+          "note": ".python-version lists 3.10.11, 3.9.16, 3.8.16; CI matrix the same."
+        },
+        {
+          "id": "django",
+          "kind": "framework",
+          "names": ["django"],
+          "class": "required",
+          "version": "^4",
+          "declaredIn": ["pyproject.toml:52"]
+        },
+        {
+          "id": "channels",
+          "kind": "library",
+          "names": ["channels"],
+          "class": "required",
+          "version": "^4",
+          "declaredIn": ["pyproject.toml:51"]
+        },
+        {
+          "id": "graphene",
+          "kind": "library",
+          "names": ["graphene"],
+          "class": "required",
+          "version": "^3",
+          "declaredIn": ["pyproject.toml:53"]
+        },
+        {
+          "id": "graphql-core",
+          "kind": "library",
+          "names": ["graphql-core"],
+          "class": "required",
+          "version": "3.2.3",
+          "declaredIn": ["pyproject.toml:54"]
+        },
+        {
+          "id": "aiohttp",
+          "kind": "library",
+          "names": ["aiohttp"],
+          "class": "required",
+          "version": "^3",
+          "declaredIn": ["pyproject.toml:49"]
+        },
+        {
+          "id": "asgiref",
+          "kind": "library",
+          "names": ["asgiref"],
+          "class": "required",
+          "version": "^3",
+          "declaredIn": ["pyproject.toml:50"]
+        },
+        {
+          "id": "msgpack",
+          "kind": "library",
+          "names": ["msgpack"],
+          "class": "required",
+          "version": "^1",
+          "declaredIn": ["pyproject.toml:55"]
+        },
+        {
+          "id": "actions-checkout",
+          "kind": "ci",
+          "names": ["actions/checkout"],
+          "class": "required",
+          "version": "v2",
+          "declaredIn": [".github/workflows/tests.yml:39"]
+        },
+        {
+          "id": "actions-setup-python",
+          "kind": "ci",
+          "names": ["actions/setup-python"],
+          "class": "required",
+          "version": "v1",
+          "declaredIn": [".github/workflows/tests.yml:41"]
+        },
+        {
+          "id": "acceptable",
+          "kind": "any",
+          "names": [
+            "black",
+            "channels-redis",
+            "coverage",
+            "graphene-django",
+            "isort",
+            "mypy",
+            "plumbum",
+            "pylint",
+            "pylint-django",
+            "pylint-quotes",
+            "pytest",
+            "pytest-asyncio",
+            "pytest-cov",
+            "pytest-django",
+            "pytest-pythonpath",
+            "pytest-xdist",
+            "tox",
+            "daphne",
+            "poetry",
+            "poetry-core",
+            "travis",
+            "gitlab-ci",
+            "ubuntu-latest",
+            "macos-latest",
+            "xenial",
+            "python3.7",
+            "redis"
+          ],
+          "class": "acceptable"
+        }
+      ],
+      "transitive": [
+        "aiosignal",
+        "aniso8601",
+        "astroid",
+        "async-timeout",
+        "attrs",
+        "autobahn",
+        "automat",
+        "backports-zoneinfo",
+        "cachetools",
+        "cffi",
+        "chardet",
+        "click",
+        "colorama",
+        "constantly",
+        "cryptography",
+        "dill",
+        "distlib",
+        "exceptiongroup",
+        "execnet",
+        "filelock",
+        "frozenlist",
+        "graphql-relay",
+        "hyperlink",
+        "idna",
+        "incremental",
+        "iniconfig",
+        "mccabe",
+        "multidict",
+        "mypy-extensions",
+        "packaging",
+        "pathspec",
+        "platformdirs",
+        "pluggy",
+        "promise",
+        "pyasn1",
+        "pyasn1-modules",
+        "pycparser",
+        "pylint-plugin-utils",
+        "pyopenssl",
+        "pyproject-api",
+        "pywin32",
+        "redis",
+        "service-identity",
+        "setuptools",
+        "six",
+        "sqlparse",
+        "text-unidecode",
+        "tomli",
+        "tomlkit",
+        "twisted",
+        "twisted-iocpsupport",
+        "txaio",
+        "typing-extensions",
+        "tzdata",
+        "virtualenv",
+        "yarl",
+        "zope-interface"
+      ],
+      "findings": [
+        {
+          "id": "python-eol",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["python", "cpython"]
+            }
+          ],
+          "deadline": "2024-10-07",
+          "source": {
+            "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/d6d7dd1c2b2875798c76272c4c2e095f03c07b7d/products/python.md",
+            "quote": "eol: 2024-10-07"
+          },
+          "note": "Primary floor ^3.8 (EOL 2024-10-07); 3.9 (2025-10-31) and 3.10 (2026-10-01) in the matrix are also past end of life."
+        },
+        {
+          "id": "django-4-eol",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["django"]
+            }
+          ],
+          "deadline": "2026-04-07",
+          "source": {
+            "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/d6d7dd1c2b2875798c76272c4c2e095f03c07b7d/products/django.md",
+            "quote": "eol: 2026-04-07"
+          },
+          "note": "4.2 is the last 4.x; locked 4.2.14 also has later advisories."
+        },
+        {
+          "id": "ci-actions",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["actions/checkout", "actions/setup-python"]
+            },
+            {
+              "kinds": ["ci-deprecation"]
+            }
+          ],
+          "deadline": null,
+          "source": {
+            "url": "https://github.blog/changelog/2022-09-22-github-actions-all-actions-will-begin-running-on-node16-instead-of-node12/",
+            "quote": "all actions will begin running on Node16 instead of Node12"
+          },
+          "note": "checkout@v2, setup-python@v1."
+        },
+        {
+          "id": "libs",
+          "class": "acceptable",
+          "match": [
+            {
+              "deps": [
+                "aiohttp",
+                "asgiref",
+                "channels",
+                "django",
+                "graphene",
+                "graphql-core",
+                "msgpack",
+                "black",
+                "channels-redis",
+                "coverage",
+                "graphene-django",
+                "isort",
+                "mypy",
+                "plumbum",
+                "pylint",
+                "pylint-django",
+                "pylint-quotes",
+                "pytest",
+                "pytest-asyncio",
+                "pytest-cov",
+                "pytest-django",
+                "pytest-pythonpath",
+                "pytest-xdist",
+                "tox",
+                "daphne",
+                "poetry",
+                "poetry-core"
+              ]
+            }
+          ],
+          "deadline": null,
+          "note": "Locked aiohttp 3.9.5 and others have advisories fixable in range."
+        },
+        {
+          "id": "other-ci",
+          "class": "acceptable",
+          "match": [
+            {
+              "deps": ["travis", "gitlab-ci", "python3.7", "xenial"]
+            }
+          ],
+          "deadline": null
+        }
+      ]
+    },
+    {
+      "repo": "bluelabsio/records-mover",
+      "commit": "43f79f8f70cdf9a71c747835cd157e58cd65aad7",
+      "dependencies": [
+        {
+          "id": "python",
+          "kind": "runtime",
+          "names": ["python", "cpython"],
+          "class": "required",
+          "version": "3.8",
+          "declaredIn": ["pyproject.toml:24", ".github/workflows/test.yml:12", "Dockerfile.dev:1"],
+          "note": ".python-version names a pyenv virtualenv, records-mover-3.9.1."
+        },
+        {
+          "id": "timeout-decorator",
+          "kind": "library",
+          "names": ["timeout-decorator"],
+          "class": "required",
+          "declaredIn": ["pyproject.toml"]
+        },
+        {
+          "id": "pyyaml",
+          "kind": "library",
+          "names": ["pyyaml"],
+          "class": "required",
+          "declaredIn": ["pyproject.toml"]
+        },
+        {
+          "id": "db-facts",
+          "kind": "library",
+          "names": ["db-facts"],
+          "class": "required",
+          "declaredIn": ["pyproject.toml"]
+        },
+        {
+          "id": "chardet",
+          "kind": "library",
+          "names": ["chardet"],
+          "class": "required",
+          "declaredIn": ["pyproject.toml"]
+        },
+        {
+          "id": "tenacity",
+          "kind": "library",
+          "names": ["tenacity"],
+          "class": "required",
+          "declaredIn": ["pyproject.toml"]
+        },
+        {
+          "id": "config-resolver",
+          "kind": "library",
+          "names": ["config-resolver"],
+          "class": "required",
+          "declaredIn": ["pyproject.toml"]
+        },
+        {
+          "id": "typing-inspect",
+          "kind": "library",
+          "names": ["typing-inspect"],
+          "class": "required",
+          "declaredIn": ["pyproject.toml"]
+        },
+        {
+          "id": "typing-extensions",
+          "kind": "library",
+          "names": ["typing-extensions"],
+          "class": "required",
+          "declaredIn": ["pyproject.toml"]
+        },
+        {
+          "id": "actions-checkout",
+          "kind": "ci",
+          "names": ["actions/checkout"],
+          "class": "required",
+          "version": "v3",
+          "declaredIn": [".github/workflows/test.yml:16"]
+        },
+        {
+          "id": "actions-setup-python",
+          "kind": "ci",
+          "names": ["actions/setup-python"],
+          "class": "required",
+          "version": "v4",
+          "declaredIn": [".github/workflows/test.yml:18"]
+        },
+        {
+          "id": "acceptable",
+          "kind": "any",
+          "names": [
+            "google-api-python-client",
+            "grpcio",
+            "pytest",
+            "pytest-cov",
+            "jsonschema",
+            "pytz",
+            "wheel",
+            "parameterized",
+            "apache-airflow",
+            "apache-airflow-providers-amazon",
+            "apache-airflow-providers-google",
+            "sqlalchemy",
+            "sqlalchemy-privileges",
+            "smart-open",
+            "google-cloud-storage",
+            "sqlalchemy-bigquery",
+            "awscli",
+            "boto3",
+            "s3-concat",
+            "google",
+            "google-auth-httplib2",
+            "pyopenssl",
+            "pyarrow",
+            "pandas",
+            "numpy",
+            "pymysql",
+            "sqlalchemy-redshift",
+            "psycopg2-binary",
+            "psycopg2",
+            "odictliteral",
+            "docstring-parser",
+            "requests",
+            "sqlalchemy-vertica-python",
+            "mypy",
+            "lxml",
+            "sqlalchemy-stubs",
+            "types-pytz",
+            "types-mock",
+            "coverage",
+            "mock",
+            "sphinx",
+            "sphinx-rtd-theme",
+            "sphinx-argparse",
+            "readthedocs-sphinx-ext",
+            "recommonmark",
+            "setuptools",
+            "setuptools-scm",
+            "twine",
+            "build",
+            "flake8",
+            "markupsafe",
+            "botocore",
+            "google-cloud-bigquery",
+            "airflow",
+            "cimg/python",
+            "cimg/python:3.9",
+            "postgres",
+            "postgres:latest",
+            "mysql",
+            "mysql:5",
+            "jbfavre/vertica",
+            "circleci",
+            "aws",
+            "amazon s3",
+            "s3",
+            "redshift",
+            "amazon redshift",
+            "bigquery",
+            "google bigquery",
+            "google cloud storage",
+            "gcs",
+            "google sheets",
+            "google-sheets",
+            "vertica",
+            "postgresql",
+            "readthedocs",
+            "ubuntu-latest",
+            "airbyte"
+          ],
+          "class": "acceptable"
+        }
+      ],
+      "transitive": [],
+      "findings": [
+        {
+          "id": "python-eol",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["python", "cpython", "cimg/python"]
+            }
+          ],
+          "deadline": "2024-10-07",
+          "source": {
+            "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/d6d7dd1c2b2875798c76272c4c2e095f03c07b7d/products/python.md",
+            "quote": "eol: 2024-10-07"
+          },
+          "note": "requires-python >=3.8; CI tests 3.8 and 3.9 (EOL 2025-10-31)."
+        },
+        {
+          "id": "ci-actions-node16",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["actions/checkout", "actions/setup-python"]
+            },
+            {
+              "kinds": ["ci-deprecation"]
+            }
+          ],
+          "deadline": null,
+          "source": {
+            "url": "https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/",
+            "quote": "transitioning from Node 16 to Node 20"
+          },
+          "note": "checkout@v3 and setup-python@v4 run on Node 16."
+        },
+        {
+          "id": "extras-behind",
+          "class": "acceptable",
+          "match": [
+            {
+              "deps": [
+                "google-api-python-client",
+                "grpcio",
+                "pytest",
+                "pytest-cov",
+                "jsonschema",
+                "pytz",
+                "wheel",
+                "parameterized",
+                "apache-airflow",
+                "apache-airflow-providers-amazon",
+                "apache-airflow-providers-google",
+                "sqlalchemy",
+                "sqlalchemy-privileges",
+                "smart-open",
+                "google-cloud-storage",
+                "sqlalchemy-bigquery",
+                "awscli",
+                "boto3",
+                "s3-concat",
+                "google",
+                "google-auth-httplib2",
+                "pyopenssl",
+                "pyarrow",
+                "pandas",
+                "numpy",
+                "pymysql",
+                "sqlalchemy-redshift",
+                "psycopg2-binary",
+                "psycopg2",
+                "odictliteral",
+                "docstring-parser",
+                "requests",
+                "sqlalchemy-vertica-python",
+                "mypy",
+                "lxml",
+                "sqlalchemy-stubs",
+                "types-pytz",
+                "types-mock",
+                "coverage",
+                "mock",
+                "sphinx",
+                "sphinx-rtd-theme",
+                "sphinx-argparse",
+                "readthedocs-sphinx-ext",
+                "recommonmark",
+                "setuptools",
+                "setuptools-scm",
+                "twine",
+                "build",
+                "flake8",
+                "markupsafe",
+                "botocore",
+                "google-cloud-bigquery",
+                "airflow",
+                "cimg/python",
+                "mysql",
+                "mysql:5",
+                "postgres",
+                "jbfavre/vertica",
+                "circleci"
+              ]
+            }
+          ],
+          "deadline": null,
+          "note": "sqlalchemy<2, pandas<2, numpy<2 (1.26 EOL 2025-09-17), mysql:5 (5.7 EOL 2023-10-31) in CircleCI: optional extras or CI-only."
+        }
+      ]
+    },
+    {
+      "repo": "paulocheque/django-dynamic-fixture",
+      "commit": "7160dd935859690d7a3083623bf2f101878496b6",
+      "dependencies": [
+        {
+          "id": "python",
+          "kind": "runtime",
+          "names": ["python", "cpython", "pypy"],
+          "class": "required",
+          "version": "3.7",
+          "declaredIn": [".python-version:1", ".github/workflows/release.yml:17"]
+        },
+        {
+          "id": "django",
+          "kind": "framework",
+          "names": ["django"],
+          "class": "required",
+          "version": "4.0-4.2",
+          "declaredIn": ["tox.ini:23", ".github/workflows/release.yml:22"],
+          "note": "install_requires is empty; Django comes from tox and CI."
+        },
+        {
+          "id": "geopy",
+          "kind": "library",
+          "names": ["geopy"],
+          "class": "required",
+          "declaredIn": ["requirements.txt:7"]
+        },
+        {
+          "id": "django-json-field",
+          "kind": "library",
+          "names": ["django-json-field"],
+          "class": "required",
+          "declaredIn": ["requirements.txt:11"]
+        },
+        {
+          "id": "django-polymorphic",
+          "kind": "library",
+          "names": ["django-polymorphic"],
+          "class": "required",
+          "declaredIn": ["requirements.txt:12"]
+        },
+        {
+          "id": "actions-checkout",
+          "kind": "ci",
+          "names": ["actions/checkout"],
+          "class": "required",
+          "version": "v3",
+          "declaredIn": [".github/workflows/release.yml:63"]
+        },
+        {
+          "id": "actions-setup-python",
+          "kind": "ci",
+          "names": ["actions/setup-python"],
+          "class": "required",
+          "version": "v4",
+          "declaredIn": [".github/workflows/release.yml:58"]
+        },
+        {
+          "id": "acceptable",
+          "kind": "any",
+          "names": [
+            "build",
+            "twine",
+            "pytest",
+            "pytest-django",
+            "pytest-xdist",
+            "pytest-cov",
+            "tox",
+            "psycopg2-binary",
+            "flake8",
+            "pyflakes",
+            "pylint",
+            "ruff",
+            "pre-commit",
+            "sphinx",
+            "sphinx-rtd-theme",
+            "setuptools",
+            "postgis/postgis",
+            "postgis/postgis:15-3.4-alpine",
+            "postgres",
+            "postgresql",
+            "postgis",
+            "gdal",
+            "readthedocs",
+            "ubuntu-22.04",
+            "ubuntu-latest",
+            "mysql",
+            "sqlite"
+          ],
+          "class": "acceptable"
+        }
+      ],
+      "transitive": [],
+      "findings": [
+        {
+          "id": "python-eol",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["python", "cpython", "pypy"]
+            }
+          ],
+          "deadline": "2023-06-27",
+          "source": {
+            "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/d6d7dd1c2b2875798c76272c4c2e095f03c07b7d/products/python.md",
+            "quote": "eol: 2023-06-27"
+          },
+          "note": ".python-version starts at 3.7; CI 3.8-3.11, of which 3.8, 3.9 and 3.10 are past end of life."
+        },
+        {
+          "id": "django-4-eol",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["django"]
+            }
+          ],
+          "deadline": "2026-04-07",
+          "source": {
+            "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/d6d7dd1c2b2875798c76272c4c2e095f03c07b7d/products/django.md",
+            "quote": "eol: 2026-04-07"
+          },
+          "note": "Tests only Django 4.0, 4.1 and 4.2."
+        },
+        {
+          "id": "ci-actions-node16",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["actions/checkout", "actions/setup-python"]
+            },
+            {
+              "kinds": ["ci-deprecation"]
+            }
+          ],
+          "deadline": null,
+          "source": {
+            "url": "https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/",
+            "quote": "transitioning from Node 16 to Node 20"
+          }
+        },
+        {
+          "id": "libs",
+          "class": "acceptable",
+          "match": [
+            {
+              "deps": [
+                "build",
+                "twine",
+                "pytest",
+                "pytest-django",
+                "pytest-xdist",
+                "pytest-cov",
+                "tox",
+                "psycopg2-binary",
+                "flake8",
+                "pyflakes",
+                "pylint",
+                "ruff",
+                "pre-commit",
+                "sphinx",
+                "sphinx-rtd-theme",
+                "setuptools",
+                "geopy",
+                "django-json-field",
+                "django-polymorphic",
+                "postgis/postgis",
+                "postgres",
+                "ubuntu-22.04"
+              ]
+            }
+          ],
+          "deadline": null
+        }
+      ]
+    },
+    {
+      "repo": "Specifyapp/parsers",
+      "commit": "70eb4aa89e5b5b586680eb1f756506ee3f457b19",
+      "dependencies": [
+        {
+          "id": "node",
+          "kind": "runtime",
+          "names": ["node", "nodejs", "node.js"],
+          "class": "required",
+          "version": "16.10",
+          "declaredIn": [".nvmrc:1"]
+        },
+        {
+          "id": "@mobily/ts-belt",
+          "kind": "library",
+          "names": ["@mobily/ts-belt"],
+          "class": "required",
+          "declaredIn": ["package.json"]
+        },
+        {
+          "id": "deepmerge",
+          "kind": "library",
+          "names": ["deepmerge"],
+          "class": "required",
+          "declaredIn": ["package.json"]
+        },
+        {
+          "id": "got",
+          "kind": "library",
+          "names": ["got"],
+          "class": "required",
+          "declaredIn": ["package.json"]
+        },
+        {
+          "id": "lodash",
+          "kind": "library",
+          "names": ["lodash"],
+          "class": "required",
+          "declaredIn": ["package.json"]
+        },
+        {
+          "id": "mustache",
+          "kind": "library",
+          "names": ["mustache"],
+          "class": "required",
+          "declaredIn": ["package.json"]
+        },
+        {
+          "id": "prettier",
+          "kind": "library",
+          "names": ["prettier"],
+          "class": "required",
+          "declaredIn": ["package.json"]
+        },
+        {
+          "id": "svgo",
+          "kind": "library",
+          "names": ["svgo"],
+          "class": "required",
+          "declaredIn": ["package.json"]
+        },
+        {
+          "id": "svgo-v3",
+          "kind": "library",
+          "names": ["svgo-v3"],
+          "class": "required",
+          "declaredIn": ["package.json"]
+        },
+        {
+          "id": "tinycolor2",
+          "kind": "library",
+          "names": ["tinycolor2"],
+          "class": "required",
+          "declaredIn": ["package.json"]
+        },
+        {
+          "id": "ts-pattern",
+          "kind": "library",
+          "names": ["ts-pattern"],
+          "class": "required",
+          "declaredIn": ["package.json"]
+        },
+        {
+          "id": "typescript",
+          "kind": "library",
+          "names": ["typescript"],
+          "class": "required",
+          "declaredIn": ["package.json"]
+        },
+        {
+          "id": "xml2js",
+          "kind": "library",
+          "names": ["xml2js"],
+          "class": "required",
+          "declaredIn": ["package.json"]
+        },
+        {
+          "id": "xmlbuilder2",
+          "kind": "library",
+          "names": ["xmlbuilder2"],
+          "class": "required",
+          "declaredIn": ["package.json"]
+        },
+        {
+          "id": "actions-checkout",
+          "kind": "ci",
+          "names": ["actions/checkout"],
+          "class": "required",
+          "version": "v3 and main",
+          "declaredIn": [
+            ".github/workflows/codeql.yml:27",
+            ".github/workflows/continuous-integration-workflow.yml:15"
+          ]
+        },
+        {
+          "id": "codeql-action",
+          "kind": "ci",
+          "names": [
+            "github/codeql-action",
+            "github/codeql-action/init",
+            "github/codeql-action/autobuild",
+            "github/codeql-action/analyze"
+          ],
+          "class": "required",
+          "version": "v2",
+          "declaredIn": [".github/workflows/codeql.yml:30"]
+        },
+        {
+          "id": "coveralls",
+          "kind": "ci",
+          "names": ["coverallsapp/github-action"],
+          "class": "required",
+          "version": "master",
+          "declaredIn": [".github/workflows/continuous-integration-workflow.yml:21"]
+        },
+        {
+          "id": "acceptable",
+          "kind": "any",
+          "names": [
+            "@types/lodash",
+            "@types/mustache",
+            "@types/node",
+            "@types/prettier",
+            "@types/svgo",
+            "@types/theme-ui",
+            "@types/tinycolor2",
+            "@types/xml2js",
+            "@types/glob",
+            "@types/jest",
+            "dotenv",
+            "glob",
+            "jest",
+            "jest-circus",
+            "lint-staged",
+            "sass",
+            "ts-jest",
+            "yarn",
+            "react",
+            "react-native",
+            "react-native-linear-gradient",
+            "ubuntu-latest",
+            "ts-node"
+          ],
+          "class": "acceptable"
+        }
+      ],
+      "transitive": [
+        "@ampproject/remapping",
+        "@babel/code-frame",
+        "@babel/compat-data",
+        "@babel/core",
+        "@babel/generator",
+        "@babel/helper-compilation-targets",
+        "@babel/helper-environment-visitor",
+        "@babel/helper-function-name",
+        "@babel/helper-hoist-variables",
+        "@babel/helper-module-imports",
+        "@babel/helper-module-transforms",
+        "@babel/helper-plugin-utils",
+        "@babel/helper-simple-access",
+        "@babel/helper-split-export-declaration",
+        "@babel/helper-string-parser",
+        "@babel/helper-validator-identifier",
+        "@babel/helper-validator-option",
+        "@babel/helpers",
+        "@babel/highlight",
+        "@babel/parser",
+        "@babel/plugin-syntax-async-generators",
+        "@babel/plugin-syntax-bigint",
+        "@babel/plugin-syntax-class-properties",
+        "@babel/plugin-syntax-import-meta",
+        "@babel/plugin-syntax-json-strings",
+        "@babel/plugin-syntax-jsx",
+        "@babel/plugin-syntax-logical-assignment-operators",
+        "@babel/plugin-syntax-nullish-coalescing-operator",
+        "@babel/plugin-syntax-numeric-separator",
+        "@babel/plugin-syntax-object-rest-spread",
+        "@babel/plugin-syntax-optional-catch-binding",
+        "@babel/plugin-syntax-optional-chaining",
+        "@babel/plugin-syntax-top-level-await",
+        "@babel/plugin-syntax-typescript",
+        "@babel/runtime",
+        "@babel/template",
+        "@babel/traverse",
+        "@babel/types",
+        "@bcoe/v8-coverage",
+        "@emotion/babel-plugin",
+        "@emotion/cache",
+        "@emotion/hash",
+        "@emotion/is-prop-valid",
+        "@emotion/memoize",
+        "@emotion/react",
+        "@emotion/serialize",
+        "@emotion/sheet",
+        "@emotion/styled",
+        "@emotion/unitless",
+        "@emotion/utils",
+        "@emotion/weak-memoize",
+        "@istanbuljs/load-nyc-config",
+        "@istanbuljs/schema",
+        "@jest/console",
+        "@jest/core",
+        "@jest/environment",
+        "@jest/expect",
+        "@jest/expect-utils",
+        "@jest/fake-timers",
+        "@jest/globals",
+        "@jest/reporters",
+        "@jest/schemas",
+        "@jest/source-map",
+        "@jest/test-result",
+        "@jest/test-sequencer",
+        "@jest/transform",
+        "@jest/types",
+        "@jridgewell/gen-mapping",
+        "@jridgewell/resolve-uri",
+        "@jridgewell/set-array",
+        "@jridgewell/sourcemap-codec",
+        "@jridgewell/trace-mapping",
+        "@mdx-js/react",
+        "@oozcitak/dom",
+        "@oozcitak/infra",
+        "@oozcitak/url",
+        "@oozcitak/util",
+        "@sinclair/typebox",
+        "@sindresorhus/is",
+        "@sinonjs/commons",
+        "@sinonjs/fake-timers",
+        "@styled-system/background",
+        "@styled-system/border",
+        "@styled-system/color",
+        "@styled-system/core",
+        "@styled-system/css",
+        "@styled-system/flexbox",
+        "@styled-system/grid",
+        "@styled-system/layout",
+        "@styled-system/position",
+        "@styled-system/shadow",
+        "@styled-system/should-forward-prop",
+        "@styled-system/space",
+        "@styled-system/typography",
+        "@styled-system/variant",
+        "@szmarczak/http-timer",
+        "@theme-ui/color-modes",
+        "@theme-ui/components",
+        "@theme-ui/core",
+        "@theme-ui/css",
+        "@theme-ui/mdx",
+        "@theme-ui/parse-props",
+        "@theme-ui/theme-provider",
+        "@trysound/sax",
+        "@types/babel__core",
+        "@types/babel__generator",
+        "@types/babel__template",
+        "@types/babel__traverse",
+        "@types/graceful-fs",
+        "@types/http-cache-semantics",
+        "@types/istanbul-lib-coverage",
+        "@types/istanbul-lib-report",
+        "@types/istanbul-reports",
+        "@types/minimatch",
+        "@types/parse-json",
+        "@types/stack-utils",
+        "@types/styled-system",
+        "@types/yargs",
+        "@types/yargs-parser",
+        "aggregate-error",
+        "ansi-escapes",
+        "ansi-regex",
+        "ansi-styles",
+        "anymatch",
+        "argparse",
+        "astral-regex",
+        "babel-jest",
+        "babel-plugin-istanbul",
+        "babel-plugin-jest-hoist",
+        "babel-plugin-macros",
+        "babel-preset-current-node-syntax",
+        "babel-preset-jest",
+        "balanced-match",
+        "binary-extensions",
+        "boolbase",
+        "brace-expansion",
+        "braces",
+        "browserslist",
+        "bs-logger",
+        "bser",
+        "buffer-from",
+        "cacheable-lookup",
+        "cacheable-request",
+        "callsites",
+        "camelcase",
+        "caniuse-lite",
+        "chalk",
+        "char-regex",
+        "chokidar",
+        "ci-info",
+        "cjs-module-lexer",
+        "clean-stack",
+        "cli-cursor",
+        "cli-truncate",
+        "cliui",
+        "co",
+        "collect-v8-coverage",
+        "color-convert",
+        "color-name",
+        "colorette",
+        "commander",
+        "concat-map",
+        "convert-source-map",
+        "cosmiconfig",
+        "cross-spawn",
+        "css-select",
+        "css-tree",
+        "css-what",
+        "csso",
+        "csstype",
+        "debug",
+        "decompress-response",
+        "dedent",
+        "defer-to-connect",
+        "detect-newline",
+        "diff-sequences",
+        "dom-serializer",
+        "domelementtype",
+        "domhandler",
+        "domutils",
+        "eastasianwidth",
+        "electron-to-chromium",
+        "emittery",
+        "emoji-regex",
+        "entities",
+        "error-ex",
+        "escalade",
+        "escape-string-regexp",
+        "esprima",
+        "execa",
+        "exit",
+        "expect",
+        "fast-json-stable-stringify",
+        "fb-watchman",
+        "fill-range",
+        "find-root",
+        "find-up",
+        "form-data-encoder",
+        "fs.realpath",
+        "fsevents",
+        "function-bind",
+        "gensync",
+        "get-caller-file",
+        "get-package-type",
+        "get-stream",
+        "glob-parent",
+        "globals",
+        "graceful-fs",
+        "has",
+        "has-flag",
+        "hoist-non-react-statics",
+        "html-escaper",
+        "http-cache-semantics",
+        "http2-wrapper",
+        "human-signals",
+        "immutable",
+        "import-fresh",
+        "import-local",
+        "imurmurhash",
+        "indent-string",
+        "inflight",
+        "inherits",
+        "is-arrayish",
+        "is-binary-path",
+        "is-core-module",
+        "is-extglob",
+        "is-fullwidth-code-point",
+        "is-generator-fn",
+        "is-glob",
+        "is-number",
+        "is-stream",
+        "isexe",
+        "istanbul-lib-coverage",
+        "istanbul-lib-instrument",
+        "istanbul-lib-report",
+        "istanbul-lib-source-maps",
+        "istanbul-reports",
+        "jest-changed-files",
+        "jest-cli",
+        "jest-config",
+        "jest-diff",
+        "jest-docblock",
+        "jest-each",
+        "jest-environment-node",
+        "jest-get-type",
+        "jest-haste-map",
+        "jest-leak-detector",
+        "jest-matcher-utils",
+        "jest-message-util",
+        "jest-mock",
+        "jest-pnp-resolver",
+        "jest-regex-util",
+        "jest-resolve",
+        "jest-resolve-dependencies",
+        "jest-runner",
+        "jest-runtime",
+        "jest-snapshot",
+        "jest-util",
+        "jest-validate",
+        "jest-watcher",
+        "jest-worker",
+        "js-tokens",
+        "js-yaml",
+        "jsesc",
+        "json-buffer",
+        "json-parse-even-better-errors",
+        "json5",
+        "keyv",
+        "kleur",
+        "leven",
+        "lilconfig",
+        "lines-and-columns",
+        "listr2",
+        "locate-path",
+        "lodash.memoize",
+        "log-update",
+        "lowercase-keys",
+        "lru-cache",
+        "make-dir",
+        "make-error",
+        "makeerror",
+        "mdn-data",
+        "merge-stream",
+        "micromatch",
+        "mimic-fn",
+        "mimic-response",
+        "minimatch",
+        "ms",
+        "natural-compare",
+        "node-int64",
+        "node-releases",
+        "normalize-path",
+        "normalize-url",
+        "npm-run-path",
+        "nth-check",
+        "object-assign",
+        "object-inspect",
+        "once",
+        "onetime",
+        "p-cancelable",
+        "p-limit",
+        "p-locate",
+        "p-map",
+        "p-try",
+        "parent-module",
+        "parse-json",
+        "path-exists",
+        "path-is-absolute",
+        "path-key",
+        "path-parse",
+        "path-type",
+        "picocolors",
+        "picomatch",
+        "pirates",
+        "pkg-dir",
+        "pretty-format",
+        "prompts",
+        "quick-lru",
+        "react-is",
+        "readdirp",
+        "regenerator-runtime",
+        "require-directory",
+        "resolve",
+        "resolve-alpn",
+        "resolve-cwd",
+        "resolve-from",
+        "resolve.exports",
+        "responselike",
+        "restore-cursor",
+        "rfdc",
+        "rxjs",
+        "safe-buffer",
+        "sax",
+        "semver",
+        "shebang-command",
+        "shebang-regex",
+        "signal-exit",
+        "sisteransi",
+        "slash",
+        "slice-ansi",
+        "source-map",
+        "source-map-js",
+        "source-map-support",
+        "sprintf-js",
+        "stable",
+        "stack-utils",
+        "string-argv",
+        "string-length",
+        "string-width",
+        "strip-ansi",
+        "strip-bom",
+        "strip-final-newline",
+        "strip-json-comments",
+        "styled-system",
+        "stylis",
+        "supports-color",
+        "test-exclude",
+        "theme-ui",
+        "through",
+        "tmpl",
+        "to-fast-properties",
+        "to-regex-range",
+        "tslib",
+        "type-detect",
+        "type-fest",
+        "update-browserslist-db",
+        "v8-to-istanbul",
+        "walker",
+        "which",
+        "wrap-ansi",
+        "wrappy",
+        "write-file-atomic",
+        "xmlbuilder",
+        "y18n",
+        "yallist",
+        "yaml",
+        "yargs",
+        "yargs-parser",
+        "yocto-queue"
+      ],
+      "findings": [
+        {
+          "id": "node-16-eol",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["node", "nodejs", "node.js"]
+            }
+          ],
+          "deadline": "2023-09-11",
+          "source": {
+            "url": "https://raw.githubusercontent.com/nodejs/Release/6065a837c0c151577f449c666fec019069ffba77/schedule.json",
+            "quote": "\"end\": \"2023-09-11\""
+          }
+        },
+        {
+          "id": "ci-actions",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["github/codeql-action", "actions/checkout"]
+            },
+            {
+              "kinds": ["ci-deprecation"]
+            }
+          ],
+          "deadline": null,
+          "source": {
+            "url": "https://github.blog/changelog/2024-01-12-code-scanning-deprecation-of-codeql-action-v2/",
+            "quote": "CodeQL Action v2 will be deprecated at the same time as GHES 3.11"
+          },
+          "note": "codeql-action@v2 (deprecated December 2024) and checkout@v3 (Node 16) in codeql.yml."
+        },
+        {
+          "id": "xml2js-advisory",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["xml2js"]
+            }
+          ],
+          "deadline": null,
+          "source": {
+            "url": "https://osv.dev/vulnerability/GHSA-776f-qx25-q3cc",
+            "quote": "xml2js is vulnerable to prototype pollution; fixed 0.5.0"
+          },
+          "note": "^0.4.23 resolves to 0.4.23; the fix is outside the declared range."
+        },
+        {
+          "id": "svgo-advisories",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["svgo", "svgo-v3"]
+            }
+          ],
+          "deadline": null,
+          "source": {
+            "url": "https://osv.dev/vulnerability/GHSA-xpqw-6gx7-v673",
+            "quote": "SVGO DoS through entity expansion in DOCTYPE; fixed 2.8.1"
+          },
+          "note": "svgo pinned to 2.8.0 and svgo-v3 to npm:svgo@3.0.2; 4 advisories each, fixes outside the exact pins."
+        },
+        {
+          "id": "libs",
+          "class": "acceptable",
+          "match": [
+            {
+              "deps": [
+                "@mobily/ts-belt",
+                "@types/lodash",
+                "@types/mustache",
+                "@types/node",
+                "@types/prettier",
+                "@types/svgo",
+                "@types/theme-ui",
+                "@types/tinycolor2",
+                "@types/xml2js",
+                "deepmerge",
+                "got",
+                "lodash",
+                "mustache",
+                "prettier",
+                "svgo",
+                "svgo-v3",
+                "tinycolor2",
+                "ts-pattern",
+                "typescript",
+                "xml2js",
+                "xmlbuilder2",
+                "@types/glob",
+                "@types/jest",
+                "dotenv",
+                "glob",
+                "jest",
+                "jest-circus",
+                "lint-staged",
+                "sass",
+                "ts-jest"
+              ]
+            }
+          ],
+          "deadline": null,
+          "note": "lodash 4.17.21 and deepmerge 4.2.2 advisories are fixable in range or unfixed; typescript 4.5 and prettier 2 are old."
+        }
+      ]
+    },
+    {
+      "repo": "counsyl/capone",
+      "commit": "3a764ae1c34799b900588231d686e38a09f32148",
+      "dependencies": [
+        {
+          "id": "python",
+          "kind": "runtime",
+          "names": ["python", "cpython"],
+          "class": "required",
+          "version": "3.6",
+          "declaredIn": [".python-version:1", ".github/workflows/django.yml:34"]
+        },
+        {
+          "id": "django",
+          "kind": "framework",
+          "names": ["django"],
+          "class": "required",
+          "version": ">=1.11,<5",
+          "declaredIn": ["requirements.txt:2"]
+        },
+        {
+          "id": "psycopg2",
+          "kind": "library",
+          "names": ["psycopg2"],
+          "class": "required",
+          "version": ">=2.6.2,<3",
+          "declaredIn": ["requirements.txt:1"]
+        },
+        {
+          "id": "actions-checkout",
+          "kind": "ci",
+          "names": ["actions/checkout"],
+          "class": "required",
+          "version": "v3",
+          "declaredIn": [".github/workflows/django.yml:37"]
+        },
+        {
+          "id": "actions-setup-python",
+          "kind": "ci",
+          "names": ["actions/setup-python"],
+          "class": "required",
+          "version": "v4",
+          "declaredIn": [".github/workflows/django.yml:39"]
+        },
+        {
+          "id": "ubuntu-20.04",
+          "kind": "ci",
+          "names": ["ubuntu-20.04", "ubuntu 20.04"],
+          "class": "required",
+          "version": "20.04",
+          "declaredIn": [".github/workflows/django.yml:30"]
+        },
+        {
+          "id": "postgres-image",
+          "kind": "container-image",
+          "names": ["postgres", "postgres:12"],
+          "class": "acceptable",
+          "version": "12",
+          "declaredIn": [".github/workflows/django.yml:14"]
+        },
+        {
+          "id": "acceptable",
+          "kind": "any",
+          "names": [
+            "factory-boy",
+            "flake8",
+            "parameterized",
+            "pytest",
+            "pytest-cov",
+            "pytest-django",
+            "tox",
+            "pbr",
+            "wheel",
+            "postgresql"
+          ],
+          "class": "acceptable"
+        }
+      ],
+      "transitive": [],
+      "findings": [
+        {
+          "id": "ubuntu-20.04-runner-retired",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["ubuntu-20.04", "ubuntu 20.04"]
+            }
+          ],
+          "deadline": "2025-04-15",
+          "source": {
+            "url": "https://github.com/actions/runner-images/issues/11101",
+            "quote": "will be fully unsupported by 2025-04-15"
+          }
+        },
+        {
+          "id": "python-eol",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["python", "cpython"]
+            }
+          ],
+          "deadline": "2021-12-23",
+          "source": {
+            "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/d6d7dd1c2b2875798c76272c4c2e095f03c07b7d/products/python.md",
+            "quote": "eol: 2021-12-23"
+          },
+          "note": ".python-version starts at 3.6; 3.8 and 3.9 in CI are also past end of life."
+        },
+        {
+          "id": "django-eol",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["django"]
+            }
+          ],
+          "deadline": "2026-04-07",
+          "source": {
+            "url": "https://raw.githubusercontent.com/endoflife-date/endoflife.date/d6d7dd1c2b2875798c76272c4c2e095f03c07b7d/products/django.md",
+            "quote": "eol: 2026-04-07"
+          },
+          "note": "Range tops out at 4.2; tox also tests 1.11, 2.2 and 3.2."
+        },
+        {
+          "id": "ci-actions-node16",
+          "class": "required",
+          "match": [
+            {
+              "deps": ["actions/checkout", "actions/setup-python"]
+            },
+            {
+              "kinds": ["ci-deprecation"]
+            }
+          ],
+          "deadline": null,
+          "source": {
+            "url": "https://github.blog/changelog/2023-09-22-github-actions-transitioning-from-node-16-to-node-20/",
+            "quote": "transitioning from Node 16 to Node 20"
+          }
+        },
+        {
+          "id": "libs",
+          "class": "acceptable",
+          "match": [
+            {
+              "deps": [
+                "factory-boy",
+                "flake8",
+                "parameterized",
+                "pytest",
+                "pytest-cov",
+                "pytest-django",
+                "tox",
+                "pbr",
+                "wheel",
+                "psycopg2",
+                "postgres",
+                "postgres:12"
+              ]
+            }
+          ],
+          "deadline": null,
+          "note": "postgres:12 CI service image (EOL 2024-11-21) and wheel==0.37.1 in setup_requires are CI or build only."
+        }
+      ]
+    }
+  ]
+}
