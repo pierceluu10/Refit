@@ -1,7 +1,19 @@
 import { dirname, join } from 'node:path';
-import { Budget, defaultAi, defaultMemory, listRunViews, recordVerdict } from '../memory/index.ts';
+import { JsonAuditStore } from '../compliance/audit.ts';
+import {
+  Budget,
+  defaultAi,
+  defaultMemory,
+  JsonMemoryStore,
+  listRunViews,
+  recordVerdict,
+} from '../memory/index.ts';
 import { BudgetExceededError } from '../orchestrator/budget.ts';
+import { defaultOut, defaultReports } from '../orchestrator/deps.ts';
+import { createScanRoute } from './api/scans.ts';
 import { readConfig } from './config.ts';
+import { createDeliveryLog } from './deliveries.ts';
+import { createForget } from './forget.ts';
 import { cloneRepo } from './git.ts';
 import {
   compareCommits,
@@ -13,8 +25,10 @@ import {
   pullDiff,
 } from './github.ts';
 import { createJobRunner } from './jobs.ts';
+import { forgetNotified } from './notify/index.ts';
 import { loadParts } from './parts.ts';
 import { createOpenPullRequest, findPullRequestFor } from './pr.ts';
+import { trackJobs } from './progress.ts';
 import { createFileQueue } from './queue.ts';
 import { createReportStore } from './reports.ts';
 import { createWeeklyScan } from './schedule.ts';
@@ -37,8 +51,7 @@ const parts = loadParts({
   listRuns: () => defaultMemory().store.listRuns(),
 });
 
-const queue = await createFileQueue(
-  config.queueFile,
+const jobs = trackJobs(
   createJobRunner({
     tokens,
     checkout: cloneRepo,
@@ -59,14 +72,23 @@ const queue = await createFileQueue(
     reports,
     enqueue: (job) => queue.enqueue(job),
   }),
-  {
-    concurrency: config.queueConcurrency,
-    // A refusal from the run budget is final, so another try would only hold a slot.
-    shouldRetry: (error) => !(error instanceof BudgetExceededError),
-    onForget: (job) =>
-      job.repo ? reports.remove(job.repo) : reports.removeInstallation(job.installationId),
-  },
+  reports,
 );
+
+const queue = await createFileQueue(config.queueFile, jobs.run, {
+  concurrency: config.queueConcurrency,
+  // A refusal from the run budget is final, so another try would only hold a slot.
+  shouldRetry: (error) => !(error instanceof BudgetExceededError),
+  onForget: createForget({
+    reports,
+    memoryDir: JsonMemoryStore.fromEnv().dir,
+    auditDir: JsonAuditStore.fromEnv().dir,
+    runLog: defaultOut,
+    scanReportDir: defaultReports,
+    forgetNotified,
+    settled: jobs.settled,
+  }),
+});
 
 const verdict: RecordVerdict = async (pr, human, finalDiff) => {
   await reports.markVerdict(pr, human);
@@ -79,8 +101,13 @@ const verdict: RecordVerdict = async (pr, human, finalDiff) => {
   console.log(`verdict ${human} ${pr}${learned ? '' : ' (no stored run has this PR)'}`);
 };
 
+const listRepos = async (installationId: number) =>
+  listInstallationRepos(await tokens.token(installationId));
+const installations = () => listInstallations(createAppJwt(config.appId, config.privateKey));
+
 const server = createWebhookServer({
   webhookSecret: config.webhookSecret,
+  deliveries: await createDeliveryLog(join(stateDir, 'deliveries.json')),
   tokens,
   listRepos: (token) => listInstallationRepos(token),
   compareCommits: (token, repo, base, head) => compareCommits(token, repo, base, head),
@@ -90,13 +117,23 @@ const server = createWebhookServer({
   listRunViews,
   viewerRepos: (userToken) => listViewerRepos(userToken, config.appId),
   isServiceToken: parts.isServiceToken,
-  routes: parts.routes,
+  routes: [
+    ...parts.routes,
+    createScanRoute({
+      reports,
+      pending: queue.pending,
+      scanning: jobs.scanning,
+      listInstallations: installations,
+      listRepos,
+      isAuthorized: parts.isServiceToken,
+    }),
+  ],
 });
 
 const weekly = createWeeklyScan({
   stateFile: join(stateDir, 'schedule.json'),
-  listInstallations: () => listInstallations(createAppJwt(config.appId, config.privateKey)),
-  listRepos: async (installationId) => listInstallationRepos(await tokens.token(installationId)),
+  listInstallations: installations,
+  listRepos,
   enqueue: (job) => queue.enqueue(job),
   afterSweep: async () => parts.sendWeeklyDigest(await reports.list()),
 });

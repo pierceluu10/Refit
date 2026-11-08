@@ -19,8 +19,8 @@ export type ScanJob = {
   sha?: string;
 };
 export type RunJob = { kind: 'run'; installationId: number; repo: string; task: ExternalTask };
-// No repo means the whole installation is gone.
-export type ForgetJob = { kind: 'forget'; installationId: number; repo?: string };
+// No repo means the whole installation is gone; `account` is its owner, every repo's first segment.
+export type ForgetJob = { kind: 'forget'; installationId: number; repo?: string; account?: string };
 
 export type QueuedJob = ScanJob | RunJob;
 export type AppJob = QueuedJob | ForgetJob;

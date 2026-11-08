@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { ScanState } from '../../app/api/scans.ts';
 import type { BehindItem, ScanReport } from '../../shared/types.ts';
 import { APP_INSTALL_URL } from '../data';
 import { exampleReports, exampleRepos } from '../fixtures';
@@ -38,14 +39,21 @@ function json(body: unknown, status = 200) {
   });
 }
 
-// Answers like the real API: a repo with no finished scan is a JSON 404.
-function liveApi(repos: string[], reports: Record<string, ScanReport> = {}) {
-  return vi.fn(async (path: string) => {
-    const url = new URL(path, 'http://test.invalid');
-    if (url.pathname === '/api/repos') return json(repos);
-    const found = reports[url.searchParams.get('repo') ?? ''];
-    return found ? json(found) : json({ error: 'no scan yet' }, 404);
-  });
+// Answers like /api/scans: a repo with a report is done, and one without is still running.
+function liveApi(
+  repos: string[],
+  reports: Record<string, ScanReport> = {},
+  states: Record<string, ScanState> = {},
+) {
+  return vi.fn(async (_path: string) =>
+    json(
+      repos.map((repo) => ({
+        repo,
+        state: states[repo] ?? (reports[repo] ? 'done' : 'running'),
+        ...(reports[repo] && { report: reports[repo] }),
+      })),
+    ),
+  );
 }
 
 // What a deployed site answers: index.html for everything.
@@ -106,11 +114,29 @@ describe('onboarding steps', () => {
   it.each([
     '?installation_id=123&setup_action=install',
     '?installation_id=123&setup_action=update',
-  ])('treats GitHub returning with %s as step 2', async (search) => {
+  ])('sends GitHub returning with %s to the first scan of that install', async (search) => {
     const fetcher = liveApi([repoA]);
     renderAt(search, fetcher);
-    expect(currentStep()).toBe('2 Choose repos');
-    expect(await screen.findByRole('list', { name: 'Repos' })).toBeVisible();
+    expect(currentStep()).toBe('3 First scan');
+    expect(await screen.findByRole('list', { name: 'Scan status' })).toBeVisible();
+    expect(fetcher.mock.calls[0][0]).toBe('/api/scans?installation_id=123');
+  });
+
+  it('keeps the installation when moving between steps', async () => {
+    const fetcher = liveApi([repoA]);
+    renderAt('?step=repos&installation_id=123', fetcher);
+    await screen.findByRole('list', { name: 'Repos' });
+    fireEvent.click(screen.getByRole('link', { name: 'Next' }));
+    await screen.findByRole('list', { name: 'Scan status' });
+    expect(fetcher.mock.lastCall?.[0]).toBe('/api/scans?installation_id=123');
+  });
+
+  it('tells someone whose install needs approval to wait for an owner', () => {
+    renderAt('?setup_action=request');
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Waiting for an org owner' }),
+    ).toBeVisible();
+    expect(screen.queryByRole('link', { name: 'Install the GitHub App' })).not.toBeInTheDocument();
   });
 
   it('walks forward with Next and moves focus to the new step', async () => {
@@ -170,7 +196,7 @@ describe('choose repos step', () => {
   });
 
   it('labels example repos when no API is reachable and claims nothing is connected', async () => {
-    renderAt('?step=repos&installation_id=123');
+    renderAt('?step=repos');
     await screen.findByRole('list', { name: 'Repos' });
     expect(listedRepos('Repos')).toEqual(exampleRepos);
     expect(screen.getByText('Example data')).toHaveClass('example-chip');
@@ -199,7 +225,7 @@ describe('choose repos step', () => {
     const fetcher = vi
       .fn()
       .mockResolvedValueOnce(json({ error: 'boom' }, 500))
-      .mockResolvedValueOnce(json([repoA]));
+      .mockResolvedValueOnce(json([{ repo: repoA, state: 'waiting' }]));
     renderAt('?step=repos', fetcher);
     const alert = await screen.findByRole('alert');
     expect(alert).toHaveTextContent('The API answered 500.');
@@ -338,6 +364,70 @@ describe('first scan step', () => {
     await advance();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'First scan running' })).toBeVisible();
+  });
+
+  it('walks one repo through waiting, queued, running and findings on real answers', async () => {
+    vi.useFakeTimers();
+    const states: Record<string, ScanState> = { [repoA]: 'waiting' };
+    const reports: Record<string, ScanReport> = {};
+    renderAt('?installation_id=123', liveApi([repoA], reports, states));
+    await advance();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'Waiting for the first scan' }),
+    ).toBeVisible();
+    expect(screen.getByText('Not queued yet')).toBeVisible();
+
+    states[repoA] = 'queued';
+    await advance(SCAN_POLL_INTERVAL);
+    expect(screen.getByRole('heading', { level: 1, name: 'First scan queued' })).toBeVisible();
+    expect(screen.getByText('Queued')).toBeVisible();
+
+    states[repoA] = 'running';
+    await advance(SCAN_POLL_INTERVAL);
+    expect(screen.getByRole('heading', { level: 1, name: 'First scan running' })).toBeVisible();
+    expect(screen.getByText('Scanning')).toBeVisible();
+
+    states[repoA] = 'done';
+    reports[repoA] = report(repoA, [item('open')]);
+    await advance(SCAN_POLL_INTERVAL);
+    expect(screen.getByRole('heading', { level: 1, name: 'First scan done' })).toBeVisible();
+    expect(screen.getByText('1 item behind.')).toBeVisible();
+    expect(screen.getByText('Test change')).toBeVisible();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('shows a failed scan as failed and stops polling', async () => {
+    vi.useFakeTimers();
+    const reports = { [repoA]: report(repoA, [], ['The scan couldn’t finish: clone failed']) };
+    renderAt('?step=scan', liveApi([repoA], reports, { [repoA]: 'failed' }));
+    await advance();
+    expect(screen.getByText('Scan failed')).toBeVisible();
+    expect(screen.getByText('The scan couldn’t finish: clone failed')).toBeVisible();
+    expect(screen.getByText('0 of 1 repo scanned, 1 failed.')).toBeVisible();
+    expect(screen.queryByText(/Nothing behind/)).not.toBeInTheDocument();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('never says nothing is behind when a clean-looking scan could not read things', async () => {
+    renderAt('?step=scan', liveApi([repoA], { [repoA]: report(repoA, [], ['bad file']) }));
+    expect(await screen.findByText('No findings, but 1 thing couldn’t be read.')).toBeVisible();
+  });
+
+  it('never shows example repos to someone GitHub just sent here', async () => {
+    renderAt('?installation_id=123');
+    expect(await screen.findByRole('alert')).toHaveTextContent('No Refit API is reachable');
+    expect(screen.queryByText('Example data')).not.toBeInTheDocument();
+    expect(screen.queryByRole('list', { name: 'Scan status' })).not.toBeInTheDocument();
+  });
+
+  it('says so when GitHub does not know the installation', async () => {
+    renderAt(
+      '?installation_id=123',
+      vi.fn(async () => json({ error: 'GitHub has no such installation' }, 404)),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'GitHub doesn’t know this installation',
+    );
   });
 
   it('offers the link to /app while still loading', () => {

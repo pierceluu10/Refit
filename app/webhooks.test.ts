@@ -116,7 +116,9 @@ describe('handleWebhook', () => {
     const fake = fakeDeps();
     await handleWebhook('installation', fixture('installation.deleted'), fake.deps);
     expect(fake.tokenRequests).toEqual([]);
-    expect(fake.jobs).toEqual([{ kind: 'forget', installationId: INSTALLATION_ID }]);
+    expect(fake.jobs).toEqual([
+      { kind: 'forget', installationId: INSTALLATION_ID, account: 'refit-example-org' },
+    ]);
   });
 
   it('installation_repositories.added queues the added repos', async () => {

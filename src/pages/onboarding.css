@@ -89,6 +89,9 @@
   color: var(--muted);
   font-size: 13px;
 }
+.onboarding-repos .onboarding-finding {
+  color: var(--ink);
+}
 .onboarding-repos .resource-status {
   flex-shrink: 0;
   font-size: 12px;

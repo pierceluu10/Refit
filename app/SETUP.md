@@ -36,10 +36,11 @@ install. Run everything from the repo root.
 3. `curl http://127.0.0.1:3000/healthz` answers `200`.
 4. Start the first scan, one of:
    - Not installed yet: the App's settings → **Install App** → `refit-dev` → **Only select
-     repositories**, pick the three demo repos, **Install**.
-   - Already installed: the App's settings → **Advanced** → **Recent Deliveries**, open an
-     `installation` delivery with action `created`, **Redeliver**.
-   - Already installed, one repo: push a commit to that repo's default branch.
+     repositories**, pick the three demo repos, **Install**. GitHub then sends you to the Setup URL
+     (section 1), where the first scan shows.
+   - Already installed: push a commit to each repo's default branch. Redelivering an old
+     `installation` delivery won't start a scan if the app already handled it (see
+     [Redelivering a webhook](#redelivering-a-webhook)).
 5. Terminal 2 logs `queued scan <repo>` for each repo. When a scan finds work it logs
    `queued run <repo>` per task.
 6. Each scan writes a report to `.refit/reports/` beside the queue file (`app/.refit/reports/` when
@@ -63,8 +64,12 @@ install. Run everything from the repo root.
 
 ### Stopping and scheduling
 
-- Stop one repo for good: remove it from the install, or uninstall. Its waiting jobs go, its running
-  jobs stop and its checkouts are deleted.
+- Stop one repo: remove it from the install. Its waiting jobs go, its running jobs stop, its
+  checkouts and its report are deleted. Its run records and audit trail stay until an uninstall.
+- Uninstall: all of the above for every repo, and everything Refit holds about the org is erased:
+  scan reports, run records and transcripts, saved scans, recipes only that org taught, self-eval
+  entries, the audit trail and the record of Slack alerts. A recipe other orgs also taught stays,
+  without that org's repo names and run ids. This can't be undone.
 - Pause one repo and keep the install: commit a `.refit.yml` with `paused: true`.
 - Weekly re-scan: the app keeps the last time in `.refit/schedule.json`. The first start only records
   the time; every installed repo is re-scanned a week after it.
@@ -97,7 +102,8 @@ GitHub. Otherwise it prints stub links and touches nothing on GitHub. `--dry-run
 - **Deliveries answer `401` (bad signature):** `GITHUB_WEBHOOK_SECRET` in `app/.env` doesn't match the
   App's webhook secret.
 - **A run refuses to spend (no cap):** set `REFIT_AI_BUDGET_USD`, then restart the app.
-- **The sandbox fails (Docker off):** start Docker, then redeliver the delivery.
+- **The sandbox fails (Docker off):** start Docker, then push a commit to re-scan the repo. The
+  delivery itself succeeded, so redelivering it does nothing.
 - **The queue is stuck or corrupt:** the app refuses to start on a corrupt queue file rather than drop
   its jobs. Stop the app, delete `.refit/queue.json` (this drops the waiting jobs) and start again.
 
@@ -121,6 +127,14 @@ GitHub. Otherwise it prints stub links and touches nothing on GitHub. `--dry-run
       as `GITHUB_WEBHOOK_SECRET` in `app/.env`. Never commit it or paste it anywhere else. If the
       field already has a secret nobody has a copy of, replace it.
 - [ ] **SSL verification**: enabled.
+- [ ] **Setup URL** (under **Post installation**): `http://127.0.0.1:5173/onboarding` for
+      development; `https://<host>/onboarding` once deployed, on the host that serves the site's
+      `dist/` with an `index.html` fallback. The app server doesn't serve the site. GitHub adds
+      `?installation_id=<id>&setup_action=install` when it sends the installer there. Refit never
+      trusts that id for access: the page only asks the API about it, and the API decides.
+- [ ] **Redirect on update**: on, so someone who adds repos lands on their scan.
+- [ ] **Request user authorization (OAuth) during installation**: off; it sends the installer to the
+      Callback URL rather than the Setup URL.
 - [ ] **Save changes**.
 
 ## 2. Permissions & events
@@ -201,6 +215,8 @@ Put these in `app/.env` (gitignored; `npm run dev` loads it). Never commit or pr
 | `REFIT_SERVICE_TOKEN`         | The dashboard's token: reads every run on `GET /api/runs`; server side only   |
 | `REFIT_SLACK_WEBHOOK_URL`     | Optional; `app/notify` posts to it                                            |
 | `REFIT_MEMORY_DIR`            | memory/'s store; absolute path on a persistent volume in production           |
+| `REFIT_AUDIT_DIR`             | The audit trail; absolute path on a persistent volume in production           |
+| `REFIT_NOTIFY_STATE_FILE`     | Which Slack alerts were sent; default `.refit/notified.json`                  |
 | `REFIT_AI_BUDGET_USD`         | Run cap for the loop; required once `ANTHROPIC_API_KEY` is set                |
 | `ANTHROPIC_API_KEY`           | Real model runs; without it the loop and memory use offline stubs             |
 
@@ -218,9 +234,33 @@ the repo root with `-w @refit/app`, or from inside `app/`.
 4. Terminal 2: `npm run dev -w @refit/app` (watch mode). `npm start -w @refit/app` runs it
    without watching.
 5. `curl http://127.0.0.1:3000/healthz` should answer.
-6. Trigger a delivery: on the App's settings, sidebar → **Advanced** → **Recent Deliveries**, click a
-   delivery, then **Redeliver**. The server logs the queued job or recorded verdict. A delivery with a
-   bad signature is rejected; that usually means the secret in `app/.env` doesn't match the App.
+6. Terminal 3, from the repo root: `npm run dev` serves the site on `http://127.0.0.1:5173`. It adds
+   `REFIT_SERVICE_TOKEN` from `app/.env` to `/api` calls, so set that first
+   (`openssl rand -hex 32` makes one; without it the page answers as signed out).
+7. Send yourself a signed delivery. There's no script for this; the fixtures in `app/fixtures/` work
+   with `openssl` and `curl`. Each needs a new delivery id, or the app ignores it as a repeat:
+
+   ```sh
+   set -a; . app/.env; set +a
+   body=app/fixtures/push.default-branch.json
+   signature=$(openssl dgst -sha256 -hmac "$GITHUB_WEBHOOK_SECRET" -r < "$body" | cut -d' ' -f1)
+   curl -i http://127.0.0.1:3000/webhooks -H 'Content-Type: application/json' \
+     -H 'X-GitHub-Event: push' -H "X-GitHub-Delivery: $(uuidgen)" \
+     -H "X-Hub-Signature-256: sha256=$signature" --data-binary @"$body"
+   ```
+
+   It answers `202`. The fixtures name a made-up installation, so against the real GitHub the job
+   that follows fails with a `404` in the log. A bad signature gets `401`; that usually means the
+   secret in `app/.env` doesn't match the App.
+
+### Redelivering a webhook
+
+GitHub keeps a delivery for 3 days. On the App's settings: sidebar → **Advanced** → **Recent
+Deliveries**, click the delivery's GUID, then **Redeliver**. The REST API can do the same.
+
+A redelivery has the same `X-GitHub-Delivery` id as the original, and the app does a delivery's work
+once (ids are kept in `.refit/deliveries.json` beside the queue file, for 7 days). So redelivering
+helps only when the app logged `webhook <event> <id> failed`. For anything else, push a commit.
 
 ## Test install
 
@@ -236,7 +276,9 @@ Install on a test org first, never a real customer org. Check that:
       jobs and deletes their checkouts;
 - [ ] a push to the default branch queues a `scan` job with the new sha;
 - [ ] merging or closing a PR from a `refit/` branch records `merged` or `closed`;
-- [ ] uninstalling stops every job of that installation;
+- [ ] installing sends you to the Setup URL, and the page goes from queued to running to findings;
+- [ ] redelivering a handled delivery queues nothing new;
+- [ ] uninstalling stops every job of that installation and erases the org's data;
 - [ ] a `.refit.yml` with `paused: true` stops new scans and PRs for that repo, and `ignore` leaves
       out those dependencies.
 
