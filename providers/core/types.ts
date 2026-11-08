@@ -24,6 +24,8 @@ export type ProviderSource = {
   /** How to turn the response into text. Detected from the response when omitted. */
   format?: 'html' | 'rss' | 'markdown' | 'github-releases' | 'json' | 'text';
   note?: string;
+  /** A URL built from a guessed name: a 404 says the guess was wrong, not that a source went unread. */
+  guess?: boolean;
 };
 
 export type ProviderSpec = {

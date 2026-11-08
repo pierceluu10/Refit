@@ -360,14 +360,16 @@ export async function runAnyWatch<C = ProviderChange>(
     ...(folder ? { folder: folder.id } : {}),
     packages: infos,
     startingPages: sources.list.map((source) => source.url),
-    // A 404 on a page guessed along the way (a CHANGELOG.md) is not a gap; on a starting page it is.
+    // A 404 on a page guessed along the way (a CHANGELOG.md), or on a starting page built from a
+    // guessed name (endoflife.date/api/flask.json), is not a gap; on any other starting page it is.
     errors: [
       ...lookupErrors,
       ...[...reader.pages.values()]
         .filter(
           (page) =>
             !page.ok &&
-            (page.status !== 404 || sources.list.some((source) => source.url === page.url)),
+            (page.status !== 404 ||
+              sources.list.some((source) => source.url === page.url && !source.guess)),
         )
         .map((page) => `${page.url}: ${page.error ?? `HTTP ${page.status}`}`),
     ],
