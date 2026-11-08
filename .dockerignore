@@ -1,0 +1,17 @@
+.git
+.claude
+.impeccable
+.planning
+.refit
+**/.refit
+**/node_modules
+**/dist
+.env
+.env.*
+**/.env
+**/.env.*
+*.pem
+**/*.pem
+src
+public
+docs

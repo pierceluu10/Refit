@@ -1,5 +1,6 @@
 import { createServer } from 'node:http';
 import type { IncomingMessage, Server, ServerResponse } from 'node:http';
+import type { CheckHealth } from './health.ts';
 import type { Route } from './parts.ts';
 import { runsFor } from './runs.ts';
 import type { RunsDeps } from './runs.ts';
@@ -18,12 +19,14 @@ const UNAUTHORIZED = 401;
 const NOT_FOUND = 404;
 const PAYLOAD_TOO_LARGE = 413;
 const SERVER_ERROR = 500;
+const UNAVAILABLE = 503;
 
 export type WebhookServerDeps = WebhookDeps &
   RunsDeps & {
     webhookSecret: string;
     maxBodyBytes?: number;
     routes?: Route[]; // the report and audit APIs
+    checkHealth?: CheckHealth; // without one, answering at all counts as healthy
   };
 
 // Returns undefined when the body exceeds the cap; it keeps draining so the 413 can still be sent.
@@ -87,6 +90,11 @@ async function serveRuns(
   sendJson(response, OK, result.runs);
 }
 
+async function serveHealth(response: ServerResponse, checkHealth: CheckHealth) {
+  const health = await checkHealth();
+  sendJson(response, health.ok ? OK : UNAVAILABLE, health);
+}
+
 async function serveRoutes(
   request: IncomingMessage,
   response: ServerResponse,
@@ -111,7 +119,10 @@ export function createWebhookServer(deps: WebhookServerDeps): Server {
     if (request.method === 'POST' && path === WEBHOOK_PATH) {
       return answer('webhook', receiveWebhook(request, response, deps));
     }
-    if (request.method === 'GET' && path === HEALTH_PATH) return response.writeHead(OK).end();
+    if (request.method === 'GET' && path === HEALTH_PATH) {
+      if (!deps.checkHealth) return response.writeHead(OK).end();
+      return answer('health', serveHealth(response, deps.checkHealth));
+    }
     // Same-origin only: the dashboard is served beside the app, so no CORS headers.
     if (request.method === 'GET' && path === RUNS_PATH) {
       return answer('runs', serveRuns(request, response, deps));
