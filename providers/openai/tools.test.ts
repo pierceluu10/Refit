@@ -82,6 +82,15 @@ describe('openai_model_lookup', () => {
     expect(out).toContain('developers.openai.com/api/docs/deprecations#2023-07-06');
   });
 
+  it('follows a replacement that was itself shut down to one that still runs', async () => {
+    const out = await lookup({ model: 'text-davinci-003' });
+    expect(out).toContain(
+      'gpt-3.5-turbo-instruct was itself shut down on 2026-09-28; its recommended replacement is gpt-5.6-terra',
+    );
+    const before = await lookup({ model: 'text-davinci-003', now: '2026-09-01' });
+    expect(before).not.toContain('was itself shut down');
+  });
+
   it('uses the firmest, latest entry when a model was announced twice', async () => {
     const out = await lookup({ model: 'gpt-4-0314' });
     expect(out).toContain('Shutdown date: 2026-03-26');
