@@ -1,4 +1,4 @@
-// The harness system prompt, in the order set by "The harness system prompt" in REFIT-PLAN.md.
+// The harness system prompt.
 // API migrations (MigrationTask) and every other external change (ExternalTask) share one prompt;
 // an ExternalTask adds the dependency, every place it is declared and the upgrade guidance.
 import type { ExternalTask, Recipe, ToolPack } from '../shared/types.ts';

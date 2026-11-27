@@ -1,4 +1,4 @@
-// The MVP smoke test: the three sample repos (MVP-PLAN.md section 5, as fixtures) end to end with a
+// The MVP smoke test: the three sample repos end to end with a
 // fake model, through scanRepo and runRepoJob, into memory, the advisory reviewer and scoring.
 //
 //   npm run smoke -w evals                      (runs this after the API smoke test)
@@ -46,7 +46,7 @@ export const MVP_REPOS = [
 /** Simulated cap for the run. The fake model costs nothing real. */
 export const MVP_SMOKE_BUDGET_USD = 1;
 
-/** The demo needs PRs of these families (MVP-PLAN.md section 1, step 5). */
+/** The demo needs PRs of these families. */
 const DEMO_FAMILIES = [['runtime'], ['model'], ['ci', 'library', 'framework', 'api']] as const;
 
 export type Orchestrator = { scanRepo: ScanRepo; runRepoJob: RunRepoJob; source: string };

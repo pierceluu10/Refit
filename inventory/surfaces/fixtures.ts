@@ -1,6 +1,6 @@
 // Illustrative fixtures for the three refit-dev sample repos. The real repos are private and were
 // not reachable from the session that wrote these, so each one is a reconstruction from the
-// description in MVP-PLAN.md section 5, not a copy. Replace them with the real files when they can
+// description, not a copy. Replace them with the real files when they can
 // be cloned; the tests find line numbers by text, so they keep working if lines move.
 export type FixtureRepo = { repo: string; files: Record<string, string> };
 

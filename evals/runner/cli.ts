@@ -66,7 +66,7 @@ export function planMatrix(setName: string, totalBudgetUsd: number) {
     Math.floor(((totalBudgetUsd - watchBudgetUsd) / set.repos.length) * 10_000) / 10_000;
   if (shardBudgetUsd < MIN_TASK_USD) {
     throw new ConfigError(
-      `$${totalBudgetUsd} less $${watchBudgetUsd.toFixed(2)} for the watch job leaves $${Math.max(shardBudgetUsd, 0).toFixed(2)} for each of ${set.repos.length} shards, below the $${MIN_TASK_USD} a task needs free, so no task could start. In the first benchmark (evals/reports/2026-11-03.md) a repo spent $0.17 to $0.66 on inventory and matching before its first task.`,
+      `$${totalBudgetUsd} less $${watchBudgetUsd.toFixed(2)} for the watch job leaves $${Math.max(shardBudgetUsd, 0).toFixed(2)} for each of ${set.repos.length} shards, below the $${MIN_TASK_USD} a task needs free, so no task could start.`,
     );
   }
   return {

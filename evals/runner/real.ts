@@ -32,7 +32,7 @@ import type { Meter, PipelineFactory } from './types.ts';
 
 /**
  * F4's watcher for a provider with no folder in providers/ (providers/core/any-watcher.ts), by the
- * contract in docs/NEXT-FURQAN.md and the call orchestrator/deps.ts makes. Typed here rather than
+ * contract in the call orchestrator/deps.ts makes. Typed here rather than
  * from the orchestrator's stub, which goes away when F4's function lands.
  */
 export type AnyProviderWatcher = (

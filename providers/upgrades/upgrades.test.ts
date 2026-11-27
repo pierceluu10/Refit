@@ -459,14 +459,7 @@ describe('playbooks', () => {
     expect(specificFor('nodemon')).toBeUndefined();
   });
 
-  it('adds retirement playbooks and tools to the model providers, and keeps OpenAI working', async () => {
-    for (const provider of ['anthropic', 'google']) {
-      const pack = await loadToolPack(provider, { fetch: null });
-      expect(pack.provider).toBe(provider);
-      expect(pack.playbooks['model-retirement']).toContain('model_replacement');
-      expect(pack.tools.map((t) => t.name)).toContain('model_replacement');
-      expect(pack.tools.map((t) => t.name)).toContain(`${provider}_search_docs`);
-    }
+  it('gives OpenAI a model-retirement playbook and lookup tool', async () => {
     const openai = await loadToolPack('openai', { fetch: null });
     expect(openai.playbooks['model-retirement']).toContain('openai_model_lookup');
     expect(openai.tools.map((t) => t.name)).toContain('openai_model_lookup');

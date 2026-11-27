@@ -1,6 +1,6 @@
 # compliance
 
-Refit's rules and regulations agent and the audit trail (prompt O5 in `MVP-PLAN.md`).
+Refit's rules and regulations agent and the audit trail.
 
 Rules are different from software changes. Refit never says code is compliant, never says it meets a law, and doesn't give legal advice. For a rule, Refit finds the code the rule likely touches, makes the change the rule's text points to, runs the checks a tool can run, and opens a **needs-review** PR listing what a person or lawyer must confirm. Every step goes to the audit trail.
 

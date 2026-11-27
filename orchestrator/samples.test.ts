@@ -1,5 +1,5 @@
 // End to end on the three sample repo fixtures (fixtures/samples/, illustrative stand-ins for the
-// demo repos in MVP-PLAN.md section 5), offline: every AI part is a stub, nothing is run or pushed.
+// demo repos), offline: every AI part is a stub, nothing is run or pushed.
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

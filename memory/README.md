@@ -24,7 +24,7 @@ The orchestrator calls `learnFromRun({ task, record, transcript, usedRecipeIds, 
 
 ## Upgrades
 
-Memory learns from `ExternalTask`s (MVP-PLAN.md section 6) as well as API tasks: `learnFromRun`, `recordVerdict` and the retriever take either.
+Memory learns from `ExternalTask`s as well as API tasks: `learnFromRun`, `recordVerdict` and the retriever take either.
 
 - **Keys.** A recipe distilled from an external task carries `upgrade` (dependency, its kind and ecosystem, from, to and a `range` label) and `ranges`, every range it has been verified on. Versions are labelled the way people say them: `^18.2.0` is `18`, `3.9.18` is `3.9`, and a model id or image tag stays as written. The key is something to read, for people and for the retrieval judge; nothing filters on it.
 - **Kinds.** `Recipe.kind` in `shared/types.ts` is the API-era `MigrationKind`, so an upgrade kind such as `runtime-eol` is stored there as `other` and in full in `changeKind`. Recipes stored before tonight have no `changeKind` and read as before. (Widening `Recipe.kind` is a contract change to agree in the morning.)

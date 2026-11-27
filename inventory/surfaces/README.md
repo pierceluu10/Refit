@@ -1,6 +1,6 @@
 # inventory/surfaces
 
-Finds the parts of a codebase that platforms and rules apply to (P5 in `MVP-PLAN.md`).
+Finds the parts of a codebase that platforms and rules apply to.
 
 ```ts
 import { inventorySurfaces } from './inventory/surfaces/index.ts';
@@ -35,4 +35,4 @@ REFIT_AI_BUDGET_USD=1 node inventory/surfaces/cli.ts ../demo-node-api refit-dev/
 
 ## Fixtures
 
-`fixtures.ts` holds reconstructions of `refit-dev/demo-node-api`, `demo-python-app` and `demo-next-web` written from `MVP-PLAN.md` section 5. The real repos are private and were not reachable when these were written. Tests find line numbers by text, so swapping in the real files only needs the expected surfaces updated.
+`fixtures.ts` holds reconstructions of `refit-dev/demo-node-api`, `demo-python-app` and `demo-next-web`. The real repos are private and were not reachable when these were written. Tests find line numbers by text, so swapping in the real files only needs the expected surfaces updated.

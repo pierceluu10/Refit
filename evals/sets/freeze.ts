@@ -27,7 +27,7 @@ export type FrozenSealedSet = {
 
 /**
  * Sealed sets frozen so far. Empty until a founder runs freeze.ts on a candidate pool; the
- * upgrade blind set (MVP-PLAN.md O4) is not frozen yet.
+ * upgrade blind set is not frozen yet.
  */
 export const FROZEN_SEALED_SETS: FrozenSealedSet[] = [];
 

@@ -1,4 +1,4 @@
-// compliance/: Refit's rules and regulations agent and the audit trail (MVP-PLAN.md, prompt O5).
+// compliance/: Refit's rules and regulations agent and the audit trail.
 // Refit never says code is compliant and never gives legal advice; rule PRs are needs-review.
 import type { ObligationsToChanges, WatchRegulations } from '../shared/types.ts';
 import { createObligationsToChanges } from './match.ts';
