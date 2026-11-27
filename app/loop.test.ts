@@ -229,7 +229,7 @@ async function startApp({ settings }: { settings?: string } = {}) {
 }
 
 describe('the app loop', () => {
-  it('install → scan → stored report → draft PR → merged verdict → re-scan → uninstall', async () => {
+  it('install → scan → stored report → PR → merged verdict → re-scan → uninstall', async () => {
     const app = await startApp();
 
     await app.deliver('installation', 'installation.created');
@@ -238,7 +238,7 @@ describe('the app loop', () => {
 
     expect(app.scans).toEqual([REPO]);
     const pull = app.github.calls.find((c) => c.method === 'POST' && c.path.endsWith('/pulls'));
-    expect(pull?.body).toMatchObject({ draft: true, base: 'main', title: CHANGE.title });
+    expect(pull?.body).toMatchObject({ draft: false, base: 'main', title: CHANGE.title });
     expect(String(pull?.body?.head)).toMatch(/^refit\//);
     const ref = app.github.calls.find((c) => c.path.endsWith('/git/refs'));
     expect(String(ref?.body?.ref)).toMatch(/^refs\/heads\/refit\//);

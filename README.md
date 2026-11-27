@@ -33,7 +33,7 @@ Install it once as a GitHub App. It reads every repo in your organization, remem
 - **Understands your code.** An agent maps every external API call in each repo: provider, SDK or raw HTTP/GraphQL, pinned version and call site.
 - **Watches providers.** Reads changelogs, API specs, SDK releases and deprecation notices, and records each change with a quote from the source.
 - **Migrates the code.** Edits a copy of the repo with provider-specific tools: GraphQL schema validation for Shopify, API-version diffs for Stripe, model lookups for OpenAI.
-- **Proves it works.** Runs install, type check, build and tests in an isolated Docker sandbox, before and after the change. A PR only opens once nothing new breaks.
+- **Proves it works.** Runs install, type check, build and tests in an isolated Docker sandbox, before and after the change. A PR opens ready for review only once nothing new breaks; anything unproven opens as a draft.
 - **Remembers your company.** Every merged fix becomes a recipe, embedded with [Voyage](https://www.voyageai.com/) `voyage-code-3`. Your organization's own past fixes are retrieved first, so the next migration starts from how your team already does it.
 - **Opens a reviewable PR.** One branch per change, explaining what changed, why, the proof and anything left unproven. It never pushes to your default branch.
 - **Upgrades dependencies too.** End-of-life runtimes, framework majors, SDK majors, base images and CI actions go through the same loop.

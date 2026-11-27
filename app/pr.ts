@@ -116,7 +116,8 @@ async function pullsOnBranch(
   );
 }
 
-// The shared opener for one installation: the record's diff on refit/<task-slug>, as a draft.
+// The shared opener for one installation: the record's diff on refit/<task-slug>. Only a verified run,
+// whose build and tests passed in the sandbox, opens ready for review; anything else opens as a draft.
 // A task that already has an open PR (the same change seen on a later push) gets that PR back.
 export function createOpenPullRequest(
   tokens: InstallationTokens,
@@ -137,7 +138,7 @@ export function createOpenPullRequest(
         body: record.prBody ?? `${title}\n\nSource: ${task.change.source.url}`,
         commitMessage: `chore(${task.change.provider}): ${title}`,
         files: await filesFromDiff(repoDir, record.diff),
-        draft: true,
+        draft: record.outcome !== 'verified',
       },
       fetchImpl,
     );

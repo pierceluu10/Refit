@@ -220,7 +220,7 @@ describe('createOpenPullRequest', () => {
     return { dir, diff };
   }
 
-  it("opens a draft on refit/<slug> with the record's diff and prBody", async () => {
+  it("opens a verified run ready for review on refit/<slug> with the record's diff and prBody", async () => {
     const { dir, diff } = checkout();
     try {
       const github = fakeGitHub({ [OPEN_PULLS]: { body: [] } });
@@ -249,8 +249,30 @@ describe('createOpenPullRequest', () => {
         body: 'Illustrative PR body from the harness.',
         head: 'refit/task-1',
         base: 'main',
-        draft: true,
+        draft: false,
       });
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it('opens a needs-review run as a draft', async () => {
+    const { dir, diff } = checkout();
+    try {
+      const github = fakeGitHub({ [OPEN_PULLS]: { body: [] } });
+      const record: RunRecord = {
+        taskId: 'task-1',
+        outcome: 'needs-review',
+        diff,
+        checks: [],
+        costUsd: 0,
+        transcriptPath: '',
+      };
+      await createOpenPullRequest(tokens, INSTALLATION, github.fetchImpl)(TASK, record, dir);
+      const pull = github.calls.find(
+        (call) => call.method === 'POST' && call.path.endsWith('/pulls'),
+      );
+      expect(pull?.body).toMatchObject({ draft: true });
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
