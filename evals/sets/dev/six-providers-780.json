@@ -1,0 +1,6182 @@
+{
+  "name": "six-providers-780",
+  "provider": "mixed",
+  "kind": "dev",
+  "source": {
+    "path": "evals/sets/dev/six-providers-780.json",
+    "commit": "",
+    "blob": "",
+    "curated": "2026-11-27"
+  },
+  "frozenAt": "2026-11-27",
+  "purpose": "Refit's main eval: real public repos for each of its six providers.",
+  "criteria": "Per provider, repos from the existing dev sets first, then GitHub code search hits (evals/sets/build-six.ts SEARCHES), skipping forks and archives, pinned to the default-branch commit on 2026-11-27.",
+  "repos": [
+    {
+      "repo": "4lbatr0s/jiro",
+      "stars": 1,
+      "commit": "313dbd324b09519252ab0791c8a5a2654be31ada",
+      "before": "2023-10-16",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^14.13.0",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "adamhitzger/financehb",
+      "stars": 1,
+      "commit": "6b409f3db888e0792800d10942ea361e0a338500",
+      "before": "2024-06-20",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^16.12.0",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "alanagoyal/branded",
+      "stars": 65,
+      "commit": "cf8f84cc8bfc4b6fc35ae462deea9369ff7afc27",
+      "before": "2024-04-10",
+      "beforeSource": "SDK version",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "Anassarwar14/Chat-Nest-AI",
+      "stars": 3,
+      "commit": "38dd23e1031c5fdad36e3a830092f00d519baac6",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.5.0",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "ArhanAnsari/InspireGem",
+      "stars": 16,
+      "commit": "a6bf456cd830a5f5d7267d69407c5c0a5fcc8336",
+      "before": "2024-06-20",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "benlamiro/ShipGenAI",
+      "stars": 254,
+      "commit": "10037d3d3fcf47b5c637bc37ab9bb05872f6e6ab",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "brunobola-portfolio/GitHub-Repo-Manager",
+      "stars": 4,
+      "commit": "982052f27557a18b93e2fe6cc7bd0b3308b6778f",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.6.2",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "createdbymax/Loopletter-Open-source-email-marketing-platform",
+      "stars": 6,
+      "commit": "3c91a83e792d84178c86be02a486cfb7f14b6d00",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin (oldest of 2)",
+      "stripeDependency": "^18.3.0",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "Devanshjain2110/QueryPDF",
+      "stars": 4,
+      "commit": "66283a61d344b1785604f935ac85f437ab8e6ffe",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "origin": "next-by-stars",
+      "provider": "stripe"
+    },
+    {
+      "repo": "doganarif/build-it",
+      "stars": 4,
+      "commit": "7c1a3e5fff4f12e106658cc2a1fc409e00c455d4",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.0.0",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "Emmah-oo/spotify-clone",
+      "stars": 2,
+      "commit": "23f84d4d703ea005c12f60bc9ae42148158cc0f8",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.22.0",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "ggallon/type-last",
+      "stars": 2,
+      "commit": "f2c76e13f28f30e1b7ca09d4acb89087be6f7105",
+      "before": "2022-11-15",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "12.2.0",
+      "packageManager": "pnpm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "Harries/startfast-free",
+      "stars": 9,
+      "commit": "567f2bfa4a3596fd6058e05dd53bf70fc3164733",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.0.0",
+      "packageManager": "none",
+      "provider": "stripe"
+    },
+    {
+      "repo": "imran-farooq7/next-gen-ai-yt",
+      "stars": 5,
+      "commit": "7e7ab76d9395a6188bcb93be4fa65d742ed676fa",
+      "before": "2024-09-30.acacia",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "origin": "unused-candidate",
+      "provider": "stripe"
+    },
+    {
+      "repo": "JensenMPillay/pdfai",
+      "stars": 6,
+      "commit": "76eee198ded23bf4fafba0e2d431cf01d2f60290",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.25.0",
+      "packageManager": "pnpm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "karljuhl/Club_Connect",
+      "stars": 2,
+      "commit": "5c3cc8acc606128a130463137e12f1e3442d75fd",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.7.0",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "liamstamper/lamp-bot",
+      "stars": 2,
+      "commit": "3bd2634ceeb9c820666f2369ddf3ceea8651da98",
+      "before": "2025-04-30.basil",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^18.0.0",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "manu14357/smartdoc",
+      "stars": 5,
+      "commit": "9041f9ba1adac5d7f16ebf89967b0b7a91e5ee60",
+      "before": "2023-08-16",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "origin": "unused-candidate",
+      "provider": "stripe"
+    },
+    {
+      "repo": "Miguel07Alm/text2question",
+      "stars": 20,
+      "commit": "ce789503da89a1a7cc488c96e0717727b5abb4ec",
+      "before": "2025-04-30.basil",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "pnpm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "MuhammadTanveerAbbas/Clario-ai",
+      "stars": 14,
+      "commit": "1cb1754244fcec19b23e8ce809606a20a24920a9",
+      "before": "2026-02-25.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.4.1",
+      "packageManager": "pnpm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "nicuk/docsflow",
+      "stars": 19,
+      "commit": "3e6fd7136b36f30fe6ef70ff4a2ebf3b3de4343a",
+      "before": "2025-08-27.basil",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^18.5.0",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "palashb01/DocuChat",
+      "stars": 8,
+      "commit": "4f222d3a5131129ebeb7f4239c96bdd6392e38da",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.1.0",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "pretzelai/lumen",
+      "stars": 30,
+      "commit": "c689c56b32414c4a82c14816a8c2e4a98adea84d",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "qesmsep/noir-crm-dashboard",
+      "stars": 1,
+      "commit": "1f59675a9636716b8efc028c9a637c9568e8fb8e",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2023-08-16",
+      "beforeSource": "apiVersion pin (oldest of 3)",
+      "stripeDependency": "^18.1.0",
+      "provider": "stripe"
+    },
+    {
+      "repo": "rishabhsingroha/MusicListeningPlatform",
+      "stars": 2,
+      "commit": "0726851cc55569983b1e14db7b64468395012191",
+      "before": "2024-12-18.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^17.5.0",
+      "packageManager": "none",
+      "provider": "stripe"
+    },
+    {
+      "repo": "samiamjidkhan/dota2-helper",
+      "stars": 4,
+      "commit": "91e32cce572510c11c7aa82388abac3cc163ce96",
+      "before": "2026-03-25.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.0.0",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "shagunmistry/FlowCraft",
+      "stars": 2,
+      "commit": "ae2e307c4e725bde23e9829d8d1bc97946338c8d",
+      "before": "2023-10-16",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^14.23.0",
+      "packageManager": "pnpm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "Small-Web-Co/tinypivot",
+      "stars": 13,
+      "commit": "69caa7e039014cd4b3dafd35361deaa27a02399a",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin (oldest of 2)",
+      "stripeDependency": "^22.1.1",
+      "packageManager": "pnpm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "tejashVaishnav/Fast-saas-next.js-boilerplate",
+      "stars": 30,
+      "commit": "cf9770e6e04a535cbcd9ce6b5ae0d5fa035f890d",
+      "before": "2024-06-20",
+      "beforeSource": "apiVersion pin",
+      "packageManager": "npm",
+      "provider": "stripe"
+    },
+    {
+      "repo": "UNC-GDSC/Micro-SaaS-Starter-Kit",
+      "stars": 2,
+      "commit": "96a68ad7967b112a75956d37a51b3bef30c717c7",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^14.12.0",
+      "packageManager": "none",
+      "provider": "stripe"
+    },
+    {
+      "repo": "mattogodoy/nametag",
+      "stars": 1101,
+      "commit": "a3a31ab7bcac080ecd0b019e06b1171b9eb0d3fe",
+      "owner": "User",
+      "authors90d": 7,
+      "packageManager": "npm",
+      "before": "2025-11-17.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.0.0",
+      "provider": "stripe"
+    },
+    {
+      "repo": "sanidhyy/duolingo-clone",
+      "stars": 691,
+      "commit": "d74bb88e0a6e2ec35eb9516a5dcb9b45901f3bd0",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2026-08-26.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.6.2",
+      "provider": "stripe"
+    },
+    {
+      "repo": "timh-dev/startup-page",
+      "stars": 527,
+      "commit": "df45b47860d5c69a49bf2a1d65e119ff747e4275",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2026-06-24.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.3.2",
+      "provider": "stripe"
+    },
+    {
+      "repo": "webrenew/unicon",
+      "stars": 17,
+      "commit": "956c71d398b719e5df46706fa19c6eff406a5f7e",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2026-08-26.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.6.1",
+      "provider": "stripe"
+    },
+    {
+      "repo": "twaldin/trade-up-bot",
+      "stars": 5,
+      "commit": "bb0f36dbf82ce240a192db2ca587c297026b4de9",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-02-25.clover",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^20.4.1",
+      "provider": "stripe"
+    },
+    {
+      "repo": "Shards-foundation/shards-workflow-hub",
+      "stars": 3,
+      "commit": "b2ae1f9fa56be8b8119e6fdec57c5c8b24774564",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2025-10-29.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.3.1",
+      "provider": "stripe"
+    },
+    {
+      "repo": "noa10/mataresit",
+      "stars": 2,
+      "commit": "b156488d3df4061cfc09d5927d0945117fa4d464",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^23.0.1",
+      "provider": "stripe"
+    },
+    {
+      "repo": "anvveber/hyperion",
+      "stars": 1,
+      "commit": "206a9e4c36c7e2a9056ee0460dc7359e71708d00",
+      "owner": "User",
+      "authors90d": 6,
+      "packageManager": "npm",
+      "before": "2025-11-17.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.0.0",
+      "provider": "stripe"
+    },
+    {
+      "repo": "cranberrymuffin/auditionwithme",
+      "stars": 1,
+      "commit": "2d0ae194346bedaf82454ef81b07252fe0c700c0",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-07-29.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.5.0",
+      "provider": "stripe"
+    },
+    {
+      "repo": "jackstonemedia/StoneAIOMainSystem",
+      "stars": 1,
+      "commit": "58c3cef9b8a011f4c1ba0fc8c38bc56fbedb8c9e",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.1.0",
+      "provider": "stripe"
+    },
+    {
+      "repo": "pina753753-star/seedance-black-studio",
+      "stars": 1,
+      "commit": "32176deda3abb2bdd5a22c1f33e0b9c668fdf8bc",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^17.5.0",
+      "provider": "stripe"
+    },
+    {
+      "repo": "0-CYBERDYNE-SYSTEMS-0/quorum",
+      "stars": 0,
+      "commit": "0286c081bb5f98d30c2189147d36183ed5b902d0",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^18.0.0",
+      "provider": "stripe"
+    },
+    {
+      "repo": "aaqibqadeer/ScrapperNinjaa",
+      "stars": 0,
+      "commit": "4cde5cff672ef00c82118c05cf15588713aa2f7c",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2025-08-27.basil",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^18.5.0",
+      "provider": "stripe"
+    },
+    {
+      "repo": "ArkeonProject/arkeon-blog",
+      "stars": 0,
+      "commit": "b68848797d68cccc77b7c711a5435bdc161113b2",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "pnpm",
+      "before": "2025-01-27.acacia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^21.0.1",
+      "provider": "stripe"
+    },
+    {
+      "repo": "asakaxgit/open-payment-adapter",
+      "stars": 0,
+      "commit": "7411cf22a6a21eab0bcf5f2ac6195b552860e0ea",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-08-26.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.6.1",
+      "provider": "stripe"
+    },
+    {
+      "repo": "Autosociomx/Gobernanza-Digital",
+      "stars": 0,
+      "commit": "8db819e820b4cec8a545d1d584200d7f2253d140",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-08-26.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.2.2",
+      "provider": "stripe"
+    },
+    {
+      "repo": "bisha21/lms",
+      "stars": 0,
+      "commit": "35a6f9fda9a2795c545b0a6d6cc3e2eaee428d00",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-07-29.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.4.0",
+      "provider": "stripe"
+    },
+    {
+      "repo": "BitsToBoot/new-auto-DM",
+      "stars": 0,
+      "commit": "ae2c630bd822e16a5be7cf6989d599e96bf86e50",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-04-22.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.1.1",
+      "provider": "stripe"
+    },
+    {
+      "repo": "bokkeh/distribution-portal",
+      "stars": 0,
+      "commit": "7936beb715b4e3240958ae8a03b8c4c0bebdb9b2",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-02-25.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.4.1",
+      "provider": "stripe"
+    },
+    {
+      "repo": "bud-diaz/paperweightv1",
+      "stars": 0,
+      "commit": "94f4ee104ad490c8596de8456e84f910dfc5fca2",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^17.0.0",
+      "provider": "stripe"
+    },
+    {
+      "repo": "buildproven/saas-starter-kit",
+      "stars": 0,
+      "commit": "8f927625d7281696e6219704762814f5fc0877dd",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2023-10-16",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^16.12.0",
+      "provider": "stripe"
+    },
+    {
+      "repo": "byronhawley/xert-fitness",
+      "stars": 0,
+      "commit": "7e7c5ad4815d726546dbca212796643471f6856c",
+      "owner": "User",
+      "authors90d": 4,
+      "packageManager": "npm",
+      "before": "2026-06-24.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.3.0",
+      "provider": "stripe"
+    },
+    {
+      "repo": "CaioF/actors-copilot",
+      "stars": 0,
+      "commit": "fd5b8f3eaaad1e1b13657f28bdabd4ad39e0ee3c",
+      "owner": "User",
+      "authors90d": 5,
+      "packageManager": "pnpm",
+      "before": "2026-05-27.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^22.2.1",
+      "provider": "stripe"
+    },
+    {
+      "repo": "camster91/ashbi-platform",
+      "stars": 0,
+      "commit": "286fa56dc3791b5b4d4f17a4cdf4600b0b11fb94",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2026-08-26.dahlia",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^23.0.0",
+      "provider": "stripe"
+    },
+    {
+      "repo": "CarlosReyes0/mon-unlock-widget",
+      "stars": 0,
+      "commit": "eeded4370deaff3f3177aae5122013f13972f13c",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-06-24.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.3.2",
+      "provider": "stripe"
+    },
+    {
+      "repo": "cedcas/CedCasProperties",
+      "stars": 0,
+      "commit": "2019a7edce8671e477b67abf6a890842d491cd64",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-03-25.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^21.0.1",
+      "provider": "stripe"
+    },
+    {
+      "repo": "Chandelier-Consulting/chandelier",
+      "stars": 0,
+      "commit": "9a656588dbf0cd322ba19fb3869f987a86e194b1",
+      "owner": "Organization",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-05-27.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.2.0",
+      "provider": "stripe"
+    },
+    {
+      "repo": "charliejo11/gridster",
+      "stars": 0,
+      "commit": "e2898209bfe5a4f4c720b7220383c029a4416f8b",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2026-06-24.dahlia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^22.3.2",
+      "provider": "stripe"
+    },
+    {
+      "repo": "Chaulin7/fitscore-backend",
+      "stars": 0,
+      "commit": "a07cb270d560dfdfab5e9bff5569c942453dd9b5",
+      "owner": "User",
+      "authors90d": 2,
+      "packageManager": "npm",
+      "before": "2025-02-24.acacia",
+      "beforeSource": "SDK version",
+      "stripeDependency": "^17.7.0",
+      "provider": "stripe"
+    },
+    {
+      "repo": "chessco/icellshoppos",
+      "stars": 0,
+      "commit": "6f28b26c05013603c0312ed847ed14b61aff5819",
+      "owner": "User",
+      "authors90d": 3,
+      "packageManager": "npm",
+      "before": "2026-02-25.clover",
+      "beforeSource": "apiVersion pin",
+      "stripeDependency": "^20.4.0",
+      "provider": "stripe"
+    },
+    {
+      "repo": "antiwork/shortest",
+      "commit": "45a8dcfe89992b37ed2dfb1f76618048cff0f45c",
+      "stars": 5707,
+      "provider": "stripe"
+    },
+    {
+      "repo": "intelligo-dev/intelligo",
+      "commit": "e880dd23138d8eb1514df54a3758bf5c26806101",
+      "stars": 433,
+      "provider": "stripe"
+    },
+    {
+      "repo": "onetimesecret/onetimesecret",
+      "commit": "1b84920f09fff799558efcbc0ea814acc765ef19",
+      "stars": 3000,
+      "provider": "stripe"
+    },
+    {
+      "repo": "ViniMTrevisan/Kybernus-CLI",
+      "commit": "d7a9ba7ee21d58b1515911217540054482ec720f",
+      "stars": 46,
+      "provider": "stripe"
+    },
+    {
+      "repo": "albertshiney/higgsfieldclone",
+      "commit": "133f556928c408574fd2ad89c669d187f57a12ff",
+      "stars": 84,
+      "provider": "stripe"
+    },
+    {
+      "repo": "arjun-kadam/DocsGPT",
+      "commit": "5daade5d2d593e3b1efc6478af2ce7462b3ca18e",
+      "stars": 86,
+      "provider": "stripe"
+    },
+    {
+      "repo": "FuelRats/fuelrats.com",
+      "commit": "efedf16177817052b5d7461676fc1504444fa415",
+      "stars": 40,
+      "provider": "stripe"
+    },
+    {
+      "repo": "cluwise/mangosqueezy",
+      "commit": "bc1585f20ec0f33c048437861ddf3af84fa3dd64",
+      "stars": 191,
+      "provider": "stripe"
+    },
+    {
+      "repo": "qamarq/netnook",
+      "commit": "3653b36e17e506203a369b23b027688fc15ade65",
+      "stars": 3,
+      "provider": "stripe"
+    },
+    {
+      "repo": "lefnire/jobpig",
+      "commit": "c54c4a2154894841636b4c5e9d47ea041bf2f865",
+      "stars": 21,
+      "provider": "stripe"
+    },
+    {
+      "repo": "harsh661/airbnb-clone",
+      "commit": "6ec677a2713894b16e4371ca53b6398742df60c7",
+      "stars": 22,
+      "provider": "stripe"
+    },
+    {
+      "repo": "RiP3rQ/Trello-Clone-NextJs-",
+      "commit": "46201d1cbeceafd46a0b050cce0e5fcbdf6ff33d",
+      "stars": 33,
+      "provider": "stripe"
+    },
+    {
+      "repo": "zyxzb/QuickCommerce",
+      "commit": "d387332b6b4f7daad826873ee5c7a70d2c9afc01",
+      "stars": 32,
+      "provider": "stripe"
+    },
+    {
+      "repo": "TheBetterStore/tbs-app-order",
+      "commit": "e8e374607a19a16af8b3d9553f785630234fd707",
+      "stars": 1,
+      "provider": "stripe"
+    },
+    {
+      "repo": "jinkos/ifa-web",
+      "commit": "991a2c7a70b500740f711323843defd2df516d9c",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "Hostilian/courier-connect",
+      "commit": "aee62f7e663c21c475de12a16f8b034b82ac21e3",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "SUMAYOOOO/PLATA",
+      "commit": "5bb5e2cc55800d5a06c0493889b55b9e655c169d",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "lucasps136/baseClaudeReactWebtemplate",
+      "commit": "6c4905512dc331acdb83ec1402cd1218c9702f45",
+      "stars": 3,
+      "provider": "stripe"
+    },
+    {
+      "repo": "vibetemplate/vibecli",
+      "commit": "0a53fdb77a2aa710f16dc8d3eb65a376b7ed8b1a",
+      "stars": 16,
+      "provider": "stripe"
+    },
+    {
+      "repo": "Bilovodskyi/ai-investor",
+      "commit": "369e6bad7fc81a3ed0d5fe831c108a482bfc9524",
+      "stars": 18,
+      "provider": "stripe"
+    },
+    {
+      "repo": "profullstack/vibe-stack",
+      "commit": "42e07f35b7212c2ab71fa2bc75651f1f3d24ef80",
+      "stars": 11,
+      "provider": "stripe"
+    },
+    {
+      "repo": "MohammadOwais10/MEW",
+      "commit": "d8179159befca227f5cbc7180be7f82c5a3b40d5",
+      "stars": 31,
+      "provider": "stripe"
+    },
+    {
+      "repo": "hubi666hubi/wfp-crm",
+      "commit": "5ddf58969a1b91186dc1e7b73a67b9f869415743",
+      "stars": 1,
+      "provider": "stripe"
+    },
+    {
+      "repo": "Haythembz91/ecommerce-app",
+      "commit": "6bdaacc97811bb2c02be52da5bcea67b778520e5",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "AdityaANKS/ivanchat",
+      "commit": "e798d58e9c182d3a5141e99dceb2a10848f6043e",
+      "stars": 1,
+      "provider": "stripe"
+    },
+    {
+      "repo": "jillianseaton/node.js1",
+      "commit": "296f0d0d09f0dd0ea0df73d3161188c1d47f3b14",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "palhinhax/North-Sail.com",
+      "commit": "84b2439990763be49412bbf2cf0bd51420523c94",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "ahmedsemih/Fullstack-Cloud-Storage-App",
+      "commit": "dc73f7d2be66f322d3e38edc4744e980fac08e74",
+      "stars": 7,
+      "provider": "stripe"
+    },
+    {
+      "repo": "ZurcLeo/solutions",
+      "commit": "05671e77d69238b28dd3867883801f4cfcde5748",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "Diti2604/library-app-react",
+      "commit": "18faa89f7802b5c2d337a0d01de185323c394655",
+      "stars": 1,
+      "provider": "stripe"
+    },
+    {
+      "repo": "BgtPtr/Szakdolgozat",
+      "commit": "68fa5fe3716f46e838d5bba957996dad36e90357",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "JosephKlenk/Tyro",
+      "commit": "310d88cb9310c229d5e1f942da93909eadc90caf",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "bobanest/bobanest",
+      "commit": "7b73f370921d9d5f40dc04be44e9086aa51103c9",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "Thetimii/thecompletelazytrend-backend",
+      "commit": "1dc350475662b1b904a28a9c7815729dec695b51",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "kamil183/sklep-internetowy",
+      "commit": "3a0194381205e64debef7250d280240ea5ab3e3f",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "Kklee2620/3d-14",
+      "commit": "5dd3805da2f799b47b84550d985dcaa3b9eab489",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "particlebanana/machinepack-stripe",
+      "commit": "f7940965d7b7378c5c7174a07fd17745b5919d3f",
+      "stars": 7,
+      "provider": "stripe"
+    },
+    {
+      "repo": "kungfu321/project-ai-sass",
+      "commit": "0ad20df7a37ecc12c2909f532b3edb4b3112d7e1",
+      "stars": 21,
+      "provider": "stripe"
+    },
+    {
+      "repo": "davidgraymi/bindersnap-editor-demo",
+      "commit": "3e61f2750a06bd3d2a3def87fd2d66845e4bf4cc",
+      "stars": 2,
+      "provider": "stripe"
+    },
+    {
+      "repo": "abhijeets54/ankkorwoo",
+      "commit": "a56d88fd999cf35244fb1e8c3c3fc9aa288aa874",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "baymyo/node-shopping-cart",
+      "commit": "1f9c3c083d16a5e32ddecfd9b6ec429488b569d2",
+      "stars": 5,
+      "provider": "stripe"
+    },
+    {
+      "repo": "om2511/Tokyolore",
+      "commit": "82a686dfecf07fcb89b256b5b311ce674eba70df",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "osisamkay/bgh",
+      "commit": "5990fb1bc0849afc1fd345536c256f5b9f0c555b",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "ahmedhailat/adflow-ai-platform",
+      "commit": "3075fcdf50323c8e7308c88aeea0c68810ce31ae",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "Sakshamvrma/Trekkers-Backend",
+      "commit": "f97776bb9b0dd367330b9d4c2ebf0d600d5b7715",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "wiscribbles/WiScribble",
+      "commit": "dbde6d0b5381899a7a381708166d55b816d02eb7",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "Luizfel99/BSOS-Production",
+      "commit": "b9657fb918eb40b6ae50dca4daeb2d6babbaadf1",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "steveyeow/threegen-ai",
+      "commit": "98d99ca7c114a9e83678d304aef73a1bcb9a28bf",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "thorsten-stripe/amplify-stripe-nodejs-function-template-provider",
+      "commit": "cbe97c0704151accc450fdf5df9a1650dd9e84d9",
+      "stars": 7,
+      "provider": "stripe"
+    },
+    {
+      "repo": "Dorthi12/Astrowing_",
+      "commit": "4a28432b3b2b079a3c443c234a96a99e9659ee02",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "korerussbiz/onroadnow",
+      "commit": "be69051c3137556ce8319256bd6c3afb7a4b5d72",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "domanin87/TransitSNG",
+      "commit": "f8fcfdde81cb26844265810da50f392b175ec264",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "rocketsignal/rocketsignal",
+      "commit": "ed30cc971ed5eb66862bcb0fb60026a460b43d36",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "derekshopifyexpert-max/smartpos-platform",
+      "commit": "9cdd10c4a5f51d91ca2eb1f6327f82c3f8401f7c",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "DeepRahangdale/Concierge-AI",
+      "commit": "7a618d45380ab6dc4e59e5244990aa7622f2b517",
+      "stars": 8,
+      "provider": "stripe"
+    },
+    {
+      "repo": "Michael-Hunninen/livauthentik",
+      "commit": "99d86c78a11bcc5c6ef18312f0f3dd228ae8c9bf",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "jillianseaton/app-boost-workbench",
+      "commit": "0115159ff0d4096dd6c2a7df03b9fd87be751757",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "johnkueh/node-apollo-saas-boilerplate",
+      "commit": "d6d402f0c2f3aceb9f068646b5e990f7e39501e4",
+      "stars": 8,
+      "provider": "stripe"
+    },
+    {
+      "repo": "Valynt/ValueOS",
+      "commit": "9f35043e99d766c4185a93559e99f6b935fcfe44",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "safely-app/back-end",
+      "commit": "83af7909321126f1726dfd33e39abb1b5bb03ab0",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "robs46859-eng/Sugardaddy",
+      "commit": "7f7444582938619c2a749114beae836cbd430917",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "Ysopking/be-olive",
+      "commit": "46a37ea934578820e551655816422e4c200e9d0d",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "berverlyjoseph3-source/Goodwill",
+      "commit": "ae126375d0986f518d44e19a373cbc693ccfa659",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "jsreport/website",
+      "commit": "5f864d33c169e0be6776b0035d9e6812c7dd1b32",
+      "stars": 6,
+      "provider": "stripe"
+    },
+    {
+      "repo": "Medaillek/TIPS---TRICKS",
+      "commit": "d2214c65ba094a3ef52aa6eb7b01b5e3787f0f9b",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "Apolloat2022/Buildfolio-enhance",
+      "commit": "900c5ace8a52446a3066259e218fa68419ecd01c",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "Quantum-Weaver/AudHDities",
+      "commit": "136071ac297233ff99e4622f17ca927013e458f1",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "Would-You-Bot/client",
+      "commit": "967bb439b47f23607ee3d38a015938356ae73cdb",
+      "stars": 10,
+      "provider": "stripe"
+    },
+    {
+      "repo": "NoisyTrumpet/headless-wp-template",
+      "commit": "220faeb3d5c3ab1f528f8243c8ed6c9a3b8a81bc",
+      "stars": 15,
+      "provider": "stripe"
+    },
+    {
+      "repo": "daftpixie/24hrmvp",
+      "commit": "5467184378ba1fd70fbfe654a1e9581112f928e3",
+      "stars": 0,
+      "provider": "stripe"
+    },
+    {
+      "repo": "meisbobzheng/pinpoint-archive",
+      "stars": 1,
+      "commit": "24f900a4703dee0bc431e46ed30149d72038ae0d",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["yarn.lock"],
+      "categories": ["unsupported-version", "deprecated-rest"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "kevinjmosley93/the-best-shopify-theme-toolkit",
+      "stars": 3,
+      "commit": "a390c7e164fb26c201b039adaf9b7c97e8f58055",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json", "bun.lockb"],
+      "categories": ["deprecated-rest"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "sachin21kumar/Infinite-bundler",
+      "stars": 2,
+      "commit": "97af7f111cc8ab4c54c77b3bc0e66831fc97dd2c",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "Bushra-KB/subscriptions-ref-app",
+      "stars": 1,
+      "commit": "a3b3029a5bce42bf5ced7fff7441730a845a1d0e",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "newideasacct-lab/ai-peacemaker",
+      "stars": 1,
+      "commit": "a795f3299e6681f3a27e448292137e352aa19f90",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "rcisneros138/shopify-sync-app",
+      "stars": 2,
+      "commit": "29053f1f3a24cd439165f134ab75c9d00c06fd0b",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "AbsoluteWebServices/shopify-app-react-cf",
+      "stars": 1,
+      "commit": "96df4983927aecf4a3b7cc3da001ce557500f158",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "samikaran/fullstack-ecommerce-nextjs-shopify",
+      "stars": 5,
+      "commit": "8d65eec424ef73fc81cb9fd63903ca8ae7571f2b",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "AntonVasylchenko/shopify-node-app",
+      "stars": 1,
+      "commit": "a08a905f2318caf46e336cb275a352727bd309d1",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "Priyadharshini29-M/Combo-page-app",
+      "stars": 1,
+      "commit": "df3fad97e6fa3a85b1d9daaf866f0220f41e96b2",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "dcam9586/scout-source2",
+      "stars": 1,
+      "commit": "badf7080a1fe79f6881b9db166012568536341e7",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "darongmean/shopify-on-cloudflare",
+      "stars": 1,
+      "commit": "7f5b49e41c9b3b651de774a070312bcf32ae32fd",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "Nuraveda/shopify-agentic-seo-app",
+      "stars": 5,
+      "commit": "f40b395b84fc16744549648890e2bd120f4a679a",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "Shopify/example-storefronts--customer-account-api-authentication--javascript",
+      "stars": 1,
+      "commit": "e8cf1b7774f40cf95d34db94f5accc9bb0568a91",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json", "pnpm-lock.yaml"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "jadenScali/Aeo-Optimizer",
+      "stars": 1,
+      "commit": "c666f310a1377c583251afe092911b8765672649",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "tmtuan04/qr-code-product-remix",
+      "stars": 2,
+      "commit": "14bee1e1a601a10507a8a95412cac3a0757d0f1d",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "LazerTechnologies/shopify-app-development-course",
+      "stars": 1,
+      "commit": "93cb55752c3024257cd2ca5c0edb99520fd94b58",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "umxr/shopify-product-reviews",
+      "stars": 2,
+      "commit": "974daab7d5b5e9786bee68a7f32b282ba28b5a0c",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "hasan-araav/shopify-order-sync",
+      "stars": 6,
+      "commit": "09006dd369772f5b7942bb2cd6351809faa66097",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "SGFGOV/medusa-plugin-shopify-ts",
+      "stars": 3,
+      "commit": "32d0549ecc3b5b6144b5cedde48a2ff1d2d9d0c4",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["yarn.lock"],
+      "categories": ["unsupported-version", "deprecated-rest"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "AB-Insightful/ab-insightful",
+      "stars": 4,
+      "commit": "c61723cf1d3ca4fe39e4f453d57e71da3c820403",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "sabbir-noyon/wishkit-app-shopify",
+      "stars": 7,
+      "commit": "2ae31f5db616baf7071212119018b1723a494022",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "hookdeck/shopify-festive-notifications",
+      "stars": 5,
+      "commit": "a250e19f2eac1a4ba34cc87409d88cacdf264c2d",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "Greenstand/POS-Shopify-Extension",
+      "stars": 2,
+      "commit": "cdb14808aee5fe1a6c65f1024d720d5b2050157e",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["deprecated-rest"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "ksyp-7/shopify-theme-app-extension-vite-react",
+      "stars": 2,
+      "commit": "cbe05e07ea6a2be54c6b0fb40a64f4afd7574b0e",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "removed-fields"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "speedcubing-ireland/speedcubingireland.com",
+      "stars": 3,
+      "commit": "1b6869ad195d4b2508c37d724e932cb7a2e82315",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["bun.lockb"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "intentionull/Shopify-RemixJS-Cloudflare-Workers-Template",
+      "stars": 18,
+      "commit": "811df94e7fd9d64ac7cc632284e39521ca48b609",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "matheuscpatricio/omafit",
+      "stars": 1,
+      "commit": "444ce6d0790d1bdcc7f2496cc9cbbe51f7a09aa9",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "removed-fields"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "iqbaldp/shopify-promotion-agent",
+      "stars": 1,
+      "commit": "9040b49bf13af9c33c3cfef11c43b9dc6a8ca63d",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["yarn.lock"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "omakatse-dev/omakatse",
+      "stars": 1,
+      "commit": "87a6d512625c3e70c3f10742360bd15e8e96bdaa",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "iamgenesistech-hub/IAGT_AI_VIRAL_ENGINE",
+      "stars": 1,
+      "commit": "c4b3d3599dd7753de552eed183091d073c69285c",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "aaronarrays/shopify-vercel-app",
+      "stars": 19,
+      "commit": "41ca20587779dfd0b07a4e184d8d1af69ccb466d",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "tungbinzzz/instagram-app-shopify",
+      "stars": 3,
+      "commit": "e1b0e4a05c0a4207a348625e4f0f81d18210e6f5",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "psydao/psydao-io",
+      "stars": 5,
+      "commit": "a7e5714ebd792eb1530ef2955489a2249846d38f",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["yarn.lock"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "mssalemi/b-is-for-bundles",
+      "stars": 1,
+      "commit": "68b29197723431c9490f59d275f98b9c7af8f400",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "sanjeev744/smart-bundle",
+      "stars": 1,
+      "commit": "6dad888d5eb45d819c07a099b01a10445840d4dc",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "removed-fields"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "peterwalker-svg/pos-ui",
+      "stars": 1,
+      "commit": "5ffcf71fae5a67bcd0169f80fa3522c85f3e40e5",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "Shopify/editions-dev-2025-workshop-customer-account",
+      "stars": 4,
+      "commit": "7300cc889ac2770eec0e67b99e3fdc152f60f722",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json", "yarn.lock"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "jahmedabeer/Shopify-Storefront-AI-agent",
+      "stars": 1,
+      "commit": "b31263a477f7f8e859fba4c063c45747c6c5c2c5",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "jamalsoueidan/booking-api",
+      "stars": 1,
+      "commit": "c64c5dcfd87a9e301280058ad0bb8304c896c0dd",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "drizzle-team/tento",
+      "stars": 133,
+      "commit": "632a318b4ffcb9dead06e33b44a5cba1f572165a",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "lnmjkessel-code/v13",
+      "stars": 1,
+      "commit": "a12f77fdb5f45289da604759f589ee62b4b40924",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "alistairmartin/honey-birdette-checkout-amd",
+      "stars": 1,
+      "commit": "293d32151ae9d7aac3bf4ccae143470cf21ee79c",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["retiring-soonest"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "polidario/weeklyhow-remix-app",
+      "stars": 1,
+      "commit": "d0b9792920071daf5f19ae079ba0194427af3435",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "removed-fields"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "kellyannclark/subscription-sync",
+      "stars": 1,
+      "commit": "31b5437563c37508837468c0b151577b209dc700",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "Shopify/example-app--qr-code--remix",
+      "stars": 90,
+      "commit": "6ed425cab13f9e8d1e64dc23de0da6711531650c",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["pnpm-lock.yaml"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "jgasimli04/marketoracle",
+      "stars": 1,
+      "commit": "1eaffbdb5cf8a8d538d54a16e03b2bab992378ed",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "gruntlord5/cloudflare-react-router7-shopify-d1",
+      "stars": 12,
+      "commit": "828ad7c9194e946ecaa8e474c54e6e0d03ea4ef5",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["bun.lock"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "othman4dev/SEOMASTER",
+      "stars": 1,
+      "commit": "2a2891aa3c3084d0dcd7b0efdac96c2174bcd2b2",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "Rakesh161rausahn/promo-banner-app",
+      "stars": 1,
+      "commit": "2feddb3c73f5c717c6f8fa93ad065880d9736bb4",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "Shopify/loyalty-extension-example",
+      "stars": 4,
+      "commit": "45cb20bbd8e54913d3ad04a83325f2df500c9338",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "Manuel1996-coder/shoppulseai",
+      "stars": 1,
+      "commit": "4853ca07acc357106ad7035b428f80114ffe9da4",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "ArseniyX/taskly",
+      "stars": 1,
+      "commit": "b947d739331b4e3fac6564a15b039bd4f9a5949b",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "removed-fields"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "sanjeev744/smart-slidecart",
+      "stars": 1,
+      "commit": "65a4c562603f6d9731252f1ff276241ea649fa1c",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "Naqi-Haider/Hype-Counter",
+      "stars": 1,
+      "commit": "475aebb5d1f3ceda2ec1d432e6963aef57056cb2",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "brunaszarin/spotlight-manager",
+      "stars": 2,
+      "commit": "831dcf922acd48387571ace353bf1ba08cf6e089",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "chandandadhekar/ListAI-V2",
+      "stars": 2,
+      "commit": "4918509b1a3bd7e1d6b99b838e43d70328b62145",
+      "source": "docs/benchmarks/2026-10-16-shopify-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "mdrahbar21/shopifyApp",
+      "stars": 2,
+      "commit": "009718809752a31da054d50afb8001de8ad5ed8b",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version", "deprecated-rest"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "Shopify/shop-chat-agent",
+      "stars": 150,
+      "commit": "3ea3f21d312b89e67b10170561f852b6ddbb6764",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "hak193/i-devr-code",
+      "stars": 1,
+      "commit": "c16223d4562980db7af0a95f653ca7743595d558",
+      "source": "docs/benchmarks/2026-10-16-shopify-fresh-repos.json",
+      "lockfiles": ["package-lock.json"],
+      "categories": ["unsupported-version"],
+      "provider": "shopify"
+    },
+    {
+      "repo": "kinngh/shopify-nextjs-prisma-app",
+      "commit": "dabfa7d9a7b990fe4c0c44cb297459497a4fbdd5",
+      "stars": 516,
+      "provider": "shopify"
+    },
+    {
+      "repo": "jacob-ebey/remix-ecommerce",
+      "commit": "fe0f986f26ca0b6e98cba6c881200cd7993cedc9",
+      "stars": 494,
+      "provider": "shopify"
+    },
+    {
+      "repo": "Shopify/shopify-app-js",
+      "commit": "70e0d6b9bf848c605530b2855eaecbd11713d3f6",
+      "stars": 547,
+      "provider": "shopify"
+    },
+    {
+      "repo": "Shopify/subscriptions-reference-app",
+      "commit": "6bb79616b48d4af5287c6791a440c52e8772b570",
+      "stars": 164,
+      "provider": "shopify"
+    },
+    {
+      "repo": "carstenlebek/shopify-node-app-starter",
+      "commit": "ab1eac465239fbcb65933550b27c606df7c368b6",
+      "stars": 177,
+      "provider": "shopify"
+    },
+    {
+      "repo": "ozzyonfire/shopify-next-app",
+      "commit": "7ad59df1528d7295890013a148354b8d07d62eff",
+      "stars": 141,
+      "provider": "shopify"
+    },
+    {
+      "repo": "Shopify/editions-dev-2024-workshop-extensibility",
+      "commit": "22234bdccc84485e2e4b81484a9f623410f2f745",
+      "stars": 7,
+      "provider": "shopify"
+    },
+    {
+      "repo": "t-kelly/nextjs-shopify-app",
+      "commit": "a51cda05cbf77206985b38be1775f91595922ece",
+      "stars": 128,
+      "provider": "shopify"
+    },
+    {
+      "repo": "carstenlebek/shopify-non-embedded-app-template",
+      "commit": "3e4560a6e4dd39fd7b16878b6fab03d90b051eec",
+      "stars": 133,
+      "provider": "shopify"
+    },
+    {
+      "repo": "Shopify/editions-dev-2024-workshop-customer-account",
+      "commit": "24b51d3dc82509f723b89e71a969de7e47170cd1",
+      "stars": 3,
+      "provider": "shopify"
+    },
+    {
+      "repo": "redochka/nextjs-shopify-app-no-custom-server",
+      "commit": "040167ca44dc2895963a985930253ca63e16a1ae",
+      "stars": 46,
+      "provider": "shopify"
+    },
+    {
+      "repo": "Aident-AI/open-cuak",
+      "commit": "24e97076e05089c20bf8704d362b33a704518e4b",
+      "stars": 391,
+      "provider": "shopify"
+    },
+    {
+      "repo": "TheSecurityDev/simple-koa-shopify-auth",
+      "commit": "cc4cf40a96930fa08d5db53dbe11dda6fe9c5b7e",
+      "stars": 26,
+      "provider": "shopify"
+    },
+    {
+      "repo": "jonathangiardino/shopify-app-starter",
+      "commit": "12201fcaf98e2bccfd3ebde684384d2f49dd319e",
+      "stars": 45,
+      "provider": "shopify"
+    },
+    {
+      "repo": "shop3/strapi-plugin-shopify",
+      "commit": "5fa573e66bcf4616a7c8c830d3d0779efa3b43cc",
+      "stars": 26,
+      "provider": "shopify"
+    },
+    {
+      "repo": "maestrooo/metaobject-repository",
+      "commit": "7d99e2710f2568604ae9c8e5cc30fef132490713",
+      "stars": 31,
+      "provider": "shopify"
+    },
+    {
+      "repo": "chr33s/shopflare",
+      "commit": "2abb43e08d19afc534decda34452893f3cb17279",
+      "stars": 66,
+      "provider": "shopify"
+    },
+    {
+      "repo": "unlocomqx/shopify-app-sveltekit",
+      "commit": "96c02a56b605c72c4a3dc113a66c498350a1433e",
+      "stars": 24,
+      "provider": "shopify"
+    },
+    {
+      "repo": "alexandrosk/marketplace-app",
+      "commit": "4643023281797480c9ff805426ed6fbef096cd9c",
+      "stars": 24,
+      "provider": "shopify"
+    },
+    {
+      "repo": "Hujjat/wishlist-inspire-app",
+      "commit": "684f64f9d21ec1ef1e7ab7f1514a51056ad0ff40",
+      "stars": 72,
+      "provider": "shopify"
+    },
+    {
+      "repo": "LeonelAimar/new-shopify-node-ts-app-boilerplate",
+      "commit": "d9d8baacef0db304340147dbe6234bf0ba9bf4ca",
+      "stars": 17,
+      "provider": "shopify"
+    },
+    {
+      "repo": "zacariec/mango",
+      "commit": "4b889d1e0e13decd75c72f1309931388b63dfb47",
+      "stars": 8,
+      "provider": "shopify"
+    },
+    {
+      "repo": "vincaslt/remix-cf-pages-d1-drizzle-shopify-app",
+      "commit": "6558a4cfb32ae81f63809c8f7d06c906a6531298",
+      "stars": 24,
+      "provider": "shopify"
+    },
+    {
+      "repo": "SFPC/sfpc.study",
+      "commit": "ac7167152ce49ccfe9290866893309a1d9e0bbd2",
+      "stars": 4,
+      "provider": "shopify"
+    },
+    {
+      "repo": "ShopyOs/metaobjects-orm",
+      "commit": "50ef3727dedb0a47d958c4dc77c07e37f596441f",
+      "stars": 6,
+      "provider": "shopify"
+    },
+    {
+      "repo": "thirdweb-example/shopify-sell-nfts",
+      "commit": "9b76905d3ff9c62ee0816522a396aa9fb026146d",
+      "stars": 16,
+      "provider": "shopify"
+    },
+    {
+      "repo": "ozzyonfire/shopify-app-next",
+      "commit": "7834a2eee6b91486b240850e64e32219493f8437",
+      "stars": 13,
+      "provider": "shopify"
+    },
+    {
+      "repo": "paweljedrzejczyk/shopify-multistore-app-middleware",
+      "commit": "f45d6bf72d61742da41453ead0ea520eded0fcb5",
+      "stars": 14,
+      "provider": "shopify"
+    },
+    {
+      "repo": "sanjeev744/smart-variants-display",
+      "commit": "3cfa2a6175f18571cd5408a2f208c91b221fe585",
+      "stars": 1,
+      "provider": "shopify"
+    },
+    {
+      "repo": "Santho-sh/shopify-product-bundler-app",
+      "commit": "9bb052df94eca0bb7aeecd0921b81f45afe6d345",
+      "stars": 15,
+      "provider": "shopify"
+    },
+    {
+      "repo": "thirdweb-example/shopify-discount-codes",
+      "commit": "9508761d17b81e697a8d548625b7a3b572e80a31",
+      "stars": 13,
+      "provider": "shopify"
+    },
+    {
+      "repo": "alexandrosk/shopify-app-ts",
+      "commit": "422ba4cddc262fdc350934a6ba4cb9b7bdec02b4",
+      "stars": 33,
+      "provider": "shopify"
+    },
+    {
+      "repo": "callobuzz/cob-shopify-mcp",
+      "commit": "d53db36f61736a9e34e797fc998e390254a463b8",
+      "stars": 19,
+      "provider": "shopify"
+    },
+    {
+      "repo": "AbdulRaheem-CS/shopify-store-products-fetch",
+      "commit": "f64d8ca8361269b25edd4d5fffda979e00408c4d",
+      "stars": 0,
+      "provider": "shopify"
+    },
+    {
+      "repo": "zitounao/Sveltekit-Shopify-App",
+      "commit": "fae9bf8d5d367f2e896814a71c6518c29931bca0",
+      "stars": 24,
+      "provider": "shopify"
+    },
+    {
+      "repo": "optizio/shopify-session-storage-do",
+      "commit": "7c1269d36267b03d45d49de58d2c498c138900d7",
+      "stars": 10,
+      "provider": "shopify"
+    },
+    {
+      "repo": "tomoyanakano/shopify-app-template-node-typescript",
+      "commit": "8e9a1b1bf1d0d39976d8045adf5cbb9df0440642",
+      "stars": 25,
+      "provider": "shopify"
+    },
+    {
+      "repo": "learnwithjason/lwj-store-nextjs-shopify",
+      "commit": "f9880d4e44b1112b05575eea7dc20ebea9e0b1b2",
+      "stars": 17,
+      "provider": "shopify"
+    },
+    {
+      "repo": "ismoiliy98/shopify-app-boilerplate",
+      "commit": "e25f593950bb35f20d5549bee3b6e611bbd783cd",
+      "stars": 8,
+      "provider": "shopify"
+    },
+    {
+      "repo": "strapi-community/shopify",
+      "commit": "8821013cb081196fc41a740bf6a07b33b5a30fb9",
+      "stars": 7,
+      "provider": "shopify"
+    },
+    {
+      "repo": "marktiddy/Shopify-Remix-Billing-Demo",
+      "commit": "5b0a65f202a1f4a23e8806230433b4616382d0e3",
+      "stars": 14,
+      "provider": "shopify"
+    },
+    {
+      "repo": "yoMerce/shopify-app-starter",
+      "commit": "af97798c8040139cd0fc7cc44085bf1d5a594e77",
+      "stars": 9,
+      "provider": "shopify"
+    },
+    {
+      "repo": "nestjs-shopify/example-nx-app",
+      "commit": "745232f49851103b8034cdbae454d73487343e00",
+      "stars": 40,
+      "provider": "shopify"
+    },
+    {
+      "repo": "mwakidenis/fullstack-ecommerce-nextjs-shopify",
+      "commit": "5ed5a0fd2fa94aac1b96122ee57822f099043458",
+      "stars": 19,
+      "provider": "shopify"
+    },
+    {
+      "repo": "Stephnn0/shopify-email-marking-app-example",
+      "commit": "68d143b6f5cc6367bc15ea20c618d56563468522",
+      "stars": 13,
+      "provider": "shopify"
+    },
+    {
+      "repo": "daneylpasha/cartaisy-backend",
+      "commit": "9e4c2b4e3e5e214f9254d4f84527a17245307d7a",
+      "stars": 0,
+      "provider": "shopify"
+    },
+    {
+      "repo": "german-zarate/shopify-node-express-mongodb-app",
+      "commit": "e2224e6944d9b89580064649201f6d96b9c7a440",
+      "stars": 6,
+      "provider": "shopify"
+    },
+    {
+      "repo": "tuminfei/ic_nft_creater",
+      "commit": "fdce55dec54856afe212edf336921d41a09ceee2",
+      "stars": 4,
+      "provider": "shopify"
+    },
+    {
+      "repo": "spider-yamet/uoonate",
+      "commit": "44c31f6e36ee8756acec63420c3a1674d87e7ff7",
+      "stars": 11,
+      "provider": "shopify"
+    },
+    {
+      "repo": "The-Rapid-Apps/Rapid-CRM",
+      "commit": "0d02f80c6a21051e911071afd963bc109e70631b",
+      "stars": 23,
+      "provider": "shopify"
+    },
+    {
+      "repo": "Checkout-Blocks/shoplift",
+      "commit": "ee4f41089a4f94d3c470c78726dbd5f6a744d5c0",
+      "stars": 12,
+      "provider": "shopify"
+    },
+    {
+      "repo": "ozzyonfire/shopify-app-next-external",
+      "commit": "c4c0b1bd4dcc783909f5be4066be47e568d61278",
+      "stars": 4,
+      "provider": "shopify"
+    },
+    {
+      "repo": "kanzitelli/shopify-app-template-typescript-test",
+      "commit": "5c93908a628ba508120b6b813753a7a53b0033f3",
+      "stars": 4,
+      "provider": "shopify"
+    },
+    {
+      "repo": "prowebcoder/shopify-app-tutorial",
+      "commit": "89141451b7ab618428f981d21efdb3a567c7f115",
+      "stars": 8,
+      "provider": "shopify"
+    },
+    {
+      "repo": "zakariamofaddel/shopify-nextjs-template",
+      "commit": "5cc406c605791855bc0ec3916fab8c4518025462",
+      "stars": 2,
+      "provider": "shopify"
+    },
+    {
+      "repo": "bloomreach/shopify-discovery-connector-v2",
+      "commit": "141b84aced67c74bb54b58f2b3e40db90f4c06dc",
+      "stars": 1,
+      "provider": "shopify"
+    },
+    {
+      "repo": "soldev3639/drop_nft_cosmwasm",
+      "commit": "2a6cd10a58366db419431f1136f6d65c4aa70704",
+      "stars": 7,
+      "provider": "shopify"
+    },
+    {
+      "repo": "Jaimeloeuf/muwno",
+      "commit": "b4a368bb67c7e77dc4bf0752574491f39861c991",
+      "stars": 6,
+      "provider": "shopify"
+    },
+    {
+      "repo": "evigauge-org/helix",
+      "commit": "14daac5807886c392bfb4ef4c72fd0e07ffc60a8",
+      "stars": 8,
+      "provider": "shopify"
+    },
+    {
+      "repo": "tyrone-j-roberts/shopify-app-template-cloudflare-worker",
+      "commit": "78153a94df72ad34b9947461222d6ab2577bebd7",
+      "stars": 10,
+      "provider": "shopify"
+    },
+    {
+      "repo": "osclickdev/shopify-chatgpt-product-descriptions",
+      "commit": "ceb572853637ee966aeb728fec879a8123d601fe",
+      "stars": 7,
+      "provider": "shopify"
+    },
+    {
+      "repo": "AnalogRepublic/app-bridge-cart-issues",
+      "commit": "6cd05c8ac9959a8870c88a2c6bbc84fb5a46c027",
+      "stars": 0,
+      "provider": "shopify"
+    },
+    {
+      "repo": "render-examples/render-shopify-example",
+      "commit": "b68107de76ef67dc582793c9281033538fe94a9d",
+      "stars": 3,
+      "provider": "shopify"
+    },
+    {
+      "repo": "chr33s/shopify-cloudflare-hono-preact-iso-starter",
+      "commit": "76e4d3e8a58fcb535006e9f7e32e636896a400af",
+      "stars": 6,
+      "provider": "shopify"
+    },
+    {
+      "repo": "AndrejMazhenkovski/shopify-nextjs-non-embedded-app",
+      "commit": "76c93595337fe8e5a9423b20f172e1b9f70d9f81",
+      "stars": 6,
+      "provider": "shopify"
+    },
+    {
+      "repo": "askphill/bulk-update-customer-locale",
+      "commit": "ce1728bd40b6c4c9f029174c378309302285b766",
+      "stars": 1,
+      "provider": "shopify"
+    },
+    {
+      "repo": "vyuba/BunnyBite",
+      "commit": "b3a2696e0c276e4e29aad3fb8bf28fc09cfb593f",
+      "stars": 3,
+      "provider": "shopify"
+    },
+    {
+      "repo": "Stephnn0/shopify-bulk-operations-example",
+      "commit": "a95f340793b1863ca1e777228feea3ceb01ecbc7",
+      "stars": 6,
+      "provider": "shopify"
+    },
+    {
+      "repo": "frak-id/wallet",
+      "commit": "7c926b0f1d3659ee69df9d4de033be56a6e98b25",
+      "stars": 10,
+      "provider": "shopify"
+    },
+    {
+      "repo": "AmmarA06/Shop3D",
+      "commit": "b363a7437db5f4593f84492783e0b1d270fce3d8",
+      "stars": 5,
+      "provider": "shopify"
+    },
+    {
+      "repo": "crlny/lobe-chat",
+      "stars": 0,
+      "commit": "62043bba74ddd43020d5162d1acbedeb95300067",
+      "language": "js",
+      "sdk": {
+        "openai": "^4.91.1"
+      },
+      "packageManager": "none",
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "old-sdk-major",
+        "embeddings-fine-tunes"
+      ],
+      "stratum": "retired-model",
+      "provider": "openai"
+    },
+    {
+      "repo": "guixincui/LobeChat",
+      "stars": 0,
+      "commit": "c0f1ca77014de1669ebce0b45a3f1810cd5b6228",
+      "language": "js",
+      "sdk": {
+        "openai": "^4.17.3"
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "parameter-change", "old-sdk-major", "response-parsing"],
+      "stratum": "retired-model",
+      "provider": "openai"
+    },
+    {
+      "repo": "mohammadpurl/next-livekit-streaming",
+      "stars": 0,
+      "commit": "9f2253c00ed7bcdd9f3017f7f6fb1676753d981f",
+      "language": "js",
+      "sdk": {
+        "openai": "5.0.1"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major"],
+      "stratum": "legacy-endpoint",
+      "provider": "openai"
+    },
+    {
+      "repo": "ravi-aman/pureFeedback",
+      "stars": 0,
+      "commit": "5121b3eca9cc48cbcbed94e52130e08e8a62d22c",
+      "language": "js",
+      "sdk": {
+        "openai": "4.78.1"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major"],
+      "stratum": "legacy-endpoint",
+      "provider": "openai"
+    },
+    {
+      "repo": "borodinka/hire-wise",
+      "stars": 0,
+      "commit": "b5ba583fa9dd9ba695a6a27b171bf4991945bfb6",
+      "language": "js",
+      "sdk": {
+        "openai": "4.77.0"
+      },
+      "packageManager": "yarn",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "response-parsing",
+      "provider": "openai"
+    },
+    {
+      "repo": "gvprime/pubragi",
+      "stars": 0,
+      "commit": "477430609c67000b5ab2799b5aff270a93da799f",
+      "language": "js",
+      "sdk": {
+        "openai": "4.100.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["legacy-endpoint", "old-sdk-major", "beta-header"],
+      "stratum": "beta-header",
+      "provider": "openai"
+    },
+    {
+      "repo": "hachanimohamedsaid/backend_AgentAi",
+      "stars": 0,
+      "commit": "387ace95142de78a7d8dd3a1378b9aba5aeb3048",
+      "language": "js",
+      "sdk": {
+        "openai": "6.33.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "response-parsing", "beta-header"],
+      "stratum": "beta-header",
+      "provider": "openai"
+    },
+    {
+      "repo": "AyeletHillel/fine-tune",
+      "stars": 0,
+      "commit": "4ee956be046af38a59475ea0a8a01e6191f1f01d",
+      "language": "js",
+      "sdk": {
+        "openai": "^4.2.0"
+      },
+      "packageManager": "several",
+      "changeTypes": ["retired-model", "old-sdk-major", "embeddings-fine-tunes"],
+      "stratum": "embeddings-fine-tunes",
+      "provider": "openai"
+    },
+    {
+      "repo": "edwinsatya/llm-output-guard",
+      "stars": 3,
+      "commit": "8538718cdeca93f3e58f0da62f49aa34fe7b1904",
+      "language": "js",
+      "sdk": {
+        "openai": "7.4.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": [],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "gaurangpb/test-mate",
+      "stars": 0,
+      "commit": "52f56177d577c76d80a3577acda439b29882779a",
+      "language": "js",
+      "sdk": {
+        "openai": "4.104.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "kenzic/ai-ui-demo",
+      "stars": 4,
+      "commit": "092aaaaec604ab06b6839531229ee70976c8d41a",
+      "language": "js",
+      "sdk": {
+        "openai": "4.56.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["old-sdk-major", "response-parsing"],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "MRwangqi/chatGPT-nodejs",
+      "stars": 37,
+      "commit": "820401fae534fc6c734b7b90068bedb79d966194",
+      "language": "js",
+      "sdk": {
+        "openai": "3.1.0"
+      },
+      "packageManager": "yarn",
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major"],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "adeojoemmanuel/EDD-Kafka-Rest-Api",
+      "stars": 0,
+      "commit": "55e43330f26066273a71b0563e301bf8d6343420",
+      "language": "js",
+      "sdk": {
+        "openai": "4.55.3"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "RaizenStyx/lore-forge",
+      "stars": 1,
+      "commit": "381a17d7c2104f966489421ec4f2f78442c9662e",
+      "language": "js",
+      "sdk": {
+        "openai": "5.20.1"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "kkb2849/nextjs-1zdevcamp-template",
+      "stars": 0,
+      "commit": "0865bb268b395abac07042d6d6e627f92f24b159",
+      "language": "js",
+      "sdk": {
+        "openai": "4.24.7"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "Jeffansah/whop-ai-chat",
+      "stars": 0,
+      "commit": "b2cc335859a12d359ac662e3ff3f10b8b6bfe227",
+      "language": "js",
+      "sdk": {
+        "openai": "4.104.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major"],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "ioiuea/assistant-api-openai",
+      "stars": 0,
+      "commit": "8b57e1392ca74ba85f495a431ec3610c4c58d98f",
+      "language": "js",
+      "sdk": {
+        "openai": "4.27.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["legacy-endpoint", "old-sdk-major"],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "akshat-mechlin/Ghost",
+      "stars": 0,
+      "commit": "e7605b2d653660143185c5b6eb3d33a8836c6764",
+      "language": "js",
+      "sdk": {
+        "openai": "5.23.2"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major"],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "Lealdos/Shopify-ecommerce",
+      "stars": 0,
+      "commit": "9c9ef956ca4aec1d990dca0fa620d2c777ec362b",
+      "language": "js",
+      "sdk": {
+        "openai": "4.28.4"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major"],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "vadik88888-prog/beauty-saas",
+      "stars": 0,
+      "commit": "ed948ce4eeb901db6d2bfe42ad8b1c6ba6674f87",
+      "language": "js",
+      "sdk": {
+        "openai": "6.39.0"
+      },
+      "packageManager": "npm",
+      "changeTypes": ["retired-model", "old-sdk-major", "response-parsing"],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "GLOBAL-PALO-IT/th_PALO-LLM-Playground",
+      "stars": 3,
+      "commit": "19c6665f79e9e498d9bc29be6e27ae3e9375a933",
+      "language": "js",
+      "sdk": {
+        "openai": "4.67.3"
+      },
+      "packageManager": "npm",
+      "changeTypes": [
+        "retired-model",
+        "old-sdk-major",
+        "response-parsing",
+        "embeddings-fine-tunes"
+      ],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "lissettecarlr/chat-openai-streamlit",
+      "stars": 20,
+      "commit": "330234738cc4c68f4aa3f4d870702028527d001b",
+      "language": "py",
+      "sdk": {
+        "openai": ">=1.3.6"
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major", "response-parsing"],
+      "stratum": "retired-model",
+      "provider": "openai"
+    },
+    {
+      "repo": "UW-Madison-Lee-Lab/TAPE",
+      "stars": 7,
+      "commit": "98f1aa7044cc8cea34583b2952dad9262587e95d",
+      "language": "py",
+      "sdk": {
+        "openai": "==1.101.0"
+      },
+      "packageManager": "none",
+      "changeTypes": [
+        "retired-model",
+        "parameter-change",
+        "legacy-endpoint",
+        "old-sdk-major",
+        "response-parsing",
+        "embeddings-fine-tunes"
+      ],
+      "stratum": "parameter-change",
+      "provider": "openai"
+    },
+    {
+      "repo": "BahadirKarsli/Chatbot-Assistant",
+      "stars": 0,
+      "commit": "80037971dee2389edf344a4111acab27d3ddd939",
+      "language": "py",
+      "sdk": {
+        "openai": ">=1.3.0"
+      },
+      "packageManager": "none",
+      "changeTypes": ["legacy-endpoint", "old-sdk-major", "beta-header"],
+      "stratum": "beta-header",
+      "provider": "openai"
+    },
+    {
+      "repo": "etecnos/simple-AI-personal-assistant-Greek-verion",
+      "stars": 0,
+      "commit": "511c090c3ba791500e8f3df760613565840574d4",
+      "language": "py",
+      "sdk": {
+        "openai": ""
+      },
+      "packageManager": "none",
+      "changeTypes": [],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "janiluuk/gpt-buddy",
+      "stars": 0,
+      "commit": "7274a87fa1875f69804ba209807565f03fe05424",
+      "language": "py",
+      "sdk": {
+        "openai": ">=1.3.7"
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "legacy-endpoint", "old-sdk-major"],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "goodreasonai/nichey",
+      "stars": 58,
+      "commit": "e48e3e737abfc9c0d0b603c1939b593da22bfa73",
+      "language": "py",
+      "sdk": {
+        "openai": ""
+      },
+      "packageManager": "none",
+      "changeTypes": ["response-parsing"],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "aparnaburhade/PDF-QA-CLI",
+      "stars": 1,
+      "commit": "5fe255c160e0bb93e3ae10a26a030b4894dedda9",
+      "language": "py",
+      "sdk": {
+        "openai": "==2.24.0"
+      },
+      "packageManager": "none",
+      "changeTypes": ["old-sdk-major", "embeddings-fine-tunes"],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "leedtan/chattutorial",
+      "stars": 0,
+      "commit": "c6122c20bb73c1bcf8d72458d69a8096b6b44bed",
+      "language": "py",
+      "sdk": {
+        "openai": "==1.13.3"
+      },
+      "packageManager": "none",
+      "changeTypes": ["retired-model", "old-sdk-major", "embeddings-fine-tunes"],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "bicalhobim/ia.rt_bim",
+      "stars": 2,
+      "commit": "11af72ebbdcb9ba095947767eb57f7c4fb46396f",
+      "language": "py",
+      "sdk": {
+        "openai": "==1.31.0"
+      },
+      "packageManager": "none",
+      "changeTypes": ["legacy-endpoint", "old-sdk-major"],
+      "stratum": "seeded order",
+      "provider": "openai"
+    },
+    {
+      "repo": "gcui-art/album-ai",
+      "commit": "fe5eb8838d9a53792375232b8ae90c3d1893eea3",
+      "stars": 792,
+      "provider": "openai"
+    },
+    {
+      "repo": "henryhu55/tts-web-vue",
+      "commit": "ab91e1ef81e6cd2e707089aed64fbd747295a65b",
+      "stars": 186,
+      "provider": "openai"
+    },
+    {
+      "repo": "yoshiko-pg/o3-search-mcp",
+      "commit": "1ad6938fcfe504246feef32c153e840436f0496c",
+      "stars": 286,
+      "provider": "openai"
+    },
+    {
+      "repo": "Audityzer/Audityzer",
+      "commit": "bd3bec41723d7bbd06455f52ad3f3d0b27bfef5d",
+      "stars": 13,
+      "provider": "openai"
+    },
+    {
+      "repo": "xuanyuanzhifeng/code-panorama",
+      "commit": "2b37d98ec708967f6d2e50fa630bb6c40d17b06e",
+      "stars": 238,
+      "provider": "openai"
+    },
+    {
+      "repo": "jdan/deepdive",
+      "commit": "4667f2e648b41cabadbd98ccba34998f36c714f4",
+      "stars": 110,
+      "provider": "openai"
+    },
+    {
+      "repo": "JulesLiu390/PetGPT",
+      "commit": "8f86ce802541771b765d1373c8d69e6e0f2a21b8",
+      "stars": 110,
+      "provider": "openai"
+    },
+    {
+      "repo": "Developico/KSeF-Copilot",
+      "commit": "d70594ea50fccd7794e186082235be80c406911d",
+      "stars": 9,
+      "provider": "openai"
+    },
+    {
+      "repo": "masharratt/claude-flow-novice",
+      "commit": "83c12d766a25b369d349a8655d9519852b9441c1",
+      "stars": 13,
+      "provider": "openai"
+    },
+    {
+      "repo": "IkigaiLabsETH/ikigAI-Labs",
+      "commit": "d89495690c2e19d38cced782f3451b97de0b17cf",
+      "stars": 4,
+      "provider": "openai"
+    },
+    {
+      "repo": "OctagonAI/octagon-deep-research-mcp",
+      "commit": "c44ec1ce412ba9ab4a853dae4d6ad7367f7efc31",
+      "stars": 93,
+      "provider": "openai"
+    },
+    {
+      "repo": "open-fractal/flur",
+      "commit": "773e43f825dcfd242b8d58c7db9f604c74b90c05",
+      "stars": 37,
+      "provider": "openai"
+    },
+    {
+      "repo": "cluwise/mangosqueezy",
+      "commit": "bc1585f20ec0f33c048437861ddf3af84fa3dd64",
+      "stars": 191,
+      "provider": "openai"
+    },
+    {
+      "repo": "NianJiuZst/openmeta-cli",
+      "commit": "da5048c25b845c651c00175bce87d22c8a6a748c",
+      "stars": 57,
+      "provider": "openai"
+    },
+    {
+      "repo": "gamma-app/aijsx",
+      "commit": "2900075d8251b7a83c6b855fcf36e6df4c5d2539",
+      "stars": 11,
+      "provider": "openai"
+    },
+    {
+      "repo": "pBread/twilio-openai-realtime-minimalist",
+      "commit": "a9e63c1b7ba3f81d940ec145b3dd3ed6532f876f",
+      "stars": 26,
+      "provider": "openai"
+    },
+    {
+      "repo": "qamarq/netnook",
+      "commit": "3653b36e17e506203a369b23b027688fc15ade65",
+      "stars": 3,
+      "provider": "openai"
+    },
+    {
+      "repo": "amazedsaint/openai-agent",
+      "commit": "4bdc2532ab7cf41dcb85772cca7cfd1256d77e50",
+      "stars": 37,
+      "provider": "openai"
+    },
+    {
+      "repo": "Haimantika/GitHub-roast",
+      "commit": "23552b668173730fc5a13cf6399487f3dda1765d",
+      "stars": 38,
+      "provider": "openai"
+    },
+    {
+      "repo": "upJiang/DiFlow",
+      "commit": "513935600141f668a29a2cf4c28f34034108e2cd",
+      "stars": 3,
+      "provider": "openai"
+    },
+    {
+      "repo": "kirandash/ai-projects-nodejs",
+      "commit": "bb6af2df83d6006df290063e4a9b7fc5420f008e",
+      "stars": 31,
+      "provider": "openai"
+    },
+    {
+      "repo": "MLILA17/DML-MD-Panel",
+      "commit": "cd89ed2e89edfaad20718a1cd18bd68b37a37f1e",
+      "stars": 5,
+      "provider": "openai"
+    },
+    {
+      "repo": "utter-one/bonsai",
+      "commit": "2d38a6b24c32b58def993d744332f5bb4d3bd55c",
+      "stars": 59,
+      "provider": "openai"
+    },
+    {
+      "repo": "convex/convex-ai-chat-langchain",
+      "commit": "99b751acd3f23080be8af789df92dabbd89c2048",
+      "stars": 21,
+      "provider": "openai"
+    },
+    {
+      "repo": "AI4Kingdom-org/ai_4kingdom",
+      "commit": "a284fda3f6b2a2c0cc7207bc2d8e18ad87216222",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "twilio-demos/twilio-agent-create-app",
+      "commit": "1d8956d91c5dfa9b2e34bf09ee6a45b8ce0007fa",
+      "stars": 4,
+      "provider": "openai"
+    },
+    {
+      "repo": "Carolzhangzz/Feastory",
+      "commit": "7c139bafa369e2f5ccea0f38b575e753b40b2b19",
+      "stars": 2,
+      "provider": "openai"
+    },
+    {
+      "repo": "namiindacatherine-a11y/group-ai-bot",
+      "commit": "3a15e0788ff9579e23fed3bae0fbcfcff130e10a",
+      "stars": 1,
+      "provider": "openai"
+    },
+    {
+      "repo": "LiyamFlx/tech-news-magazine",
+      "commit": "e81cd0e8910a84c82405f57c22285ad3ab3ed349",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "andersrex/kindllm",
+      "commit": "1ada7196af56963082b379e867491eb91e84411c",
+      "stars": 45,
+      "provider": "openai"
+    },
+    {
+      "repo": "ruvnet/aihl",
+      "commit": "8e80355b595cbc534f0f5f2097f978b0dfefc332",
+      "stars": 20,
+      "provider": "openai"
+    },
+    {
+      "repo": "malyjacob/zujuan",
+      "commit": "b7a275739e984a00c28278179ac995100a2dc2ff",
+      "stars": 48,
+      "provider": "openai"
+    },
+    {
+      "repo": "nomadcoders/wemake",
+      "commit": "21ceb5d55c608772ed374a651eaf1639eaec6d5c",
+      "stars": 19,
+      "provider": "openai"
+    },
+    {
+      "repo": "cchavezmx/control-fletes",
+      "commit": "995eb69366d17bc2fbbb1c80f9453dd0c3114c32",
+      "stars": 2,
+      "provider": "openai"
+    },
+    {
+      "repo": "MadScientist85/GROKCON-APP",
+      "commit": "f824efa1ad8f1eb7b279b2a049686b5a8719ce79",
+      "stars": 1,
+      "provider": "openai"
+    },
+    {
+      "repo": "CS180-Lyf180/CS180-Lyf180-Project",
+      "commit": "cbbb86dfa2431ee63a00d93921c4741d3b4f8a82",
+      "stars": 1,
+      "provider": "openai"
+    },
+    {
+      "repo": "mythos-agent/mythos-agent",
+      "commit": "a14abd1c2b63615476b6fef5f1e362c706e2a84b",
+      "stars": 49,
+      "provider": "openai"
+    },
+    {
+      "repo": "pranavchavda/competitor-dashboard",
+      "commit": "39e2e5c9b3feb01ab8b3eb2cf0ba1e4a9fa10ff8",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "Miguelbots124/KatzyBot-MD",
+      "commit": "9bf7fb82155f1dc7ee18039682a02e4908fc596f",
+      "stars": 1,
+      "provider": "openai"
+    },
+    {
+      "repo": "thivy/azure-openai-js",
+      "commit": "cf5180856c9e6f298e11f72b72708ffb2dd0f78b",
+      "stars": 15,
+      "provider": "openai"
+    },
+    {
+      "repo": "Podginator/omnivore-automatic-labelling",
+      "commit": "06109be4ed9a91439bceec4ccd7be6a9854d0131",
+      "stars": 15,
+      "provider": "openai"
+    },
+    {
+      "repo": "AdityaANKS/ivanchat",
+      "commit": "e798d58e9c182d3a5141e99dceb2a10848f6043e",
+      "stars": 1,
+      "provider": "openai"
+    },
+    {
+      "repo": "anjumann/node-openai",
+      "commit": "dd0ebad219f4686dda602ed993f218e1107276d4",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "Gaeuly/ai-bot-discord",
+      "commit": "627278d53d2f962ce3f7c60d621b441c80a11755",
+      "stars": 14,
+      "provider": "openai"
+    },
+    {
+      "repo": "cassianoaxe/ENDURANCY-V2",
+      "commit": "c3dd215bcf89dfb1182ffea2b966de04880c1293",
+      "stars": 1,
+      "provider": "openai"
+    },
+    {
+      "repo": "ChrisDuran19/plataforma-comunicacion-inclusiva",
+      "commit": "5b3f5d7c5c5ce8af18a369b66b9709f7160a7c8d",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "JustaTz03/JustaTz-Md",
+      "commit": "7c053e2dd8e56c3cad52eda8bbcb9a8946b3bf6f",
+      "stars": 39,
+      "provider": "openai"
+    },
+    {
+      "repo": "Cynthia1070711/PHYCOOL_Tools",
+      "commit": "896cb1929e19eb033143a66527254ba83bd559cc",
+      "stars": 10,
+      "provider": "openai"
+    },
+    {
+      "repo": "thisIsCodyLin1201/SEANews_ver2.0",
+      "commit": "f2bca336577959d11342c9a2ec27c1c5bcfebad0",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "Nemit0/embedding_visualizer",
+      "commit": "a1d6b42626abcd01184405a546c0b0a4f3ec74af",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "ggggggggggggg000568/222bot2",
+      "commit": "1f3c31466a2f97cbbc667b0d48aa24e8d4b76d03",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "luci177/apod-ai-site",
+      "commit": "6d23d9131f15aa202c51606399e582c37aeafdd9",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "mehulmakwana08/ContentGenAI",
+      "commit": "fe8d10ef8a5919b98b3fb3d37bbf2c539848b43e",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "Ovie-Eharisi-Ayomah/IdeaLab",
+      "commit": "c11a1ad89898aa8383f5e2614cbfc00e7c83c92d",
+      "stars": 1,
+      "provider": "openai"
+    },
+    {
+      "repo": "JouganBot/Junajou1",
+      "commit": "69f4ef62644fc443a313e914a9784ecee9ad0084",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "robertopotenza/Autoapply",
+      "commit": "69fdb0a839e5f97cce673d58428f34fb2fe3447d",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "DChuvelev/Coach-connection---backend",
+      "commit": "f1ff185e54f15e46a28abf103078ae6f89e76549",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "Kaycmd/Kayy-MD",
+      "commit": "137c1255ffd8f1ad89b375f0cd4467716627d3ba",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "MoBetta8/digiboost",
+      "commit": "419abde5f45b5d9901d6813e20294acec1a96acb",
+      "stars": 1,
+      "provider": "openai"
+    },
+    {
+      "repo": "anayatkhan1/GenieBlog",
+      "commit": "674279c7720026515a68c21e400e4ccf1524753d",
+      "stars": 12,
+      "provider": "openai"
+    },
+    {
+      "repo": "AgentisLabs/agentis-framework",
+      "commit": "785240b1fd313c6c5def25f8fee242ec89d02e3e",
+      "stars": 17,
+      "provider": "openai"
+    },
+    {
+      "repo": "m-aishah/smart-connect-and-hire",
+      "commit": "becc6928e7b5cd9cbe270256864f0b3ff8f00fca",
+      "stars": 1,
+      "provider": "openai"
+    },
+    {
+      "repo": "harmanjotsha/ai",
+      "commit": "2f61536a00f500e15cf2ad094090abfbe9816434",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "ianye23301/WillowCare",
+      "commit": "9d2dd9f12cca4ccee9d0f7aef218294d059575b2",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "benikigai/scriber",
+      "commit": "499b671bd3ec2b7b4ee191647b962eae32a09a17",
+      "stars": 1,
+      "provider": "openai"
+    },
+    {
+      "repo": "Ervan2525/adadeh",
+      "commit": "4cddd122e29ab9085863eaaed6a14d4b7f5a9ea9",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "Xuleileon/utcp-mcp-gateway",
+      "commit": "ce994993f3cfd3a524c7cfbc1e58f4b41e795409",
+      "stars": 11,
+      "provider": "openai"
+    },
+    {
+      "repo": "KATILUV/dddatapp",
+      "commit": "4d5bc0488eef131a3eff95d1c9a6634874ca5084",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "kungfu321/project-ai-sass",
+      "commit": "0ad20df7a37ecc12c2909f532b3edb4b3112d7e1",
+      "stars": 21,
+      "provider": "openai"
+    },
+    {
+      "repo": "mandeepsng/screenshort-app",
+      "commit": "8714404857e969d98a2029ccfa11537788e3b7d7",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "primefaces/primeclt",
+      "commit": "435dfbd6bab686d7d3317ad070064bb04f75111d",
+      "stars": 5,
+      "provider": "openai"
+    },
+    {
+      "repo": "themathemagician2025/pdfbot",
+      "commit": "48533472f17ef303e196dc66704830b8e8415a6d",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "mogaofly/AI-AGENT",
+      "commit": "dd27b14692a64f9283ec1164fa30fcdd00a340b2",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "nimeshsv814/swipe-ai-interview-assistant",
+      "commit": "ccd97101f7825bc7fb0bf56e7065d158df3c2510",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "jithin003/whatsapp_chat_api",
+      "commit": "c33544b7ea8318f71e8bee4df1dfae0ffa8f0249",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "ahmedhailat/adflow-ai-platform",
+      "commit": "3075fcdf50323c8e7308c88aeea0c68810ce31ae",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "nekontachik/innerview",
+      "commit": "28e282584c2b0b133ba6447b48cf4abe32f64d9d",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "christianmolnar/four-peaks-observatory",
+      "commit": "d34163008b47ed7d764be0e895bcb4a5eb28093a",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "allglenn/lucai-cli",
+      "commit": "3bf9fd3e2c72eca49de4c34f9af77a3ef24f7465",
+      "stars": 1,
+      "provider": "openai"
+    },
+    {
+      "repo": "Shaund12/ai-nft-dystopian-comic",
+      "commit": "620272b1aca7147d44001d3fc576cba8e139916c",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "fable-app/fable",
+      "commit": "1f253af54914c9bb7c1fb57142355239e97df3e9",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "justin-handsman-devrev/terminal-bench-agent",
+      "commit": "e7fa8b251d62c3e63c44e6becab1018eb91dbbcb",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "ckonjeti/pdf-translator-tool",
+      "commit": "2f210555e58d46049c16e6d70907f014197a0b04",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "ddann/prvni2",
+      "commit": "a6c093dca3610fa6d698d337b9e2dde1a75d0bfa",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "371-Minds/mind0524",
+      "commit": "37d16d0d6682d55c48b1adb71a4a7f9c180c75f0",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "chizzyedoka/0g-inference2",
+      "commit": "c8041ad7e6db6d4e0553e78e45d85564a4733b26",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "BennyMorton28/ai-case-marketplace",
+      "commit": "c293dad0ee6dbbc379c02ab62a4c1d48de6ae900",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "JonChristensen/norwegianteachin",
+      "commit": "76e60901cf7fcf5d2b8140702f00bed5695c01e8",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "NeilFoxAgency/SalesCaller",
+      "commit": "a36f6a3397a82b69785331eb4ce5f69901943207",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "steveyeow/threegen-ai",
+      "commit": "98d99ca7c114a9e83678d304aef73a1bcb9a28bf",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "amramedworkin/Chatterbox",
+      "commit": "79750ab6991c477f4ccb52bc620be498753ce990",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "Shelpin/aengel_2.0",
+      "commit": "4988fa5f73a338e1e0809c4d1319e803f499206f",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "anandsub-zuper/hvac-diagnostics-assistant",
+      "commit": "aa65291b807b69bea1f364a25618d1a57c0c99b5",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "playtym/gpt-for-kids-educational-platform",
+      "commit": "90de9006e440ca3810fabc358b714c09ef106208",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "sashabogi/argus",
+      "commit": "613bf6be2bc07c2e0141bb9ed893e01fe46f4ba9",
+      "stars": 9,
+      "provider": "openai"
+    },
+    {
+      "repo": "absrzvi/yourHealth",
+      "commit": "df58272f62ffa234f6f3ef7d76204df1258662e1",
+      "stars": 1,
+      "provider": "openai"
+    },
+    {
+      "repo": "RazanRG/Nero",
+      "commit": "4ecc1e78fcb159967721b5aae27ebf5e74f00509",
+      "stars": 1,
+      "provider": "openai"
+    },
+    {
+      "repo": "BPenzar/hzz-app-2",
+      "commit": "01dbf0890800d1f3961f78d9f2fca16a194d0cc0",
+      "stars": 0,
+      "provider": "openai"
+    },
+    {
+      "repo": "hrishioa/lumentis",
+      "commit": "15e8855eefed5e749ecd32d2521b8bab0fa01dda",
+      "stars": 1687,
+      "provider": "openai"
+    },
+    {
+      "repo": "braintrustdata/autoevals",
+      "commit": "55b572df9e82a51296a00d5454cd05b77226f8a4",
+      "stars": 1088,
+      "provider": "openai"
+    },
+    {
+      "repo": "twilio-labs/call-gpt",
+      "commit": "db0aecda0058f222bfc26ad626d831c365ecfcea",
+      "stars": 497,
+      "provider": "twilio"
+    },
+    {
+      "repo": "Prince25/StockAlertBot",
+      "commit": "4d68eb095f9e8c3f9f649ae0850654cf211f430f",
+      "stars": 273,
+      "provider": "twilio"
+    },
+    {
+      "repo": "h-REA/hREA",
+      "commit": "8c99160bbf6c4ffab0b4d05a3edf8ec629c09ab4",
+      "stars": 169,
+      "provider": "twilio"
+    },
+    {
+      "repo": "likeastore/heartbeat",
+      "commit": "8eea0c796437b3cc9d4b742cc1779633009c42e5",
+      "stars": 109,
+      "provider": "twilio"
+    },
+    {
+      "repo": "sourcefuse/loopback4-notifications",
+      "commit": "330b9641571a76d92de1fd56d961c308ceae3c7b",
+      "stars": 35,
+      "provider": "twilio"
+    },
+    {
+      "repo": "orosandrei/Home-Monitoring-Raspberry-Pi-Node",
+      "commit": "784d8bd677f0fa3932390ba79bb15007c0004ce4",
+      "stars": 52,
+      "provider": "twilio"
+    },
+    {
+      "repo": "Syncano/nodejs-codebox",
+      "commit": "08aee174ac5d582e77fd3dab4f75f5bf5cc9abe9",
+      "stars": 8,
+      "provider": "twilio"
+    },
+    {
+      "repo": "erikanderson/quakemon",
+      "commit": "bfa5bae08169467dbaa5a4a2c8310cc268b905fd",
+      "stars": 9,
+      "provider": "twilio"
+    },
+    {
+      "repo": "hvardhanx/AMBER-alerts",
+      "commit": "99549cef4338056775516a27850b3e065634f78b",
+      "stars": 2,
+      "provider": "twilio"
+    },
+    {
+      "repo": "Autodesk/machine-collaboration-utility",
+      "commit": "e45e56a8542b7f034a021aec943de6a801af4755",
+      "stars": 31,
+      "provider": "twilio"
+    },
+    {
+      "repo": "EGreg/Platform-history",
+      "commit": "91a2a103b17af75a7b0e788c72e92d718556a411",
+      "stars": 21,
+      "provider": "twilio"
+    },
+    {
+      "repo": "sagnew/CallStatusDashboard",
+      "commit": "aec830eee92f0520d7a9718be8e5633e6ec89a56",
+      "stars": 51,
+      "provider": "twilio"
+    },
+    {
+      "repo": "ascendia-network/ambrosus-node-extended",
+      "commit": "1b5cdd5dda7c055f2a36627735fb245f6c131c82",
+      "stars": 5,
+      "provider": "twilio"
+    },
+    {
+      "repo": "twilio-labs/sample-template-nodejs",
+      "commit": "7eadcf4c9d816965e11b9037919b47a1c6b46323",
+      "stars": 18,
+      "provider": "twilio"
+    },
+    {
+      "repo": "utter-one/bonsai",
+      "commit": "2d38a6b24c32b58def993d744332f5bb4d3bd55c",
+      "stars": 59,
+      "provider": "twilio"
+    },
+    {
+      "repo": "DanielCordell/TextEverything",
+      "commit": "2cb3d049d66b664ffb3d9ebf5a0cca8717570fd2",
+      "stars": 9,
+      "provider": "twilio"
+    },
+    {
+      "repo": "janecakemaster/exquisitetexts",
+      "commit": "a4574c3aca7a25018494d1ddf24836dd21d5d437",
+      "stars": 26,
+      "provider": "twilio"
+    },
+    {
+      "repo": "pebblecode/iot-washing-machine",
+      "commit": "088fb854721e35698248476a481c967daff92fa0",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "twilio-demos/twilio-agent-create-app",
+      "commit": "1d8956d91c5dfa9b2e34bf09ee6a45b8ce0007fa",
+      "stars": 4,
+      "provider": "twilio"
+    },
+    {
+      "repo": "ali-bennezia/basilic-io-serveur-application",
+      "commit": "d7fc7ad6d016f34a23c47ac33b596d242b0cae8d",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "aleph-engineering/feedonideas.com",
+      "commit": "17d507cfa0ea023b5bfc7a752064f4a38e084348",
+      "stars": 4,
+      "provider": "twilio"
+    },
+    {
+      "repo": "usha-madithati/esmart.github.io",
+      "commit": "e5468e784efab7c2538fadcae4adaa68eaa490eb",
+      "stars": 51,
+      "provider": "twilio"
+    },
+    {
+      "repo": "muhammadsemeer/clinic-management-system",
+      "commit": "7acf00f255d44c3533f9ea5a68ef528728132a67",
+      "stars": 14,
+      "provider": "twilio"
+    },
+    {
+      "repo": "Garden-Steward/steward-bank",
+      "commit": "c489442c8ae07a32a3a2ffc689e4e3ea5fbcbc40",
+      "stars": 1,
+      "provider": "twilio"
+    },
+    {
+      "repo": "sagnew/Twilio-IP-Messaging-Plays-Pokemon",
+      "commit": "55145e923e9e047ec6388b3f4b6b10b934432b76",
+      "stars": 20,
+      "provider": "twilio"
+    },
+    {
+      "repo": "lilith/playdate",
+      "commit": "a812f675c7d835692c629a06d8f023b5e5dd1df3",
+      "stars": 9,
+      "provider": "twilio"
+    },
+    {
+      "repo": "adarshaacharya/MentorLabs",
+      "commit": "e6337f8f1e2a67aaebf713bd12861bf90743d2af",
+      "stars": 48,
+      "provider": "twilio"
+    },
+    {
+      "repo": "ECLabs/UpBoard",
+      "commit": "5c45f58d1bb00267cc97c21afd908c385cc2ffe4",
+      "stars": 2,
+      "provider": "twilio"
+    },
+    {
+      "repo": "BrentAureli/BrentAureli.com",
+      "commit": "351c4d98033b24ee55862d612e3440143c7b0236",
+      "stars": 21,
+      "provider": "twilio"
+    },
+    {
+      "repo": "zaferayan/earthquakes-action",
+      "commit": "d217904550dc4b617355126b4dd7357a3dc3f7fc",
+      "stars": 13,
+      "provider": "twilio"
+    },
+    {
+      "repo": "adkbot/Bot-Binance-arbitragem-gex",
+      "commit": "a71b6576c25dc48ad3ad2af43562521321f452cb",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "huaxiaozhong1/Watching-Sensors-with-ESP32--Expressjs-Twilio-Sync-for-IoT",
+      "commit": "56bda82a67fb60ebebecb48081c9b531c6399f16",
+      "stars": 2,
+      "provider": "twilio"
+    },
+    {
+      "repo": "civic-data-design-lab/react-beirut",
+      "commit": "0e127909d3ca17f1541c13829e290755ab3d0583",
+      "stars": 5,
+      "provider": "twilio"
+    },
+    {
+      "repo": "synchroniseiorepo/server",
+      "commit": "7813366817bb4f3808d94d8af09aef94deebb030",
+      "stars": 9,
+      "provider": "twilio"
+    },
+    {
+      "repo": "COMbaohe/smr",
+      "commit": "31901d18de6ae99f978b1017943c0147fed17c06",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "joerez/MERN-SPA-Starter",
+      "commit": "91205a1180d007fefb4c597757e3bed5174f4f01",
+      "stars": 24,
+      "provider": "twilio"
+    },
+    {
+      "repo": "TinkerTravel/purescript-twilio",
+      "commit": "b91627a081b409bd8b8f906f55b84b40269c2d1d",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "AryaVeerJai/wattn_inventory",
+      "commit": "708afece94cc7304725efa7a892f764f09b8ad46",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "jithin003/whatsapp_chat_api",
+      "commit": "c33544b7ea8318f71e8bee4df1dfae0ffa8f0249",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "christianmolnar/four-peaks-observatory",
+      "commit": "d34163008b47ed7d764be0e895bcb4a5eb28093a",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "trxnsrnarr/smartschool-backend-kel11",
+      "commit": "0a0ba653881efd0ea33dc080da8b118f3f4d8bc0",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "telosnetwork/api-telos-net",
+      "commit": "ffe28e9b9c0467c1dc3141eddb2d77ba8eda19ec",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "Juanitoverde/TelegramPluginSystem",
+      "commit": "15b88fde21c5cda0e1aa6cfc76d2669a77902b2f",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "ugwutobychuks/hospital-management-system",
+      "commit": "db1f7e0f5922c1454bd154145196bd672a85219b",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "domanin87/TransitSNG",
+      "commit": "f8fcfdde81cb26844265810da50f392b175ec264",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "chaityabshah/CrowdNine",
+      "commit": "e8691447225914f1f3465a0d4549840618008c13",
+      "stars": 3,
+      "provider": "twilio"
+    },
+    {
+      "repo": "ma-za-kpe/omnishift",
+      "commit": "eb6abe45c051d69059569827143f058e4426c656",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "lazerwalker/sext-machine",
+      "commit": "ee6b1611ebeaa0187e5e72f3e20fea3bfbcb7f69",
+      "stars": 8,
+      "provider": "twilio"
+    },
+    {
+      "repo": "KatieHYT/cradle-vite",
+      "commit": "b93e88fc17eb3a518adf0ad8428b73b9cf879701",
+      "stars": 16,
+      "provider": "twilio"
+    },
+    {
+      "repo": "vid/Shout",
+      "commit": "de9f70781b3ef8279088b37010e2f78cc9408608",
+      "stars": 3,
+      "provider": "twilio"
+    },
+    {
+      "repo": "gillesheinesch/sms-medication-reminder",
+      "commit": "e164dcdb30752b721d2f02f6d7273c8ea02e4be5",
+      "stars": 7,
+      "provider": "twilio"
+    },
+    {
+      "repo": "steemit/wallet",
+      "commit": "cce09b74fc9c4bb145b24b40c523c938cec56743",
+      "stars": 12,
+      "provider": "twilio"
+    },
+    {
+      "repo": "tobyau/fashion_forward",
+      "commit": "8ff2f01a51c274b275e6ffa31b310abad66e1774",
+      "stars": 6,
+      "provider": "twilio"
+    },
+    {
+      "repo": "devmountainautomation/smarthome",
+      "commit": "c280903601782a57f66b296e01a111fc92239a9e",
+      "stars": 6,
+      "provider": "twilio"
+    },
+    {
+      "repo": "sukhrob-djumaev/ziyrak-app",
+      "commit": "4efeea42ec835021840468d2e55675edebde1bd8",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "yariksav/adonis-smser",
+      "commit": "62326c22e28efcd383c6d8a438de85008e39014a",
+      "stars": 10,
+      "provider": "twilio"
+    },
+    {
+      "repo": "rodocite/ethereum-playground",
+      "commit": "504c7a65141eeed6ca0b3150710d142fb1e60476",
+      "stars": 5,
+      "provider": "twilio"
+    },
+    {
+      "repo": "behark/kiiltoloisto-fi",
+      "commit": "654b7e6cdb42f3ad6dba27edcc5e048cc8bef678",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "AnzoBenjamin/healthify",
+      "commit": "5f528d78cf1a32fe9adc06cb0bcc97a4eb5911b1",
+      "stars": 9,
+      "provider": "twilio"
+    },
+    {
+      "repo": "fuss2120/OUD-",
+      "commit": "140a418814691cee3365f1e2faeb838cf4691dda",
+      "stars": 3,
+      "provider": "twilio"
+    },
+    {
+      "repo": "jonathantyng/UofTHacks15",
+      "commit": "1fe142810f6232c28d306399a10a5f1c405d236a",
+      "stars": 3,
+      "provider": "twilio"
+    },
+    {
+      "repo": "Shatzii/Go4it-Sports",
+      "commit": "c82a3e94e1746e33bd1b2410e9de3fbc1c285969",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "AskMP/Aether",
+      "commit": "1e92eb85d33f6a386a9e3aa149686d3746ee4dc3",
+      "stars": 2,
+      "provider": "twilio"
+    },
+    {
+      "repo": "mkiradani/dao-monorepo",
+      "commit": "47c9448dd8ace1c9093f029fd419686033a24f87",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "dscarlin/group-project-2",
+      "commit": "ae4dd5f8a0ef147212e2c8d0635cdde9b2c80106",
+      "stars": 4,
+      "provider": "twilio"
+    },
+    {
+      "repo": "nash-md/twilio-phone-ng",
+      "commit": "b6e90abb658111d23009fa5d30eedeec27b190ff",
+      "stars": 4,
+      "provider": "twilio"
+    },
+    {
+      "repo": "AdmiralEnergy/admiralenergy-website",
+      "commit": "ce17952bd7183418007208ddf98349ee57a31808",
+      "stars": 1,
+      "provider": "twilio"
+    },
+    {
+      "repo": "Hackception/global-hack-6",
+      "commit": "4f2e50ac96d789a88b34388ada4f577d00388d45",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "voodoohop/digitaltwin",
+      "commit": "d022cb2b1ad7fa88114bf28833badd3503419983",
+      "stars": 2,
+      "provider": "twilio"
+    },
+    {
+      "repo": "concensus/node-server",
+      "commit": "2260246283f9a3ae1e90f4a6c91e17f92f27670f",
+      "stars": 2,
+      "provider": "twilio"
+    },
+    {
+      "repo": "jdupl/log210",
+      "commit": "65cc201b52b0153ba4985fc9d00256ed40dc4bc7",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "shipping-api/serverless-twilio-shippo",
+      "commit": "979985426b86f1bfc835f21f3de84f7bc169d507",
+      "stars": 8,
+      "provider": "twilio"
+    },
+    {
+      "repo": "jochan/mddb",
+      "commit": "b2980c916f0ee2949a00598b9cc8e5dd695ae4bb",
+      "stars": 1,
+      "provider": "twilio"
+    },
+    {
+      "repo": "kmoe/twilio-price-calculator",
+      "commit": "9cde595569093f5b279ebe117a79899ee2687371",
+      "stars": 4,
+      "provider": "twilio"
+    },
+    {
+      "repo": "ConnorCallison/openclaw-voice-gpt-realtime",
+      "commit": "730ba27a0e26eeaa9e2b5a429af0e948a3a827ce",
+      "stars": 4,
+      "provider": "twilio"
+    },
+    {
+      "repo": "ryanata/password-manager",
+      "commit": "071c062b87ad2df78d4eb82c13ce769416f9a5b0",
+      "stars": 4,
+      "provider": "twilio"
+    },
+    {
+      "repo": "egocentryk/planwear-backend",
+      "commit": "29549853a1c590a429eade30d9de1d3e4df0ff83",
+      "stars": 26,
+      "provider": "twilio"
+    },
+    {
+      "repo": "Conte686/howzat-whataspp-bot",
+      "commit": "9ef4d56eb2fc49fe4a54f0e2425eefb92414886a",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "saiyamdubey/Erp_Automation",
+      "commit": "a4f6d6d14bcca0dd3eb878df358d333810a26ef2",
+      "stars": 7,
+      "provider": "twilio"
+    },
+    {
+      "repo": "nossas/bonde-phone",
+      "commit": "50f18fba572082f3be6c65c3b5527c8a553971dc",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "symblai/symbl-twilio-media-streams-integration",
+      "commit": "323c6a6b23ff8e61ccd37a0347176b50899efe09",
+      "stars": 3,
+      "provider": "twilio"
+    },
+    {
+      "repo": "yadaguru/yadaguru-api",
+      "commit": "76fbc2126e5f18bae79ab3a974acb782cf5edeb3",
+      "stars": 2,
+      "provider": "twilio"
+    },
+    {
+      "repo": "bravetechnologycoop/brave-app-reporting",
+      "commit": "06ebcd4d7184b99f788764e8db57fdd7d347bef7",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "ukashasohail/e-shop-app",
+      "commit": "11c603112e691a3f5776a428ac7c716b80c9778e",
+      "stars": 3,
+      "provider": "twilio"
+    },
+    {
+      "repo": "lealclarissa/mcmr-back",
+      "commit": "e78587f2631459a38d17c8a8c8f8f5271f247a38",
+      "stars": 3,
+      "provider": "twilio"
+    },
+    {
+      "repo": "appdeveloperclub/appdeveloperclub.org",
+      "commit": "769c51e5a56bc51ecc332f2d429dfcc85135566d",
+      "stars": 3,
+      "provider": "twilio"
+    },
+    {
+      "repo": "DSDmark/FunBlog-Server",
+      "commit": "ae6951923d411706ca08bb6a3d71dc29647a7403",
+      "stars": 3,
+      "provider": "twilio"
+    },
+    {
+      "repo": "twilioforkwc/Twilio_Lottery",
+      "commit": "7a558765123fbee7f897115c28b14b29ba479cd1",
+      "stars": 3,
+      "provider": "twilio"
+    },
+    {
+      "repo": "huzzahh/dynamic-translations",
+      "commit": "63b36bdbbbea5399b8268df616089c10c54da050",
+      "stars": 6,
+      "provider": "twilio"
+    },
+    {
+      "repo": "caesarc6/Backend-Messaging-App",
+      "commit": "58359ac5790c875fbf898e58ff6ab08bc75876e2",
+      "stars": 2,
+      "provider": "twilio"
+    },
+    {
+      "repo": "ach02raf/GoTrip-ionic-application-backend",
+      "commit": "78376cf00e4a125f21de47555abb4d5f1e86187e",
+      "stars": 3,
+      "provider": "twilio"
+    },
+    {
+      "repo": "philnash/advanced-twilio-video",
+      "commit": "d7a0164c7d99af40225592274529b0816e27f013",
+      "stars": 3,
+      "provider": "twilio"
+    },
+    {
+      "repo": "NikeYEA/nike-clone",
+      "commit": "24ccc3e3fd43771fa872df69c4af1542ac92c96c",
+      "stars": 2,
+      "provider": "twilio"
+    },
+    {
+      "repo": "Anwar-abdi/Sehir-hastanesi",
+      "commit": "ee0bbb82765e800edbbd505d2d9974e00e03ebe9",
+      "stars": 6,
+      "provider": "twilio"
+    },
+    {
+      "repo": "josephmilla/clappity",
+      "commit": "0123e6790f0f31480d708f316c71f26c33b140cc",
+      "stars": 3,
+      "provider": "twilio"
+    },
+    {
+      "repo": "raineorshine/shelter-text",
+      "commit": "cd91207384dff125aebedee16d4df02903a49548",
+      "stars": 3,
+      "provider": "twilio"
+    },
+    {
+      "repo": "ranjayd-harvard/tt-ms-stack",
+      "commit": "f8b32ed47fd5b80c05325346f70389fe76949722",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "RaghaRao314159/Convo-UI",
+      "commit": "0c0a82794d24e967339c133b133c64b44051d42a",
+      "stars": 21,
+      "provider": "twilio"
+    },
+    {
+      "repo": "codedByCan/smsQuick",
+      "commit": "4e4e82da21ae14204a848390f05f88b9f1f23b4d",
+      "stars": 2,
+      "provider": "twilio"
+    },
+    {
+      "repo": "lussatech/tarsius-messaging-sms-twillio",
+      "commit": "f6168f17e10697618ccd0dc04009b4e4b1a784b9",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "moliri/crowdcheer",
+      "commit": "b6551808c6258a246e3f142eb4c2c6b2310ec46a",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "CodeForCary/wasteline",
+      "commit": "76440b3fd452ee9db891900ee13bbfde1f1d4bb3",
+      "stars": 3,
+      "provider": "twilio"
+    },
+    {
+      "repo": "Intelurate/WebApp",
+      "commit": "ef3f6cfa056088229c5c5a0d6c9b72cc8100e346",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "cliffweitzman/HeartWatch5",
+      "commit": "8022e6056b2f585885a3a72e8ed0eab1a2d4d1df",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "connormckelvey/smsh",
+      "commit": "d6a3dfd433030cf2608e511c7655488be72ceb67",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "james-carlson/byte4bite",
+      "commit": "e01870a2f9c0c2416f3976ada528ab1c863da763",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "AUQIB92/NoorX",
+      "commit": "268226012420c95076d2b7b4ff171c2822bc4d54",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "Robinnnnn/socialtees-api",
+      "commit": "36264d742e01c6da0bd5393ff42e4f78db8f0d29",
+      "stars": 1,
+      "provider": "twilio"
+    },
+    {
+      "repo": "matthew1809/Twilio-moltin",
+      "commit": "d70f5454ed0538507f8a4605bd9fa77fe041e232",
+      "stars": 4,
+      "provider": "twilio"
+    },
+    {
+      "repo": "jasminesung/family-leads-api",
+      "commit": "e4a0083733b6af062afba4b265bdec9f3c2fdac9",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "jackmasterson/redux-chat",
+      "commit": "6e7576930442c6aeb970a143f4d3e5516ad1b619",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "ashishsuffescom/momento-backend",
+      "commit": "a1f31bd5e7bb592ee619bcf31e6ab0529ffe4940",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "blackdiamondbbq956-boop/black-diamond-receipts",
+      "commit": "9a999e3bc48867755513c0b1f019de56810b79e0",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "redrambles/quick_text_message",
+      "commit": "50d59b3e608c82f6521439aa65cea138d775322a",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "justynspooner/secret-santa",
+      "commit": "5a751b5ae88b1bb86597c7ec24b6e7521ace9675",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "smartiecereals/glampr",
+      "commit": "949cb3fd62dd13a6e207289b91157cba0a1a794f",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "SEDOD/diasporaconnect-mbh2026",
+      "commit": "673e7182b759d0e4e90cf2012664cf05bf4163c1",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "tylerasai/Food_takeout_order_app",
+      "commit": "6ea3dacca4eefe452425c8d0ba1da4125ac4858c",
+      "stars": 1,
+      "provider": "twilio"
+    },
+    {
+      "repo": "sahaniaditya/RideSharing",
+      "commit": "19ae5049b8fc6ffeca1db7432c60431dcd08de4d",
+      "stars": 2,
+      "provider": "twilio"
+    },
+    {
+      "repo": "kingram5/Answer_Tasklet_Dashboard",
+      "commit": "1a0f4b69bc1a0caafa8e6c05d25a1fe94f650c52",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "sambitsargam/Agent_Link",
+      "commit": "09392760ea53d0f3a84b8827d03bf9c22711bc9f",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "AdepuSanjay/tkrc-backend",
+      "commit": "a6b240252e647ca7c8b9f3b89a252dc7b8444542",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "razouane/Trust",
+      "commit": "436186eae4abdcea0b28df751da57100f6c1be7d",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "gtracy/memories",
+      "commit": "fb9ce9a703d934009f2c722f4d7a2d703249fc22",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "tienvv1234/data-structure-and-algorithms",
+      "commit": "0496fe48ecfec545d8cc69ef01da42eb4b336b4a",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "martincapo/mzr_foodapp",
+      "commit": "9aa2711a72697966b2275fde619d2af10d4352d7",
+      "stars": 2,
+      "provider": "twilio"
+    },
+    {
+      "repo": "princeverma-ai/message-automation",
+      "commit": "2d8a742ec618ec8a3d1f8b51fadc6c71bc002eb4",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "Zouira/transfer-app-v2",
+      "commit": "e44e11c1131a2f36ba982af02f2eacc676fd801e",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "babymilooo/chronos-backend",
+      "commit": "e160db244994ca7fc35b24b03110f36ce5595fa5",
+      "stars": 0,
+      "provider": "twilio"
+    },
+    {
+      "repo": "muhammad-usama12/food_ordering_app",
+      "commit": "dad2ded7214b29db59882a267a8969866c92edba",
+      "stars": 1,
+      "provider": "twilio"
+    },
+    {
+      "repo": "giorgiofellipe/floraclin",
+      "stars": 0,
+      "commit": "3fca0eeb2d42af4da51a67a425c9bdd54698a7c6",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-27",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "pnpm",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "ingridandrade-ctrl/arthea",
+      "stars": 0,
+      "commit": "2d796c3b7a2aeeed53c440d77d7a14484a272f25",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-26",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "CassieMarie0728/jekyll-forge",
+      "stars": 1,
+      "commit": "99cc09f74b2f7a419afe56acb53050d71fb229ec",
+      "owner": "User",
+      "authors90d": 3,
+      "authors180d": 3,
+      "lastCommit": "2026-10-01",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "pnpm",
+      "found": ["instagram", "versioned-url"],
+      "versions": ["v18.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "Totex-Motors/Totexgest",
+      "stars": 0,
+      "commit": "5af34ca1a99f57cca6f75a3dd9ab8e64b61b56fc",
+      "owner": "Organization",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-23",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["instagram", "versioned-url", "whatsapp-cloud"],
+      "versions": ["v19.0", "v20.0", "v21.0", "v22.0", "v23.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retired-version", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "Mukul0610/Enterprise_qua",
+      "stars": 0,
+      "commit": "8660d34d9d2adc51e04e2b051ff3feecd3e864b5",
+      "owner": "User",
+      "authors90d": 7,
+      "authors180d": 7,
+      "lastCommit": "2026-10-16",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v19.0"],
+      "fbInit": [],
+      "affected": ["retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "ownerofstudio37/websitefors37",
+      "stars": 0,
+      "commit": "4724ddaeb40090a138d4faf085c4e56d8a5e860a",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-26",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url"],
+      "versions": ["v17.0"],
+      "fbInit": [],
+      "affected": ["removed-request", "retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "PedroHPSan/Nogaria_travel",
+      "stars": 0,
+      "commit": "3a2023353f7b69cb95f1d6840365f274c3e2bddc",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-22",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "pooriaarab/agentic-publish",
+      "stars": 0,
+      "commit": "1533cb66e60d3ed21b408ca392327177fd00036f",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-16",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "ogSulem/pulse",
+      "stars": 0,
+      "commit": "c9b30a15ff348d19e66921a4320ba45b1fc52a5a",
+      "owner": "User",
+      "authors90d": 3,
+      "authors180d": 3,
+      "lastCommit": "2026-10-29",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "vaughnxmedia-alt/VX_KORA",
+      "stars": 0,
+      "commit": "cf538f7a5072558d71d5afb4890142ad8ca034f6",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-25",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url"],
+      "versions": ["v20.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "micoromano/nolotrack",
+      "stars": 0,
+      "commit": "8b3a6910501378662ff0945bc943c6c79a27d931",
+      "owner": "User",
+      "authors90d": 3,
+      "authors180d": 4,
+      "lastCommit": "2026-08-07",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "umero882/whatsApp-CRM",
+      "stars": 0,
+      "commit": "8582811ac532437c4e74a0136ce68c08d3242406",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-09-21",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "cardosomatheus1/barbearia",
+      "stars": 0,
+      "commit": "e438ec54c3108649f19325d881d71d786c6fbcd4",
+      "owner": "User",
+      "authors90d": 3,
+      "authors180d": 3,
+      "lastCommit": "2026-09-13",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "pnpm",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "diegocsrdias/postmedia",
+      "stars": 0,
+      "commit": "d5de2c5b16d3f0b40105fc194b73bf6c8139dccc",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-09-24",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["instagram"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "mosesisik-cloud/velvet-vip-tables",
+      "stars": 0,
+      "commit": "390c00bdccd4e8765b01b0894c52b454ff713bc9",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-26",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["instagram", "whatsapp-cloud"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "Hrithik450/harnes",
+      "stars": 0,
+      "commit": "c605353d7dc8d2f10808d33d7ae41db9259231a0",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-18",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "pnpm",
+      "found": ["versioned-url"],
+      "versions": ["v19.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "Mdy305/LolaDesk",
+      "stars": 0,
+      "commit": "afbbdf5ceb57834d2f0bb702afcfdfda3b8e6a28",
+      "owner": "User",
+      "authors90d": 4,
+      "authors180d": 4,
+      "lastCommit": "2026-10-26",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["instagram"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "ventas-png/control-consumo-agua",
+      "stars": 0,
+      "commit": "daa1d003b321904e04a695b2dd0b44228fd32c49",
+      "owner": "User",
+      "authors90d": 3,
+      "authors180d": 3,
+      "lastCommit": "2026-10-29",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url", "whatsapp-cloud"],
+      "versions": ["v19.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "Ganapathi1618/Nextjs-Fastrill-ai",
+      "stars": 1,
+      "commit": "e329242f6c5fd315fd17aaef974e2366fa38be75",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-08-14",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url", "whatsapp-cloud"],
+      "versions": ["v18.0", "v22.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retired-version", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "newfold-labs/wp-module-facebook",
+      "stars": 0,
+      "commit": "f5296c4cfbd93cd67fcc9ad742208a17d926229c",
+      "owner": "Organization",
+      "authors90d": 2,
+      "authors180d": 4,
+      "lastCommit": "2026-10-28",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url"],
+      "versions": ["v18.0"],
+      "fbInit": [],
+      "affected": ["retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "stellalphatic/voiceify",
+      "stars": 0,
+      "commit": "6a6ae20b55ac1d2802ac192419d7d6a02fdd5db2",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-09-06",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "pnpm",
+      "found": ["versioned-url", "whatsapp-cloud"],
+      "versions": ["v19.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "seantunley/denagocrm",
+      "stars": 0,
+      "commit": "cae071f25b99e8e7b3b85c8dd6d74b250ffe5457",
+      "owner": "User",
+      "authors90d": 3,
+      "authors180d": 3,
+      "lastCommit": "2026-10-29",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url", "whatsapp-cloud"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "steroids/react",
+      "stars": 22,
+      "commit": "6f44e3762eb0103a8fcda9cc943640d36a873c90",
+      "owner": "Organization",
+      "authors90d": 2,
+      "authors180d": 4,
+      "lastCommit": "2026-08-27",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "yarn",
+      "found": ["fb-init"],
+      "versions": [],
+      "fbInit": ["v3.1"],
+      "affected": ["retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "marioce12-bot/Chariow",
+      "stars": 1,
+      "commit": "6bad835375808e562329ad2462b14fcb666d239b",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-28",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url"],
+      "versions": ["v23.0"],
+      "fbInit": [],
+      "affected": ["retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "FreeForCharity/FFC-IN-FFC_Single_Page_Template",
+      "stars": 2,
+      "commit": "c7b13ea21af6a15891b8e8e2a6269642c7983a2d",
+      "owner": "Organization",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-19",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "pnpm",
+      "found": ["versioned-url"],
+      "versions": ["v23.0"],
+      "fbInit": [],
+      "affected": ["retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "dvygolov/AdReplica",
+      "stars": 5,
+      "commit": "071a118c87c43ea65231bdfe746111d917e0ee82",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-29",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url"],
+      "versions": ["v23.0"],
+      "fbInit": [],
+      "affected": ["retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "Marcocerweb01/Gestionale-Web-Hoon",
+      "stars": 0,
+      "commit": "899e0da417f2b7f87cdf1b88182aa769e10a3cdf",
+      "owner": "User",
+      "authors90d": 4,
+      "authors180d": 6,
+      "lastCommit": "2026-10-29",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["instagram"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "AmandaOrg/udara",
+      "stars": 0,
+      "commit": "1c466ec79d9e52ce4954e31aa5a158b48d256894",
+      "owner": "Organization",
+      "authors90d": 4,
+      "authors180d": 4,
+      "lastCommit": "2026-10-28",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url", "whatsapp-cloud"],
+      "versions": ["v19.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "symbiosika/symbiosika-framework",
+      "stars": 0,
+      "commit": "c6c3d1524d471adf774b57c7dddfe58321e0587d",
+      "owner": "Organization",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-28",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "bun",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v22.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "herslander-netizen/cortai-app",
+      "stars": 0,
+      "commit": "2d118687a1a919da333e5add6cd44499385ce284",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-29",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "bun",
+      "found": ["instagram"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "mkyousafali/Aqura",
+      "stars": 0,
+      "commit": "7f9dadc56906f1e8d0e9b9d9ad4c5473348bc5a9",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-24",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "pnpm",
+      "found": ["versioned-url", "whatsapp-cloud"],
+      "versions": ["v22.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "EF-CHAIN/SendAm",
+      "stars": 5,
+      "commit": "35f3121089d127ad63310930ef4925d378baeaf4",
+      "owner": "Organization",
+      "authors90d": 40,
+      "authors180d": 40,
+      "lastCommit": "2026-10-26",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url", "whatsapp-cloud"],
+      "versions": ["v19.0", "v20.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "ZoaZone/marketer",
+      "stars": 0,
+      "commit": "e7192f8bab210c894f741eedff377fbe5e323e67",
+      "owner": "User",
+      "authors90d": 4,
+      "authors180d": 4,
+      "lastCommit": "2026-10-27",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["instagram", "versioned-url", "whatsapp-cloud"],
+      "versions": ["v19.0", "v20.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "duchai1703/bookingcare-frontend",
+      "stars": 1,
+      "commit": "c15e4d9abcc82cedc16fd0515070975f8947e83a",
+      "owner": "User",
+      "authors90d": 3,
+      "authors180d": 3,
+      "lastCommit": "2026-10-28",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["fb-init"],
+      "versions": [],
+      "fbInit": ["v18.0"],
+      "affected": ["retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "AtonIA00/aton-member-dashboard",
+      "stars": 0,
+      "commit": "fe238fcb3d2aacca332d06bdc8150d0a362fb9f9",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-29",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url"],
+      "versions": ["v21.0", "v23.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "Intekhab78/JTS-Chat-Support",
+      "stars": 0,
+      "commit": "45547b95840678bed7e972e107a5bbd459ff2ff0",
+      "owner": "User",
+      "authors90d": 4,
+      "authors180d": 4,
+      "lastCommit": "2026-10-22",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v18.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "Bennettxai/FounderOS",
+      "stars": 1272,
+      "commit": "5755eb7039da980c3ce53694b74ca941917789cb",
+      "owner": "User",
+      "authors90d": 4,
+      "authors180d": 4,
+      "lastCommit": "2026-10-29",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["instagram"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "Jam7-UK/bizzblox-social",
+      "stars": 0,
+      "commit": "285ea2cbffdcd596a2976be83161fcacf9293769",
+      "owner": "Organization",
+      "authors90d": 4,
+      "authors180d": 4,
+      "lastCommit": "2026-09-21",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "pnpm",
+      "found": ["instagram"],
+      "versions": ["v25.0"],
+      "fbInit": [],
+      "businessSdk": "21.0.5",
+      "affected": ["removed-request"],
+      "provider": "meta"
+    },
+    {
+      "repo": "AlazabDev/az-wa",
+      "stars": 0,
+      "commit": "818117605b6fa1a30e823fd479e595686f6dff93",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-29",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "bun",
+      "found": ["business-sdk", "whatsapp-cloud"],
+      "versions": ["v21.0"],
+      "fbInit": ["v26.0"],
+      "businessSdk": "^23.0.1",
+      "affected": ["changed-request", "removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "zerfinityProd/intelliRX",
+      "stars": 0,
+      "commit": "11b4bf1a9f6c7330d7b8b3f4619e609d5f30899c",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 4,
+      "lastCommit": "2026-09-27",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url", "whatsapp-cloud"],
+      "versions": ["v19.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "Shamrock2245/shamrock-bail-portal-site",
+      "stars": 1,
+      "commit": "a873df5b805fb1feebc4f779681896b685495685",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-28",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "anderrsc/crm-bielenki",
+      "stars": 0,
+      "commit": "5e3b50f2a3eb91924077414a129ebdc796e55027",
+      "owner": "User",
+      "authors90d": 3,
+      "authors180d": 3,
+      "lastCommit": "2026-10-12",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v19.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "kreativae/kreativae-leads",
+      "stars": 0,
+      "commit": "21e88eb65c74ae83b993d262bece75bb1fe4fa71",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-14",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "drewmully/newreserve",
+      "stars": 0,
+      "commit": "d30e05168dc16a9a189c293c05a673de196b91e9",
+      "owner": "User",
+      "authors90d": 3,
+      "authors180d": 3,
+      "lastCommit": "2026-10-29",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url"],
+      "versions": ["v19.0", "v25.0"],
+      "fbInit": [],
+      "affected": ["retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "inploi/postiz-app",
+      "stars": 0,
+      "commit": "48c6dfd4b3ff04103110db1b9bdacd782556f9e7",
+      "owner": "Organization",
+      "authors90d": 4,
+      "authors180d": 4,
+      "lastCommit": "2026-08-18",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "pnpm",
+      "found": ["instagram"],
+      "versions": ["v20.0", "v22.0", "v23.0"],
+      "fbInit": [],
+      "businessSdk": "21.0.5",
+      "affected": ["changed-request", "removed-request", "retired-version", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "tareksalammohamed/socialpilot",
+      "stars": 1,
+      "commit": "cf667abb244744d196a56bae7f3167ce5cdd2519",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-25",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["fb-init", "whatsapp-cloud"],
+      "versions": ["v21.0", "v26.0"],
+      "fbInit": [],
+      "affected": ["removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "YoniLevy10/Bino",
+      "stars": 1,
+      "commit": "387d1f7aac5b22aa9cb605218e3873965676187e",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-17",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v23.0"],
+      "fbInit": [],
+      "affected": ["removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "Ade-yanju/Credeo",
+      "stars": 1,
+      "commit": "4f42d76b0cd9ce82ad7998b8c19b04a8dc0adc0b",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-09-25",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v19.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "jakeoborn/Plursky",
+      "stars": 0,
+      "commit": "68ff6344e312100a9888961b6e98b1d0722f2967",
+      "owner": "User",
+      "authors90d": 3,
+      "authors180d": 3,
+      "lastCommit": "2026-10-29",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url"],
+      "versions": ["v23.0"],
+      "fbInit": [],
+      "affected": ["retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "lovishxdev/Euclis",
+      "stars": 0,
+      "commit": "88229f0900005f255793209fafc12d68d7044d77",
+      "owner": "User",
+      "authors90d": 3,
+      "authors180d": 3,
+      "lastCommit": "2026-10-18",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "Sharath2005R/Whatsapp-CRM",
+      "stars": 0,
+      "commit": "b8f5567b92b8855fe590c8e495ae1017263bea67",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 3,
+      "lastCommit": "2026-09-15",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "hridoyhossain1001/buykori-client-portal",
+      "stars": 0,
+      "commit": "73db26d64aee6ebc9047799fc327e2f101ecf8a1",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-08-23",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url"],
+      "versions": ["v18.0"],
+      "fbInit": [],
+      "affected": ["retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "moudabdelwahab/Mad3oom",
+      "stars": 1,
+      "commit": "75df522dcc67987acd4137341a4521f6f0453e53",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-28",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url", "whatsapp-cloud"],
+      "versions": ["v25.0"],
+      "fbInit": [],
+      "affected": ["removed-request"],
+      "provider": "meta"
+    },
+    {
+      "repo": "eden-hason/event-planner",
+      "stars": 0,
+      "commit": "bef2747d9c71f0e1439b4ec2fa95a0d36e17c186",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-29",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v22.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "Muregis/educore-school-management-system",
+      "stars": 1,
+      "commit": "af85618344da47ae8c7718dc24620f8dfee914e4",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-26",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url"],
+      "versions": ["v18.0"],
+      "fbInit": [],
+      "affected": ["retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "jaguar999paw-droid/lavira-media-engine",
+      "stars": 1,
+      "commit": "8635e68852d15f903db6c8a212d160ca4a3694b4",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 3,
+      "lastCommit": "2026-09-06",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["instagram", "whatsapp-cloud"],
+      "versions": ["v19.0"],
+      "fbInit": [],
+      "affected": ["retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "framerslab/agentos",
+      "stars": 683,
+      "commit": "c985faa255d8dd5066eec71d7c811e8ea5a12c32",
+      "owner": "Organization",
+      "authors90d": 3,
+      "authors180d": 3,
+      "lastCommit": "2026-10-29",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "pnpm",
+      "found": ["fb-init", "whatsapp-cloud"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "BotHunting/kirana-tanjung",
+      "stars": 0,
+      "commit": "45d2b6f2cad84bf451841c42bff9081a129c82ca",
+      "owner": "User",
+      "authors90d": 2,
+      "authors180d": 2,
+      "lastCommit": "2026-10-17",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["whatsapp-cloud"],
+      "versions": ["v18.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "avinashquikboom-code/quickboom-crm-backend",
+      "stars": 0,
+      "commit": "a2edd86241bb6045ddb6a6b0c602e16a843bc745",
+      "owner": "User",
+      "authors90d": 3,
+      "authors180d": 3,
+      "lastCommit": "2026-10-28",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "npm",
+      "found": ["versioned-url", "whatsapp-cloud"],
+      "versions": ["v21.0"],
+      "fbInit": [],
+      "affected": ["changed-request", "removed-request", "retiring-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "Cap-go/videoclub",
+      "stars": 0,
+      "commit": "25e7aea8e85816874cb83a84eff9fd003f383abf",
+      "owner": "Organization",
+      "authors90d": 3,
+      "authors180d": 3,
+      "lastCommit": "2026-08-28",
+      "activity": {
+        "days": 90,
+        "authors": 2
+      },
+      "packageManager": "bun",
+      "found": ["versioned-url"],
+      "versions": ["v18.0"],
+      "fbInit": [],
+      "affected": ["retired-version"],
+      "provider": "meta"
+    },
+    {
+      "repo": "digitalideastudio/node-facebook-api",
+      "commit": "374e7c02d3ad4c6d77de90c2b7582107c2e1f762",
+      "stars": 4,
+      "provider": "meta"
+    },
+    {
+      "repo": "arvitaly/fbapi",
+      "commit": "9cafe63763c9430a4df7faea0bebdefc7574318e",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "radi-dev/whatsapp-cloud-bot-ts",
+      "commit": "b4f233f75574bc6a65f86260add67aaee79b845e",
+      "stars": 2,
+      "provider": "meta"
+    },
+    {
+      "repo": "managed-components/facebook-pixel",
+      "commit": "a59662a6d97c0ee46b9e3fa4f67fe0798369f8c9",
+      "stars": 12,
+      "provider": "meta"
+    },
+    {
+      "repo": "cofacts/rumors-api",
+      "commit": "56da259e494e827ed6a35252ef904dcd05363adb",
+      "stars": 118,
+      "provider": "meta"
+    },
+    {
+      "repo": "ibrica/chatbot-demo",
+      "commit": "a55da4b9d2f1ec1bc47502faf324cc40d2da42b7",
+      "stars": 12,
+      "provider": "meta"
+    },
+    {
+      "repo": "ArtJustine/scheduler",
+      "commit": "adca4f6c11d0a9735c9f4fe7a76f8f9b63566ac5",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "Tisik79/MCP-Facebook",
+      "commit": "2ebfbc931bd74fad60271f2abc8dd7eb36b4c78f",
+      "stars": 13,
+      "provider": "meta"
+    },
+    {
+      "repo": "NextFaze/instagram-graph-sdk",
+      "commit": "b3b4f84aec7c0bd15d8ba3dfe6ad2d83f830d3f9",
+      "stars": 8,
+      "provider": "meta"
+    },
+    {
+      "repo": "jamalsoueidan/convex-whatsapp-superchat",
+      "commit": "06264939290b737d4f0141162d7cad19a85c0dca",
+      "stars": 17,
+      "provider": "meta"
+    },
+    {
+      "repo": "emingure/whatsapp-business-api-ts",
+      "commit": "739279ec8e36ca66baefdbab7c46b1cb0d871990",
+      "stars": 16,
+      "provider": "meta"
+    },
+    {
+      "repo": "crisboarna/fb-messenger-bot-api",
+      "commit": "6e7851b9196bc5b14388c5fa29587aa11e452d95",
+      "stars": 34,
+      "provider": "meta"
+    },
+    {
+      "repo": "ronzeidman/ng2-ui-auth-example",
+      "commit": "32447faa4f3821c53c40732726173c3e9c7b9665",
+      "stars": 34,
+      "provider": "meta"
+    },
+    {
+      "repo": "triggerdotdev/api-reference",
+      "commit": "cbf46e28cc5a807f0e96738677c0d059665de5bb",
+      "stars": 9,
+      "provider": "meta"
+    },
+    {
+      "repo": "OmarKhled/Tafakor",
+      "commit": "1929a6f0f436cc0e2c9e8a909aeddcf5105ec4e9",
+      "stars": 10,
+      "provider": "meta"
+    },
+    {
+      "repo": "appseed-io/ionic2-oauth",
+      "commit": "e5f82a50c114fcbe7f10cc64a53cc558a924c5d3",
+      "stars": 15,
+      "provider": "meta"
+    },
+    {
+      "repo": "JHammerZ/jhammerz.github.io",
+      "commit": "79e5c06bd9934c5942fb5fdd9d0b8bdc6adf504e",
+      "stars": 6,
+      "provider": "meta"
+    },
+    {
+      "repo": "madebyais/nextjs-antd-tailwindcss",
+      "commit": "6123f83b2c6ef2afee6dda78937aa8fce57b0321",
+      "stars": 17,
+      "provider": "meta"
+    },
+    {
+      "repo": "yogendra-08/healthbridge_portal",
+      "commit": "32c71d161f550c73128c4ac9a9ca7bafccb6aacb",
+      "stars": 18,
+      "provider": "meta"
+    },
+    {
+      "repo": "Bin-Huang/meta-ads-open-cli",
+      "commit": "79fa7cb71c022192689ecd0fa3ac1e6c1e0183be",
+      "stars": 4,
+      "provider": "meta"
+    },
+    {
+      "repo": "Sup3r-Us3r/zap-bot",
+      "commit": "3bf0a0d312718ac724077c19d3b9a8b444bf35cb",
+      "stars": 6,
+      "provider": "meta"
+    },
+    {
+      "repo": "likecoin/likecoin-api-public",
+      "commit": "4d21b58999b4b9b4dca171534e59db025400395a",
+      "stars": 5,
+      "provider": "meta"
+    },
+    {
+      "repo": "MathSocUNSW/mathsoc-website",
+      "commit": "88fb51d6cc887f2c2ad4bc8b225318d70c2e349e",
+      "stars": 6,
+      "provider": "meta"
+    },
+    {
+      "repo": "cloudio-saas/cypress-upload-to-workchat-action-new",
+      "commit": "b1e1a5789fd0c508e689f66005d66ecc4a42362f",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "AlfonzAlfonz/czech-civilwar-bot",
+      "commit": "fca1a3ed0b9b3797d98d5f90bcb3edb55adf6f03",
+      "stars": 4,
+      "provider": "meta"
+    },
+    {
+      "repo": "libyzxy0/facebook-page-bot",
+      "commit": "0a56e23d4e4046e4489c2507899fe8fa36531a30",
+      "stars": 4,
+      "provider": "meta"
+    },
+    {
+      "repo": "PeretzNiro/whatsapp-campaign-sender",
+      "commit": "cf3c53cd6d7c2042c71d7e5b72b16204d80293e8",
+      "stars": 2,
+      "provider": "meta"
+    },
+    {
+      "repo": "ShoopiApp/whatsapp-cloud-api-responder",
+      "commit": "a9276ae03038e426779cc441a4a13977135aeedd",
+      "stars": 2,
+      "provider": "meta"
+    },
+    {
+      "repo": "Rockstar100/commerce-insights-agent",
+      "commit": "50b3be1702baa50f8037b4b2d88a7eb88f08fec9",
+      "stars": 2,
+      "provider": "meta"
+    },
+    {
+      "repo": "peterkimzz/rest-oauth2",
+      "commit": "ccafbabb090510c3b95fb16c332424c84b1859a7",
+      "stars": 3,
+      "provider": "meta"
+    },
+    {
+      "repo": "SimonGaufreteau/badnet-tournament-bot",
+      "commit": "330c87570ef6da96a0a1da27aca748fb22c2eaf3",
+      "stars": 2,
+      "provider": "meta"
+    },
+    {
+      "repo": "SolutioneersInfotech/Bizwapp",
+      "commit": "9f13eb8386732b42756f35a5a446be9513e82da3",
+      "stars": 2,
+      "provider": "meta"
+    },
+    {
+      "repo": "lutsiu/deyan",
+      "commit": "5f22cad96ace231b8f5ebf78a8f3e8e32f3bbad3",
+      "stars": 3,
+      "provider": "meta"
+    },
+    {
+      "repo": "Thanh25102/what-app-integrate",
+      "commit": "5f73b5d19159a18bfbd4b98155a814362a3e15f9",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "berviantoleo/fb-experiment",
+      "commit": "2c10c924e07aa621d682da618a15002f1812bb31",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "sergiobanhos/whatsapp-api-sdk",
+      "commit": "219d6ab457abe768b22704dcda37dd0b75284807",
+      "stars": 2,
+      "provider": "meta"
+    },
+    {
+      "repo": "EusebioSimango/ChatBot",
+      "commit": "e7cfeafff8e75f7adec527e016a0c93fd89b8734",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "florianldt/workplace-action",
+      "commit": "1d67f38ef13e184783a867666b37366083eace63",
+      "stars": 2,
+      "provider": "meta"
+    },
+    {
+      "repo": "chcikrasu/client-ionic",
+      "commit": "fd893ecb07a1cdcdbab7ee6e939058d40303fcd4",
+      "stars": 1,
+      "provider": "meta"
+    },
+    {
+      "repo": "NubScript7/Google-Gemini-Messenger-Chatbot",
+      "commit": "7bbd7d8d8a3fe63553f3ccafed1ccb8be1ac9a8f",
+      "stars": 1,
+      "provider": "meta"
+    },
+    {
+      "repo": "ptnkchat/ptnkchat",
+      "commit": "ddf5bd1339e95b7a7234a90fefc8bca540ba422a",
+      "stars": 6,
+      "provider": "meta"
+    },
+    {
+      "repo": "iamd2epak/WhatsappBulkMessagePanel",
+      "commit": "4c36d2f1a926594f7db99c635231d28df26d5aac",
+      "stars": 2,
+      "provider": "meta"
+    },
+    {
+      "repo": "vanjaoljaca/vanjacloud.remote",
+      "commit": "f8637278a1e7b8c87cbc5c701398252f3ddc1e93",
+      "stars": 2,
+      "provider": "meta"
+    },
+    {
+      "repo": "3ngk1sha/chatbot_google",
+      "commit": "4b68e547ad72b23012aadde3a676c89878761812",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "TinkeringBrains1/WhiteNoteAI",
+      "commit": "ca4d7c757ef84e294ac67ca886ef0c0b039234f5",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "ELIASSED/bot-test",
+      "commit": "1e72abf4b623e5484e3cb760f2292c0d148163e4",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "Chrismiller122580/msg-nexus-ai",
+      "commit": "1401743701d2442e9ae7022a456d4491c4a7b14a",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "Quiago/dochis",
+      "commit": "62f3c3e5c55f9e296ed7b26fbe4af7d3ccd19a2b",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "Xtley001/AmplifyIT",
+      "commit": "a2cc9f4daef56981d5038f5bd17a45d96ad656be",
+      "stars": 1,
+      "provider": "meta"
+    },
+    {
+      "repo": "zeus777ia/nymvox",
+      "commit": "1ce00298c5ea6e83a227c37fdf482678b329de97",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "AhsenKurtoski/axsends",
+      "commit": "f996e762055041ab35d9e3543917968ba10f7e95",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "thaleslaray/smartzap",
+      "commit": "17c69e2ffb0e3d7f0e8375a285d7992e24747a82",
+      "stars": 24,
+      "provider": "meta"
+    },
+    {
+      "repo": "dpmm99/Towngardia",
+      "commit": "23aabacf0b79e29274b6d96a4cef6c0f811a3bac",
+      "stars": 10,
+      "provider": "meta"
+    },
+    {
+      "repo": "jrlandre/mynutri-app",
+      "commit": "6cd9e1977ea7536acfc9e891a3ada530810fa23e",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "herbertww/tukang-concierge",
+      "commit": "9fafea725d46ff7fa8bfa84c5b7a9bac4eb26a76",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "Fishachthon2018/Fishbot",
+      "commit": "29f7796a73c90c2cf2ce67e352a71eb526ad608a",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "sanjeevs9/apiMetaHONO",
+      "commit": "c00b93e3eedb52d1926ed91c6f5abe3739492a08",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "CazadorHT/realestate-crm",
+      "commit": "3f4582b6197dfba5b8c50f1926ba155ad3594aa4",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "praphul09/kk",
+      "commit": "2e55d7d73d7e710f2e15131305ac44d2021d7c62",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "arulagrawal/i_hate_voice_notes",
+      "commit": "18aeef87b160cacc3b239fb34cfb75f661259fd8",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "LakshAgrawal28/CreatorOS",
+      "commit": "6eee911bd9aaf90e6d670dc0ff736a8a1678b394",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "Souvlaki42/diagoras-ikarias",
+      "commit": "964c75731d21cb6eb1bb6fef67ee2aaf843890e6",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "Choizapp/choiz-meta-ads-mcp",
+      "commit": "6300075729401efe41a81780360dc9ac735e875b",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "bahadirk5/VacayNook",
+      "commit": "7ea04b5edfb34c5fb999b7a7f3d2e3dc554b7f40",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "Mouhamet99/AdafriOnePage",
+      "commit": "2194cf348fa002029da6b076c7de94545c36feec",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "akshayr96/staart-api",
+      "commit": "19fcdef36296662747ea6af8cc69250d184d828d",
+      "stars": 2,
+      "provider": "meta"
+    },
+    {
+      "repo": "isildur1-2020/meta-ads-archive-extractor",
+      "commit": "74b1fb9dd084793c85a06c9ac50276418ba32b77",
+      "stars": 2,
+      "provider": "meta"
+    },
+    {
+      "repo": "vishnumouli/ping-pilot",
+      "commit": "fca1e6ed665e145b6f9b354ec542e48b2f1631dc",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "Hashino/whatsapp-ai-backend",
+      "commit": "cd3cf3f567e434b3220f56675b90614beb947d4d",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "hossainsolyman534-lang/Drop-Rate",
+      "commit": "4efa92e832639a184304a58a082f6b20d6ce15e1",
+      "stars": 0,
+      "provider": "meta"
+    },
+    {
+      "repo": "ngrx/platform",
+      "commit": "54a0817f29e49c006e9d09aa8e365649657cd519",
+      "stars": 8341,
+      "provider": "github"
+    },
+    {
+      "repo": "soroushchehresa/awesome-coronavirus",
+      "commit": "37fd2b1180cd976ea42f755a7f27f722d2cc1aea",
+      "stars": 1574,
+      "provider": "github"
+    },
+    {
+      "repo": "danger/danger-js",
+      "commit": "72540533c4f99bad772ba303be0eb4af6eddbdc4",
+      "stars": 5520,
+      "provider": "github"
+    },
+    {
+      "repo": "postlight/parser",
+      "commit": "e8ba7ece291efa4d915d50dd4deeec17d54359f2",
+      "stars": 5785,
+      "provider": "github"
+    },
+    {
+      "repo": "mxschmitt/action-tmate",
+      "commit": "7a47031e0b4a52c4e72f1b5ab2b123f8063a5a67",
+      "stars": 3591,
+      "provider": "github"
+    },
+    {
+      "repo": "antiwork/shortest",
+      "commit": "45a8dcfe89992b37ed2dfb1f76618048cff0f45c",
+      "stars": 5707,
+      "provider": "github"
+    },
+    {
+      "repo": "Laboratoria/curriculum",
+      "commit": "772b7261257b0d95357fcbb6608e100728910276",
+      "stars": 486,
+      "provider": "github"
+    },
+    {
+      "repo": "github/combine-prs",
+      "commit": "82b0dbba469f5bdb52b774c5279c89e34d2c6a0a",
+      "stars": 157,
+      "provider": "github"
+    },
+    {
+      "repo": "nextify-limited/libra",
+      "commit": "454e5c45fb5406e69d12f290b489236870f2beb0",
+      "stars": 1710,
+      "provider": "github"
+    },
+    {
+      "repo": "lobehub/lobe-chat-agents",
+      "commit": "ba090ca25a0981107589568210b056f427c1c843",
+      "stars": 1255,
+      "provider": "github"
+    },
+    {
+      "repo": "kiwicom/orbit",
+      "commit": "126c4060f5897f88dec3c7c96f54675f6bf1af4d",
+      "stars": 1437,
+      "provider": "github"
+    },
+    {
+      "repo": "coleam00/remote-agentic-coding-system",
+      "commit": "ad60e90631bd73296d22ffbf730cc38096cf2f05",
+      "stars": 355,
+      "provider": "github"
+    },
+    {
+      "repo": "veithly/BountyBoard",
+      "commit": "25c95b9e9c072babf42935611f4c9359d14ff2a8",
+      "stars": 908,
+      "provider": "github"
+    },
+    {
+      "repo": "stkb/Rewrap",
+      "commit": "6a27098e20baf95759c621a5cc1cd9b3fedbd9ed",
+      "stars": 552,
+      "provider": "github"
+    },
+    {
+      "repo": "denis-sokolov/remove-github-forks",
+      "commit": "70aa3349c5fd65b5acd3faed5fc3e6b4c6aebe00",
+      "stars": 284,
+      "provider": "github"
+    },
+    {
+      "repo": "fimbullinter/wotan",
+      "commit": "e25bf84561562935584a47220af5c996d6b746e7",
+      "stars": 280,
+      "provider": "github"
+    },
+    {
+      "repo": "rewbs/sd-parseq",
+      "commit": "12e91260ea2c6cb853d974ca3b6e9aef87511207",
+      "stars": 387,
+      "provider": "github"
+    },
+    {
+      "repo": "aporia-ai/mlops.toys",
+      "commit": "9d942251e203d86cf3224dcded6ece6e9d17f946",
+      "stars": 187,
+      "provider": "github"
+    },
+    {
+      "repo": "babelcloud/LLM-RGB",
+      "commit": "30bc7434aef504afecd22aba9643bf107483f7a4",
+      "stars": 165,
+      "provider": "github"
+    },
+    {
+      "repo": "hiteshchoudhary/gitbackup",
+      "commit": "de8ebd0696d718d298d1e736adbbbe3e0ff13e4e",
+      "stars": 363,
+      "provider": "github"
+    },
+    {
+      "repo": "skyline-emu/skyline-bot",
+      "commit": "0778b1d2f90a171a53e02e0630b663c687daca9b",
+      "stars": 49,
+      "provider": "github"
+    },
+    {
+      "repo": "beepboopbangbang/githoard",
+      "commit": "37157838c3ee1140c1f4f17ff58f8422f62be250",
+      "stars": 140,
+      "provider": "github"
+    },
+    {
+      "repo": "unbounce/iidy",
+      "commit": "f93793a7df136ca50a97dd24d26e08eed9e5d8a0",
+      "stars": 54,
+      "provider": "github"
+    },
+    {
+      "repo": "syntaxfm/dex",
+      "commit": "3f55b2a3ec9746fc56cf62037ca6a828555ce17d",
+      "stars": 412,
+      "provider": "github"
+    },
+    {
+      "repo": "halo-dev/upage",
+      "commit": "f5bb335f726fa27758f2544f1bcfeaf7fa755aef",
+      "stars": 558,
+      "provider": "github"
+    },
+    {
+      "repo": "w3c/validate-repos",
+      "commit": "6c90c8c99cb6951d0666ade94191502c5f697f66",
+      "stars": 22,
+      "provider": "github"
+    },
+    {
+      "repo": "iFixit/pulldasher",
+      "commit": "155510945f19d1b27739d5ce2505d2d3b196e19c",
+      "stars": 37,
+      "provider": "github"
+    },
+    {
+      "repo": "nullpointer/fund-crawler",
+      "commit": "0d7bfb8bb0e5a37374675e1c80d46649c385ff5f",
+      "stars": 79,
+      "provider": "github"
+    },
+    {
+      "repo": "EsunR/clash-sub-builder",
+      "commit": "bc5a90e0d5f82f7a80048f55265aecccf2c63279",
+      "stars": 162,
+      "provider": "github"
+    },
+    {
+      "repo": "factorialco/gat",
+      "commit": "70f59d177d678d407a339a7baf8e7083e4a1df71",
+      "stars": 15,
+      "provider": "github"
+    },
+    {
+      "repo": "jdcargile/ms-teams-notification",
+      "commit": "28e5ca976c053d54e2b852f3f38da312f35a24fc",
+      "stars": 89,
+      "provider": "github"
+    },
+    {
+      "repo": "microsoft/TypeScript-repos-automation",
+      "commit": "760a16dde25b38c5a48f39097a79d46307a3504f",
+      "stars": 21,
+      "provider": "github"
+    },
+    {
+      "repo": "holmityd/GitHub-Issues-Discord-Threads-Bot",
+      "commit": "047816472cff0276ae7a74a1446eb18550d1aaff",
+      "stars": 67,
+      "provider": "github"
+    },
+    {
+      "repo": "autero1/action-terragrunt",
+      "commit": "74740e6fbc585ea4ec7f3e73b5004d7035c4eae3",
+      "stars": 62,
+      "provider": "github"
+    },
+    {
+      "repo": "azu/git-commit-push-via-github-api",
+      "commit": "308dc245939077e161f9c3f9051733e0f2e20152",
+      "stars": 62,
+      "provider": "github"
+    },
+    {
+      "repo": "pmd/pmd-github-action",
+      "commit": "e437795e6760134d4f306df4ab35edf298a42d70",
+      "stars": 52,
+      "provider": "github"
+    },
+    {
+      "repo": "opensumi/actions",
+      "commit": "56b508b55eda9a53f4af3123a42323ccc1d55172",
+      "stars": 5,
+      "provider": "github"
+    },
+    {
+      "repo": "intuit/commently",
+      "commit": "4ce106ccac891ec6817e8127be02554716ef66e7",
+      "stars": 59,
+      "provider": "github"
+    },
+    {
+      "repo": "mrgoonie/claudekit-cli",
+      "commit": "07d8c24f084f1ce73907c508a71e77516abe0a9a",
+      "stars": 114,
+      "provider": "github"
+    },
+    {
+      "repo": "github/audit-actions-workflow-runs",
+      "commit": "6b5471d62ed9b3a752d33270ded4c16522ecedb5",
+      "stars": 92,
+      "provider": "github"
+    },
+    {
+      "repo": "uesteibar/reviewer-lottery",
+      "commit": "3c9b63ea22c4d74336ea95ca4aeeab856ca2c037",
+      "stars": 43,
+      "provider": "github"
+    },
+    {
+      "repo": "electron/github-app-auth",
+      "commit": "74563a545948b364f2861f8688cd3c8c4a7ec34d",
+      "stars": 16,
+      "provider": "github"
+    },
+    {
+      "repo": "meetuparchive/mwp-cli",
+      "commit": "ce1cd7e93683f86cdcd2f317d114de456ee1baed",
+      "stars": 2,
+      "provider": "github"
+    },
+    {
+      "repo": "tkellogg/target-practice",
+      "commit": "816764a2c9c6c8347ff210bd0e3bd5e6efacb3e9",
+      "stars": 17,
+      "provider": "github"
+    },
+    {
+      "repo": "line/webpack.kr",
+      "commit": "b68094939c873d2ff6186d9ca092985cd44f8672",
+      "stars": 93,
+      "provider": "github"
+    },
+    {
+      "repo": "datopian/metastore-lib-js",
+      "commit": "c1f266748ee69b56e7f8cd4d2bdcbc7be2bdb159",
+      "stars": 6,
+      "provider": "github"
+    },
+    {
+      "repo": "unikraft/docs",
+      "commit": "3dd0f39593e2ec435a1e7f1a366280b52714cc6b",
+      "stars": 42,
+      "provider": "github"
+    },
+    {
+      "repo": "bowtie-co/houndstooth-ui",
+      "commit": "7b856427feb4561fc76175c9f7eda3a65eb7475e",
+      "stars": 22,
+      "provider": "github"
+    },
+    {
+      "repo": "danielbeardsley/cimpler",
+      "commit": "35258c17e49ba018029445bea7d11937bb6c41fb",
+      "stars": 20,
+      "provider": "github"
+    },
+    {
+      "repo": "Legion2/swagger-ui-action",
+      "commit": "2fe8d98577bfc41ee74ce0a63743afe30421955d",
+      "stars": 59,
+      "provider": "github"
+    },
+    {
+      "repo": "ouuan/This-repo-has-x-stars-y-forks-action",
+      "commit": "354e0093b290e0a8c02019504c7453aa57afa15c",
+      "stars": 58,
+      "provider": "github"
+    },
+    {
+      "repo": "dakota-kallas/DeskThing-GitHub",
+      "commit": "6b84b8a2dfbdb35af1c91ba6277ebd313965182b",
+      "stars": 6,
+      "provider": "github"
+    },
+    {
+      "repo": "prosvita/QIRIMTATARTILI",
+      "commit": "28a9c34b0a97023c657f0c7cd12f30ec9932ecf2",
+      "stars": 8,
+      "provider": "github"
+    },
+    {
+      "repo": "NianJiuZst/openmeta-cli",
+      "commit": "da5048c25b845c651c00175bce87d22c8a6a748c",
+      "stars": 57,
+      "provider": "github"
+    },
+    {
+      "repo": "neo4j-devtools/practicle",
+      "commit": "456657c576bc62caa211c56ca9f938e8211df3b2",
+      "stars": 5,
+      "provider": "github"
+    },
+    {
+      "repo": "Tyrrrz/Tyrrrz.me",
+      "commit": "6763ecd17a96880a1362b136c18b5cc398684974",
+      "stars": 24,
+      "provider": "github"
+    },
+    {
+      "repo": "amirfakhrullah/bloqdown",
+      "commit": "9926e01d727c491d5c28578013d041ee6f33e55a",
+      "stars": 24,
+      "provider": "github"
+    },
+    {
+      "repo": "deepagent-ltd/deepagent-code",
+      "commit": "87403bac1d4245b1388d18d66e94cefaa1aef591",
+      "stars": 429,
+      "provider": "github"
+    },
+    {
+      "repo": "decentralizedlabs/pr-codex",
+      "commit": "18c4ec18a761849ce9b744f99252e9bfe0498fc0",
+      "stars": 91,
+      "provider": "github"
+    },
+    {
+      "repo": "kokororin/vscode-phpfmt",
+      "commit": "74dd303ac1b2a74406a50bb313b0e33eda523c99",
+      "stars": 146,
+      "provider": "github"
+    },
+    {
+      "repo": "DAVFoundation/organization-contributors",
+      "commit": "1c67bac4dc927f84a5829fa4e508a456aabe9919",
+      "stars": 21,
+      "provider": "github"
+    },
+    {
+      "repo": "yujiosaka/knowhub",
+      "commit": "1f45d052bf053267a65d7673e83b252db25972b6",
+      "stars": 41,
+      "provider": "github"
+    },
+    {
+      "repo": "VeriTeknik/pluggedin-app",
+      "commit": "a65f1ff2c8998d97a48f161a557b82f07d3d99ab",
+      "stars": 102,
+      "provider": "github"
+    },
+    {
+      "repo": "actions-ecosystem/action-create-comment",
+      "commit": "2d454408d85bd2179062b5cdec3ca153dee48096",
+      "stars": 37,
+      "provider": "github"
+    },
+    {
+      "repo": "azu/get-github-pr-review-comments",
+      "commit": "2b26ec9d091dd0a6daf945248b36dd72e91dfff7",
+      "stars": 17,
+      "provider": "github"
+    },
+    {
+      "repo": "vignetteapp/vignette-web",
+      "commit": "7ab3c7acf55a4e2016f30109e3fede1260f34345",
+      "stars": 17,
+      "provider": "github"
+    },
+    {
+      "repo": "saucelabs/saucectl-run-action",
+      "commit": "3696b4e2091e15c8479fc4bc009351b2801ac85d",
+      "stars": 11,
+      "provider": "github"
+    },
+    {
+      "repo": "issue-db/issue-db",
+      "commit": "b052acbd6bf3849b5cba432640cd09d5825a9a3c",
+      "stars": 68,
+      "provider": "github"
+    },
+    {
+      "repo": "Arslan-MD/ArslanMD-Mini-Bot",
+      "commit": "eaa6fa0d3c40b2ec593b795bf24dfa44d22e4af5",
+      "stars": 18,
+      "provider": "github"
+    },
+    {
+      "repo": "simwrapper/simwrapper",
+      "commit": "85c2286cbfb73b1f85f732cec8a556797107f32d",
+      "stars": 47,
+      "provider": "github"
+    },
+    {
+      "repo": "johnlindquist/ghx",
+      "commit": "751c34ff617f612e05c4f7e051353b7dc69b5acb",
+      "stars": 60,
+      "provider": "github"
+    },
+    {
+      "repo": "Mayur-Pagote/README_Design_Kit",
+      "commit": "a0ef9215443a2b5289686aaec76a0628a1549686",
+      "stars": 121,
+      "provider": "github"
+    },
+    {
+      "repo": "azu/korefile",
+      "commit": "670e36b110c4ebce8e861d13a64faa6a716719af",
+      "stars": 30,
+      "provider": "github"
+    },
+    {
+      "repo": "roberteggl/expo-github-cache",
+      "commit": "3eb2ad5c6cf82c6ca0fdb0d6ef9d04fee801381a",
+      "stars": 28,
+      "provider": "github"
+    },
+    {
+      "repo": "mdluo/goodreads-box",
+      "commit": "4d7ad3d34aaa1ecddfa5cb41295e32232ae30e25",
+      "stars": 27,
+      "provider": "github"
+    },
+    {
+      "repo": "zirkelc/AdaGPT",
+      "commit": "26c2e5ca0913cba7395fe155c51622668efa3f59",
+      "stars": 13,
+      "provider": "github"
+    },
+    {
+      "repo": "canva-public/rocketbot",
+      "commit": "7d343d903f8a2a2f30491f7b2518a09db4a8da19",
+      "stars": 24,
+      "provider": "github"
+    },
+    {
+      "repo": "AlbertoCruzLuis/awesome-buildspace",
+      "commit": "ba3a533124503cf203235779513371540ccaebae",
+      "stars": 12,
+      "provider": "github"
+    },
+    {
+      "repo": "nirholas/defi-agents",
+      "commit": "e6c8d55c64c2fb02a3c3f83ad9b3e715d230fba1",
+      "stars": 37,
+      "provider": "github"
+    },
+    {
+      "repo": "DeloitteDigitalUK/github-release-copier",
+      "commit": "9451bf8602b8bbef9805366050e21bb679ee95a5",
+      "stars": 0,
+      "provider": "github"
+    },
+    {
+      "repo": "CBIIT/yeti",
+      "commit": "b989f76a8712a450fac090551975693afc2f4bb9",
+      "stars": 7,
+      "provider": "github"
+    },
+    {
+      "repo": "ruvnet/aihl",
+      "commit": "8e80355b595cbc534f0f5f2097f978b0dfefc332",
+      "stars": 20,
+      "provider": "github"
+    },
+    {
+      "repo": "tbartelmess/analyze-xcoderesults-action",
+      "commit": "88440e1eb4012ff0bd29639b13d78311afbef837",
+      "stars": 21,
+      "provider": "github"
+    },
+    {
+      "repo": "hipstersmoothie/create-check",
+      "commit": "c95ee6bfff50c1e444bf32cfff7fe293b36887b9",
+      "stars": 19,
+      "provider": "github"
+    },
+    {
+      "repo": "lukasbach/github-takeout",
+      "commit": "231010ea6bb6d2fa34ee8449b45940bb36ce57f9",
+      "stars": 22,
+      "provider": "github"
+    },
+    {
+      "repo": "fingerprintjs/dx-team-toolkit",
+      "commit": "e8931e30d08e1ec1bd7cbbfc4f81d3ca627b48ee",
+      "stars": 3,
+      "provider": "github"
+    },
+    {
+      "repo": "kunalnagarco/action-cve",
+      "commit": "0445d337cea5799408481eff87ca308c4cfa6aab",
+      "stars": 34,
+      "provider": "github"
+    },
+    {
+      "repo": "LambdaTest/wdio-lambdatest-service",
+      "commit": "35317c3a674454a218085f3e9bf57f453739c15e",
+      "stars": 9,
+      "provider": "github"
+    },
+    {
+      "repo": "globalbibletools/platform",
+      "commit": "fa61bbea5f5b421bb6dad9de062dfaf126b6e2e5",
+      "stars": 43,
+      "provider": "github"
+    },
+    {
+      "repo": "bsmi021/mcp-gemini-server",
+      "commit": "8e449d13adb13a4e8de5b1d27a125921a4eb7eb2",
+      "stars": 36,
+      "provider": "github"
+    },
+    {
+      "repo": "Safe-Wallet-Custom-Secure-dApp/Gnosis_vault-",
+      "commit": "698463d7c2b3e269b86efc15044f5ab8cc24fc88",
+      "stars": 2,
+      "provider": "github"
+    },
+    {
+      "repo": "tech-flow-org/TechFlow",
+      "commit": "8f007ace6048e3376d436843e57d258deda20a4c",
+      "stars": 95,
+      "provider": "github"
+    },
+    {
+      "repo": "AndrewLawendy/css-guru",
+      "commit": "612307dc9f7f20d04303e384b9a554c208d2b187",
+      "stars": 14,
+      "provider": "github"
+    },
+    {
+      "repo": "xbunny-md/LION-GUARD",
+      "commit": "80d762612455973bdd45b1b616f9f7ee5e178029",
+      "stars": 0,
+      "provider": "github"
+    },
+    {
+      "repo": "actions-cool/This-repo-has-12-stars-7-forks",
+      "commit": "426f921a3a1dc0047dd7155858a8d517b23402c3",
+      "stars": 13,
+      "provider": "github"
+    },
+    {
+      "repo": "sparkbox/carbon-cli",
+      "commit": "e47fcdecd3ac39f1fe161170e951133bf09a667a",
+      "stars": 1,
+      "provider": "github"
+    },
+    {
+      "repo": "AustinKelsay/plebdevs",
+      "commit": "1e90ccf381f35677f69f579a5a5370280bce6492",
+      "stars": 7,
+      "provider": "github"
+    },
+    {
+      "repo": "Draco-lang/draco-lang.org",
+      "commit": "6c07a42117d5a28572c66151b7bcdc1c2ed63ec7",
+      "stars": 4,
+      "provider": "github"
+    },
+    {
+      "repo": "elastic/elastic-ramen",
+      "commit": "4ff6593862a469a4a21d8c29f72395fa20fa6a4a",
+      "stars": 19,
+      "provider": "github"
+    },
+    {
+      "repo": "instantish/milestone-closer",
+      "commit": "d8e6a2c8be7d26938c13fb56852a5c8b2f51dbf8",
+      "stars": 11,
+      "provider": "github"
+    },
+    {
+      "repo": "star-history/star-history",
+      "commit": "8f5608175d95aa224c656e8b4efa55ed094b889f",
+      "stars": 9780,
+      "provider": "github"
+    },
+    {
+      "repo": "EuroEval/EuroEval",
+      "commit": "6b9d201edecdd7e2d744f7f04ba42ad1e714916d",
+      "stars": 206,
+      "provider": "github"
+    },
+    {
+      "repo": "TronIsHere/vibefarsiui",
+      "commit": "889cccfbcc15a5c923cd07b1b981afcb360a3761",
+      "stars": 279,
+      "provider": "github"
+    },
+    {
+      "repo": "goreleaser/goreleaser-action",
+      "commit": "3d82dc1587053cd8272fa3801faaebfc2e8a12ac",
+      "stars": 1037,
+      "provider": "github"
+    },
+    {
+      "repo": "benc-uk/workflow-dispatch",
+      "commit": "78e99d70d9acaa4e2c98fe781b3cabda5df0228e",
+      "stars": 399,
+      "provider": "github"
+    },
+    {
+      "repo": "shadcn-labs/framecn",
+      "commit": "fd22510b6a2e889145061e3c45ce118c0304bbb9",
+      "stars": 165,
+      "provider": "github"
+    },
+    {
+      "repo": "mmiscool/BREP.io",
+      "commit": "f31bac25344cc885dcfc03d93f124b2d3b6b5cfd",
+      "stars": 263,
+      "provider": "github"
+    },
+    {
+      "repo": "danielroe/goff",
+      "commit": "98f9ce0ef355edcb2c28089bd95d4206da686b8c",
+      "stars": 87,
+      "provider": "github"
+    },
+    {
+      "repo": "shadcn-labs/transition-kit",
+      "commit": "144fbcc4e9b126f4bc97c6ce40345386528b863a",
+      "stars": 104,
+      "provider": "github"
+    },
+    {
+      "repo": "CharanMunur/Portfolio",
+      "commit": "9daadbe1b00acc32dc98831f6cce60f522cfe1fc",
+      "stars": 114,
+      "provider": "github"
+    },
+    {
+      "repo": "alonronin/orbit",
+      "commit": "008bcf310446502c2665284ab879a2545d1a3cc5",
+      "stars": 36,
+      "provider": "github"
+    },
+    {
+      "repo": "openela/mothership",
+      "commit": "282547537f14bf6c8fb9328c0a5fe2a6eee5895c",
+      "stars": 14,
+      "provider": "github"
+    },
+    {
+      "repo": "0xVikasRushi/OpenIssueMonitor",
+      "commit": "840019d135b1d8413c5a0fab58e7fb51b87c4557",
+      "stars": 22,
+      "provider": "github"
+    },
+    {
+      "repo": "hiero-ledger/hiero-sdk-tck",
+      "commit": "67a9aa8f86a3394f07aacbd9f00fb2d38046e777",
+      "stars": 23,
+      "provider": "github"
+    },
+    {
+      "repo": "microsoft/setup-kiota",
+      "commit": "9065e1935223e41b2d8d7c4a47f66d0c77beca7f",
+      "stars": 13,
+      "provider": "github"
+    },
+    {
+      "repo": "iShibi/Leet2Hub",
+      "commit": "ed943273760ecb26aff9984917983a012c6160cd",
+      "stars": 21,
+      "provider": "github"
+    },
+    {
+      "repo": "Fallomai/github-reviewer",
+      "commit": "8e962cb51d49d7405493100d6b886620fc6f3c13",
+      "stars": 34,
+      "provider": "github"
+    },
+    {
+      "repo": "Cloudflare-Studio/ask-bonk",
+      "commit": "2c20fe37255d2e0e186fb0e16dd2c5704e4116cf",
+      "stars": 272,
+      "provider": "github"
+    },
+    {
+      "repo": "cgservices/latest-successful-release",
+      "commit": "a95330141373f9d1e385c8e2924f48d14276014f",
+      "stars": 1,
+      "provider": "github"
+    },
+    {
+      "repo": "sigoden/rag-crawler",
+      "commit": "d9d31a32108225a93cbd62676c05fa7aa5cbb74f",
+      "stars": 55,
+      "provider": "github"
+    },
+    {
+      "repo": "opsless/ms-teams-github-actions",
+      "commit": "80c7fab12f98e6f40702566cd57d8ac8e5f5e548",
+      "stars": 38,
+      "provider": "github"
+    },
+    {
+      "repo": "Plattnericus/Stargazer_Tree",
+      "commit": "12c6707892e1145c6b8d3bf98e72fb67eba61a20",
+      "stars": 25,
+      "provider": "github"
+    },
+    {
+      "repo": "Codex-/return-dispatch",
+      "commit": "dd352db2be5d18e1b8e1731826d4a4c394e38b5f",
+      "stars": 70,
+      "provider": "github"
+    },
+    {
+      "repo": "nashaddams/audit",
+      "commit": "a2648649feaf46c5a3945c6b3ed7e06eb6a74605",
+      "stars": 5,
+      "provider": "github"
+    },
+    {
+      "repo": "neebs12/lambda-microvm-github-runner",
+      "commit": "de840743afbbe84761742f13c79e951363a8dbf1",
+      "stars": 12,
+      "provider": "github"
+    },
+    {
+      "repo": "hoangduy0610/repo-astral",
+      "commit": "ca0ea84096b9dd7643712899c9a2a9058814cb1d",
+      "stars": 16,
+      "provider": "github"
+    },
+    {
+      "repo": "fuma-nama/nextjs-fumadocs",
+      "commit": "0edd1f1931beb3847d1748f4bb06c6bbd1b285b8",
+      "stars": 21,
+      "provider": "github"
+    },
+    {
+      "repo": "lkonga/opencode-githubrepo-plugin",
+      "commit": "abe88d3634f7a4711240f05f60d21b57b45542f3",
+      "stars": 120,
+      "provider": "github"
+    },
+    {
+      "repo": "connor-baer/astro-loader-github-repos",
+      "commit": "4a9081d6ac69f5fb71a6c6d281e4b9d447b67eb8",
+      "stars": 9,
+      "provider": "github"
+    },
+    {
+      "repo": "dx-corp/agent-pm",
+      "commit": "5ec3f7dc611fdd96ee282cb563378c379eeeb4bf",
+      "stars": 9,
+      "provider": "github"
+    }
+  ]
+}
