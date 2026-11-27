@@ -30,13 +30,12 @@ import { gitCheckout } from './checkout.ts';
 import type { DevSet } from '../sets/index.ts';
 import { BudgetLedger } from './budget.ts';
 import { ConfigError, parseFlags, parseRunConfig } from './config.ts';
+import { anyProviderWatcher } from '../../providers/core/any-watcher.ts';
 import { loadRealPipeline, type AnyProviderWatcher } from './real.ts';
 import { runSet } from './run.ts';
 
-// Watches providers with no folder in providers/ (the Anthropic, Gemini and long-tail sets). Unset
-// until F4's anyProviderWatcher merges; then this line becomes
-//   import { anyProviderWatcher as watchAny } from '../../providers/core/any-watcher.ts';
-const watchAny: AnyProviderWatcher | undefined = undefined;
+// Watches providers with no folder in providers/ (the Anthropic, Gemini and long-tail sets).
+const watchAny: AnyProviderWatcher = anyProviderWatcher;
 
 /** The providers a set's repos use: the set's own, or each entry's in a mixed set. */
 export function setProviders(set: Pick<DevSet, 'provider' | 'repos'>): string[] {
