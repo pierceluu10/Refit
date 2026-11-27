@@ -48,3 +48,23 @@ export function loadDevSet(name: string, dir = DEV_DIR): DevSet {
   }
   return set;
 }
+
+/** The first `limit` repos taken round-robin by provider, so a small run covers every provider. */
+export function sampleSet(set: DevSet, limit: number): DevSet {
+  const byProvider = new Map<string, RepoEntry[]>();
+  for (const entry of set.repos) {
+    const provider = String(entry.provider ?? set.provider);
+    byProvider.set(provider, [...(byProvider.get(provider) ?? []), entry]);
+  }
+  const queues = [...byProvider.values()];
+  const repos: RepoEntry[] = [];
+  for (
+    let round = 0;
+    repos.length < limit && queues.some((queue) => round < queue.length);
+    round++
+  ) {
+    for (const queue of queues)
+      if (round < queue.length && repos.length < limit) repos.push(queue[round]);
+  }
+  return { ...set, repos };
+}

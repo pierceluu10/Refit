@@ -51,7 +51,22 @@ export function parseRunConfig(flags: Record<string, string | true>): RunConfig 
       throw new ConfigError('--shard must be a repo index');
     }
   }
+  let limit: number | undefined;
+  if (flags.limit !== undefined) {
+    limit = requiredNumber(flags, 'limit');
+    if (!Number.isInteger(limit) || limit < 1) {
+      throw new ConfigError('--limit must be a positive integer');
+    }
+  }
   const outDir = typeof flags.out === 'string' ? flags.out : 'evals/results';
   const watchCache = typeof flags['watch-cache'] === 'string' ? flags['watch-cache'] : undefined;
-  return { set, budgetUsd, concurrency, shard, outDir, ...(watchCache ? { watchCache } : {}) };
+  return {
+    set,
+    budgetUsd,
+    concurrency,
+    shard,
+    ...(limit ? { limit } : {}),
+    outDir,
+    ...(watchCache ? { watchCache } : {}),
+  };
 }

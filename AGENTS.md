@@ -1,59 +1,31 @@
-# Agent guide
+# Contributing
 
-This repository holds Refit: software that never falls behind. Refit is a GitHub App. When anything outside a team's control changes (runtimes, frameworks, libraries, security advisories, AI models, third-party APIs, container images, CI, Kubernetes, serverless and cloud, platforms, rules and regulations), Refit finds the affected code, fixes it, proves the fix and opens a PR. It was briefly renamed Aptitude on 2026-11-01 and went back to Refit on 2026-11-05. The old deterministic engine stays in git history; don't port it back. `MVP-PLAN.md` is the current plan. `REFIT-PLAN.md` is the plan it builds on.
-
-## AI-first: the rule above all others
-
-An AI agent does the understanding, deciding and editing. Code exists to give it tools, context and a way to check its work.
-
-- Let the model read and reason: reading code, understanding dependency and API usage, reading changelogs, deciding whether a change matters, planning and editing.
-- Parsers, scanners, validators and codemods are tools the agent may call to go faster or check itself. Never gates.
-- Every task ends in a PR or a "not affected" verdict, with an honest note on what's unproven. Never a silent stop.
-- Guidance lives in prompts, playbooks and memory, not in `if` statements.
-- When the agent is unsure, it tries anyway and says so in the PR.
-
-Reject these in review:
-
-- a hand-written rule that decides whether a repo, file or change is "supported";
-- any branch that ends a task without an attempt (`stop`, `refuse`, `skip`, "separate reviewed change");
-- a fixed list of patterns as the only way to find dependency or API usage;
-- AI calls shaped as "answer yes or no, decline if unsure";
-- "cautious" defaults that make the agent do less.
-
-The only hard limits, enforced in code:
-
-1. Untrusted repo code runs only in the sandbox.
-2. A run-level dollar cap.
-3. PRs only. Never push to the default branch, never merge.
-4. Never print or commit secrets.
-
-Rules and regulations: Refit never claims code is "compliant" and never gives legal advice. Rule PRs are needs-review and list what a person must confirm.
+Refit is a GitHub App that keeps an organization's code up to date with the external APIs and dependencies it uses: it finds the affected code, migrates it, proves the change in a sandbox and opens a PR. See [README.md](README.md) for the overview.
 
 ## Where things live
 
-| Folder          | What lives there                                                                                                                                        |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `orchestrator/` | The end-to-end loop, the match agent, the scan report, the CLI and the queue                                                                            |
-| `harness/`      | The migration agent: system prompt, tools, sandbox, budget ledger, PR writer. `harness/proof/` holds proof for platform and rule changes                |
-| `memory/`       | Run records, recipe extraction, retrieval, skill promotion, self-eval                                                                                   |
-| `app/`          | The GitHub App: install webhooks, org and repo sync, PR opener, verdicts                                                                                |
-| `inventory/`    | The codebase-understanding agent that produces `ApiUsage[]` and `DependencyUsage[]`. `inventory/surfaces/` finds platform and regulated surfaces        |
-| `providers/`    | Watchers for every change source, knowledge, tool packs, playbooks. `providers/upgrades/` holds upgrade tools, `providers/platforms/` platform watchers |
-| `compliance/`   | The rules and regulations agent and the audit trail                                                                                                     |
-| `evals/`        | Repo sets, the benchmark runner, scoring, hand-checks                                                                                                   |
-| `shared/`       | `types.ts`, the contract every folder codes against, and `models.ts`, the model layer                                                                   |
-| `src/`          | The website and dashboard (`public/` and `index.html` belong with it)                                                                                   |
+| Folder          | What lives there                                                                        |
+| --------------- | --------------------------------------------------------------------------------------- |
+| `app/`          | The GitHub App: install webhooks, org and repo sync, job queue, PR opener, verdicts     |
+| `orchestrator/` | The end-to-end loop, the match agent, the scan report and the `refit` CLI               |
+| `inventory/`    | The codebase-understanding agent that produces `ApiUsage[]` and `DependencyUsage[]`     |
+| `providers/`    | Watchers, knowledge, tool packs and playbooks per provider, plus upgrades and platforms |
+| `harness/`      | The migration agent: system prompt, tools, Docker sandbox, checks, PR writer            |
+| `memory/`       | Run records, recipe extraction, per-organization retrieval, skill promotion             |
+| `compliance/`   | The rules agent and the audit trail                                                     |
+| `evals/`        | Repo sets, the eval runner, scoring and the PR reviewer                                 |
+| `shared/`       | `types.ts`, the contract every package codes against                                    |
+| `src/`          | The dashboard (`public/` and `index.html` belong with it)                               |
 
-`shared/types.ts` is the contract. Change it additively only; agree breaking changes with the founders first. Code against the entry-point types, with a local stub until the real module lands. Each workspace adds its dependencies to its own `package.json`, not the root.
+`shared/types.ts` is the contract; change it additively. Each workspace adds its dependencies to its own `package.json`.
 
-## AI spend
+## Rules enforced in code
 
-- Every real model run needs a dollar cap in `REFIT_AI_BUDGET_USD`. A run without one refuses to spend.
-- The founders approve benchmark budgets. Don't start a real benchmark without that approval and a cap.
+1. Repo code runs only in the sandbox.
+2. Every run that calls a model has a dollar cap.
+3. PRs only: never push to a default branch, never merge.
+4. Never print or commit secrets. Only `.env.example` is tracked.
 
-## Working rules
+## Before committing
 
-- Keep the design system in `DESIGN.md`. Polish, don't redesign, unless asked.
-- Never commit environment files. Only `.env.example`, with no secrets, is tracked. The repository is intended to become public.
-- Label illustrative examples. Don't invent customers, metrics or passing checks.
-- Run typecheck, format check, tests and build before committing. Use conventional commit messages with no co-author trailers.
+Run `npm run typecheck`, `npm run format:check`, `npm test` and `npm run build`. Use Conventional Commits.

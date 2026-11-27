@@ -1,6 +1,6 @@
 // Benchmark runner CLI.
 //
-//   node evals/runner/cli.ts run --set <dev set> --budget-usd <cap> --concurrency <n> [--shard <i>] [--out <dir>] [--watch-cache <dir>]
+//   node evals/runner/cli.ts run --set <dev set> --budget-usd <cap> --concurrency <n> [--shard <i>] [--limit <n>] [--out <dir>] [--watch-cache <dir>]
 //   node evals/runner/cli.ts watch --set <dev set> --budget-usd <cap> --watch-cache <dir>
 //   node evals/runner/cli.ts matrix --set <dev set> --budget-usd <total cap>
 //   node evals/runner/cli.ts score --in <dir> [--reviews evals/reviews.json] [--report <file>]
@@ -11,7 +11,7 @@
 // whole path, use `npm run smoke -w evals`.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { loadDevSet } from '../sets/index.ts';
+import { loadDevSet, sampleSet } from '../sets/index.ts';
 import { formatReport, readResults, scoreResults } from '../scoring/score.ts';
 import {
   handCheckSummary,
@@ -82,7 +82,8 @@ export async function main(argv: string[]): Promise<number> {
   const flags = parseFlags(rest);
   if (command === 'run') {
     const config = parseRunConfig(flags);
-    const set = loadDevSet(config.set);
+    const full = loadDevSet(config.set);
+    const set = config.limit ? sampleSet(full, config.limit) : full;
     const startedAt = new Date().toISOString();
     const real = await loadRealPipeline(config.budgetUsd, {
       watchAny,

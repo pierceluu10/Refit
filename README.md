@@ -1,109 +1,133 @@
 <p align="center">
-  <img src="public/refit-agent-avatar.png" alt="Refit logo" width="96" height="96" />
+  <img src=".github/logo.png" alt="Refit" width="88" height="88" />
 </p>
-<h1 align="center">Refit</h1>
-<p align="center"><strong>Software that never falls behind.</strong></p>
 
-Refit is a GitHub App for an organization. Code goes stale because things outside the team's control keep changing: language runtimes reach end of life, frameworks and libraries ship breaking majors, security advisories land, AI models are retired, third-party APIs change, base images and CI actions are deprecated, Kubernetes, serverless and cloud platforms move on, and rules and regulations take effect. Refit reads each codebase, finds what it depends on, watches all of those sources, and when something changes it finds the affected code, fixes it in a sandbox, proves the fix and opens a draft PR. It learns from every outcome.
+<h1 align="center">Refit</h1>
+
+<p align="center">
+  <strong>An AI agent that keeps your code up to date with every API you depend on.</strong>
+</p>
+
+<p align="center">
+  <a href="#quick-start">Quick start</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="#supported-providers">Providers</a> ·
+  <a href="#architecture">Architecture</a>
+</p>
+
+<p align="center">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white" />
+  <img alt="Node 22+" src="https://img.shields.io/badge/node-22%2B-339933?logo=node.js&logoColor=white" />
+  <img alt="Docker" src="https://img.shields.io/badge/sandbox-Docker-2496ED?logo=docker&logoColor=white" />
+  <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-black" />
+</p>
+
+---
+
+APIs change under you. Shopify retires an Admin API version every quarter, Stripe pins you to an API date, OpenAI retires models, Meta expires Graph API versions. Refit watches those changes, finds the code they break, rewrites it, proves the fix builds and passes your tests, and opens a pull request.
+
+Install it once as a GitHub App. It reads every repo in your organization, remembers how your team fixed things before, and gets faster and cheaper with every merged PR.
+
+## Features
+
+- **Understands your code.** An agent maps every external API call in each repo: provider, SDK or raw HTTP/GraphQL, pinned version and call site.
+- **Watches providers.** Reads changelogs, API specs, SDK releases and deprecation notices, and records each change with a quote from the source.
+- **Migrates the code.** Edits a copy of the repo with provider-specific tools: GraphQL schema validation for Shopify, API-version diffs for Stripe, model lookups for OpenAI.
+- **Proves it works.** Runs install, type check, build and tests in an isolated Docker sandbox, before and after the change. A PR only opens once nothing new breaks.
+- **Remembers your company.** Every merged fix becomes a recipe, embedded with [Voyage](https://www.voyageai.com/) `voyage-code-3`. Your organization's own past fixes are retrieved first, so the next migration starts from how your team already does it.
+- **Opens a reviewable PR.** One branch per change, explaining what changed, why, the proof and anything left unproven. It never pushes to your default branch.
+- **Upgrades dependencies too.** End-of-life runtimes, framework majors, SDK majors, base images and CI actions go through the same loop.
+
+## Supported providers
+
+| Provider    | What Refit migrates                                                                                              |
+| ----------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Shopify** | Admin GraphQL version upgrades, REST to GraphQL, deprecated fields and mutations, webhook topics, app SDK majors |
+| **Stripe**  | API version upgrades, removed parameters and fields, Checkout and Billing changes, `stripe` SDK majors           |
+| **OpenAI**  | Model retirements, Chat Completions and Assistants to Responses, SDK majors                                      |
+| **Meta**    | Graph API and Marketing API version expiries, removed metrics and fields, Business SDK majors                    |
+| **Twilio**  | Product end-of-life, API path versions, helper library majors                                                    |
+| **GitHub**  | REST API versions, GraphQL breaking changes, Octokit majors, Actions runner images                               |
 
 ## How it works
 
-1. **Install.** An org admin installs the GitHub App on all or selected repos.
-2. **Scan.** An agent reads each repo and writes an inventory of every dependency and API it uses: runtimes, frameworks, libraries, AI models, third-party APIs, container images, CI, platforms, and the surfaces a rule may touch. It re-reads on every push.
-3. **Watch.** Watchers read changelogs, release notes, end-of-life calendars, advisories and deprecation notices for every change source, and record each change with a source link and quote.
-4. **Match.** An agent decides which changes touch which dependencies and call sites, and why. Changes that don't apply become "not affected" items with a reason.
-5. **Report.** A "what's behind" report lists every finding by deadline, then severity, then impact.
-6. **Migrate and prove.** The harness agent edits a sandboxed copy of the repo. It runs the type check, build and tests before and after, counting only new failures, and calls validators. The outcome is verified or needs-review.
-7. **Ship.** A draft PR on a branch says what changed, why, the proof, what's unproven and any behaviour change.
-8. **Learn.** Memory records every run and the human verdict on its PR. Successful runs become recipes later runs retrieve.
-9. **Audit.** Every step is written to an audit trail with its evidence.
+```text
+ install ──▶ understand ──▶ watch ──▶ match ──▶ migrate ──▶ prove ──▶ open PR ──▶ learn
+   │             │            │         │          │           │          │          │
+ GitHub App   API usage    provider  change ×   agent edits  Docker:   branch +   merged
+ on your org  map per repo changelogs call site  a sandboxed  build +   proof in   fixes become
+                                                 copy         tests     the body   recipes
+```
 
-Rules and regulations are handled with care. Refit never claims code is "compliant" and never gives legal advice. A rule PR is always needs-review and lists what a person must confirm.
-
-## AI-first
-
-The agent does the understanding, deciding and editing. Code gives it tools, context and checks. Parsers, scanners and validators are tools, never gates. Every task ends in a PR or a "not affected" verdict with an honest note on what's unproven, never a silent stop. See [AGENTS.md](AGENTS.md).
-
-The only hard limits, enforced in code:
-
-1. Untrusted repo code runs only in the sandbox.
-2. A run-level dollar cap.
-3. PRs only. Never push to the default branch, never merge.
-4. Never print or commit secrets.
-
-## Workspaces
-
-| Folder          | What lives there                                                                                    |
-| --------------- | --------------------------------------------------------------------------------------------------- |
-| `orchestrator/` | The end-to-end loop, the match agent, the scan report, the CLI and the queue                        |
-| `harness/`      | The migration agent: prompt, tools, sandbox, budget ledger, PR writer, and proof (`harness/proof/`) |
-| `memory/`       | Run records, recipe extraction, retrieval, skill promotion, self-eval                               |
-| `app/`          | The GitHub App: install webhooks, org and repo sync, PR opener, verdicts                            |
-| `inventory/`    | The codebase-understanding agent: `ApiUsage[]`, `DependencyUsage[]` and surfaces                    |
-| `providers/`    | Watchers for every change source, knowledge, tool packs and playbooks                               |
-| `compliance/`   | The rules and regulations agent and the audit trail                                                 |
-| `evals/`        | Repo sets, the benchmark runner, scoring, hand-checks                                               |
-| `shared/`       | `types.ts`, the contract every folder codes against, and `models.ts`, the model layer               |
-| `src/`          | The website and dashboard                                                                           |
-
-The plan is in [MVP-PLAN.md](MVP-PLAN.md), building on [REFIT-PLAN.md](REFIT-PLAN.md).
+1. **Install** the GitHub App on your organization.
+2. **Understand.** Refit reads each repo and builds a map of every external API it calls. It re-reads on every push.
+3. **Watch.** Provider watchers read changelogs and specs and record each breaking change.
+4. **Match.** An agent decides which changes affect which call sites, and ranks the work by deadline.
+5. **Migrate.** The Claude-powered harness edits the code with file, shell and provider tools, guided by your organization's recipes.
+6. **Prove.** Build, type check and tests run in Docker before and after. Only new failures count.
+7. **Ship.** A PR with the diff, the source of the change, the proof and what still needs a human eye.
+8. **Learn.** Your verdict on the PR (merged, edited or closed) feeds back into memory.
 
 ## Quick start
 
-Requires Node.js 22.12+ or a supported newer release.
+Requires Node.js 22.12+ and Docker.
 
 ```sh
+git clone https://github.com/pierceluu10/Refit.git
+cd Refit
 npm ci
+cp .env.example .env   # add ANTHROPIC_API_KEY, and VOYAGE_API_KEY for memory
 ```
 
-Scan one or more local repos and see what's behind:
+Scan a repo for the APIs it uses and what's changed:
 
 ```sh
-node orchestrator/cli.ts scan --repo <path> [--repo <path> ...] [--out report.json]
+npx refit scan --repo ../your-repo
 ```
 
-This prints a "what's behind" table (deadline, severity, dependency, version → target, change, status) and writes the `ScanReport` JSON.
-
-Run the whole loop, including upgrade tasks:
+Migrate it and open PRs (add `--dry-run` to stop before the PR):
 
 ```sh
-node orchestrator/cli.ts run --repo <path> [--dry-run] [--out runs.jsonl]
+npx refit run --repo ../your-repo
 ```
 
-`--dry-run` stops before opening PRs.
+To run Refit as a GitHub App for your organization, see [app/SETUP.md](app/SETUP.md).
 
-Without `ANTHROPIC_API_KEY`, the CLI runs offline: fixture stubs stand in for every AI part, and the output says so. With the key, `REFIT_AI_BUDGET_USD` is required, and the run refuses to start without it. Every part the orchestrator runs draws on that one cap.
+## Evals
 
-To try it offline on the illustrative sample repos:
-
-````sh
-node orchestrator/cli.ts scan --repo orchestrator/fixtures/samples/demo-node-api
-``` For example (illustrative values):
+`evals/` holds Refit's eval harness: frozen sets of real public repos, a runner that takes each one through the full pipeline, scoring, and an AI reviewer for the PRs it opens. The main set, `six-providers-780`, pins 130 repos for each provider to an exact commit.
 
 ```sh
-REFIT_AI_BUDGET_USD=2 ANTHROPIC_API_KEY=... node orchestrator/cli.ts run --repo ../some-repo --dry-run
-````
-
-Copy [.env.example](.env.example) for the full list of variables. Never commit a filled-in env file.
-
-## Run the website
-
-```sh
-npm ci
-npm run dev
+node evals/sets/build-six.ts                         # rebuild the 780-repo set from GitHub
+node evals/runner/cli.ts run --set six-providers-780 --limit 10 --concurrency 2 --budget-usd 10
 ```
 
-## Checks
+## Architecture
 
-CI runs these, and so should you before committing:
+```text
+refit/
+├── app/            GitHub App: webhooks, org and repo sync, job queue, PR opener
+├── orchestrator/   The end-to-end loop, the match agent and the `refit` CLI
+├── inventory/      Codebase-understanding agent that produces the API usage map
+├── providers/      One folder per provider: watcher, knowledge, tools and playbooks
+├── harness/        The migration agent: prompt, tools, Docker sandbox, checks, PR writer
+├── memory/         Run records, recipe extraction, Voyage retrieval, skill promotion
+├── evals/          Repo sets, benchmark runner, scoring and the PR reviewer
+├── shared/         types.ts, the contract every package codes against
+└── src/            The web dashboard
+```
+
+Built with TypeScript, the [Claude Agent SDK](https://docs.anthropic.com/en/docs/claude-code/sdk), Voyage embeddings, Docker and the GitHub App APIs.
+
+## Development
 
 ```sh
 npm run typecheck
-npm run format:check
 npm test
+npm run format:check
 npm run build
 ```
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+[MIT](LICENSE)

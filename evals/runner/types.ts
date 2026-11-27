@@ -74,6 +74,8 @@ export type RunConfig = {
   concurrency: number;
   /** Run only this index of the set (one GitHub Actions shard). Omit to run every repo. */
   shard?: number;
+  /** Run only this many repos, taken round-robin across the set's providers. Omit to run every repo. */
+  limit?: number;
   outDir: string;
   /**
    * Where provider reads are cached for the UTC day. Shards point it at the cache a single
