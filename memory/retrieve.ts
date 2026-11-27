@@ -78,6 +78,7 @@ const PICK_SCHEMA = {
 const PICK_SYSTEM = `You advise an engineer who is about to change code because something outside it changed: an API, or a runtime, framework, library, AI model, base image or CI version that is retiring or has a new major.
 From notes left by past verified runs, choose the ones worth reading before starting.
 A note from another provider, dependency or version range can still help when the change has the same shape (for example a node 16 → 20 note for a node 18 → 22 upgrade, or a Django note for a Flask upgrade that hits the same Python change).
+Prefer notes from this organization's own repos when they fit: they already match its code and conventions.
 Order picks from most to least useful and say in one sentence why each helps.
 Return an empty list only if none of the notes would help.`;
 
@@ -115,8 +116,13 @@ export function createRetriever(deps: {
 
     return (
       recipes
-        .map((recipe) => ({ recipe, score: cosine(taskVector, recipe.embedding!.vector) }))
-        .sort((a, b) => b.score - a.score)
+        .map((recipe) => ({
+          recipe,
+          own: fromSameClient(recipe, task),
+          score: cosine(taskVector, recipe.embedding!.vector),
+        }))
+        // Per-client memory: fixes verified in this organization's own repos come before everyone else's.
+        .sort((a, b) => Number(b.own) - Number(a.own) || b.score - a.score)
         // A small store goes to the model whole; embeddings only shortlist once it is too big to read.
         .slice(0, recipes.length <= judgeAllUpTo ? recipes.length : candidates)
         .map(({ recipe }) => recipe)
@@ -130,6 +136,7 @@ export function createRetriever(deps: {
         `Provider: ${recipe.provider}, kind: ${kindOf(recipe)}`,
         ...(recipe.ranges?.length ? [`Upgrades: ${recipe.ranges.join(', ')}`] : []),
         `Active skill: ${recipe.skill?.status === 'active' ? 'yes' : 'no'}; ${track(recipe)}`,
+        `From this organization's own repos: ${fromSameClient(recipe, task) ? 'yes' : 'no'}`,
         `Preconditions: ${recipe.preconditions}`,
         `Steps: ${recipe.steps}`,
         `Pitfalls: ${recipe.pitfalls}`,
@@ -168,6 +175,13 @@ export function createRetriever(deps: {
       return [];
     }
   };
+}
+
+const ownerOf = (repo: string) => repo.split('/')[0].toLowerCase();
+
+export function fromSameClient(recipe: MemoryRecipe, task: AnyTask): boolean {
+  const owner = ownerOf(task.repo);
+  return recipe.repos.some((repo) => ownerOf(repo) === owner);
 }
 
 // How a recipe has fared, for a model to weigh. A count to read, never a filter.

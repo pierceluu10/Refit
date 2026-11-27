@@ -66,6 +66,30 @@ describe('createRetriever', () => {
     expect(ids).toHaveLength(3);
   });
 
+  it("puts this organization's own fixes ahead of a closer match from another organization", async () => {
+    const elsewhere = makeRecipe({ repos: ['other-org/api'] });
+    const own = { ...openai, repos: ['example-org/billing'] };
+    const judge = fakeModel([]);
+    await createRetriever({
+      store: await storeWith(elsewhere, own),
+      embedder: new LocalEmbedder(),
+      model: judge.model,
+    })(makeTask());
+    const ids = (
+      await createRetriever({
+        store: await storeWith(elsewhere, own),
+        embedder: new LocalEmbedder(),
+      })(makeTask())
+    ).map((recipe) => recipe.id);
+    expect(ids).toEqual(['recipe-openai-model', 'recipe-stripe-charges']);
+    expect(judge.requests[0].prompt).toMatch(
+      /recipe-openai-model[\s\S]*From this organization's own repos: yes/,
+    );
+    expect(judge.requests[0].prompt).toMatch(
+      /recipe-stripe-charges[\s\S]*From this organization's own repos: no/,
+    );
+  });
+
   it('caches recipe embeddings on the recipe', async () => {
     const local = new LocalEmbedder();
     const embedder = { name: local.name, embed: vi.fn((texts: string[]) => local.embed(texts)) };
